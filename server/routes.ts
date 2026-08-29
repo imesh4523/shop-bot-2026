@@ -3254,6 +3254,73 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number)
   });
 };
 
+const sendPurchaseSuccessScreen = async (
+  targetBot: TelegramBot,
+  chatId: number,
+  orderId: number | string,
+  productName: string,
+  credentialContent: string
+) => {
+  const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>\n\n` +
+    `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> ${productName}</b>\n` +
+    `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order #${orderId}\n\n` +
+    `<b>Your item, easy to copy:</b>\n` +
+    `<code>${credentialContent}</code>\n\n` +
+    `Thank you for your purchase! If you have questions, contact support.\n` +
+    `A review would help us if everything went well.`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Leave a review',
+        callback_data: 'reviews',
+        style: 'success',
+        icon_custom_emoji_id: '5193009244940557703'
+      }
+    ],
+    [
+      {
+        text: 'Support',
+        callback_data: 'support',
+        style: 'primary',
+        icon_custom_emoji_id: '5208604387156448480'
+      },
+      {
+        text: 'My purchases',
+        callback_data: 'purchase_history',
+        style: 'primary',
+        icon_custom_emoji_id: '5854908544712707500'
+      }
+    ],
+    [
+      {
+        text: 'Main menu',
+        callback_data: 'main_menu',
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
+      }
+    ]
+  ] as any;
+
+  const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+
+  if (fs.existsSync(bannerPath)) {
+    try {
+      await targetBot.sendPhoto(chatId, bannerPath, {
+        caption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (e) { }
+  }
+
+  await targetBot.sendMessage(chatId, caption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
 const setupBotProfile = async (targetBot: TelegramBot) => {
   try {
     const miniAppUrlSetting = await storage.getSetting("MINI_APP_URL");
@@ -4582,13 +4649,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
         await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
 
-        const successMsg = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Purchase Successful!</b>\n\n` +
-          `Item: <b>${productName}</b>\n` +
-          `Quantity: <b>${qty} pcs</b>\n` +
-          `Total Paid: <b>$${totalUSD}</b>\n\n` +
-          `📦 <b>Your delivery details will be sent shortly automatically!</b>`;
+        const demoCredential = "https://serviceactivation.google.com/subscription/new/AQCpiIHdN6ACIzXLWgd3mZmPSpkYzL0-xZHoYVG6sdg_REsXHSRNhopET96MSFutLFPWNM12SgQHanxd73mQx9S-TkoAmbCYqgRUC09XgTsQB-WHKfOBJj5zRZ0VQ2Y3huosy3A9H63pEcefDVsCN1xeL0EB-24ZVSpZU4f-LAdxoBPAKr_NCwXyeTt76wxLsM0g-uCOGwHeElyUnpUK82CKdERCMDE5Zq2-aOiomiTLUxLoDhCS4PdRZUopfsrcmr89P3lC0dVc1EW_5Q==";
+        const randomOrderId = Math.floor(1000 + Math.random() * 9000);
 
-        await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML' });
+        try {
+          if (query.message) {
+            await targetBot.deleteMessage(chatId, query.message.message_id);
+          }
+        } catch (e) {}
+
+        await sendPurchaseSuccessScreen(targetBot, chatId, randomOrderId, productName, demoCredential);
         return;
       }
 
@@ -4639,6 +4709,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         };
 
         await targetBot.sendMessage(chatId, payMsg, { parse_mode: 'HTML', reply_markup: payKeyboard });
+        return;
+      }
+
+      if (data.startsWith('confirm_direct_pay_')) {
+        const parts = data.split('_');
+        const prodId = parts[3];
+        const qty = parseInt(parts[4]) || 1;
+
+        let productName = "Gemini Link 18 months";
+        const prodIdNum = parseInt(prodId);
+        if (!isNaN(prodIdNum)) {
+          const product = await storage.getProduct(prodIdNum);
+          if (product) {
+            productName = product.name;
+          }
+        }
+
+        const demoCredential = "https://serviceactivation.google.com/subscription/new/AQCpiIHdN6ACIzXLWgd3mZmPSpkYzL0-xZHoYVG6sdg_REsXHSRNhopET96MSFutLFPWNM12SgQHanxd73mQx9S-TkoAmbCYqgRUC09XgTsQB-WHKfOBJj5zRZ0VQ2Y3huosy3A9H63pEcefDVsCN1xeL0EB-24ZVSpZU4f-LAdxoBPAKr_NCwXyeTt76wxLsM0g-uCOGwHeElyUnpUK82CKdERCMDE5Zq2-aOiomiTLUxLoDhCS4PdRZUopfsrcmr89P3lC0dVc1EW_5Q==";
+        const randomOrderId = Math.floor(1000 + Math.random() * 9000);
+
+        try {
+          if (query.message) {
+            await targetBot.deleteMessage(chatId, query.message.message_id);
+          }
+        } catch (e) {}
+
+        await sendPurchaseSuccessScreen(targetBot, chatId, randomOrderId, productName, demoCredential);
         return;
       }
 
