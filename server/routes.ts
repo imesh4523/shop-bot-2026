@@ -3153,6 +3153,107 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
   });
 };
 
+const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number) => {
+  const infoCaption = `<tg-emoji emoji-id="5271604874419647061">🔗</tg-emoji> <b>Useful links</b>\n\n` +
+    `Guarantees, support, reviews, rules, and shop resources.`;
+
+  const inline_keyboard = [
+    [
+      { text: 'Guarantees', callback_data: 'guarantees', style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
+      { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }
+    ],
+    [
+      { text: 'Reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5193009244940557703' },
+      { text: 'Rules', callback_data: 'rules', style: 'primary', icon_custom_emoji_id: '5274099962655816924' }
+    ],
+    [
+      { text: 'Channel', callback_data: 'channel', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }
+    ],
+    [
+      { text: 'Main menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }
+    ]
+  ] as any;
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+
+  if (fs.existsSync(infoBannerPath)) {
+    try {
+      await targetBot.sendPhoto(chatId, infoBannerPath, {
+        caption: infoCaption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (err: any) { }
+  }
+
+  await targetBot.sendMessage(chatId, infoCaption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
+const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number) => {
+  const reviewsCaption = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b>Customer reviews</b>\n\n` +
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> Gemini Link 18 months</b>\n` +
+    `Все топ советую 👍\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Gor***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
+    `ета крута\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Sas***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321196473784773037">🤖</tg-emoji> Claude Pro 1 month CDK</b>\n` +
+    `все четко\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Покупатель ***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> Gemini Link 18 months</b>\n` +
+    `четко\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Покупатель ***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
+    `Ахуенная\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Ale***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
+    `Harika\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Ver***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5310259124817134249">🤖</tg-emoji> ChatGPT plus 1m FW</b>\n` +
+    `Just better\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> qyr***\n\n` +
+
+    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5310259124817134249">🤖</tg-emoji> ChatGPT plus 1m FW</b>\n` +
+    `Аккаунт не работает\n` +
+    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Inp***`;
+
+  const botUsername = (await targetBot.getMe().catch(() => ({ username: 'Imesh_cloud_bot' }))).username || 'Imesh_cloud_bot';
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Open reviews ↗',
+        url: `https://t.me/${botUsername}`,
+        style: 'success',
+        icon_custom_emoji_id: '5193009244940557703'
+      }
+    ],
+    [
+      {
+        text: 'Main menu',
+        callback_data: 'main_menu',
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
+      }
+    ]
+  ] as any;
+
+  await targetBot.sendMessage(chatId, reviewsCaption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
 const setupBotProfile = async (targetBot: TelegramBot) => {
   try {
     const miniAppUrlSetting = await storage.getSetting("MINI_APP_URL");
@@ -3644,13 +3745,60 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'useful_links') {
+        await sendUsefulLinksScreen(targetBot, chatId);
+        return;
+      }
+
+      if (data === 'reviews') {
+        await sendCustomerReviewsScreen(targetBot, chatId);
+        return;
+      }
+
+      if (data === 'guarantees') {
+        const guaranteesMsg = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Guarantees & Warranty</b>\n\n` +
+          `• 24-hour instant activation guarantee after purchase.\n` +
+          `• Full replacement or refund for non-working products!\n` +
+          `• 24/7 dedicated support team available for assistance.`;
+        const kb = {
+          inline_keyboard: [
+            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
+            [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
+          ] as any
+        };
+        await targetBot.sendMessage(chatId, guaranteesMsg, { parse_mode: 'HTML', reply_markup: kb });
+        return;
+      }
+
+      if (data === 'rules') {
+        const rulesMsg = `<tg-emoji emoji-id="5274099962655816924">❗</tg-emoji> <b>Store Rules & Terms</b>\n\n` +
+          `1. Always check purchased items within 24 hours of delivery.\n` +
+          `2. Do not change login credentials unless instructed.\n` +
+          `3. Keep your receipt and order ID when contacting support.`;
+        const kb = {
+          inline_keyboard: [
+            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
+            [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
+          ] as any
+        };
+        await targetBot.sendMessage(chatId, rulesMsg, { parse_mode: 'HTML', reply_markup: kb });
+        return;
+      }
+
+      if (data === 'channel' || data === 'support') {
         const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
         const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
-        const linksMsg = `📎 <b>Useful Links</b>\n\n` +
-          `👨‍💻 <b>Support Manager:</b> ${supportUsername}\n` +
-          `📢 <b>Store Channel:</b> ${supportUsername}\n\n` +
-          `Choose a section from the menu below.`;
-        await targetBot.sendMessage(chatId, linksMsg, { parse_mode: 'HTML' });
+        const botUsername = (await targetBot.getMe().catch(() => ({ username: 'Imesh_cloud_bot' }))).username || 'Imesh_cloud_bot';
+
+        const infoMsg = `<tg-emoji emoji-id="5208604387156448480">👨‍💻</tg-emoji> <b>Support & Community Channel</b>\n\n` +
+          `Support Manager: <b>${supportUsername}</b>\n` +
+          `Official Channel: <b>https://t.me/${botUsername}</b>`;
+        const kb = {
+          inline_keyboard: [
+            [{ text: 'Write to support', url: `https://t.me/${supportUsername.replace('@', '')}`, style: 'success' }],
+            [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
+          ] as any
+        };
+        await targetBot.sendMessage(chatId, infoMsg, { parse_mode: 'HTML', reply_markup: kb });
         return;
       }
 
