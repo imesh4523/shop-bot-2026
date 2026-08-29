@@ -2766,15 +2766,12 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     `Choose payment method:`;
 
   const inline_keyboard = [
-    [{ text: 'Add balance discount • 5451 P / 6...', callback_data: `apply_discount_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5409048419211682843' }],
     [{ text: 'Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
-    [{ text: 'Перевод по Binance UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+    [{ text: 'Binance UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
     [
       { text: 'USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' },
       { text: 'USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }
     ],
-    [{ text: 'Card / SBP / crypto', callback_data: `pay_crypto_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5409048419211682843' }],
-    [{ text: 'Pay with CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
     [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
     [{ text: 'Back', callback_data: `prod_${productId}`, style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
   ] as any;
