@@ -55,6 +55,8 @@ export const telegramUsers = pgTable("telegram_users", {
   doApiKey: text("do_api_key"),
   lastDropletId: text("last_droplet_id"),
   lastOfferBroadcastId: integer("last_offer_broadcast_id"),
+  selectedCurrency: text("selected_currency").notNull().default("USD"),
+  selectedLanguage: text("selected_language").notNull().default("en"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

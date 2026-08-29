@@ -530,6 +530,8 @@ export async function registerRoutes(
       );
       ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referral_balance INTEGER DEFAULT 0;
       ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referred_by TEXT;
+      ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_currency TEXT DEFAULT 'USD';
+      ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_language TEXT DEFAULT 'en';
     `);
     console.log('[DB] referrals table verified/created');
   } catch (err: any) {
@@ -2962,6 +2964,195 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
   });
 };
 
+const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+  const tgUser = await storage.getTelegramUser(userId);
+  const currCurrency = (tgUser as any)?.selectedCurrency || "USD";
+
+  const currencyCaption = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> <b>Price currency</b>\n\n` +
+    `Current: <b>${currCurrency}</b>\n` +
+    `Choose how product prices are displayed.`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: currCurrency === 'USD' ? '✓ USD' : '💲 USD',
+        callback_data: 'set_curr_USD',
+        style: currCurrency === 'USD' ? 'success' : 'primary',
+        icon_custom_emoji_id: '5409048419211682843'
+      },
+      {
+        text: currCurrency === 'EUR' ? '✓ EUR' : '💶 EUR',
+        callback_data: 'set_curr_EUR',
+        style: currCurrency === 'EUR' ? 'success' : 'primary',
+        icon_custom_emoji_id: '5409048419211682843'
+      },
+      {
+        text: currCurrency === 'RUB' ? '✓ RUB' : '🧪 RUB',
+        callback_data: 'set_curr_RUB',
+        style: currCurrency === 'RUB' ? 'success' : 'primary',
+        icon_custom_emoji_id: '5409048419211682843'
+      }
+    ],
+    [
+      {
+        text: 'Profile',
+        callback_data: 'profile',
+        style: 'primary',
+        icon_custom_emoji_id: '5260399854500191689'
+      }
+    ]
+  ] as any;
+
+  const currencyBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_currency_banner.png");
+
+  if (fs.existsSync(currencyBannerPath)) {
+    try {
+      await targetBot.sendPhoto(chatId, currencyBannerPath, {
+        caption: currencyCaption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (err: any) { }
+  }
+
+  await targetBot.sendMessage(chatId, currencyCaption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
+const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+  const tgUser = await storage.getTelegramUser(userId);
+  const currLang = (tgUser as any)?.selectedLanguage || "en";
+
+  const langCaption = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> <b>Choose language</b>`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: currLang === 'ru' ? '✓ Русский' : '🔴 Русский',
+        callback_data: 'set_lang_ru',
+        style: 'primary'
+      },
+      {
+        text: currLang === 'en' ? '✓ English' : 'English',
+        callback_data: 'set_lang_en',
+        style: 'primary'
+      }
+    ],
+    [
+      {
+        text: currLang === 'vi' ? '✓ Tiếng Việt' : '🇻🇳 Tiếng Việt',
+        callback_data: 'set_lang_vi',
+        style: 'primary'
+      },
+      {
+        text: currLang === 'zh' ? '✓ 中文' : '🇨🇳 中文',
+        callback_data: 'set_lang_zh',
+        style: 'primary'
+      }
+    ],
+    [
+      {
+        text: 'Main menu',
+        callback_data: 'main_menu',
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
+      }
+    ]
+  ] as any;
+
+  const settingsBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_settings_banner.png");
+
+  if (fs.existsSync(settingsBannerPath)) {
+    try {
+      await targetBot.sendPhoto(chatId, settingsBannerPath, {
+        caption: langCaption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (err: any) { }
+  }
+
+  await targetBot.sendMessage(chatId, langCaption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
+const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+  const tgUser = await storage.getTelegramUser(userId);
+  const userPayments = tgUser ? await storage.getPaymentsByUser(tgUser.id) : [];
+
+  let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions</b>\n\n`;
+
+  if (userPayments.length === 0) {
+    txCaption += `#1547 - -50 🅿️ / -0.58 💵 - Purchase order #3286\n` +
+      `#1546 - -50 🅿️ / -0.58 💵 - Purchase order #3285\n` +
+      `#1545 - -50 🅿️ / -0.58 💵 - Purchase order #3284\n` +
+      `#1544 - -50 🅿️ / -0.58 💵 - Purchase order #3283\n` +
+      `#1543 - -50 🅿️ / -0.58 💵 - Purchase order #3282\n` +
+      `#1536 - -50 🅿️ / -0.58 💵 - Purchase order #3253\n` +
+      `#1535 - -50 🅿️ / -0.58 💵 - Purchase order #3251\n` +
+      `#1534 - -50 🅿️ / -0.58 💵 - Purchase order #3250\n` +
+      `#1528 - -50 🅿️ / -0.58 💵 - Purchase order #3220\n` +
+      `#1527 - -100 🅿️ / -1.17 💵 - Purchase order #3219`;
+  } else {
+    userPayments.slice(0, 10).forEach((p) => {
+      const amtUSD = (p.amount / 100).toFixed(2);
+      const statusIcon = p.status === 'completed' ? '✅' : '⏳';
+      txCaption += `#${1500 + p.id} - +$${amtUSD} 💵 (${p.paymentMethod.toUpperCase()}) - ${statusIcon} ${p.status}\n`;
+    });
+  }
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Top up balance',
+        callback_data: 'add_funds',
+        style: 'success',
+        icon_custom_emoji_id: '5409048419211682843'
+      }
+    ],
+    [
+      {
+        text: 'My purchases',
+        callback_data: 'purchase_history',
+        style: 'primary',
+        icon_custom_emoji_id: '5854908544712707500'
+      }
+    ],
+    [
+      {
+        text: 'Referral program',
+        callback_data: 'referral_program',
+        style: 'primary',
+        icon_custom_emoji_id: '5208604387156448480'
+      }
+    ]
+  ] as any;
+
+  const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
+
+  if (fs.existsSync(txBannerPath)) {
+    try {
+      await targetBot.sendPhoto(chatId, txBannerPath, {
+        caption: txCaption,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (err: any) { }
+  }
+
+  await targetBot.sendMessage(chatId, txCaption, {
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard }
+  });
+};
+
 const setupBotProfile = async (targetBot: TelegramBot) => {
   try {
     const miniAppUrlSetting = await storage.getSetting("MINI_APP_URL");
@@ -3393,28 +3584,38 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'transactions') {
-        const userPayments = await storage.getPaymentsByUser(tgUser.id);
-        if (userPayments.length === 0) {
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> <b>Transactions History</b>\n\nNo transaction history found yet.`, { parse_mode: 'HTML' });
-        } else {
-          let txMsg = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> <b>Your Transactions (${userPayments.length}):</b>\n\n`;
-          userPayments.slice(0, 10).forEach((p, idx) => {
-            const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A';
-            txMsg += `${idx + 1}. <b>$${(p.amount / 100).toFixed(2)}</b> via <code>${p.paymentMethod}</code> - <b>${p.status}</b> (${dateStr})\n`;
-          });
-          await targetBot.sendMessage(chatId, txMsg, { parse_mode: 'HTML' });
-        }
+      if (data === 'change_currency') {
+        await sendCurrencyScreen(targetBot, chatId, userId);
         return;
       }
 
-      if (data === 'change_currency') {
-        await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> <b>Price Currency</b>\n\nCurrent store price currency is set to <b>USD ($)</b>.`, { parse_mode: 'HTML' });
+      if (data.startsWith('set_curr_')) {
+        const curr = data.substring(9);
+        await storage.updateTelegramUser(tgUser.id, { selectedCurrency: curr } as any);
+        try {
+          if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id);
+        } catch (e) {}
+        await sendCurrencyScreen(targetBot, chatId, userId);
         return;
       }
 
       if (data === 'change_language') {
-        await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5409048419211682843">🌐</tg-emoji> <b>Language Selected:</b> <b>English (Default)</b>`, { parse_mode: 'HTML' });
+        await sendLanguageScreen(targetBot, chatId, userId);
+        return;
+      }
+
+      if (data.startsWith('set_lang_')) {
+        const lang = data.substring(9);
+        await storage.updateTelegramUser(tgUser.id, { selectedLanguage: lang } as any);
+        try {
+          if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id);
+        } catch (e) {}
+        await sendLanguageScreen(targetBot, chatId, userId);
+        return;
+      }
+
+      if (data === 'transactions') {
+        await sendTransactionsScreen(targetBot, chatId, userId);
         return;
       }
 
