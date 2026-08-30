@@ -1648,8 +1648,18 @@ app.get(api.telegramUsers.list.path, isAuth, async (req, res) => {
 app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    const existingUser = await storage.getTelegramUser(id.toString());
     const input = api.telegramUsers.update.input.parse(req.body);
     const user = await storage.updateTelegramUser(id, input);
+
+    if (input.balance !== undefined && existingUser && input.balance > (existingUser.balance || 0)) {
+      const addedAmountUSD = (input.balance - (existingUser.balance || 0)) / 100;
+      const activeBot = await getBroadcastBot();
+      if (activeBot && user.telegramId) {
+        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, "Admin Web Top-up").catch(console.error);
+      }
+    }
+
     res.json(user);
   } catch (err) {
     console.error('Telegram user update error:', err);
@@ -3572,6 +3582,48 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, caption, { inline_keyboard }, messageId);
 };
 
+const DEPOSIT_SUCCESS_STICKER_FILE_ID = "CAACAgEAAxkBAAFTGmpqlGQ8wZBqct5LNz0nvcL6uOKAlwACBAADC9xoT_EZ7u4B_LCcPQQ";
+
+const sendDepositSuccessNotification = async (
+  targetBot: TelegramBot,
+  chatId: number | string,
+  amountUSD: number,
+  newBalanceUSD: number,
+  methodName: string,
+  txId?: string
+) => {
+  const tgUser = await storage.getTelegramUserByChatId(chatId.toString()) || await storage.getTelegramUser(chatId.toString());
+  const userLang = (tgUser as any)?.selectedLanguage || 'en';
+
+  const caption = `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> <b>Deposit Successful!</b>\n` +
+    `➖➖➖➖➖➖➖➖➖➖\n` +
+    `<tg-emoji emoji-id="5409048419211682843">💰</tg-emoji> Amount Credited: <b>+$${amountUSD.toFixed(2)} USD</b>\n` +
+    `<tg-emoji emoji-id="5370919202796348364">💳</tg-emoji> Payment Method: <b>${methodName}</b>\n` +
+    `${txId ? `<tg-emoji emoji-id="6276090299232031662">🧾</tg-emoji> Transaction ID: <code>${txId}</code>\n` : ''}` +
+    `➖➖➖➖➖➖➖➖➖➖\n` +
+    `<tg-emoji emoji-id="6032693626394382504">💎</tg-emoji> Your New Balance: <b>$${newBalanceUSD.toFixed(2)} USD</b>\n\n` +
+    `Thank you for trusting <b>Shopeefy</b>! Your balance has been updated automatically. ✨`;
+
+  const inline_keyboard = [
+    [
+      { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+      { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' }
+    ]
+  ] as any;
+
+  const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+
+  // Send beautiful deposit success banner
+  await sendOrEditScreenWithPhoto(targetBot, Number(chatId), paymentBannerPath, caption, { inline_keyboard });
+
+  // Send Animated Gift Sticker immediately after deposit message
+  try {
+    await targetBot.sendSticker(Number(chatId), DEPOSIT_SUCCESS_STICKER_FILE_ID);
+  } catch (err) {
+    console.error('[Sticker] Failed to send deposit gift sticker:', err);
+  }
+};
+
 const handleSupportIssue = async (
   targetBot: TelegramBot,
   chatId: number,
@@ -5156,9 +5208,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amount = parseFloat(parts[3]);
         const targetUser = await storage.getTelegramUser(targetUserId);
         if (targetUser) {
-          await storage.updateTelegramUser(Number(targetUserId), { balance: targetUser.balance + Math.round(amount * 100) });
-          targetBot.sendMessage(targetUser.telegramId, `✅ Your deposit of $${amount.toFixed(2)} has been approved!`);
-          targetBot.sendMessage(chatId, `✅ Approved deposit for ${targetUserId}`);
+          const newBalCents = (targetUser.balance || 0) + Math.round(amount * 100);
+          await storage.updateTelegramUser(Number(targetUserId), { balance: newBalCents });
+          await sendDepositSuccessNotification(targetBot, targetUser.telegramId, amount, newBalCents / 100, "Manual Approved Deposit");
+          targetBot.sendMessage(chatId, `✅ Approved deposit of $${amount.toFixed(2)} for ${targetUserId}`);
         }
         return;
       }
@@ -6192,8 +6245,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
             if (updatedPayment) {
               await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount} WHERE id = ${updatedPayment.telegramUserId}`);
-              await targetBot.answerCallbackQuery(query.id, { text: `✅ Payment verified! $${(updatedPayment.amount / 100).toFixed(2)} credited.`, show_alert: true }).catch(() => {});
-              await targetBot.sendMessage(chatId, `✅ <b>@CryptoBot Payment Verified!</b>\n\n💰 Credited: <b>$${(updatedPayment.amount / 100).toFixed(2)}</b> has been added to your balance. Thank you! 🤍`, { parse_mode: 'HTML' });
+              const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, updatedPayment.telegramUserId));
+              const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (updatedPayment.amount / 100);
+              await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, "@CryptoBot Invoice", paymentCheck.externalId);
 
               try {
                 if (query.message) {
@@ -6415,8 +6469,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                     .returning();
 
                   if (updatedPayment) {
-                    await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount} WHERE id = ${updatedPayment.telegramUserId}`);
-                    await targetBot.sendMessage(chatId, `✅ <b>Cryptomus Payment Verified!</b>\n\n💰 Credited: <b>$${(updatedPayment.amount / 100).toFixed(2)}</b> has been added to your balance. Thank you! 🤍`, { parse_mode: 'HTML' });
+                    const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, updatedPayment.telegramUserId));
+                    const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (updatedPayment.amount / 100);
+                    await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, "Cryptomus Pay", payment.cryptomusUuid);
 
                     try {
                       if (query.message) {
@@ -8680,13 +8735,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
             const activeBot = await getBroadcastBot();
             if (activeBot && user) {
-              await activeBot.sendMessage(
-                user.telegramId,
-                `✅ <b>@CryptoBot Payment Verified!</b>\n\n` +
-                `💰 Credited: <b>$${(updatedPayment.amount / 100).toFixed(2)}</b> has been added to your balance.\n` +
-                `Thank you! 🤍`,
-                { parse_mode: 'HTML' }
-              ).catch((err: any) => console.error("Failed to notify user:", err));
+              await sendDepositSuccessNotification(activeBot, user.telegramId, updatedPayment.amount / 100, user.balance / 100, "@CryptoBot Invoice", uuid).catch((err: any) => console.error("Failed to notify user:", err));
             }
 
             if (user) {
