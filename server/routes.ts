@@ -3081,11 +3081,12 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
 
 const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
   const tgUser = await storage.getTelegramUser(userId);
-  const userPayments = tgUser ? await storage.getPaymentsByUser(tgUser.id) : [];
+  const allOrders = await storage.getOrders();
+  const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
 
   let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions</b>\n\n`;
 
-  if (userPayments.length === 0) {
+  if (userOrders.length === 0) {
     txCaption += `#1547 - -50 🅿️ / -0.58 💵 - Purchase order #3286\n` +
       `#1546 - -50 🅿️ / -0.58 💵 - Purchase order #3285\n` +
       `#1545 - -50 🅿️ / -0.58 💵 - Purchase order #3284\n` +
@@ -3097,10 +3098,9 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
       `#1528 - -50 🅿️ / -0.58 💵 - Purchase order #3220\n` +
       `#1527 - -100 🅿️ / -1.17 💵 - Purchase order #3219`;
   } else {
-    userPayments.slice(0, 10).forEach((p) => {
-      const amtUSD = (p.amount / 100).toFixed(2);
-      const statusIcon = p.status === 'completed' ? '✅' : '⏳';
-      txCaption += `#${1500 + p.id} - +$${amtUSD} 💵 (${p.paymentMethod.toUpperCase()}) - ${statusIcon} ${p.status}\n`;
+    userOrders.slice(0, 10).forEach((o) => {
+      const amtUSD = (o.totalPrice / 100).toFixed(2);
+      txCaption += `#${1500 + o.id} - -$${amtUSD} 💵 - Purchase order #${3000 + o.id}\n`;
     });
   }
 
@@ -3150,7 +3150,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
   });
 };
 
-const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number) => {
+const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
   const infoCaption = `<tg-emoji emoji-id="5271604874419647061">🔗</tg-emoji> <b>Useful links</b>\n\n` +
     `Guarantees, support, reviews, rules, and shop resources.`;
 
@@ -3171,6 +3171,28 @@ const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number) => 
     ]
   ] as any;
 
+  if (messageId) {
+    try {
+      await targetBot.editMessageCaption(infoCaption, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (e: any) {
+      try {
+        await targetBot.editMessageText(infoCaption, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard }
+        });
+        return;
+      } catch (err) { }
+    }
+  }
+
   const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
 
   if (fs.existsSync(infoBannerPath)) {
@@ -3190,7 +3212,7 @@ const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number) => 
   });
 };
 
-const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number) => {
+const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
   const reviewsCaption = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b>Customer reviews</b>\n\n` +
     `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> Gemini Link 18 months</b>\n` +
     `Все топ советую 👍\n` +
@@ -3237,6 +3259,12 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number)
     ],
     [
       {
+        text: 'Useful links',
+        callback_data: 'useful_links',
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
+      },
+      {
         text: 'Main menu',
         callback_data: 'main_menu',
         style: 'primary',
@@ -3244,6 +3272,28 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number)
       }
     ]
   ] as any;
+
+  if (messageId) {
+    try {
+      await targetBot.editMessageCaption(reviewsCaption, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      });
+      return;
+    } catch (e: any) {
+      try {
+        await targetBot.editMessageText(reviewsCaption, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard }
+        });
+        return;
+      } catch (err) { }
+    }
+  }
 
   await targetBot.sendMessage(chatId, reviewsCaption, {
     parse_mode: 'HTML',
@@ -3809,12 +3859,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'useful_links') {
-        await sendUsefulLinksScreen(targetBot, chatId);
+        await sendUsefulLinksScreen(targetBot, chatId, query.message?.message_id);
         return;
       }
 
       if (data === 'reviews') {
-        await sendCustomerReviewsScreen(targetBot, chatId);
+        await sendCustomerReviewsScreen(targetBot, chatId, query.message?.message_id);
         return;
       }
 
@@ -3829,6 +3879,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
+        const msgId = query.message?.message_id;
+        if (msgId) {
+          try {
+            await targetBot.editMessageCaption(guaranteesMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+            return;
+          } catch (e) {
+            try {
+              await targetBot.editMessageText(guaranteesMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+              return;
+            } catch (err) {}
+          }
+        }
         await targetBot.sendMessage(chatId, guaranteesMsg, { parse_mode: 'HTML', reply_markup: kb });
         return;
       }
@@ -3844,6 +3906,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
+        const msgId = query.message?.message_id;
+        if (msgId) {
+          try {
+            await targetBot.editMessageCaption(rulesMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+            return;
+          } catch (e) {
+            try {
+              await targetBot.editMessageText(rulesMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+              return;
+            } catch (err) {}
+          }
+        }
         await targetBot.sendMessage(chatId, rulesMsg, { parse_mode: 'HTML', reply_markup: kb });
         return;
       }
@@ -3862,6 +3936,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
+        const msgId = query.message?.message_id;
+        if (msgId) {
+          try {
+            await targetBot.editMessageCaption(infoMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+            return;
+          } catch (e) {
+            try {
+              await targetBot.editMessageText(infoMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: kb });
+              return;
+            } catch (err) {}
+          }
+        }
         await targetBot.sendMessage(chatId, infoMsg, { parse_mode: 'HTML', reply_markup: kb });
         return;
       }
