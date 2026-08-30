@@ -3616,9 +3616,18 @@ const sendDepositSuccessNotification = async (
   // Send beautiful deposit success banner
   await sendOrEditScreenWithPhoto(targetBot, Number(chatId), paymentBannerPath, caption, { inline_keyboard });
 
-  // Send Animated Gift Sticker immediately after deposit message
+  // Send Animated Gift Sticker immediately after deposit message and auto-delete after 5 seconds
   try {
-    await targetBot.sendSticker(Number(chatId), DEPOSIT_SUCCESS_STICKER_FILE_ID);
+    const stickerMsg = await targetBot.sendSticker(Number(chatId), DEPOSIT_SUCCESS_STICKER_FILE_ID);
+    if (stickerMsg && stickerMsg.message_id) {
+      setTimeout(async () => {
+        try {
+          await targetBot.deleteMessage(Number(chatId), stickerMsg.message_id);
+        } catch (e) {
+          console.error('[Sticker Auto-Delete Error]:', e);
+        }
+      }, 5000);
+    }
   } catch (err) {
     console.error('[Sticker] Failed to send deposit gift sticker:', err);
   }
