@@ -2957,25 +2957,55 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   let product: any = null;
   let stockCount = 0;
 
-  if (typeof productId === 'number') {
-    product = await storage.getProduct(productId);
+  const prodIdNum = typeof productId === 'number' ? productId : parseInt(productId as string, 10);
+
+  if (!isNaN(prodIdNum)) {
+    product = await storage.getProduct(prodIdNum);
     if (product) {
       const stock = await storage.getCredentialsByProduct(product.id);
       stockCount = stock.filter(c => c.status === 'available').length;
     }
   }
 
-  // Fallback demo product if preset category
+  // If product not found by numeric ID, check if database has a matching product by type or name
+  if (!product && typeof productId === 'string') {
+    const name = categoryName || productId;
+    const allProds = await storage.getProducts();
+    const match = allProds.find(p => p.type === name || p.name === name || p.name.includes(name));
+    if (match) {
+      product = match;
+      const stock = await storage.getCredentialsByProduct(match.id);
+      stockCount = stock.filter(c => c.status === 'available').length;
+    }
+  }
+
+  // Realistic fallback preset pricing for demo categories if no DB product match
+  const PRESET_PRODUCT_MAP: Record<string, { name: string; price: number; description: string; stock: number }> = {
+    'Standoff 2': { name: 'Standoff 2 Account', price: 1000, description: 'High tier Standoff 2 account with instant automated delivery 24/7.', stock: 12 },
+    'Gemini': { name: 'Gemini Link 18 months', price: 1200, description: 'Gemini 18 months subscription link. Instant 24-hour activation guarantee.', stock: 8 },
+    'CHAT GPT': { name: 'ChatGPT Plus Account', price: 1500, description: 'ChatGPT Plus account subscription. Full warranty included.', stock: 15 },
+    'CLAUDE': { name: 'Claude Pro Account', price: 1800, description: 'Claude Pro subscription account. 24/7 automated delivery.', stock: 5 },
+    'SuperGrok': { name: 'SuperGrok AI Account', price: 2000, description: 'SuperGrok AI premium account.', stock: 0 },
+    'Perplexity': { name: 'Perplexity Pro Account', price: 1400, description: 'Perplexity Pro account subscription.', stock: 7 }
+  };
+
   if (!product) {
     const name = typeof productId === 'string' ? productId : (categoryName || 'Gemini Link');
+    const preset = PRESET_PRODUCT_MAP[name] || {
+      name: `${name} Account`,
+      price: 1000,
+      description: 'Instant automated delivery 24/7 after purchase. Full activation warranty guaranteed.',
+      stock: 10
+    };
+
     product = {
       id: typeof productId === 'number' ? productId : 999,
-      name: `${name} 18 months`,
-      price: 55, // $0.55
-      description: 'Гарантия дается только на активацию ссылки: 24 часа после покупки.',
+      name: preset.name,
+      price: preset.price,
+      description: preset.description,
       type: categoryName || name
     };
-    stockCount = 33;
+    stockCount = preset.stock;
   }
 
   const tgUser = await storage.getTelegramUser(chatId.toString());
@@ -3001,7 +3031,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const productCaption = `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> <b>${product.name}</b>\n\n` +
     `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> <b>Price:</b> <b>${priceDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
     `<tg-emoji emoji-id="5253742260054409879">✉️</tg-emoji> <b>Description</b>\n` +
-    `${product.description || 'Гарантия дается только на активацию ссылки: 24 часа после покупки.'}\n\n` +
+    `${product.description || 'Instant automated delivery 24/7 after purchase. Full activation warranty guaranteed.'}\n\n` +
     `<tg-emoji emoji-id="5274099962655816924">❗️</tg-emoji> <b>Delivery:</b> automatic\n\n` +
     `<tg-emoji emoji-id="5456258317477230911">😎</tg-emoji> <b>Stock:</b> ${stockCount} pcs`;
 
@@ -3042,18 +3072,40 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
 };
 
 const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, qty: number, messageId?: number) => {
-  let productName = "Gemini Link 18 months";
-  let unitPriceUSD = 0.55;
+  let productName = "Product Account";
+  let unitPriceUSD = 10.00;
 
-  const prodIdNum = typeof productId === 'number' ? productId : parseInt(productId as string);
+  const PRESET_PRODUCT_MAP: Record<string, { name: string; price: number }> = {
+    'Standoff 2': { name: 'Standoff 2 Account', price: 10.00 },
+    'Gemini': { name: 'Gemini Link 18 months', price: 12.00 },
+    'CHAT GPT': { name: 'ChatGPT Plus Account', price: 15.00 },
+    'CLAUDE': { name: 'Claude Pro Account', price: 18.00 },
+    'SuperGrok': { name: 'SuperGrok AI Account', price: 20.00 },
+    'Perplexity': { name: 'Perplexity Pro Account', price: 14.00 }
+  };
+
+  const prodIdNum = typeof productId === 'number' ? productId : parseInt(productId as string, 10);
   if (!isNaN(prodIdNum)) {
     const product = await storage.getProduct(prodIdNum);
     if (product) {
       productName = product.name;
       unitPriceUSD = product.price / 100;
     }
-  } else if (typeof productId === 'string') {
-    productName = `${productId} 18 months`;
+  }
+
+  if (unitPriceUSD === 10.00 && typeof productId === 'string') {
+    const name = productId;
+    const allProds = await storage.getProducts();
+    const match = allProds.find(p => p.type === name || p.name === name || p.name.includes(name));
+    if (match) {
+      productName = match.name;
+      unitPriceUSD = match.price / 100;
+    } else if (PRESET_PRODUCT_MAP[name]) {
+      productName = PRESET_PRODUCT_MAP[name].name;
+      unitPriceUSD = PRESET_PRODUCT_MAP[name].price;
+    } else {
+      productName = `${name} Account`;
+    }
   }
 
   const tgUser = await storage.getTelegramUser(chatId.toString());
@@ -5268,15 +5320,38 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const prodId = parts[2];
         const qty = parseInt(parts[3]) || 1;
 
-        let unitPriceUSD = 0.55;
-        let productName = "Gemini Link 18 months";
+        let unitPriceUSD = 10.00;
+        let productName = "Product Account";
 
-        const prodIdNum = parseInt(prodId);
+        const PRESET_PRODUCT_MAP: Record<string, { name: string; price: number }> = {
+          'Standoff 2': { name: 'Standoff 2 Account', price: 10.00 },
+          'Gemini': { name: 'Gemini Link 18 months', price: 12.00 },
+          'CHAT GPT': { name: 'ChatGPT Plus Account', price: 15.00 },
+          'CLAUDE': { name: 'Claude Pro Account', price: 18.00 },
+          'SuperGrok': { name: 'SuperGrok AI Account', price: 20.00 },
+          'Perplexity': { name: 'Perplexity Pro Account', price: 14.00 }
+        };
+
+        const prodIdNum = parseInt(prodId, 10);
         if (!isNaN(prodIdNum)) {
           const product = await storage.getProduct(prodIdNum);
           if (product) {
             unitPriceUSD = product.price / 100;
             productName = product.name;
+          }
+        }
+
+        if (unitPriceUSD === 10.00 && typeof prodId === 'string') {
+          const allProds = await storage.getProducts();
+          const match = allProds.find(p => p.type === prodId || p.name === prodId || p.name.includes(prodId));
+          if (match) {
+            unitPriceUSD = match.price / 100;
+            productName = match.name;
+          } else if (PRESET_PRODUCT_MAP[prodId]) {
+            productName = PRESET_PRODUCT_MAP[prodId].name;
+            unitPriceUSD = PRESET_PRODUCT_MAP[prodId].price;
+          } else {
+            productName = `${prodId} Account`;
           }
         }
 
