@@ -2942,7 +2942,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
   }
 
   inline_keyboard.push([
-    { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }
+    { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5231012545799666522' }
   ]);
   inline_keyboard.push([
     { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
