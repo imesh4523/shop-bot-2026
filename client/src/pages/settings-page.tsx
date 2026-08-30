@@ -187,8 +187,17 @@ export default function SettingsPage() {
   const [aptosWallet, setAptosWallet] = useState("");
   const [trc20VerificationMode, setTrc20VerificationMode] = useState("binance");
   const [aptosVerificationMode, setAptosVerificationMode] = useState("binance");
+  const { data: showOutOfStockSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SHOW_OUT_OF_STOCK_PRODUCTS"],
+  });
+
   const [automationEnabled, setAutomationEnabled] = useState(true);
   const [specialOffersEnabled, setSpecialOffersEnabled] = useState(true);
+  const [showOutOfStock, setShowOutOfStock] = useState(false);
+
+  useEffect(() => {
+    if (showOutOfStockSetting?.value !== undefined) setShowOutOfStock(showOutOfStockSetting.value === "true");
+  }, [showOutOfStockSetting]);
 
   useEffect(() => {
     if (binanceEnabledSetting?.value !== undefined) setBinanceEnabled(binanceEnabledSetting.value === "true");
@@ -573,6 +582,23 @@ export default function SettingsPage() {
       toast({
         title: "Aptos Verification Mode Updated",
         description: "Aptos payment verification mode has been updated.",
+      });
+    }
+  });
+
+  const showOutOfStockMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "SHOW_OUT_OF_STOCK_PRODUCTS",
+        value: enabled ? "true" : "false"
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SHOW_OUT_OF_STOCK_PRODUCTS"] });
+      toast({
+        title: "Catalog Visibility Updated",
+        description: "Out-of-stock products visibility setting has been updated.",
       });
     }
   });
@@ -1050,6 +1076,37 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl">
+        <Card className="glass-card border-0 overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+            <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+              <Package className="w-6 h-6 text-purple-400" />
+              Catalog Out-of-Stock Products
+            </CardTitle>
+            <CardDescription className="text-white/40">
+              Control whether products with 0 stock are shown in the Telegram Bot Catalog.
+            </CardDescription>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between p-4 glass-panel border-white/10 rounded-2xl bg-purple-950/20">
+              <div className="space-y-1 pr-4">
+                <h4 className="font-bold text-white">Show Out-of-Stock Products in Catalog</h4>
+                <p className="text-xs text-white/50">
+                  {showOutOfStock 
+                    ? "ON: Products with 0 stock will be displayed in Catalog styled with a RED button." 
+                    : "OFF: Default mode — only products with available stock (> 0) are shown in Catalog (GREEN buttons)."}
+                </p>
+              </div>
+              <Switch
+                checked={showOutOfStock}
+                onCheckedChange={(checked) => {
+                  setShowOutOfStock(checked);
+                  showOutOfStockMutation.mutate(checked);
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="glass-card border-0">
             <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
               <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">

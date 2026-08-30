@@ -57,6 +57,8 @@ export const telegramUsers = pgTable("telegram_users", {
   lastOfferBroadcastId: integer("last_offer_broadcast_id"),
   selectedCurrency: text("selected_currency").notNull().default("USD"),
   selectedLanguage: text("selected_language").notNull().default("en"),
+  referralBalance: integer("referral_balance").default(0),
+  referredBy: text("referred_by"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -94,6 +96,7 @@ export const credentialsRelations = relations(credentials, ({ one }) => ({
 export const telegramUsersRelations = relations(telegramUsers, ({ many }) => ({
   orders: many(orders),
   payments: many(payments),
+  promoCodeRedemptions: many(promoCodeRedemptions),
 }));
 
 export const orders = pgTable("orders", {
@@ -198,6 +201,41 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 
+// Customer Reviews Entity
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  productName: text("product_name").notNull().default("General Purchase"),
+  rating: integer("rating").notNull().default(5),
+  comment: text("comment").notNull(),
+  reviewerName: text("reviewer_name").notNull().default("Customer"),
+  isVerified: boolean("is_verified").notNull().default(true),
+  status: text("status").notNull().default("approved"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+// Support Tickets Entity
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  issueType: text("issue_type").notNull(),
+  status: text("status").notNull().default("open"),
+  details: text("details"),
+  attachmentUrl: text("attachment_url"),
+  userTelegramId: text("user_telegram_id").notNull(),
+  username: text("username"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true });
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
 // AWS Checker Entities
 export const awsAccounts = pgTable("aws_accounts", {
   id: serial("id").primaryKey(),
@@ -299,3 +337,45 @@ export type BackupConfig = typeof backupConfigs.$inferSelect;
 export type InsertBackupConfig = z.infer<typeof insertBackupConfigSchema>;
 export type BackupLog = typeof backupLogs.$inferSelect;
 export type InsertBackupLog = z.infer<typeof insertBackupLogSchema>;
+
+// Promo Codes Entities
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  reward: integer("reward").notNull(), // reward in cents (e.g. $5.00 is 500)
+  maxUses: integer("max_uses").notNull().default(1),
+  usesCount: integer("uses_count").notNull().default(0),
+  status: text("status").notNull().default("active"), // active, inactive
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promoCodeRedemptions = pgTable("promo_code_redemptions", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  promoCodeId: integer("promo_code_id").notNull().references(() => promoCodes.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promoCodesRelations = relations(promoCodes, ({ many }) => ({
+  redemptions: many(promoCodeRedemptions),
+}));
+
+export const promoCodeRedemptionsRelations = relations(promoCodeRedemptions, ({ one }) => ({
+  telegramUser: one(telegramUsers, {
+    fields: [promoCodeRedemptions.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+  promoCode: one(promoCodes, {
+    fields: [promoCodeRedemptions.promoCodeId],
+    references: [promoCodes.id],
+  }),
+}));
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({ id: true, createdAt: true });
+export const insertPromoCodeRedemptionSchema = createInsertSchema(promoCodeRedemptions).omit({ id: true, createdAt: true });
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCodeRedemption = typeof promoCodeRedemptions.$inferSelect;
+export type InsertPromoCodeRedemption = z.infer<typeof insertPromoCodeRedemptionSchema>;
+

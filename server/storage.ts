@@ -40,7 +40,19 @@ import {
   type InsertBackupConfig,
   type BackupLog,
   type InsertBackupLog,
-  pushSubscriptions
+  pushSubscriptions,
+  promoCodes,
+  promoCodeRedemptions,
+  type PromoCode,
+  type InsertPromoCode,
+  type PromoCodeRedemption,
+  type InsertPromoCodeRedemption,
+  reviews,
+  type Review,
+  type InsertReview,
+  supportTickets,
+  type SupportTicket,
+  type InsertSupportTicket
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -61,6 +73,7 @@ export interface IStorage {
 
   // Telegram Users
   getTelegramUser(telegramId: string): Promise<TelegramUser | undefined>;
+  getTelegramUserByChatId(chatId: string | number): Promise<TelegramUser | undefined>;
   getAllTelegramUsers(): Promise<TelegramUser[]>;
   createTelegramUser(user: InsertTelegramUser): Promise<TelegramUser>;
   updateTelegramUser(id: number, data: Partial<TelegramUser>): Promise<TelegramUser>;
@@ -137,6 +150,27 @@ export interface IStorage {
   // Push Subscriptions
   savePushSubscription(userId: number, subscription: any): Promise<void>;
   getPushSubscriptions(userId?: number): Promise<any[]>;
+
+  // Promo Codes
+  getPromoCodes(): Promise<PromoCode[]>;
+  getPromoCode(id: number): Promise<PromoCode | undefined>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  createPromoCode(data: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode>;
+  deletePromoCode(id: number): Promise<void>;
+  getPromoCodeRedemptions(): Promise<(PromoCodeRedemption & { telegramUser: TelegramUser | null; promoCode: PromoCode | null })[]>;
+  getLastPromoCodeRedemption(telegramUserId: number): Promise<(PromoCodeRedemption & { promoCode: PromoCode }) | null>;
+  getRedemptionByUserAndCode(telegramUserId: number, promoCodeId: number): Promise<PromoCodeRedemption | undefined>;
+  redeemPromoCode(telegramUserId: number, promoCodeId: number, reward: number): Promise<void>;
+
+  // Reviews
+  getReviews(): Promise<Review[]>;
+  createReview(data: InsertReview): Promise<Review>;
+
+  // Support Tickets
+  getSupportTickets(): Promise<SupportTicket[]>;
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -336,6 +370,10 @@ export class DatabaseStorage implements IStorage {
   async getTelegramUser(telegramId: string): Promise<TelegramUser | undefined> {
     const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.telegramId, telegramId));
     return user;
+  }
+
+  async getTelegramUserByChatId(chatId: string | number): Promise<TelegramUser | undefined> {
+    return this.getTelegramUser(chatId.toString());
   }
 
   async getAllTelegramUsers(): Promise<TelegramUser[]> {
@@ -709,6 +747,132 @@ export class DatabaseStorage implements IStorage {
       query.where(eq(pushSubscriptions.userId, userId));
     }
     return await query;
+  }
+
+  // Promo Codes Implementation
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return await db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  }
+
+  async getPromoCode(id: number): Promise<PromoCode | undefined> {
+    const [promo] = await db.select().from(promoCodes).where(eq(promoCodes.id, id));
+    return promo;
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [promo] = await db.select().from(promoCodes).where(eq(sql`LOWER(${promoCodes.code})`, code.toLowerCase()));
+    return promo;
+  }
+
+  async createPromoCode(data: InsertPromoCode): Promise<PromoCode> {
+    const [newPromo] = await db.insert(promoCodes).values(data).returning();
+    return newPromo;
+  }
+
+  async updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode> {
+    const [updated] = await db.update(promoCodes).set(data).where(eq(promoCodes.id, id)).returning();
+    return updated;
+  }
+
+  async deletePromoCode(id: number): Promise<void> {
+    await db.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.promoCodeId, id));
+    await db.delete(promoCodes).where(eq(promoCodes.id, id));
+  }
+
+  async getPromoCodeRedemptions(): Promise<(PromoCodeRedemption & { telegramUser: TelegramUser | null; promoCode: PromoCode | null })[]> {
+    return await db.query.promoCodeRedemptions.findMany({
+      with: {
+        telegramUser: true,
+        promoCode: true,
+      },
+      orderBy: desc(promoCodeRedemptions.createdAt),
+    }) as any[];
+  }
+
+  async getLastPromoCodeRedemption(telegramUserId: number): Promise<(PromoCodeRedemption & { promoCode: PromoCode }) | null> {
+    const redemption = await db.query.promoCodeRedemptions.findFirst({
+      where: eq(promoCodeRedemptions.telegramUserId, telegramUserId),
+      with: {
+        promoCode: true,
+      },
+      orderBy: desc(promoCodeRedemptions.createdAt),
+    });
+    return (redemption as any) || null;
+  }
+
+  async getRedemptionByUserAndCode(telegramUserId: number, promoCodeId: number): Promise<PromoCodeRedemption | undefined> {
+    const [redemption] = await db
+      .select()
+      .from(promoCodeRedemptions)
+      .where(
+        and(
+          eq(promoCodeRedemptions.telegramUserId, telegramUserId),
+          eq(promoCodeRedemptions.promoCodeId, promoCodeId)
+        )
+      )
+      .limit(1);
+    return redemption;
+  }
+
+  async redeemPromoCode(telegramUserId: number, promoCodeId: number, reward: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      // 1. Credit the user's balance
+      await tx
+        .update(telegramUsers)
+        .set({
+          balance: sql`${telegramUsers.balance} + ${reward}`
+        })
+        .where(eq(telegramUsers.id, telegramUserId));
+
+      // 2. Increment the promo code's usesCount
+      await tx
+        .update(promoCodes)
+        .set({
+          usesCount: sql`${promoCodes.usesCount} + 1`
+        })
+        .where(eq(promoCodes.id, promoCodeId));
+
+      // 3. Create the redemption log record
+      await tx.insert(promoCodeRedemptions).values({
+        telegramUserId,
+        promoCodeId,
+      });
+    });
+  }
+
+  // Customer Reviews
+  async getReviews(): Promise<Review[]> {
+    try {
+      return await db.select().from(reviews).where(eq(reviews.status, "approved")).orderBy(desc(reviews.createdAt));
+    } catch (e) {
+      console.error("Error fetching reviews:", e);
+      return [];
+    }
+  }
+
+  async createReview(data: InsertReview): Promise<Review> {
+    const [review] = await db.insert(reviews).values(data).returning();
+    return review;
+  }
+
+  // Support Tickets
+  async getSupportTickets(): Promise<SupportTicket[]> {
+    try {
+      return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+    } catch (e) {
+      console.error("Error fetching support tickets:", e);
+      return [];
+    }
+  }
+
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [inserted] = await db.insert(supportTickets).values(ticket).returning();
+    return inserted;
+  }
+
+  async updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket> {
+    const [updated] = await db.update(supportTickets).set({ status, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
+    return updated;
   }
 }
 

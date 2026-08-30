@@ -17,6 +17,8 @@ import {
   Send,
   Share2,
   Smile,
+  Ticket,
+  LifeBuoy,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -49,8 +51,10 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Products', href: '/products', icon: Package },
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
+    { name: 'Support Tickets', href: '/support-tickets', icon: LifeBuoy },
     { name: 'Payments', href: '/payments', icon: User },
     { name: 'Special Offers', href: '/special-offers', icon: Tag },
+    { name: 'Promo Codes', href: '/promo-codes', icon: Ticket },
     { name: 'AWS Checker', href: '/aws-checker', icon: ShieldCheck },
     { name: 'Users', href: '/users', icon: Users },
     { name: 'Referral Program', href: '/referrals', icon: Users },

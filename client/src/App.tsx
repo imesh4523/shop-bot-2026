@@ -19,6 +19,7 @@ import AwsCheckerPage from "@/pages/aws-checker-page";
 import BroadcastPage from "@/pages/broadcast-page";
 import LoginPage from "@/pages/login-page";
 import SpecialOffersPage from "@/pages/special-offers-page";
+import PromoCodesPage from "@/pages/promo-codes-page";
 import TelegramUsersPage from "@/pages/telegram-users-page";
 import ReferralsPage from "@/pages/referrals-page";
 import SpamProtectorPage from "@/pages/spam-protector-page";
@@ -26,6 +27,7 @@ import TelegramInspectorPage from "@/pages/telegram-inspector-page";
 import TelegramClientPage from "@/pages/telegram-client-page";
 import BackupPage from "@/pages/backup-page";
 import ForwardPage from "@/pages/forward-page";
+import SupportTicketsPage from "@/pages/support-tickets-page";
 import MiniAppShop from "@/pages/mini-app-shop";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -89,6 +91,10 @@ function Router() {
         <ProtectedRoute component={PaymentsPage} />
       </Route>
 
+      <Route path="/support-tickets">
+        <ProtectedRoute component={SupportTicketsPage} />
+      </Route>
+
       <Route path="/broadcast">
         <ProtectedRoute component={BroadcastPage} />
       </Route>
@@ -103,6 +109,10 @@ function Router() {
 
       <Route path="/special-offers">
         <ProtectedRoute component={SpecialOffersPage} />
+      </Route>
+
+      <Route path="/promo-codes">
+        <ProtectedRoute component={PromoCodesPage} />
       </Route>
 
       <Route path="/backups">

@@ -1,3 +1,4 @@
+// @ts-ignore
 import webpush from 'web-push';
 import { storage } from './storage';
 import axios from 'axios';
@@ -48,27 +49,44 @@ export async function initPushNotifications() {
     console.error('[PUSH] Table creation error:', err);
   }
 
-  let publicKey = (await storage.getSetting('VAPID_PUBLIC_KEY'))?.value;
-  let privateKey = (await storage.getSetting('VAPID_PRIVATE_KEY'))?.value;
-  let subject = (await storage.getSetting('VAPID_SUBJECT'))?.value;
+  let publicKey = process.env.VAPID_PUBLIC_KEY || (await storage.getSetting('VAPID_PUBLIC_KEY'))?.value;
+  let privateKey = process.env.VAPID_PRIVATE_KEY || (await storage.getSetting('VAPID_PRIVATE_KEY'))?.value;
+  let subject = process.env.VAPID_SUBJECT || (await storage.getSetting('VAPID_SUBJECT'))?.value;
 
   if (!publicKey || !privateKey || !subject) {
-    if (!publicKey) publicKey = "BLi12JZdvdRbULvhPcN-pwedf_t72vUTO4XT-R_AfB58GRSfr_wkB7G-KFffQXFclHxhOQn4Qf-yidRm0o0_Img";
-    if (!privateKey) privateKey = "rfNmhj1wxk2Bo4zjk5lY7PeOadLP6ZHbvVooox7qdIY";
-    if (!subject) subject = "mailto:imeshcheak@gmail.com";
+    if (!publicKey) publicKey = "BNihA4onN0-3ByoQHRax9sPMew-UfO5ReCR8kgS7zDNlaRxqBfxBKtzR8yVuEwBt0cVXl42YoKTCDzjoFlokNRE";
+    if (!privateKey) privateKey = "CNCFXRkJSwIbuRODXnrkfp3505c0dyksjMJ_Xzf5sUk";
+    if (!subject) subject = "mailto:admin@shopeefy.com";
 
     await storage.setSetting('VAPID_PUBLIC_KEY', publicKey);
     await storage.setSetting('VAPID_PRIVATE_KEY', privateKey);
     await storage.setSetting('VAPID_SUBJECT', subject);
   }
 
-  webpush.setVapidDetails(
-    subject,
-    publicKey,
-    privateKey
-  );
-  
-  console.log('[PUSH] Initialized with user-configured VAPID keys');
+  try {
+    webpush.setVapidDetails(
+      subject,
+      publicKey,
+      privateKey
+    );
+    console.log('[PUSH] Initialized with user-configured VAPID keys');
+  } catch (err: any) {
+    console.error('[PUSH] Failed to set VAPID details with current keys:', err?.message);
+    const fallbackPublic = "BNihA4onN0-3ByoQHRax9sPMew-UfO5ReCR8kgS7zDNlaRxqBfxBKtzR8yVuEwBt0cVXl42YoKTCDzjoFlokNRE";
+    const fallbackPrivate = "CNCFXRkJSwIbuRODXnrkfp3505c0dyksjMJ_Xzf5sUk";
+    try {
+      webpush.setVapidDetails(
+        "mailto:admin@shopeefy.com",
+        fallbackPublic,
+        fallbackPrivate
+      );
+      publicKey = fallbackPublic;
+      console.log('[PUSH] Initialized with default fallback VAPID keys after error.');
+    } catch (fallbackErr) {
+      console.error('[PUSH] Critical VAPID initialization error:', fallbackErr);
+    }
+  }
+
   return { publicKey };
 }
 

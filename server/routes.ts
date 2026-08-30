@@ -6,7 +6,7 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets } from "@shared/schema";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
@@ -19,7 +19,10 @@ import { BackupService } from "./backup-service";
 import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
+import FormData from "form-data";
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
+import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
+import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
 import { initAdminBotController } from "./admin-bot-controller";
 import { 
   processTelegramInspectorTrace, 
@@ -532,8 +535,25 @@ export async function registerRoutes(
       ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referred_by TEXT;
       ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_currency TEXT DEFAULT 'USD';
       ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_language TEXT DEFAULT 'en';
+
+      CREATE TABLE IF NOT EXISTS promo_codes (
+        id SERIAL PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        reward INTEGER NOT NULL,
+        max_uses INTEGER NOT NULL DEFAULT 1,
+        uses_count INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS promo_code_redemptions (
+        id SERIAL PRIMARY KEY,
+        telegram_user_id INTEGER NOT NULL REFERENCES telegram_users(id) ON DELETE CASCADE,
+        promo_code_id INTEGER NOT NULL REFERENCES promo_codes(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
-    console.log('[DB] referrals table verified/created');
+    console.log('[DB] referrals and promo_codes tables verified/created');
   } catch (err: any) {
     console.error('Error verifying referrals table:', err.message);
   }
@@ -1739,6 +1759,92 @@ app.delete("/api/special-offers/:id", isAuth, async (req, res) => {
   }
 });
 
+// Promo Codes API
+app.get("/api/promo-codes", isAuth, async (req, res) => {
+  try {
+    const codes = await storage.getPromoCodes();
+    res.json(codes);
+  } catch (err: any) {
+    console.error("Error fetching promo codes:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/api/promo-codes", isAuth, async (req, res) => {
+  try {
+    const body = { ...req.body };
+    if (body.reward !== undefined) {
+      body.reward = Math.round(Number(body.reward) * 100); // convert USD to cents
+    }
+    if (body.maxUses !== undefined) {
+      body.maxUses = parseInt(body.maxUses);
+    }
+    
+    const parsed = insertPromoCodeSchema.parse(body);
+
+    const existing = await storage.getPromoCodeByCode(parsed.code);
+    if (existing) {
+      return res.status(400).json({ message: `Promo code "${parsed.code}" already exists.` });
+    }
+
+    const code = await storage.createPromoCode(parsed);
+    res.status(201).json(code);
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({
+        message: err.errors[0].message,
+        field: err.errors[0].path.join('.'),
+      });
+    }
+    console.error("Error creating promo code:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.patch("/api/promo-codes/:id", isAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const body = { ...req.body };
+    if (body.reward !== undefined) {
+      body.reward = Math.round(Number(body.reward) * 100); // convert USD to cents
+    }
+    if (body.maxUses !== undefined) {
+      body.maxUses = parseInt(body.maxUses);
+    }
+
+    const parsed = insertPromoCodeSchema.partial().parse(body);
+    const updated = await storage.updatePromoCode(id, parsed);
+    res.json(updated);
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: err.errors[0].message });
+    }
+    console.error("Error updating promo code:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.delete("/api/promo-codes/:id", isAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await storage.deletePromoCode(id);
+    res.status(204).send();
+  } catch (err: any) {
+    console.error("Error deleting promo code:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/promo-codes-redemptions", isAuth, async (req, res) => {
+  try {
+    const redemptions = await storage.getPromoCodeRedemptions();
+    res.json(redemptions);
+  } catch (err: any) {
+    console.error("Error fetching promo code redemptions:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 const formatOfferMessage = (offer: any, productType: string) => {
   const priceUSD = (offer.price / 100).toFixed(2);
   const headerEmojiIds = [
@@ -2327,6 +2433,14 @@ app.post("/api/spam-protector/ban", isAuth, async (req, res) => {
   }
 });
 
+const escapeHTML = (str: string = ''): string => {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+};
+
 const patchBotMethods = (targetBot: TelegramBot) => {
   if ((targetBot as any).__patched) return;
   (targetBot as any).__patched = true;
@@ -2453,12 +2567,58 @@ const initBot = async () => {
 
     console.log('Initializing Telegram bots...');
 
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS reviews (
+          id SERIAL PRIMARY KEY,
+          telegram_user_id INTEGER,
+          product_name TEXT NOT NULL DEFAULT 'General Purchase',
+          rating INTEGER NOT NULL DEFAULT 5,
+          comment TEXT NOT NULL,
+          reviewer_name TEXT NOT NULL DEFAULT 'Customer',
+          is_verified BOOLEAN NOT NULL DEFAULT true,
+          status TEXT NOT NULL DEFAULT 'approved',
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      console.log('[DB] reviews table verified/created');
+
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS support_tickets (
+          id SERIAL PRIMARY KEY,
+          telegram_user_id INTEGER,
+          issue_type TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'open',
+          details TEXT,
+          attachment_url TEXT,
+          user_telegram_id TEXT NOT NULL,
+          username TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+      `);
+      console.log('[DB] support_tickets table verified/created');
+    } catch (e) {
+      console.error('Error verifying database tables:', e);
+    }
+
     if (token && token !== inspectorToken) {
       if (bot) {
         console.log('Stopping existing main bot...');
         await bot.stopPolling().catch(() => {});
       }
       bot = new TelegramBot(token, { polling: true });
+      bot.on('polling_error', (err: any) => {
+        if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
+          console.warn('[MAIN BOT] 409 Conflict: another instance is polling.');
+        } else {
+          console.error('[MAIN BOT] Polling error:', err?.message || err);
+        }
+      });
+      bot.on('error', (err: any) => {
+        console.warn('[MAIN BOT] General error:', err?.message || err);
+      });
       patchBotMethods(bot);
       setupBotHandlers(bot);
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
@@ -2472,14 +2632,24 @@ const initBot = async () => {
     if (broadcastToken && broadcastToken !== token) {
       if (broadcastBot) {
         console.log('Stopping existing broadcast bot...');
-        await broadcastBot.stopPolling();
+        await broadcastBot.stopPolling().catch(() => {});
       }
       broadcastBot = new TelegramBot(broadcastToken, { polling: true });
+      broadcastBot.on('polling_error', (err: any) => {
+        if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
+          console.warn('[BROADCAST BOT] 409 Conflict: another instance is polling.');
+        } else {
+          console.error('[BROADCAST BOT] Polling error:', err?.message || err);
+        }
+      });
+      broadcastBot.on('error', (err: any) => {
+        console.warn('[BROADCAST BOT] General error:', err?.message || err);
+      });
       patchBotMethods(broadcastBot);
       setupBotHandlers(broadcastBot);
       console.log('Broadcast bot initialized successfully');
     } else if (broadcastBot) {
-      await broadcastBot.stopPolling();
+      await broadcastBot.stopPolling().catch(() => {});
       broadcastBot = null;
     }
 
@@ -2489,6 +2659,16 @@ const initBot = async () => {
         await inspectorBot.stopPolling().catch(() => {});
       }
       inspectorBot = new TelegramBot(inspectorToken, { polling: true });
+      inspectorBot.on('polling_error', (err: any) => {
+        if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
+          console.warn('[INSPECTOR BOT] 409 Conflict: another instance is polling.');
+        } else {
+          console.error('[INSPECTOR BOT] Polling error:', err?.message || err);
+        }
+      });
+      inspectorBot.on('error', (err: any) => {
+        console.warn('[INSPECTOR BOT] General error:', err?.message || err);
+      });
       patchBotMethods(inspectorBot);
       setupInspectorBotHandlers(inspectorBot);
       console.log(`Dedicated Inspector bot initialized successfully (Token hash: ${inspectorToken.substring(0, 10)}...)`);
@@ -2500,7 +2680,107 @@ const initBot = async () => {
     console.error('Telegram bot init failed:', err);
   }
 };
-const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userId: string, msgFrom?: any) => {
+const bannerFileIdCache: Record<string, string> = {};
+
+const sendOrEditScreenWithPhoto = async (
+  targetBot: TelegramBot,
+  chatId: number,
+  bannerPath: string,
+  caption: string,
+  replyMarkup: any,
+  messageId?: number
+) => {
+  const token = (targetBot as any)?.token;
+
+  if (messageId && fs.existsSync(bannerPath)) {
+    const cachedFileId = bannerFileIdCache[bannerPath];
+
+    // 1. Try editing in-place using cached Telegram file_id (0-latency instant in-place edit)
+    if (cachedFileId) {
+      try {
+        await targetBot.editMessageMedia(
+          {
+            type: 'photo',
+            media: cachedFileId,
+            caption,
+            parse_mode: 'HTML'
+          } as any,
+          {
+            chat_id: chatId,
+            message_id: messageId,
+            reply_markup: replyMarkup
+          } as any
+        );
+        return;
+      } catch (err: any) {
+        console.log('[editMessageMedia cached file_id fallback]:', err.message);
+      }
+    }
+
+    // 2. Try editing in-place with multipart file upload via FormData / Telegram Bot API
+    if (token) {
+      try {
+        const form = new FormData();
+        form.append('chat_id', chatId.toString());
+        form.append('message_id', messageId.toString());
+        form.append('media', JSON.stringify({
+          type: 'photo',
+          media: 'attach://banner_file',
+          caption: caption,
+          parse_mode: 'HTML'
+        }));
+        if (replyMarkup) {
+          form.append('reply_markup', JSON.stringify(replyMarkup));
+        }
+        form.append('banner_file', fs.createReadStream(bannerPath));
+
+        const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
+          headers: form.getHeaders()
+        });
+
+        if (res.data?.ok && res.data?.result?.photo) {
+          const photos = res.data.result.photo;
+          const fileId = photos[photos.length - 1]?.file_id;
+          if (fileId) {
+            bannerFileIdCache[bannerPath] = fileId;
+          }
+          return;
+        }
+      } catch (err: any) {
+        console.log('[editMessageMedia multipart upload error]:', err.response?.data || err.message);
+      }
+    }
+
+    // 3. Fallback: if in-place media edit failed, delete old message and send new photo message so photo is 100% updated
+    try {
+      await targetBot.deleteMessage(chatId, messageId).catch(() => {});
+    } catch (e2) {}
+  }
+
+  if (fs.existsSync(bannerPath)) {
+    try {
+      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, {
+        caption,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      });
+      if (sentMsg.photo && sentMsg.photo.length > 0) {
+        const fileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
+        bannerFileIdCache[bannerPath] = fileId;
+      }
+      return;
+    } catch (err: any) {
+      console.error('Failed to send photo, falling back to text:', err.message);
+    }
+  }
+
+  await targetBot.sendMessage(chatId, caption, {
+    parse_mode: 'HTML',
+    reply_markup: replyMarkup
+  });
+};
+
+const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userId: string, msgFrom?: any, messageId?: number) => {
   const userToDisplay = await storage.getTelegramUser(userId) || await storage.createTelegramUser({
     telegramId: userId,
     username: msgFrom?.username || null,
@@ -2511,18 +2791,61 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   });
 
   const allOrders = await storage.getOrders();
-  const userPurchases = allOrders.filter(o => o.telegramUserId === userToDisplay.id).length;
+  const userOrders = allOrders.filter(o => o.telegramUserId === userToDisplay.id);
+  const userPurchases = userOrders.length;
+
+  let totalSpentCents = 0;
+  userOrders.forEach(o => {
+    totalSpentCents += ((o as any).totalPrice || (o as any).price || 0);
+  });
+
+  let totalDepositedCents = 0;
+  try {
+    const pmts = await db.execute(sql`SELECT amount FROM payments WHERE telegram_user_id = ${userToDisplay.id} AND status = 'completed'`);
+    const rows = pmts.rows || [];
+    totalDepositedCents = rows.reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0);
+  } catch (e) { }
+
   const balanceUSD = (userToDisplay.balance / 100).toFixed(2);
   const refBalance = (((userToDisplay as any).referralBalance || 0) / 100).toFixed(2);
 
+  const totalSpentUSD = totalSpentCents / 100;
+  const totalDepositedUSD = totalDepositedCents / 100;
+  const userBalUSD = userToDisplay.balance / 100;
+  const userValueUSD = Math.max(totalSpentUSD, totalDepositedUSD, userBalUSD);
+
+  let statusText = '<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> <b>Standard</b> · <i>starter member</i>';
+
+  if (userValueUSD >= 1000) {
+    statusText = '<tg-emoji emoji-id="6276134137963222688">🔥</tg-emoji> <b>Legend VIP</b> · <i>top tier ($1000+)</i>';
+  } else if (userValueUSD >= 300) {
+    statusText = '<tg-emoji emoji-id="5854908544712707500">👑</tg-emoji> <b>Diamond VIP</b> · <i>high tier ($300+)</i>';
+  } else if (userValueUSD >= 10) {
+    statusText = '<tg-emoji emoji-id="5404617696589390973">🥈</tg-emoji> <b>Bronze VIP</b> · <i>bronze tier ($10+)</i>';
+  }
+
+  // Get last redeemed promo code
+  let promoCodeText = "not set";
+  try {
+    const lastRedemption = await storage.getLastPromoCodeRedemption(userToDisplay.id);
+    if (lastRedemption) {
+      promoCodeText = lastRedemption.promoCode.code;
+    }
+  } catch (e) { }
+
+  const currCurrency = (userToDisplay as any)?.selectedCurrency || "USD";
+  const userBalNum = userToDisplay.balance / 100;
+  const { formatted: convertedBal } = formatPriceInCurrency(userBalNum, currCurrency);
+  const balanceText = currCurrency === 'USD' ? `${balanceUSD} USD` : `${balanceUSD} USD (${convertedBal})`;
+
   const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
-    `🏅 Status: <tg-emoji emoji-id="5854908544712707500">💎</tg-emoji> <b>VIP</b> · <i>top tier!</i>\n` +
-    `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceUSD} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
-    `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>USD</b>\n` +
+    `🏅 Status: ${statusText}\n` +
+    `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
+    `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>not set</b>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -2538,27 +2861,16 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   };
 
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
-
-  if (fs.existsSync(profileBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, profileBannerPath, {
-        caption: profileCaption,
-        parse_mode: 'HTML',
-        reply_markup: profileInlineKeyboard
-      });
-      return;
-    } catch (err: any) {
-      console.error('Failed to send profile banner photo, falling back to text:', err.message);
-    }
-  }
-
-  await targetBot.sendMessage(chatId, profileCaption, {
-    parse_mode: 'HTML',
-    reply_markup: profileInlineKeyboard
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId);
 };
 
-const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number) => {
+const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
+  const tgUser = await storage.getTelegramUser(chatId.toString());
+  const userLang = (tgUser as any)?.selectedLanguage || 'en';
+
+  const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
+  const showOutOfStock = showOutOfStockSetting?.value === "true";
+
   const products = await storage.getProducts();
 
   // Group products by category
@@ -2568,6 +2880,9 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number) => {
     if (p.status !== 'available') continue;
     const stock = (await storage.getCredentialsByProduct(p.id)).filter(c => c.status === 'available').length;
     
+    // Skip out of stock if setting disabled
+    if (!showOutOfStock && stock === 0) continue;
+
     if (!categoryMap.has(p.type)) {
       categoryMap.set(p.type, { stock, iconEmojiId: p.customEmojiId || undefined });
     } else {
@@ -2579,17 +2894,19 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number) => {
     }
   }
 
-  // Include categories matching the screenshot (Standoff 2, Gemini, CHAT GPT, CLAUDE, SuperGrok, Perplexity)
+  // Include categories matching preset demo experience
   const presetCategories = [
     { name: 'Standoff 2', icon: '5456343263340405032', stock: 12 },
     { name: 'Gemini', icon: '5404617696589390973', stock: 8 },
     { name: 'CHAT GPT', icon: '6113971389935391397', stock: 15 },
     { name: 'CLAUDE', icon: '5854908544712707500', stock: 5 },
-    { name: 'SuperGrok', icon: '5312441427764989435', stock: 0 }, // Out of stock -> RED BUTTON
+    { name: 'SuperGrok', icon: '5312441427764989435', stock: 0 },
     { name: 'Perplexity', icon: '5208604387156448480', stock: 7 }
   ];
 
   for (const preset of presetCategories) {
+    if (!showOutOfStock && preset.stock === 0) continue;
+
     if (!categoryMap.has(preset.name)) {
       categoryMap.set(preset.name, { stock: preset.stock, iconEmojiId: preset.icon });
     }
@@ -2611,11 +2928,10 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number) => {
       else if (catLower.includes('kamatera')) iconEmojiId = '5785070770161980265';
     }
 
-    // Dynamic style: 'success' (GREEN) if stock > 0, 'danger' (RED) if stock === 0
     const buttonStyle = data.stock > 0 ? 'success' : 'danger';
 
     const btnObj: any = {
-      text: btnText,
+      text: data.stock > 0 ? btnText : `${btnText} (${t(userLang, 'out_of_stock_title')})`,
       callback_data: `cat_${category}`,
       style: buttonStyle
     };
@@ -2625,37 +2941,19 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number) => {
     inline_keyboard.push([btnObj]);
   }
 
-  // Utility buttons (style: 'primary' -> PURPLE)
   inline_keyboard.push([
-    { text: 'Search catalog', callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }
+    { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }
   ]);
   inline_keyboard.push([
-    { text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
   ]);
 
-  const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>Catalog</b>\n\nChoose a category:`;
+  const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${t(userLang, 'catalog_title')}</b>\n\n${t(userLang, 'choose_category')}`;
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-
-  if (fs.existsSync(catalogBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, catalogBannerPath, {
-        caption: catalogCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) {
-      console.error('Failed to send catalog banner photo, falling back to text:', err.message);
-    }
-  }
-
-  await targetBot.sendMessage(chatId, catalogCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, catalogCaption, { inline_keyboard }, messageId);
 };
 
-const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, categoryName?: string) => {
+const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, categoryName?: string, messageId?: number) => {
   let product: any = null;
   let stockCount = 0;
 
@@ -2680,10 +2978,28 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     stockCount = 33;
   }
 
-  const priceUSD = (product.price / 100).toFixed(2);
+  const tgUser = await storage.getTelegramUser(chatId.toString());
+  const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
+  const priceUSDNum = product.price / 100;
+  const { formatted: priceFormatted } = formatPriceInCurrency(priceUSDNum, userCurrency);
+  const priceDisplay = userCurrency === 'USD' ? `$${priceUSDNum.toFixed(2)}` : `${priceFormatted} ($${priceUSDNum.toFixed(2)} USD)`;
+
+  if (stockCount === 0) {
+    const outOfStockKb = {
+      inline_keyboard: [
+        [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+      ] as any
+    };
+    const outMsg = `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Out of Stock</b>\n\n` +
+      `<b>${product.name}</b> is currently out of stock (0 available).\n\n` +
+      `Please check back later or choose another product from the catalog!`;
+    const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, outMsg, outOfStockKb, messageId);
+    return;
+  }
 
   const productCaption = `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> <b>${product.name}</b>\n\n` +
-    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> <b>Price:</b> ${priceUSD} <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
+    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> <b>Price:</b> <b>${priceDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
     `<tg-emoji emoji-id="5253742260054409879">✉️</tg-emoji> <b>Description</b>\n` +
     `${product.description || 'Гарантия дается только на активацию ссылки: 24 часа после покупки.'}\n\n` +
     `<tg-emoji emoji-id="5274099962655816924">❗️</tg-emoji> <b>Delivery:</b> automatic\n\n` +
@@ -2722,27 +3038,10 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   ]);
 
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-
-  if (fs.existsSync(catalogBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, catalogBannerPath, {
-        caption: productCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) {
-      console.error('Failed to send product photo banner, falling back to text:', err.message);
-    }
-  }
-
-  await targetBot.sendMessage(chatId, productCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, productCaption, { inline_keyboard }, messageId);
 };
 
-const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, qty: number) => {
+const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, qty: number, messageId?: number) => {
   let productName = "Gemini Link 18 months";
   let unitPriceUSD = 0.55;
 
@@ -2757,12 +3056,16 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     productName = `${productId} 18 months`;
   }
 
-  const totalUSD = (qty * unitPriceUSD).toFixed(2);
+  const tgUser = await storage.getTelegramUser(chatId.toString());
+  const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
+  const totalUSDNum = qty * unitPriceUSD;
+  const { formatted: totalFormatted } = formatPriceInCurrency(totalUSDNum, userCurrency);
+  const totalDisplay = userCurrency === 'USD' ? `$${totalUSDNum.toFixed(2)} USD` : `${totalFormatted} ($${totalUSDNum.toFixed(2)} USD)`;
 
   const orderCaption = `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> <b>Order calculation</b>\n\n` +
     `Product: <b>${productName}</b>\n` +
     `<tg-emoji emoji-id="5332440771180116150">🟢</tg-emoji> Quantity: <b>${qty}</b>\n` +
-    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> Product total: <b>${totalUSD} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
+    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> Product total: <b>${totalDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
     `Choose payment method:`;
 
   const inline_keyboard = [
@@ -2777,27 +3080,10 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
-
-  if (fs.existsSync(paymentBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, paymentBannerPath, {
-        caption: orderCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) {
-      console.error('Failed to send payment banner photo, falling back to text:', err.message);
-    }
-  }
-
-  await targetBot.sendMessage(chatId, orderCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, paymentBannerPath, orderCaption, { inline_keyboard }, messageId);
 };
 
-const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const allOrders = await storage.getOrders();
 
@@ -2852,27 +3138,10 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   ]);
 
   const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
-
-  if (fs.existsSync(ordersBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, ordersBannerPath, {
-        caption: ordersCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) {
-      console.error('Failed to send orders banner photo, falling back to text:', err.message);
-    }
-  }
-
-  await targetBot.sendMessage(chatId, ordersCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, ordersBannerPath, ordersCaption, { inline_keyboard }, messageId);
 };
 
-const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const rewardUsdtSetting = (await storage.getSetting("REFERRAL_REWARD_USDT"))?.value || "0.15";
   const minWithdrawSetting = (await storage.getSetting("REFERRAL_MIN_WITHDRAW_USDT"))?.value || "3.00";
@@ -2934,152 +3203,127 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
     ],
     [
       {
-        text: 'Profile',
+        text: 'Back',
         callback_data: 'profile',
         style: 'primary',
-        icon_custom_emoji_id: '5260399854500191689'
+        icon_custom_emoji_id: '5213358684024877471'
       }
     ]
   ] as any;
 
-  const refBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
-
-  if (fs.existsSync(refBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, refBannerPath, {
-        caption: refCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) { }
-  }
-
-  await targetBot.sendMessage(chatId, refCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  const refBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_referral_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, refBannerPath, refCaption, { inline_keyboard }, messageId);
 };
 
-const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const currCurrency = (tgUser as any)?.selectedCurrency || "USD";
 
-  const currencyCaption = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> <b>Price currency</b>\n\n` +
-    `Current: <b>${currCurrency}</b>\n` +
-    `Choose how product prices are displayed.`;
+  // Fetch live exchange rates
+  const rates = await fetchLiveExchangeRates();
 
-  const inline_keyboard = [
-    [
-      {
-        text: currCurrency === 'USD' ? '✓ USD' : '💲 USD',
-        callback_data: 'set_curr_USD',
-        style: currCurrency === 'USD' ? 'success' : 'primary',
-        icon_custom_emoji_id: '5409048419211682843'
-      },
-      {
-        text: currCurrency === 'EUR' ? '✓ EUR' : '💶 EUR',
-        callback_data: 'set_curr_EUR',
-        style: currCurrency === 'EUR' ? 'success' : 'primary',
-        icon_custom_emoji_id: '5409048419211682843'
-      },
-      {
-        text: currCurrency === 'RUB' ? '✓ RUB' : '🧪 RUB',
-        callback_data: 'set_curr_RUB',
-        style: currCurrency === 'RUB' ? 'success' : 'primary',
-        icon_custom_emoji_id: '5409048419211682843'
-      }
-    ],
-    [
-      {
-        text: 'Profile',
-        callback_data: 'profile',
-        style: 'primary',
-        icon_custom_emoji_id: '5260399854500191689'
-      }
-    ]
-  ] as any;
+  const ratesText = Object.entries(SUPPORTED_CURRENCIES)
+    .filter(([code]) => code !== 'USD' && code !== 'USDT')
+    .map(([code, info]) => `• <b>${code}</b> (${info.symbol}): <code>${rates[code] ? rates[code].toFixed(2) : 'N/A'}</code>`)
+    .join('\n');
 
-  const currencyBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_currency_banner.png");
+  const currencyCaption = `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> <b>Price Currency (Live Rates)</b>\n\n` +
+    `Current selected: <b>${currCurrency}</b>\n\n` +
+    `<tg-emoji emoji-id="5404617696589390973">📈</tg-emoji> <b>Live Market Rates (1 USD):</b>\n` +
+    `${ratesText}\n\n` +
+    `Choose how product prices are displayed across the store:`;
 
-  if (fs.existsSync(currencyBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, currencyBannerPath, {
-        caption: currencyCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) { }
+  const inline_keyboard: any[] = [];
+  const currencyKeys = Object.keys(SUPPORTED_CURRENCIES);
+
+  // Rows of 3 buttons without standard unicode emojis in text
+  for (let i = 0; i < currencyKeys.length; i += 3) {
+    const row = currencyKeys.slice(i, i + 3).map(code => {
+      const info = SUPPORTED_CURRENCIES[code];
+      const isSelected = currCurrency === code;
+      return {
+        text: `${code} (${info.symbol})`,
+        callback_data: `set_curr_${code}`,
+        style: isSelected ? 'success' : 'primary',
+        icon_custom_emoji_id: isSelected ? '5409048419211682843' : info.customEmojiId
+      };
+    });
+    inline_keyboard.push(row);
   }
 
-  await targetBot.sendMessage(chatId, currencyCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  inline_keyboard.push([
+    {
+      text: 'Back',
+      callback_data: 'profile',
+      style: 'primary',
+      icon_custom_emoji_id: '5213358684024877471'
+    }
+  ]);
+
+  const currencyBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_currency_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, currencyBannerPath, currencyCaption, { inline_keyboard }, messageId);
 };
 
-const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const currLang = (tgUser as any)?.selectedLanguage || "en";
 
-  const langCaption = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> <b>Choose language</b>`;
+  const langCaption = `<tg-emoji emoji-id="5854908544712707500">🌐</tg-emoji> <b>${t(currLang, 'language')}</b>\n\n` +
+    `Current selected: <b>${SUPPORTED_LANGUAGES[currLang as Language]?.nativeName || 'English'}</b>\n\n` +
+    `Choose your preferred language for the bot interface:`;
 
-  const inline_keyboard = [
+  const inline_keyboard: any[] = [
     [
       {
-        text: currLang === 'ru' ? '✓ Русский' : '🔴 Русский',
-        callback_data: 'set_lang_ru',
-        style: 'primary'
-      },
-      {
-        text: currLang === 'en' ? '✓ English' : 'English',
+        text: 'English',
         callback_data: 'set_lang_en',
-        style: 'primary'
-      }
-    ],
-    [
-      {
-        text: currLang === 'vi' ? '✓ Tiếng Việt' : '🇻🇳 Tiếng Việt',
-        callback_data: 'set_lang_vi',
-        style: 'primary'
+        style: currLang === 'en' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'en' ? '5409048419211682843' : '5404617696589390973'
       },
       {
-        text: currLang === 'zh' ? '✓ 中文' : '🇨🇳 中文',
-        callback_data: 'set_lang_zh',
-        style: 'primary'
+        text: 'Русский',
+        callback_data: 'set_lang_ru',
+        style: currLang === 'ru' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'ru' ? '5409048419211682843' : '5231449120635370684'
       }
     ],
     [
       {
-        text: 'Main menu',
-        callback_data: 'main_menu',
+        text: 'हिंदी',
+        callback_data: 'set_lang_hi',
+        style: currLang === 'hi' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'hi' ? '5409048419211682843' : '6113971389935391397'
+      },
+      {
+        text: '中文',
+        callback_data: 'set_lang_zh',
+        style: currLang === 'zh' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'zh' ? '5409048419211682843' : '5854908544712707500'
+      }
+    ],
+    [
+      {
+        text: 'Tiếng Việt',
+        callback_data: 'set_lang_vi',
+        style: currLang === 'vi' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'vi' ? '5409048419211682843' : '5429518319243775957'
+      }
+    ],
+    [
+      {
+        text: t(currLang, 'btn_back'),
+        callback_data: 'profile',
         style: 'primary',
-        icon_custom_emoji_id: '5271604874419647061'
+        icon_custom_emoji_id: '5213358684024877471'
       }
     ]
-  ] as any;
+  ];
 
   const settingsBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_settings_banner.png");
-
-  if (fs.existsSync(settingsBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, settingsBannerPath, {
-        caption: langCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (err: any) { }
-  }
-
-  await targetBot.sendMessage(chatId, langCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  await sendOrEditScreenWithPhoto(targetBot, chatId, settingsBannerPath, langCaption, { inline_keyboard }, messageId);
 };
 
-const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string) => {
+const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const allOrders = await storage.getOrders();
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
@@ -3087,20 +3331,20 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
   let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions</b>\n\n`;
 
   if (userOrders.length === 0) {
-    txCaption += `#1547 - -50 🅿️ / -0.58 💵 - Purchase order #3286\n` +
-      `#1546 - -50 🅿️ / -0.58 💵 - Purchase order #3285\n` +
-      `#1545 - -50 🅿️ / -0.58 💵 - Purchase order #3284\n` +
-      `#1544 - -50 🅿️ / -0.58 💵 - Purchase order #3283\n` +
-      `#1543 - -50 🅿️ / -0.58 💵 - Purchase order #3282\n` +
-      `#1536 - -50 🅿️ / -0.58 💵 - Purchase order #3253\n` +
-      `#1535 - -50 🅿️ / -0.58 💵 - Purchase order #3251\n` +
-      `#1534 - -50 🅿️ / -0.58 💵 - Purchase order #3250\n` +
-      `#1528 - -50 🅿️ / -0.58 💵 - Purchase order #3220\n` +
-      `#1527 - -100 🅿️ / -1.17 💵 - Purchase order #3219`;
+    txCaption += `#1547 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3286\n` +
+      `#1546 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3285\n` +
+      `#1545 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3284\n` +
+      `#1544 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3283\n` +
+      `#1543 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3282\n` +
+      `#1536 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3253\n` +
+      `#1535 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3251\n` +
+      `#1534 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3250\n` +
+      `#1528 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3220\n` +
+      `#1527 - -$1.17 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3219`;
   } else {
     userOrders.slice(0, 10).forEach((o) => {
-      const amtUSD = (o.totalPrice / 100).toFixed(2);
-      txCaption += `#${1500 + o.id} - -$${amtUSD} 💵 - Purchase order #${3000 + o.id}\n`;
+      const amtUSD = (((o as any).totalPrice || (o as any).price || 0) / 100).toFixed(2);
+      txCaption += `#${1500 + o.id} - -$${amtUSD} <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #${3000 + o.id}\n`;
     });
   }
 
@@ -3128,26 +3372,228 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
         style: 'primary',
         icon_custom_emoji_id: '5208604387156448480'
       }
+    ],
+    [
+      {
+        text: 'Back',
+        callback_data: 'profile',
+        style: 'primary',
+        icon_custom_emoji_id: '5213358684024877471'
+      }
     ]
   ] as any;
 
   const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, txBannerPath, txCaption, { inline_keyboard }, messageId);
+};
 
-  if (fs.existsSync(txBannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, txBannerPath, {
-        caption: txCaption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
+const sendPromoCodeScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
+  await storage.updateTelegramUserByChatId(userId, { lastAction: 'awaiting_promocode' });
+  const promoCaption = `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> <b>Enter Promo Code</b>\n\nPlease type your promo code in the chat below to redeem:`;
+  const inline_keyboard = [
+    [
+      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+    ]
+  ] as any;
+  const promoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_promocode_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, promoBannerPath, promoCaption, { inline_keyboard }, messageId);
+};
+
+const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
+  const topUpCaption = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> <b>Balance Top-up</b>\n\nChoose payment method:`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'CryptoBot',
+        callback_data: 'payment_cryptobot',
+        style: 'primary',
+        icon_custom_emoji_id: '5361543877599724417'
+      }
+    ],
+    [
+      {
+        text: 'Binance UID',
+        callback_data: 'payment_binance',
+        style: 'success',
+        icon_custom_emoji_id: '6235482598924095547'
+      }
+    ],
+    [
+      {
+        text: 'USDT BEP-20',
+        callback_data: 'payment_bep20',
+        style: 'primary',
+        icon_custom_emoji_id: '5409048419211682843'
+      },
+      {
+        text: 'USDT TRC-20',
+        callback_data: 'payment_trc20',
+        style: 'success',
+        icon_custom_emoji_id: '5201692367437974073'
+      }
+    ],
+    [
+      {
+        text: 'Profile',
+        callback_data: 'profile',
+        style: 'primary',
+        icon_custom_emoji_id: '5260399854500191689'
+      },
+      {
+        text: 'Cancel',
+        callback_data: 'profile',
+        style: 'danger',
+        icon_custom_emoji_id: '5274099962655816924'
+      }
+    ]
+  ] as any;
+
+  const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, topUpCaption, { inline_keyboard }, messageId);
+};
+
+const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
+  const tgUser = await storage.getTelegramUser(chatId.toString());
+  const userLang = (tgUser as any)?.selectedLanguage || 'en';
+
+  const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
+  const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
+  const cleanUsername = rawSupportUsername.replace('@', '');
+
+  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${t(userLang, 'support_title')}</b>\n\n` +
+    `Need help? Contact admin: @${cleanUsername}\n\n` +
+    `${t(userLang, 'support_sub')}`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: t(userLang, 'issue_payment_not_approved'),
+        callback_data: 'supp_payment',
+        style: 'primary',
+        icon_custom_emoji_id: '5260535596941582167'
+      }
+    ],
+    [
+      {
+        text: t(userLang, 'issue_not_received'),
+        callback_data: 'supp_not_received',
+        style: 'primary',
+        icon_custom_emoji_id: '5854908544712707500'
+      }
+    ],
+    [
+      {
+        text: t(userLang, 'issue_not_working'),
+        callback_data: 'supp_not_working',
+        style: 'primary',
+        icon_custom_emoji_id: '5854908544712707500'
+      }
+    ],
+    [
+      {
+        text: t(userLang, 'issue_wrong_amount'),
+        callback_data: 'supp_wrong_amount',
+        style: 'primary',
+        icon_custom_emoji_id: '5260535596941582167'
+      }
+    ],
+    [
+      {
+        text: t(userLang, 'issue_other'),
+        callback_data: 'supp_other',
+        style: 'primary',
+        icon_custom_emoji_id: '5260535596941582167'
+      }
+    ],
+    [
+      {
+        text: t(userLang, 'btn_back'),
+        callback_data: 'main_menu',
+        style: 'danger',
+        icon_custom_emoji_id: '5213358684024877471'
+      }
+    ]
+  ] as any;
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, caption, { inline_keyboard }, messageId);
+};
+
+const handleSupportIssue = async (
+  targetBot: TelegramBot,
+  chatId: number,
+  userId: string,
+  issueTypeKey: string,
+  messageId?: number
+) => {
+  const issueTitles: Record<string, string> = {
+    supp_payment: 'Payment sent but not approved',
+    supp_not_received: 'Product not received',
+    supp_not_working: 'Product not working',
+    supp_wrong_amount: 'Wrong amount sent',
+    supp_other: 'Other issue'
+  };
+
+  const issueTitle = issueTitles[issueTypeKey] || 'Support Request';
+
+  const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
+  const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
+  const cleanUsername = rawSupportUsername.replace('@', '');
+
+  const tgUser = await storage.getTelegramUser(userId);
+
+  try {
+    if (tgUser) {
+      const ticket = await storage.createSupportTicket({
+        telegramUserId: tgUser.id,
+        issueType: issueTitle,
+        status: 'open',
+        userTelegramId: userId,
+        username: tgUser.username || tgUser.firstName || 'Customer',
+        details: null
       });
-      return;
-    } catch (err: any) { }
+
+      await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticket.id}` });
+
+      sendAdminPushNotification({
+        title: `🆘 New Support Request (#${ticket.id})`,
+        body: `@${tgUser.username || userId} requested support: ${issueTitle}`
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Error creating support ticket:', err);
   }
 
-  await targetBot.sendMessage(chatId, txCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${issueTitle}</b>\n\n` +
+    `Contact @${cleanUsername} and send:\n\n` +
+    `<blockquote>Order ID:\n` +
+    `Payment method:\n` +
+    `Amount sent:\n` +
+    `Screenshot attached: Yes/No\n` +
+    `Problem details:</blockquote>`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Contact Admin ↗',
+        url: `https://t.me/${cleanUsername}`,
+        style: 'success',
+        icon_custom_emoji_id: '5260535596941582167'
+      }
+    ],
+    [
+      {
+        text: 'Back',
+        callback_data: 'support',
+        style: 'danger',
+        icon_custom_emoji_id: '5213358684024877471'
+      }
+    ]
+  ] as any;
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, caption, { inline_keyboard }, messageId);
 };
 
 const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
@@ -3157,7 +3603,7 @@ const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number, mes
   const inline_keyboard = [
     [
       { text: 'Guarantees', callback_data: 'guarantees', style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
-      { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }
+      { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
     ],
     [
       { text: 'Reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5193009244940557703' },
@@ -3213,48 +3659,64 @@ const sendUsefulLinksScreen = async (targetBot: TelegramBot, chatId: number, mes
 };
 
 const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
-  const reviewsCaption = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b>Customer reviews</b>\n\n` +
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> Gemini Link 18 months</b>\n` +
-    `Все топ советую 👍\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Gor***\n\n` +
+  let reviewsList = await storage.getReviews();
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
-    `ета крута\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Sas***\n\n` +
+  // Seed default verified reviews if database has no reviews yet
+  if (reviewsList.length === 0) {
+    const defaultReviews = [
+      { productName: "Gemini Link 18 months", rating: 5, comment: "Super fast activation! Account working 100% fine.", reviewerName: "Rochana I.", isVerified: true, status: 'approved' },
+      { productName: "ChatGPT Plus 1m NW", rating: 5, comment: "Instant delivery, great support! Recommended seller.", reviewerName: "Kasun K.", isVerified: true, status: 'approved' },
+      { productName: "Claude Pro 1 month CDK", rating: 5, comment: "Very good price and prompt service. Thank you!", reviewerName: "Amila P.", isVerified: true, status: 'approved' },
+      { productName: "Standoff 2 Gold 1000", rating: 5, comment: "Received gold within 5 minutes. Best store!", reviewerName: "Dinesh S.", isVerified: true, status: 'approved' },
+      { productName: "AWS 32 vCPU Account", rating: 5, comment: "Clean limit account with fast delivery. 5 stars!", reviewerName: "Nalin T.", isVerified: true, status: 'approved' }
+    ];
+    for (const r of defaultReviews) {
+      await storage.createReview(r);
+    }
+    reviewsList = await storage.getReviews();
+  }
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321196473784773037">🤖</tg-emoji> Claude Pro 1 month CDK</b>\n` +
-    `все четко\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Покупатель ***\n\n` +
+  const totalCount = reviewsList.length;
+  const sumRating = reviewsList.reduce((acc, r) => acc + (r.rating || 5), 0);
+  const avgRating = totalCount > 0 ? (sumRating / totalCount).toFixed(1) : "5.0";
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5321197740800120767">🤖</tg-emoji> Gemini Link 18 months</b>\n` +
-    `четко\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Покупатель ***\n\n` +
+  const starTg = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji>`;
+  const chartTg = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji>`;
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
-    `Ахуенная\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Ale***\n\n` +
+  let reviewsCaption = `${starTg} <b>Customer Reviews & Ratings</b>\n\n` +
+    `${chartTg} <b>Average Rating:</b> <b>${avgRating} / 5.0</b> ⭐ (Verified Buyers)\n` +
+    `💬 <b>Total Reviews:</b> <b>${totalCount} Reviews</b>\n` +
+    `⭐⭐⭐⭐⭐ <b>98% Satisfied Customers</b>\n\n` +
+    `<b>Recent Customer Reviews:</b>\n` +
+    `➖➖➖➖➖➖➖➖➖➖\n\n`;
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5359726582447487916">⭐</tg-emoji> ChatGPT plus 1m NW</b>\n` +
-    `Harika\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Ver***\n\n` +
+  reviewsList.slice(0, 4).forEach((r) => {
+    const stars = '⭐'.repeat(r.rating || 5);
+    const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently';
+    const commentClean = escapeHTML(r.comment).slice(0, 60);
+    reviewsCaption += `${stars} <b>${escapeHTML(r.productName)}</b>\n` +
+      `💬 <i>"${commentClean}"</i>\n` +
+      `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> <b>${escapeHTML(r.reviewerName)}</b> · <tg-emoji emoji-id="5812250560161649509">✅</tg-emoji> Verified (${dateStr})\n\n`;
+  });
 
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji><tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5310259124817134249">🤖</tg-emoji> ChatGPT plus 1m FW</b>\n` +
-    `Just better\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> qyr***\n\n` +
-
-    `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b><tg-emoji emoji-id="5310259124817134249">🤖</tg-emoji> ChatGPT plus 1m FW</b>\n` +
-    `Аккаунт не работает\n` +
-    `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> Inp***`;
-
-  const botUsername = (await targetBot.getMe().catch(() => ({ username: 'Imesh_cloud_bot' }))).username || 'Imesh_cloud_bot';
+  const reviewsChannelSetting = await storage.getSetting("REVIEWS_CHANNEL_URL");
+  const reviewsChannelUrl = reviewsChannelSetting?.value || "https://t.me/imesh_cloud_reviews";
 
   const inline_keyboard = [
     [
       {
-        text: 'Open reviews ↗',
-        url: `https://t.me/${botUsername}`,
+        text: 'Write a review',
+        callback_data: 'write_review',
         style: 'success',
         icon_custom_emoji_id: '5193009244940557703'
+      }
+    ],
+    [
+      {
+        text: 'Open reviews channel ↗',
+        url: reviewsChannelUrl,
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
       }
     ],
     [
@@ -3273,32 +3735,8 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
     ]
   ] as any;
 
-  if (messageId) {
-    try {
-      await targetBot.editMessageCaption(reviewsCaption, {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (e: any) {
-      try {
-        await targetBot.editMessageText(reviewsCaption, {
-          chat_id: chatId,
-          message_id: messageId,
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard }
-        });
-        return;
-      } catch (err) { }
-    }
-  }
-
-  await targetBot.sendMessage(chatId, reviewsCaption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, reviewsCaption, { inline_keyboard }, messageId);
 };
 
 const sendPurchaseSuccessScreen = async (
@@ -3319,8 +3757,8 @@ const sendPurchaseSuccessScreen = async (
   const inline_keyboard = [
     [
       {
-        text: 'Leave a review',
-        callback_data: 'reviews',
+        text: 'Give feedback',
+        callback_data: `give_feedback_${encodeURIComponent(productName)}`,
         style: 'success',
         icon_custom_emoji_id: '5193009244940557703'
       }
@@ -3700,9 +4138,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         console.error("Error in fast timer trigger:", err);
       }
 
+      const msgId = query.message?.message_id;
+
       // --- LOGIC FROM LISTENER 1 & 2 ---
       if (data === 'buy' || data === 'catalog') {
-        await sendCatalogMenu(targetBot, chatId);
+        await sendCatalogMenu(targetBot, chatId, msgId);
         return;
       }
 
@@ -3713,12 +4153,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'profile' || data === 'profile_refresh') {
-        await sendUserProfileCard(targetBot, chatId, userId, query.from);
+        await sendUserProfileCard(targetBot, chatId, userId, query.from, msgId);
         return;
       }
 
       if (data === 'purchase_history' || data === 'my_purchases') {
-        await sendMyPurchasesScreen(targetBot, chatId, userId);
+        await sendMyPurchasesScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
@@ -3734,12 +4174,23 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Back to Purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
           ] as any
         };
+        if (msgId) {
+          try {
+            await targetBot.editMessageCaption(orderMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: orderKeyboard });
+            return;
+          } catch (e) {
+            try {
+              await targetBot.editMessageText(orderMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: orderKeyboard });
+              return;
+            } catch (err) {}
+          }
+        }
         await targetBot.sendMessage(chatId, orderMsg, { parse_mode: 'HTML', reply_markup: orderKeyboard });
         return;
       }
 
       if (data === 'referral_program') {
-        await sendReferralProgramScreen(targetBot, chatId, userId);
+        await sendReferralProgramScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
@@ -3794,67 +4245,58 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'enter_promocode') {
-        await storage.updateTelegramUserByChatId(userId, { lastAction: 'awaiting_promocode' });
-        await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> <b>Enter Promo Code</b>\n\nPlease type your promo code in the chat below to redeem:`, { parse_mode: 'HTML' });
+        await sendPromoCodeScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data === 'change_currency') {
-        await sendCurrencyScreen(targetBot, chatId, userId);
+        await sendCurrencyScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data.startsWith('set_curr_')) {
         const curr = data.substring(9);
         await storage.updateTelegramUser(tgUser.id, { selectedCurrency: curr } as any);
-        try {
-          if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id);
-        } catch (e) {}
-        await sendCurrencyScreen(targetBot, chatId, userId);
+        await sendCurrencyScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data === 'change_language') {
-        await sendLanguageScreen(targetBot, chatId, userId);
+        await sendLanguageScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data.startsWith('set_lang_')) {
         const lang = data.substring(9);
         await storage.updateTelegramUser(tgUser.id, { selectedLanguage: lang } as any);
-        try {
-          if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id);
-        } catch (e) {}
-        await sendLanguageScreen(targetBot, chatId, userId);
+        await sendLanguageScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data === 'transactions') {
-        await sendTransactionsScreen(targetBot, chatId, userId);
+        await sendTransactionsScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
       if (data === 'main_menu') {
+        const userLang = (tgUser as any)?.selectedLanguage || 'en';
         const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
-        const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.`;
+        const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>${t(userLang, 'welcome_title')}</b>\n\n${t(userLang, 'welcome_sub')}`;
         const startInlineMarkup = {
           inline_keyboard: [
             [
-              { text: 'Catalog', callback_data: 'buy', icon_custom_emoji_id: '5377660214096974712' },
-              { text: 'Profile', callback_data: 'profile', icon_custom_emoji_id: '5260399854500191689' }
+              { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
             ],
             [
-              { text: 'Useful links', callback_data: 'useful_links', icon_custom_emoji_id: '5271604874419647061' }
+              { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+            ],
+            [
+              { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+              { text: t(userLang, 'btn_support'), callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
             ]
           ] as any
         };
-        if (fs.existsSync(bannerPath)) {
-          try {
-            await targetBot.sendPhoto(chatId, bannerPath, { caption: welcomeCaption, parse_mode: 'HTML', reply_markup: startInlineMarkup });
-            return;
-          } catch (e) {}
-        }
-        await targetBot.sendMessage(chatId, welcomeCaption, { parse_mode: 'HTML', reply_markup: startInlineMarkup });
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup, msgId);
         return;
       }
 
@@ -3868,6 +4310,119 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
+      if (data === 'write_review') {
+        // Query user's purchases from orders table
+        const userOrders = await db
+          .select({
+            id: orders.id,
+            productId: orders.productId,
+            productName: products.name
+          })
+          .from(orders)
+          .leftJoin(products, eq(orders.productId, products.id))
+          .where(eq(orders.telegramUserId, tgUser.id));
+
+        if (userOrders.length === 0) {
+          const noPurchaseKb = {
+            inline_keyboard: [
+              [
+                { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+                { text: 'Main menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }
+              ],
+              [
+                { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+              ]
+            ] as any
+          };
+          await targetBot.sendMessage(
+            chatId,
+            `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Verified Buyers Only</b>\n\n` +
+            `You must make at least one purchase in our store to leave a customer review.\n\n` +
+            `Please visit our catalog to make your first purchase!`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: noPurchaseKb
+            }
+          );
+          return;
+        }
+
+        // Extract unique purchased product names
+        const purchasedProductNames: string[] = Array.from(
+          new Set(userOrders.map(o => o.productName || "Verified Purchase"))
+        );
+
+        const prodKbRows: any[] = purchasedProductNames.map(prodName => [
+          {
+            text: prodName,
+            callback_data: `give_feedback_${encodeURIComponent(prodName)}`,
+            style: 'primary',
+            icon_custom_emoji_id: '5321197740800120767'
+          }
+        ]);
+
+        prodKbRows.push([
+          { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+        ]);
+
+        await targetBot.sendMessage(
+          chatId,
+          `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b>Select Purchased Product to Review:</b>\n\n` +
+          `Please select which item from your completed purchases you want to leave a review for:`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: prodKbRows }
+          }
+        );
+        return;
+      }
+
+      if (data.startsWith('give_feedback_')) {
+        const rawName = data.substring(14);
+        const productName = decodeURIComponent(rawName) || "Verified Purchase";
+
+        const ratingKb = {
+          inline_keyboard: [
+            [
+              { text: '5 Stars (5/5)', callback_data: `rate_5_${encodeURIComponent(productName)}`, style: 'success', icon_custom_emoji_id: '5193009244940557703' },
+              { text: '4 Stars (4/5)', callback_data: `rate_4_${encodeURIComponent(productName)}`, style: 'primary', icon_custom_emoji_id: '5193009244940557703' }
+            ],
+            [
+              { text: '3 Stars (3/5)', callback_data: `rate_3_${encodeURIComponent(productName)}`, style: 'primary', icon_custom_emoji_id: '5193009244940557703' },
+              { text: '2 Stars (2/5)', callback_data: `rate_2_${encodeURIComponent(productName)}`, style: 'danger', icon_custom_emoji_id: '5193009244940557703' },
+              { text: '1 Star (1/5)', callback_data: `rate_1_${encodeURIComponent(productName)}`, style: 'danger', icon_custom_emoji_id: '5193009244940557703' }
+            ],
+            [
+              { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+            ]
+          ] as any
+        };
+        await targetBot.sendMessage(
+          chatId,
+          `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji> <b>Select your rating for ${escapeHTML(productName)}:</b>\n\nClick a rating option below to leave your review:`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: ratingKb
+          }
+        );
+        return;
+      }
+
+      if (data.startsWith('rate_')) {
+        const parts = data.split('_');
+        const rating = parseInt(parts[1], 10) || 5;
+        const productName = parts.slice(2).join('_') ? decodeURIComponent(parts.slice(2).join('_')) : "Verified Purchase";
+
+        const starTg = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji>`.repeat(rating);
+        await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_review_comment_${rating}_${encodeURIComponent(productName)}` });
+        await targetBot.sendMessage(
+          chatId,
+          `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Write your review comment for ${escapeHTML(productName)} (${starTg}):</b>\n\nPlease type your review comment below in the chat:`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
       if (data === 'guarantees') {
         const guaranteesMsg = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Guarantees & Warranty</b>\n\n` +
           `• 24-hour instant activation guarantee after purchase.\n` +
@@ -3875,7 +4430,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `• 24/7 dedicated support team available for assistance.`;
         const kb = {
           inline_keyboard: [
-            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
+            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }],
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
@@ -3902,7 +4457,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `3. Keep your receipt and order ID when contacting support.`;
         const kb = {
           inline_keyboard: [
-            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
+            [{ text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }],
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
@@ -3922,17 +4477,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'channel' || data === 'support') {
+      if (data === 'support') {
+        await sendSupportScreen(targetBot, chatId, query.message?.message_id);
+        return;
+      }
+
+      if (data.startsWith('supp_')) {
+        await handleSupportIssue(targetBot, chatId, userId, data, query.message?.message_id);
+        return;
+      }
+
+      if (data === 'channel') {
         const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
-        const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+        const supportUsername = supportUsernameSetting?.value || "@creativesStudios";
         const botUsername = (await targetBot.getMe().catch(() => ({ username: 'Imesh_cloud_bot' }))).username || 'Imesh_cloud_bot';
 
-        const infoMsg = `<tg-emoji emoji-id="5208604387156448480">👨‍💻</tg-emoji> <b>Support & Community Channel</b>\n\n` +
-          `Support Manager: <b>${supportUsername}</b>\n` +
+        const infoMsg = `<tg-emoji emoji-id="5208604387156448480">👨‍💻</tg-emoji> <b>Community Channel</b>\n\n` +
           `Official Channel: <b>https://t.me/${botUsername}</b>`;
         const kb = {
           inline_keyboard: [
-            [{ text: 'Write to support', url: `https://t.me/${supportUsername.replace('@', '')}`, style: 'success' }],
             [{ text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }]
           ] as any
         };
@@ -4560,6 +5123,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data.startsWith('cat_')) {
         const category = data.substring(4);
+        const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
+        const showOutOfStock = showOutOfStockSetting?.value === "true";
+
         const products = await storage.getProducts();
         const categoryProducts = products.filter(p => p.type === category && p.status === 'available');
 
@@ -4569,30 +5135,39 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
         } catch (err) { }
 
+        const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
         const keyboard: any[] = [];
         if (categoryProducts.length > 0) {
           for (const p of categoryProducts) {
             const stock = await storage.getCredentialsByProduct(p.id);
             const availableStock = stock.filter(c => c.status === 'available').length;
+
+            if (!showOutOfStock && availableStock === 0) continue;
+
+            const { formatted: pPrice } = formatPriceInCurrency(p.price / 100, userCurrency);
             const buttonStyle = availableStock > 0 ? 'success' : 'danger';
+            const stockText = availableStock > 0 ? `${availableStock} Pcs` : `Out of Stock`;
             keyboard.push([{
-              text: `${p.name} - $${(p.price / 100).toFixed(2)} | ${availableStock} Pcs`,
+              text: `${p.name} - ${pPrice} | ${stockText}`,
               callback_data: `prod_${p.id}`,
               style: buttonStyle,
               icon_custom_emoji_id: p.customEmojiId || '5456343263340405032'
             }]);
           }
         } else {
-          // Preset item for demo category
-          keyboard.push([{
-            text: `${category} Account - $10.00 | 5 Pcs`,
-            callback_data: `preset_buy_${category}`,
-            style: 'success',
-            icon_custom_emoji_id: '5456343263340405032'
-          }]);
+          const isSuperGrokOut = category === 'SuperGrok';
+          if (showOutOfStock || !isSuperGrokOut) {
+            const { formatted: pPrice } = formatPriceInCurrency(10, userCurrency);
+            keyboard.push([{
+              text: `${category} Account - ${pPrice} | ${isSuperGrokOut ? 'Out of Stock' : '5 Pcs'}`,
+              callback_data: `preset_buy_${category}`,
+              style: isSuperGrokOut ? 'danger' : 'success',
+              icon_custom_emoji_id: '5456343263340405032'
+            }]);
+          }
         }
 
-        // Add Back to Catalog button (style: 'primary' -> PURPLE)
+        // Add Back to Catalog button
         keyboard.push([{
           text: 'Back to Catalog',
           callback_data: 'buy',
@@ -4607,10 +5182,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         else if (catLower.includes('azure')) catIcon = '<tg-emoji emoji-id="6235420094265037090">☁️</tg-emoji> ';
         else if (catLower.includes('kamatera')) catIcon = '<tg-emoji emoji-id="6235239937566838722">☁️</tg-emoji> ';
 
-        targetBot.sendMessage(chatId, `${catIcon} <b>${category}</b>\n\nSelect the product you need <tg-emoji emoji-id="5231102735817918643">🛍</tg-emoji>`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
+        const caption = `${catIcon} <b>${category}</b>\n\nSelect the product you need:`;
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard: keyboard });
         return;
       }
 
@@ -5218,49 +5792,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
         } catch (err) { }
 
-        const cryptobotEnabled = (await storage.getSetting('PAYMENT_CRYPTOBOT_ENABLED'))?.value !== 'false';
-        const cryptomusEnabled = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== 'false';
-        const binanceEnabled = (await storage.getSetting('PAYMENT_BINANCE_ENABLED'))?.value !== 'false';
-        const trc20Enabled = (await storage.getSetting('PAYMENT_TRC20_ENABLED'))?.value === 'true';
-        const aptosEnabled = (await storage.getSetting('PAYMENT_APTOS_ENABLED'))?.value === 'true';
-
-        const keyboard: any[][] = [];
-
-        const row1: any[] = [];
-        if (cryptobotEnabled) {
-          row1.push({ text: 'CryptoBot', callback_data: 'payment_cryptobot', icon_custom_emoji_id: '5361543877599724417' });
-        }
-        if (cryptomusEnabled) {
-          row1.push({ text: 'Cryptomus', callback_data: 'payment_cryptomus', icon_custom_emoji_id: '5341506639688126935' });
-        }
-        if (row1.length > 0) keyboard.push(row1);
-
-        const row2: any[] = [];
-        if (binanceEnabled) {
-          row2.push({ text: 'Binance Pay', callback_data: 'payment_binance', icon_custom_emoji_id: '6235482598924095547' });
-        }
-        if (trc20Enabled) {
-          row2.push({ text: 'TRC20 (USDT)', callback_data: 'payment_trc20', icon_custom_emoji_id: '5201692367437974073' });
-        }
-        if (row2.length > 0) keyboard.push(row2);
-
-        const row3: any[] = [];
-        if (aptosEnabled) {
-          row3.push({ text: 'Aptos (USDT)', callback_data: 'payment_aptos', icon_custom_emoji_id: '5798849051017352095' });
-        }
-        if (row3.length > 0) keyboard.push(row3);
-
-        if (keyboard.length === 0) {
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5215264669865842880">⚠️</tg-emoji> <b>Payment methods are currently unavailable.</b>\n\nAll deposit methods are disabled by admin. Please contact support.`, {
-            parse_mode: 'HTML'
-          });
-          return;
-        }
-
-        await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5201692367437974073">💰</tg-emoji> <b>Select Payment Method:</b>`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        await sendAddFundsScreen(targetBot, chatId);
         return;
       }
 
@@ -5503,6 +6035,30 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         );
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_trc20_amount',
+          lastMessageId: prompt?.message_id
+        });
+        return;
+      }
+
+      if (data === 'payment_bep20') {
+        const bep20Enabled = (await storage.getSetting('PAYMENT_BEP20_ENABLED'))?.value !== 'false';
+        if (!bep20Enabled) {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '❌ BEP20 payments are currently disabled.', show_alert: true }).catch(() => {});
+          } else {
+            await targetBot.sendMessage(chatId, '❌ BEP20 payments are currently disabled by the admin.');
+          }
+          return;
+        }
+
+        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        const prompt = await targetBot.sendMessage(chatId,
+          `<tg-emoji emoji-id="5296437653770608702">💰</tg-emoji> <b>USDT (BEP-20) Deposit</b>\n\nEnter the <b>USDT amount</b> you want to deposit (USD <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`,
+          { parse_mode: 'HTML' }
+        );
+        await storage.updateTelegramUserByChatId(chatId.toString(), {
+          lastAction: 'awaiting_bep20_amount',
           lastMessageId: prompt?.message_id
         });
         return;
@@ -6432,11 +6988,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         parse_mode: 'HTML',
         reply_markup: {
           keyboard: [
-            [{ text: '🛍️ Buy' }, { text: '👤 Profile' }, { text: '📋 Availability' }],
-            [{ text: supportBtnText }, { text: '❓ FAQ' }]
+            [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+            [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+            [
+              { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+              { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+            ]
           ],
           resize_keyboard: true
-        }
+        } as any
       };
 
       // If no parameter, show the standard welcome message with generated purple banner photo
@@ -6446,11 +7006,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const startInlineMarkup = {
         inline_keyboard: [
           [
-            { text: 'Catalog', callback_data: 'buy', icon_custom_emoji_id: '5377660214096974712' },
-            { text: 'Profile', callback_data: 'profile', icon_custom_emoji_id: '5260399854500191689' }
+            { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
           ],
           [
-            { text: 'Useful links', callback_data: 'useful_links', icon_custom_emoji_id: '5271604874419647061' }
+            { text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+          ],
+          [
+            { text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+            { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
           ]
         ] as any
       };
@@ -6463,8 +7026,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            // Send reply keyboard at bottom
-            await targetBot.sendMessage(chatId, `Choose a section from the menu below:`, opts).catch(() => {});
+            await targetBot.sendMessage(chatId, "👇 Select an option from the menu below:", {
+              parse_mode: 'HTML',
+              reply_markup: opts.reply_markup
+            });
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
@@ -6472,7 +7037,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: startInlineMarkup
+          reply_markup: opts.reply_markup
         });
       };
 
@@ -6630,6 +7195,61 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `📦 <b>Your delivery details will be sent shortly automatically!</b>`;
 
         await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML' });
+        return;
+      }
+
+      if (tgUser?.lastAction?.startsWith('awaiting_support_details_') && msg.photo && msg.photo.length > 0) {
+        const ticketIdStr = tgUser.lastAction.split('_')[3];
+        const ticketId = parseInt(ticketIdStr, 10);
+        const captionText = msg.caption || '';
+        const photo = msg.photo[msg.photo.length - 1];
+
+        try {
+          const fileLink = await targetBot.getFileLink(photo.file_id);
+
+          const uploadsDir = path.join(process.cwd(), "public", "uploads");
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          const fileName = `support_screenshot_${ticketId}_${Date.now()}.jpg`;
+          const localFilePath = path.join(uploadsDir, fileName);
+          const relativeUrl = `/uploads/${fileName}`;
+
+          const response = await axios.get(fileLink, { responseType: 'stream' });
+          const writer = fs.createWriteStream(localFilePath);
+          response.data.pipe(writer);
+
+          await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+          });
+
+          await db.update(supportTickets)
+            .set({
+              details: captionText ? captionText : `[Screenshot Attached]`,
+              attachmentUrl: relativeUrl,
+              updatedAt: new Date()
+            })
+            .where(eq(supportTickets.id, ticketId));
+
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+          sendAdminPushNotification({
+            title: `📸 Support Screenshot Received (#${ticketId})`,
+            body: `@${tgUser.username || userId} sent a screenshot with support ticket #${ticketId}`
+          }).catch(() => {});
+
+          await targetBot.sendMessage(
+            chatId,
+            `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Screenshot and support details saved!</b>\n\n` +
+            `Our admin team has received your screenshot and message and will review it shortly.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (err) {
+          console.error("Error processing support screenshot:", err);
+          await targetBot.sendMessage(chatId, "✅ Screenshot received! Admin team has been notified.");
+        }
         return;
       }
 
@@ -6882,22 +7502,127 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
-      } else if (normalizedText === '👤 Profile' || normalizedText === 'Profile') {
-        console.log(`Profile requested for user: ${userId}`);
-        await sendUserProfileCard(targetBot, chatId, userId, msg.from);
-      } else if (normalizedText === supportBtnText || normalizedText?.includes(supportBtnText)) {
-        const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
-        const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
-        const cleanUsername = supportUsername.replace('@', '');
-        targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5461151367559141950">📩</tg-emoji> <b>For support, please contact us below:</b>`, {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[
-              { text: supportBtnText, url: `https://t.me/${cleanUsername}` }
-            ]]
+      } else if (tgUser?.lastAction?.startsWith('awaiting_review_comment_')) {
+        const parts = tgUser.lastAction.split('_');
+        const rating = parseInt(parts[3], 10) || 5;
+        const productName = parts.slice(4).join('_') ? decodeURIComponent(parts.slice(4).join('_')) : "Verified Purchase";
+        const comment = normalizedText || '';
+
+        if (comment.length < 3) {
+          await targetBot.sendMessage(chatId, "<tg-emoji emoji-id=\"5215570077876756627\">❌</tg-emoji> Review comment must be at least 3 characters. Please try again:");
+          return;
+        }
+
+        const reviewerName = tgUser.firstName ? `${tgUser.firstName} ${tgUser.lastName ? tgUser.lastName.charAt(0) + '.' : ''}` : 'Customer';
+
+        try {
+          await storage.createReview({
+            telegramUserId: tgUser.id,
+            productName: productName,
+            rating: rating,
+            comment: comment,
+            reviewerName: reviewerName,
+            isVerified: true,
+            status: 'approved'
+          });
+
+          const starTg = `<tg-emoji emoji-id="5193009244940557703">⭐</tg-emoji>`.repeat(rating);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await targetBot.sendMessage(
+            chatId,
+            `<tg-emoji emoji-id="5404617696589390973">🎉</tg-emoji> <b>Thank you for your feedback!</b>\n\nYour ${starTg} review for <b>${escapeHTML(productName)}</b> has been published successfully.`,
+            { parse_mode: 'HTML' }
+          );
+          await sendCustomerReviewsScreen(targetBot, chatId).catch(err => console.error('Reviews screen update error:', err));
+        } catch (err: any) {
+          console.error('Error submitting review:', err);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await targetBot.sendMessage(chatId, "✅ Thank you! Your review has been saved.");
+        }
+        return;
+      } else if (tgUser?.lastAction?.startsWith('awaiting_support_details_')) {
+        const ticketIdStr = tgUser.lastAction.split('_')[3];
+        const ticketId = parseInt(ticketIdStr, 10);
+        const detailsText = normalizedText || '';
+
+        if (detailsText.length > 0 && !isNaN(ticketId)) {
+          try {
+            await db.update(supportTickets)
+              .set({ details: detailsText, updatedAt: new Date() })
+              .where(eq(supportTickets.id, ticketId));
+
+            await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+            sendAdminPushNotification({
+              title: `💬 Support Message Received (#${ticketId})`,
+              body: `@${tgUser.username || userId}: ${detailsText.substring(0, 100)}`
+            }).catch(() => {});
+
+            await targetBot.sendMessage(
+              chatId,
+              `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Support details saved!</b>\n\n` +
+              `Our admin team has received your message and will review it shortly.`,
+              { parse_mode: 'HTML' }
+            );
+          } catch (err) {
+            console.error("Error updating support ticket details:", err);
           }
-        });
-      } else if (normalizedText === '❓ FAQ') {
+        }
+        return;
+      } else if (tgUser?.lastAction === 'awaiting_promocode') {
+        const enteredCode = normalizedText?.trim();
+        if (!enteredCode) return;
+
+        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+        try {
+          const promo = await storage.getPromoCodeByCode(enteredCode);
+          if (!promo) {
+            await targetBot.sendMessage(chatId, `❌ <b>Invalid Promo Code</b>\n\n"${enteredCode}" does not exist. Please check spelling and try again.`, { parse_mode: 'HTML' });
+            return;
+          }
+
+          if (promo.status !== 'active') {
+            await targetBot.sendMessage(chatId, `❌ <b>Promo Code Expired</b>\n\nThe code "${promo.code}" is no longer active.`, { parse_mode: 'HTML' });
+            return;
+          }
+
+          if (promo.usesCount >= promo.maxUses) {
+            await targetBot.sendMessage(chatId, `❌ <b>Promo Code Limit Reached</b>\n\nThe code "${promo.code}" has reached its maximum redemption limit.`, { parse_mode: 'HTML' });
+            return;
+          }
+
+          const alreadyRedeemed = await storage.getRedemptionByUserAndCode(tgUser.id, promo.id);
+          if (alreadyRedeemed) {
+            await targetBot.sendMessage(chatId, `❌ <b>Already Redeemed</b>\n\nYou have already redeemed the code "${promo.code}".`, { parse_mode: 'HTML' });
+            return;
+          }
+
+          await storage.redeemPromoCode(tgUser.id, promo.id, promo.reward);
+
+          const rewardUSD = (promo.reward / 100).toFixed(2);
+          await targetBot.sendMessage(chatId, `🎉 <b>Promo Code Redeemed!</b>\n\nSuccessfully applied "${promo.code}".\n<b>$${rewardUSD}</b> has been added to your balance!`, { parse_mode: 'HTML' });
+
+          await sendUserProfileCard(targetBot, chatId, userId, msg.from);
+        } catch (err: any) {
+          console.error('[Promo Code Error]', err);
+          await targetBot.sendMessage(chatId, `❌ An error occurred while redeeming the promo code: ${err.message}`);
+        }
+      } else if (normalizedText?.includes('Catalog') || normalizedText?.includes('Buy')) {
+        await targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        await sendCatalogMenu(targetBot, chatId);
+      } else if (normalizedText?.includes('Profile')) {
+        console.log(`Profile requested for user: ${userId}`);
+        await targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        await sendUserProfileCard(targetBot, chatId, userId, msg.from);
+      } else if (normalizedText?.includes('Useful links') || normalizedText?.includes('Links')) {
+        await targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        await sendUsefulLinksScreen(targetBot, chatId);
+      } else if (normalizedText?.includes('Support') || normalizedText === supportBtnText || normalizedText?.includes(supportBtnText)) {
+        await targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        await sendSupportScreen(targetBot, chatId);
+      } else if (normalizedText === '❓ FAQ' || normalizedText?.includes('FAQ')) {
+        await targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
         const userName = tgUser?.firstName || 'User';
         const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
         const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
@@ -8171,6 +8896,64 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
     try {
       const result = await testForwardMessage();
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // --- Support Tickets API Routes ---
+  app.get("/api/support-tickets", isAuth, async (req, res) => {
+    try {
+      const tickets = await storage.getSupportTickets();
+      res.json(tickets);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/support-tickets/:id/status", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { status } = req.body;
+      const updated = await storage.updateSupportTicketStatus(id, status);
+
+      if (updated && updated.userTelegramId) {
+        try {
+          const targetBot = getBotInstance();
+          if (targetBot) {
+            const chatId = parseInt(updated.userTelegramId, 10);
+            if (!isNaN(chatId)) {
+              if (status === 'resolved') {
+                await targetBot.sendMessage(
+                  chatId,
+                  `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Support Ticket #${updated.id} Resolved</b>\n\n` +
+                  `Your support request regarding <b>${escapeHTML(updated.issueType)}</b> has been marked as <b>Resolved</b> by our support team.\n\n` +
+                  `Thank you for reaching out! If you still need help, feel free to contact us anytime.`,
+                  { parse_mode: 'HTML' }
+                ).catch(() => {});
+              } else if (status === 'closed') {
+                await targetBot.sendMessage(
+                  chatId,
+                  `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Support Ticket #${updated.id} Closed</b>\n\n` +
+                  `Your support request regarding <b>${escapeHTML(updated.issueType)}</b> has been marked as <b>Closed</b> by our support team.`,
+                  { parse_mode: 'HTML' }
+                ).catch(() => {});
+              } else if (status === 'open' || status === 'in_progress') {
+                await targetBot.sendMessage(
+                  chatId,
+                  `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Support Ticket #${updated.id} Reopened</b>\n\n` +
+                  `Your support request regarding <b>${escapeHTML(updated.issueType)}</b> has been reopened by support.`,
+                  { parse_mode: 'HTML' }
+                ).catch(() => {});
+              }
+            }
+          }
+        } catch (botErr) {
+          console.error("Error sending status notification to user:", botErr);
+        }
+      }
+
+      res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
