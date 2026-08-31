@@ -5359,7 +5359,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<b>Network:</b> ${method.toUpperCase()}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
             `<code>${walletAddress}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amountUSD} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>`;
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amountUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
             [{ text: 'Check payment', callback_data: `check_payment_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
@@ -6263,7 +6264,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<b>Network:</b> TRC20  <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
           `<code>${wallet}</code>\n\n` +
           `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
           [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
@@ -6347,7 +6349,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
           `<code>${wallet}</code>\n\n` +
           `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
           [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
@@ -8280,7 +8283,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<b>Network:</b> TRC20  <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
             `<code>${wallet}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
             [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
@@ -8330,7 +8334,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
             `<code>${wallet}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
             [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
