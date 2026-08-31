@@ -7498,34 +7498,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       };
 
       const sendWelcomeBanner = async () => {
-        if (fs.existsSync(bannerPath)) {
-          try {
-            await targetBot.sendPhoto(chatId, bannerPath, {
-              caption: welcomeCaption,
-              parse_mode: 'HTML',
-              reply_markup: startInlineMarkup,
-              message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-            } as any);
-            await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
-              reply_markup: {
-                keyboard: [
-                  [{ text: '🛍️ Catalog' }],
-                  [{ text: '👤 Profile' }],
-                  [
-                    { text: '🔗 Useful links' },
-                    { text: '💬 Support' }
-                  ]
-                ],
-                resize_keyboard: true
-              }
-            }).catch(() => {});
-            return;
-          } catch (err: any) {
-            console.error('Failed to send banner photo, falling back to text:', err.message);
-          }
+        try {
+          await targetBot.sendMessage(chatId, welcomeCaption, {
+            parse_mode: 'HTML',
+            reply_markup: startInlineMarkup,
+            message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+          } as any);
+        } catch (err: any) {
+          console.error('Failed to send welcome message with effect:', err.message);
+          await targetBot.sendMessage(chatId, welcomeCaption, {
+            parse_mode: 'HTML',
+            reply_markup: startInlineMarkup
+          }).catch(() => {});
         }
-        await targetBot.sendMessage(chatId, welcomeCaption, {
-          parse_mode: 'HTML',
+
+        await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
           reply_markup: {
             keyboard: [
               [{ text: '🛍️ Catalog' }],
@@ -7536,9 +7523,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               ]
             ],
             resize_keyboard: true
-          },
-          message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-        } as any);
+          }
+        }).catch(() => {});
       };
 
       if (!parameter) {
