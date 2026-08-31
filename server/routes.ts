@@ -3019,8 +3019,21 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     ] as any
   };
 
+  if (!messageId) {
+    try {
+      await targetBot.sendMessage(chatId, profileCaption, {
+        parse_mode: 'HTML',
+        reply_markup: profileInlineKeyboard,
+        message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+      } as any);
+      return;
+    } catch (err: any) {
+      console.error('Failed to send text profile message with effect:', err.message);
+    }
+  }
+
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
-  await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId, TELEGRAM_MESSAGE_EFFECTS.CONFETTI);
+  await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId);
 };
 
 const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
