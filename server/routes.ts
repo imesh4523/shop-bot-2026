@@ -7446,26 +7446,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       };
 
       const sendWelcomeBanner = async () => {
+        const bottomKeyboard = {
+          keyboard: [
+            [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+            [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+            [
+              { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+              { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+            ]
+          ],
+          resize_keyboard: true
+        } as any;
+
         if (fs.existsSync(bannerPath)) {
           try {
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: startInlineMarkup
+              reply_markup: bottomKeyboard
             });
-            await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
-              reply_markup: {
-                keyboard: [
-                  [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-                  [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
-                  [
-                    { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
-                    { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
-                  ]
-                ],
-                resize_keyboard: true
-              } as any
-            }).catch(() => {});
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
@@ -7473,17 +7472,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: {
-            keyboard: [
-              [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-              [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
-              [
-                { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
-                { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
-              ]
-            ],
-            resize_keyboard: true
-          } as any
+          reply_markup: bottomKeyboard
         });
       };
 
