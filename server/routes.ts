@@ -2710,7 +2710,7 @@ const initBot = async () => {
       console.error('Error verifying database tables:', e);
     }
 
-    if (token && token !== inspectorToken) {
+    if (token) {
       if (bot) {
         console.log('Stopping existing main bot...');
         await bot.stopPolling().catch(() => {});
@@ -2731,10 +2731,6 @@ const initBot = async () => {
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
       setMainBotReferenceForAdmin(bot);
       console.log('Main bot initialized successfully');
-    } else if (bot && token === inspectorToken) {
-      console.log('Stopping main bot instance as token is assigned to Dedicated Inspector Bot...');
-      await bot.stopPolling().catch(() => {});
-      bot = null;
     }
 
     if (broadcastToken && broadcastToken !== token) {
@@ -2761,7 +2757,7 @@ const initBot = async () => {
       broadcastBot = null;
     }
 
-    if (inspectorToken) {
+    if (inspectorToken && inspectorToken !== token) {
       if (inspectorBot) {
         console.log('Stopping existing inspector bot...');
         await inspectorBot.stopPolling().catch(() => {});
@@ -2780,6 +2776,9 @@ const initBot = async () => {
       patchBotMethods(inspectorBot);
       setupInspectorBotHandlers(inspectorBot);
       console.log(`Dedicated Inspector bot initialized successfully (Token hash: ${inspectorToken.substring(0, 10)}...)`);
+    } else if (bot && inspectorToken === token) {
+      setupInspectorBotHandlers(bot);
+      console.log(`Main bot also attached with Inspector handlers (Shared token: ${token.substring(0, 10)}...)`);
     } else if (inspectorBot) {
       await inspectorBot.stopPolling().catch(() => {});
       inspectorBot = null;
