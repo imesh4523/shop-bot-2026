@@ -8265,9 +8265,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         let paymentId = parseInt(parts[5] || '0', 10);
 
         if (paymentId === 0) {
-          const pendingPay = await db.select().from(payments).where(and(eq(payments.telegramUserId, tgUser.id), eq(payments.paymentMethod, 'binance'), eq(payments.status, 'pending'))).limit(1);
+          const pendingPay = await db.select().from(payments)
+            .where(and(eq(payments.telegramUserId, tgUser.id), eq(payments.paymentMethod, 'binance'), eq(payments.status, 'pending')))
+            .orderBy(desc(payments.id))
+            .limit(1);
+
           if (pendingPay.length > 0) {
             paymentId = pendingPay[0].id;
+          } else if (prodId === '0') {
+            const fallbackPay = await storage.createPayment({
+              telegramUserId: tgUser.id,
+              amount: 500,
+              paymentMethod: 'binance',
+              status: 'pending'
+            });
+            paymentId = fallbackPay.id;
           }
         }
 
@@ -8331,22 +8343,24 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           await storage.updatePayment(paymentId, { status: 'completed', txid: txid });
         }
 
-        if (prodId === '0' && paymentId > 0) {
-          const paymentCheck = await storage.getPayment(paymentId);
-          if (paymentCheck) {
-            const depositAmountCents = paymentCheck.amount;
-            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
-            const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
-            const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
-
-            await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
-            return;
+        const prodIdNum = parseInt(prodId, 10);
+        if (prodId === '0' || isNaN(prodIdNum) || prodIdNum <= 0) {
+          let depositAmountCents = 500;
+          if (paymentId > 0) {
+            const paymentCheck = await storage.getPayment(paymentId);
+            if (paymentCheck) depositAmountCents = paymentCheck.amount;
           }
+
+          await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
+          const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
+          const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
+
+          await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
+          return;
         }
 
         let productName = "Gemini Link 18 months";
         let unitPriceUSD = 0.55;
-        const prodIdNum = parseInt(prodId);
         if (!isNaN(prodIdNum)) {
           const product = await storage.getProduct(prodIdNum);
           if (product) {
