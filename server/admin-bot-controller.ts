@@ -688,20 +688,27 @@ export async function initAdminBotController() {
           return;
         }
 
-        // Broadcast steps (Auto-converts Telegram Premium Custom Emojis & HTML formatting)
+        // Broadcast steps (Auto-converts Telegram Premium Custom Emojis, HTML formatting & downloads Photo Buffer)
         if (session.step === 'broadcast_text') {
           const rawText = msg.caption || msg.text || '';
           const entities = msg.caption_entities || msg.entities;
           const formattedHTML = entitiesToHTML(rawText, entities);
 
-          let photoFileId = undefined;
-          if (msg.photo && msg.photo.length > 0) {
-            photoFileId = msg.photo[msg.photo.length - 1].file_id;
+          let photoBuffer: Buffer | undefined = undefined;
+          if (msg.photo && msg.photo.length > 0 && adminBot) {
+            try {
+              const photoFileId = msg.photo[msg.photo.length - 1].file_id;
+              const fileLink = await adminBot.getFileLink(photoFileId);
+              const res = await axios.get(fileLink, { responseType: 'arraybuffer' });
+              photoBuffer = Buffer.from(res.data);
+            } catch (err: any) {
+              console.error('[ADMIN BOT] Failed to download broadcast photo buffer:', err?.message || err);
+            }
           }
 
           session.data = session.data || {};
           session.data.messageText = formattedHTML;
-          session.data.photoFileId = photoFileId;
+          session.data.photoBuffer = photoBuffer;
           session.step = 'broadcast_button_choice';
 
           const keyboard = {
@@ -711,7 +718,7 @@ export async function initAdminBotController() {
               [{ text: '⚡ Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send' }]
             ]
           };
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded (with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded (${photoBuffer ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
           return;
         }
 
@@ -945,18 +952,18 @@ export async function initAdminBotController() {
       // CONFIRM AND EXECUTE BROADCAST
       if (data === 'bcast_confirm_send') {
         const session = adminSessions.get(String(chatId));
-        if (!session || !session.data || !session.data.messageText) {
+        if (!session || !session.data || (!session.data.messageText && !session.data.photoBuffer)) {
           await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No broadcast content found. Please restart broadcast creation.`).catch(() => {});
           return;
         }
 
-        const bText = session.data.messageText;
-        const photoFileId = session.data.photoFileId;
+        const bText = session.data.messageText || '';
+        const photoBuffer = session.data.photoBuffer as Buffer | undefined;
         const targetProdId = session.data.targetProductId;
         const customBtnText = session.data.customButtonText;
         const customBtnUrl = session.data.customButtonUrl;
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Sending Mass Broadcast with Premium Emojis & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
 
         const allUsers = await db.select().from(telegramUsers);
         const sentMessages: { chatId: string; messageId: number }[] = [];
@@ -973,16 +980,21 @@ export async function initAdminBotController() {
         }
 
         const targetSenderBot = mainBotReference || adminBot;
+        let mainBotPhotoFileId: string | undefined = undefined;
 
         for (const user of allUsers) {
           try {
             let sentMsg;
-            if (photoFileId) {
-              sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoFileId, {
+            if (photoBuffer) {
+              const photoToSend = mainBotPhotoFileId || photoBuffer;
+              sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoToSend, {
                 caption: bText,
                 parse_mode: 'HTML',
                 reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
               });
+              if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0 && !mainBotPhotoFileId) {
+                mainBotPhotoFileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
+              }
             } else {
               sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
                 parse_mode: 'HTML',
@@ -1002,9 +1014,9 @@ export async function initAdminBotController() {
         // Log broadcast for recall/deletion capability
         const [bLog] = await db.insert(broadcastLogs).values({
           adminChatId: String(chatId),
-          broadcastType: photoFileId ? 'photo' : 'text',
+          broadcastType: photoBuffer ? 'photo' : 'text',
           messageText: bText,
-          photoUrl: photoFileId || null,
+          photoUrl: photoBuffer ? 'photo_buffer' : null,
           targetProductId: targetProdId || null,
           customButtonText: customBtnText || null,
           customButtonUrl: customBtnUrl || null,
