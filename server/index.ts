@@ -6,6 +6,14 @@ import { log } from "./log";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("⚠️ [GLOBAL SAFETY] Unhandled Rejection caught (server will NOT crash):", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("⚠️ [GLOBAL SAFETY] Uncaught Exception caught (server will NOT crash):", error?.message || error);
+});
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {

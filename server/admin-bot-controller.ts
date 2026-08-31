@@ -763,6 +763,23 @@ export async function initAdminBotController() {
         return;
       }
 
+      if (data === 'get_statement') {
+        const target = selectedServerMap.get(String(chatId)) || getServerName();
+        const text = await generate24hDailyStatementText(target);
+        await adminBot?.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
+        return;
+      }
+
+      if (data === 'toggle_status') {
+        const currentlyPaused = await isShopBotPaused();
+        const nextState = !currentlyPaused;
+        await setShopBotPaused(nextState);
+        const newLabel = nextState ? '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> PAUSED (Maintenance Mode)' : '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> ACTIVE (Live)';
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5377620962390857342">🔄</tg-emoji> <b>[${getServerName()}] Status changed:</b> ${newLabel}`, { parse_mode: 'HTML' }).catch(() => {});
+        await sendAdminMenu(chatId);
+        return;
+      }
+
       // Add Product Trigger
       if (data === 'admin_add_product') {
         adminSessions.set(String(chatId), { step: 'add_prod_name', data: {} });
