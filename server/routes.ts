@@ -5389,9 +5389,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if (data === 'copy_binance_id' || walletToCopy === 'binance') {
           walletToCopy = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: `📋 Binance Pay ID: ${walletToCopy}`, show_alert: true }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, { text: `📋 Binance Pay ID: ${walletToCopy}\n(Tap text below to copy!)`, show_alert: true }).catch(() => {});
           }
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Binance Pay ID sent!</b> Long-press to copy:`, { parse_mode: 'HTML' });
           await targetBot.sendMessage(chatId, `<code>${walletToCopy}</code>`, { parse_mode: 'HTML' });
           return;
         }
