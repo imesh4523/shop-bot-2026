@@ -89,15 +89,16 @@ export function patchBotMethods(targetBot: TelegramBot) {
     }
   } as any;
 
-  targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any) {
+  targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any, fileOptions?: any) {
+    const fileOpts = fileOptions || (Buffer.isBuffer(photo) ? { filename: 'photo.jpg', contentType: 'image/jpeg' } : undefined);
     try {
-      return await originalSendPhoto(chatId, photo, options);
+      return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
       const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
         const cleanOptions = { ...options, caption: stripEmojis(caption) };
-        return await originalSendPhoto(chatId, photo, cleanOptions);
+        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts);
       }
       throw err;
     }

@@ -2595,15 +2595,16 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     }
   } as any;
 
-  targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any) {
+  targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any, fileOptions?: any) {
+    const fileOpts = fileOptions || (Buffer.isBuffer(photo) ? { filename: 'photo.jpg', contentType: 'image/jpeg' } : undefined);
     try {
-      return await originalSendPhoto(chatId, photo, options);
+      return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
       const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
         const cleanOptions = { ...options, caption: stripEmojis(caption) };
-        return await originalSendPhoto(chatId, photo, cleanOptions);
+        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts);
       }
       throw err;
     }
@@ -6181,8 +6182,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       if (data === 'payment_binance') {
         const binanceEnabled = (await storage.getSetting('PAYMENT_BINANCE_ENABLED'))?.value !== 'false';
         if (!binanceEnabled) {
-          if (queryId) {
-            await targetBot.answerCallbackQuery(queryId, { text: '❌ Binance Pay is currently disabled.', show_alert: true }).catch(() => {});
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '❌ Binance Pay is currently disabled.', show_alert: true }).catch(() => {});
           } else {
             await targetBot.sendMessage(chatId, '❌ Binance Pay is currently disabled by the admin.');
           }
@@ -7562,6 +7563,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const chatId = msg.chat.id;
       const userId = msg.from?.id.toString();
       if (!userId) return;
+      if (isDuplicateMessage(msg.message_id, chatId)) return;
       const tgUser = await storage.getTelegramUser(userId);
 
       // Bypass processing if message is a command
@@ -7579,7 +7581,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (tgUser?.lastAction?.startsWith('awaiting_custom_qty_')) {
         const prodId = tgUser.lastAction.substring(20);
-        const qty = parseInt(text?.trim() || '1') || 1;
+        const qty = parseInt(msg.text?.trim() || '1') || 1;
         await storage.updateTelegramUserByChatId(userId, { lastAction: null });
 
         let unitPriceUSD = 0.55;
@@ -7735,23 +7737,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               name: msg.chat.title || 'Auto-detected Group'
             });
           }
-        } catch (err) { }
+        } catch (e) { }
       }
-    });
-
-    targetBot.on('message', async (msg) => {
-      const chatId = msg.chat.id;
-      const text = msg.text;
-      const userId = msg.from?.id.toString();
-      if (!userId) return;
-
-      const isBlocked = await processAntiSpamCheck(userId, chatId);
-      if (isBlocked) return;
-
-      const tgUser = await storage.getTelegramUser(userId);
-
-      // Standardize text comparison by trimming and ignoring case if necessary
-      const normalizedText = text?.trim();
+        // Continued single unified message handler
+        const text = msg.text;
+        const normalizedText = text?.trim();
       
       const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
       const supportBtnText = supportBtnTextSetting?.value || "Write to support";
@@ -8196,14 +8186,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           // Also clear the last action if it was a real logic error
           await storage.updateTelegramUser(tgUser.id, { lastAction: null });
         }
-
-        // Delete the prompt and user input
-        try {
-          if (tgUser.lastMessageId) {
-            await targetBot.deleteMessage(chatId, tgUser.lastMessageId);
-          }
-          await targetBot.deleteMessage(chatId, msg.message_id);
-        } catch (e) { }
       } else if (tgUser?.lastAction === 'awaiting_cryptobot_amount') {
         const amount = parseFloat(normalizedText || "0");
 
@@ -8726,7 +8708,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
           }, 15000);
         }
-      } else if (tgUser?.lastAction?.startsWith('awaiting_aptos_txid_')) {
+        return;
+      }
+
+      if (tgUser?.lastAction?.startsWith('awaiting_aptos_txid_')) {
         const parts = tgUser.lastAction.split('_');
         const paymentId = parseInt(parts[3]);
         const attempts = parts.length > 4 ? parseInt(parts[4]) : 0;
@@ -8902,9 +8887,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           if (newAttempts >= 3) {
             await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
             const warnMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Too many failed attempts.</b> Please click "Check payment" again to retry.`, { parse_mode: 'HTML' });
-            setTimeout(() => {
-              targetBot.deleteMessage(chatId, warnMsg.message_id).catch(() => {});
-            }, 15000);
           } else {
             await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: `awaiting_aptos_txid_${payment.id}_${newAttempts}` });
           }
@@ -8912,10 +8894,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
           }, 15000);
         }
-      } else if (tgUser?.lastAction?.startsWith('awaiting_screenshot_') && msg.photo) {
       }
     });
-
 };
 initBot().catch(err => console.error("Initial bot setup failed:", err));
 initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));
