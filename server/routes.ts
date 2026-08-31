@@ -3553,21 +3553,25 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     transactionsList.push(...fallbackDemos);
   }
 
-  const pageSize = 5;
+  const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(transactionsList.length / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
 
   const startIndex = (currentPage - 1) * pageSize;
   const pageItems = transactionsList.slice(startIndex, startIndex + pageSize);
 
-  let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions History</b> <code>(${currentPage}/${totalPages})</code>\n\n`;
+  let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions History</b> <code>(Page ${currentPage}/${totalPages})</code>\n` +
+    `➖➖➖➖➖➖➖➖➖➖\n\n`;
 
   pageItems.forEach(item => {
     const emoji = item.sign === '+' 
       ? `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>` 
       : `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>`;
-    txCaption += `<b>#${item.id}</b> - <code>${item.sign}$${item.amountUSD}</code> ${emoji} - ${item.description}\n`;
+    txCaption += `🆔 <b>#${item.id}</b> • <code>${item.sign}$${item.amountUSD}</code> ${emoji}\n` +
+      `<i>${item.description}</i>\n\n`;
   });
+
+  txCaption += `➖➖➖➖➖➖➖➖➖➖`;
 
   const navRow: any[] = [];
 
@@ -3579,11 +3583,6 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     });
   }
 
-  navRow.push({
-    text: `${currentPage} / ${totalPages}`,
-    callback_data: 'noop_tx_page'
-  });
-
   if (currentPage < totalPages) {
     navRow.push({
       text: 'Next',
@@ -3592,8 +3591,12 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     });
   }
 
-  const inline_keyboard = [
-    navRow,
+  const inline_keyboard: any[] = [];
+  if (navRow.length > 0) {
+    inline_keyboard.push(navRow);
+  }
+
+  inline_keyboard.push(
     [
       { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '5409048419211682843' }
     ],
@@ -3603,7 +3606,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     [
       { text: 'Back', callback_data: 'profile', icon_custom_emoji_id: '5976535107933050770' }
     ]
-  ] as any;
+  );
 
   const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, txBannerPath, txCaption, { inline_keyboard }, messageId);
