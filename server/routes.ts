@@ -2289,10 +2289,88 @@ app.get("/api/settings/:key", isAuth, async (req, res) => {
 app.get("/api/telegram-inspector/traces", isAuth, (req, res) => {
   try {
     const traces = getTraceHistory();
+    if (traces.length === 0) {
+      // Pre-populate initial custom emoji traces for immediate display
+      const initialRecord = {
+        id: `init-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        chatId: "System Inspector",
+        userId: "System",
+        username: "system_inspector",
+        userFirstName: "Telegram Inspector",
+        rawText: "Payment Gateway Telegram Premium Custom Emojis Registered: CryptoBot, Binance Pay, BEP20, TRC20, USD Amount",
+        reconstructedHtml: `<b>System Registered Custom Emojis:</b>\n` +
+          `• CryptoBot: <tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji> (5361914370068613491)\n` +
+          `• Binance Pay: <tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> (5281029063459234079)\n` +
+          `• USDT BEP-20: <tg-emoji emoji-id="5280907155107506256">🟡</tg-emoji> (5280907155107506256)\n` +
+          `• USDT TRC-20: <tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji> (5936189134342199863)\n` +
+          `• USD Amount Button: <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> (5201692367437974073)`,
+        customEmojis: [
+          { id: "5361914370068613491", char: "🤖", offset: 0, length: 2 },
+          { id: "5281029063459234079", char: "🔸", offset: 0, length: 2 },
+          { id: "5280907155107506256", char: "🟡", offset: 0, length: 2 },
+          { id: "5936189134342199863", char: "🔴", offset: 0, length: 2 },
+          { id: "5201692367437974073", char: "💵", offset: 0, length: 2 }
+        ],
+        entitySummary: [
+          { type: "custom_emoji", count: 5, samples: ["5361914370068613491", "5281029063459234079", "5280907155107506256", "5936189134342199863", "5201692367437974073"] }
+        ]
+      };
+      traces.unshift(initialRecord as any);
+    }
     res.json(traces);
   } catch (err) {
     console.error('Failed to fetch telegram inspector traces:', err);
     res.status(500).json({ message: "Failed to fetch traces" });
+  }
+});
+
+app.post("/api/telegram-inspector/inspect", isAuth, (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ message: "Text parameter required" });
+    }
+
+    const customEmojiRegex = /(?:<tg-emoji emoji-id="(\d+)">|emoji-id[:=]"?(\d+)"?|\b(\d{18,19})\b)/g;
+    const foundEmojis: Array<{ id: string; char: string; offset: number; length: number }> = [];
+    let match;
+    while ((match = customEmojiRegex.exec(text)) !== null) {
+      const emojiId = match[1] || match[2] || match[3];
+      if (emojiId && !foundEmojis.some(e => e.id === emojiId)) {
+        foundEmojis.push({
+          id: emojiId,
+          char: '⭐',
+          offset: match.index,
+          length: match[0].length
+        });
+      }
+    }
+
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toISOString(),
+      chatId: "Admin Manual Tester",
+      userId: "Admin",
+      username: "admin",
+      userFirstName: "System Admin",
+      rawText: text,
+      reconstructedHtml: text.includes('<') ? text : `Inspected: ${text}`,
+      customEmojis: foundEmojis,
+      entitySummary: foundEmojis.length > 0 ? [{ type: 'custom_emoji', count: foundEmojis.length, samples: foundEmojis.map(e => e.id) }] : []
+    };
+
+    const traces = getTraceHistory();
+    traces.unshift(record as any);
+
+    if (io) {
+      io.emit('telegram_inspector_new_trace', record);
+    }
+
+    res.json({ success: true, record });
+  } catch (err: any) {
+    console.error('Failed to run manual inspection:', err);
+    res.status(500).json({ message: err.message || "Failed to inspect text" });
   }
 });
 
@@ -6115,12 +6193,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const keyboard: any[][] = [
           [
-            { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5281029063459234079' },
-            { text: '5', callback_data: 'binance_amount_5', icon_custom_emoji_id: '5281029063459234079' },
-            { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5281029063459234079' }
+            { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '5', callback_data: 'binance_amount_5', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+            { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
           ]
         ];
 
@@ -6204,12 +6282,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const keyboard: any[][] = [
           [
-            { text: '1', callback_data: 'cryptomus_amount_1', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '5', callback_data: 'cryptomus_amount_5', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '10', callback_data: 'cryptomus_amount_10', icon_custom_emoji_id: '5409048419211682843' }
+            { text: '1', callback_data: 'cryptomus_amount_1', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '5', callback_data: 'cryptomus_amount_5', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '10', callback_data: 'cryptomus_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'cryptomus_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+            { text: 'Custom', callback_data: 'cryptomus_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
           ]
         ];
 
@@ -6268,12 +6346,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         
         const keyboard: any[][] = [
           [
-            { text: '1', callback_data: 'trc20_amount_1', icon_custom_emoji_id: '5936189134342199863' },
-            { text: '5', callback_data: 'trc20_amount_5', icon_custom_emoji_id: '5936189134342199863' },
-            { text: '10', callback_data: 'trc20_amount_10', icon_custom_emoji_id: '5936189134342199863' }
+            { text: '1', callback_data: 'trc20_amount_1', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '5', callback_data: 'trc20_amount_5', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '10', callback_data: 'trc20_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'trc20_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+            { text: 'Custom', callback_data: 'trc20_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
           ]
         ];
 
@@ -6353,12 +6431,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         
         const keyboard: any[][] = [
           [
-            { text: '1', callback_data: 'bep20_amount_1', icon_custom_emoji_id: '5280907155107506256' },
-            { text: '5', callback_data: 'bep20_amount_5', icon_custom_emoji_id: '5280907155107506256' },
-            { text: '10', callback_data: 'bep20_amount_10', icon_custom_emoji_id: '5280907155107506256' }
+            { text: '1', callback_data: 'bep20_amount_1', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '5', callback_data: 'bep20_amount_5', icon_custom_emoji_id: '5201692367437974073' },
+            { text: '10', callback_data: 'bep20_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'bep20_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+            { text: 'Custom', callback_data: 'bep20_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
           ]
         ];
 

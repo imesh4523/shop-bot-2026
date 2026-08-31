@@ -232,26 +232,57 @@ export default function TelegramInspectorPage() {
         </Card>
       </div>
 
-      {/* Filter / Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.02] border border-white/10 p-4 rounded-3xl backdrop-blur-xl">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-          <Input
-            placeholder="Search by Emoji ID, text content, formatting, or username..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
-          />
+      {/* Filter & Manual Inspection Bar */}
+      <div className="space-y-4">
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              Quick Text & Custom Emoji Inspector
+            </h3>
+            <span className="text-xs text-white/40">Paste raw text, HTML tag, or Emoji ID below to analyze instantly</span>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <Input
+              placeholder="Paste raw text, Telegram HTML, or Emoji ID (e.g. 5201692367437974073)..."
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                  const textVal = e.currentTarget.value.trim();
+                  e.currentTarget.value = '';
+                  try {
+                    await apiRequest("POST", "/api/telegram-inspector/inspect", { text: textVal });
+                    queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/traces"] });
+                    toast({ title: "Inspected Successfully!", description: "Trace record added to dashboard list." });
+                  } catch (err: any) {
+                    toast({ title: "Inspection Failed", description: err.message, variant: "destructive" });
+                  }
+                }
+              }}
+              className="flex-1 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+            />
+          </div>
+        </Card>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.02] border border-white/10 p-4 rounded-3xl backdrop-blur-xl">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <Input
+              placeholder="Search by Emoji ID, text content, formatting, or username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+            />
+          </div>
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              onClick={() => setSearchTerm("")}
+              className="text-white/50 hover:text-white rounded-xl text-xs font-bold"
+            >
+              Clear Search
+            </Button>
+          )}
         </div>
-        {searchTerm && (
-          <Button
-            variant="ghost"
-            onClick={() => setSearchTerm("")}
-            className="text-white/50 hover:text-white rounded-xl text-xs font-bold"
-          >
-            Clear Search
-          </Button>
-        )}
       </div>
 
       {/* Traces Feed */}
