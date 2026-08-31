@@ -7463,21 +7463,26 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const triggerFireworksAnimation = (fwMsg: any) => {
           if (!fwMsg || !fwMsg.message_id) return;
           let ticks = 0;
-          const maxTicks = 8;
+          const maxTicks = 60; // 60 ticks @ 333ms = 20 seconds total
           const interval = setInterval(async () => {
             ticks++;
             if (ticks >= maxTicks) {
               clearInterval(interval);
               await targetBot.deleteMessage(chatId, fwMsg.message_id).catch(() => {});
             } else {
-              const updatedText = ticks % 2 === 0 ? fireworksEmoji : `${fireworksEmoji} `;
+              const variations = [
+                fireworksEmoji,
+                `${fireworksEmoji} `,
+                ` ${fireworksEmoji}`
+              ];
+              const updatedText = variations[ticks % 3];
               await targetBot.editMessageText(updatedText, {
                 chat_id: chatId,
                 message_id: fwMsg.message_id,
                 parse_mode: 'HTML'
               }).catch(() => {});
             }
-          }, 1000);
+          }, 333);
         };
 
         if (fs.existsSync(bannerPath)) {
