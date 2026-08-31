@@ -5357,15 +5357,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         } catch (e) {}
 
         try {
-          const QRCode = (await import('qrcode')).default;
-          const qrBuffer = await QRCode.toBuffer(walletAddress, {
-            width: 400,
-            margin: 2,
-            color: {
-              dark: '#38A5E2',
-              light: '#FFFFFF'
-            }
-          });
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(walletAddress);
           const amountUSD = payment ? (payment.amount / 100).toFixed(0) : '10';
           
           await targetBot.sendPhoto(chatId, qrBuffer, {
