@@ -3232,8 +3232,8 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     [{ text: 'CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5361914370068613491' }],
     [{ text: 'Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5281029063459234079' }],
     [
-      { text: 'USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
-      { text: 'USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
+      { text: 'USDT • BEP20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
+      { text: 'USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
     [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
@@ -3570,8 +3570,8 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
       { text: 'Binance Pay / UID', callback_data: 'payment_binance', style: 'primary', icon_custom_emoji_id: '5281029063459234079' }
     ],
     [
-      { text: 'USDT • BEP-20', callback_data: 'payment_bep20', style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
-      { text: 'USDT • TRC-20', callback_data: 'payment_trc20', style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
+      { text: 'USDT • BEP20', callback_data: 'payment_bep20', style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
+      { text: 'USDT • TRC20', callback_data: 'payment_trc20', style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [
       { text: 'Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' },
