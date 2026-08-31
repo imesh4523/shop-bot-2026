@@ -8001,46 +8001,73 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             return;
           }
 
-          // Check Binance API Key live verification if configured
+          // Strict Real Payments Only: Check Binance API Key live verification
           const binanceApiKeySetting = await storage.getSetting("BINANCE_PAY_API_KEY");
           const binanceSecretSetting = await storage.getSetting("BINANCE_PAY_SECRET_KEY");
-          if (binanceApiKeySetting?.value && binanceSecretSetting?.value) {
-            try {
-              const timestamp = Date.now();
-              const queryStr = `timestamp=${timestamp}`;
-              const signature = crypto
-                .createHmac('sha256', binanceSecretSetting.value)
-                .update(queryStr)
-                .digest('hex');
 
-              const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
-                headers: {
-                  'X-MBX-APIKEY': binanceApiKeySetting.value,
-                  'Content-Type': 'application/json'
-                }
-              });
+          if (!binanceApiKeySetting?.value || !binanceSecretSetting?.value) {
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance API Key Required!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Real Payments System Notice:</b>\n` +
+              `Automatic Binance Pay verification requires live Binance API keys.\n` +
+              `Please notify the admin to configure BINANCE_PAY_API_KEY in Admin Settings or contact support with Order ID <code>${escapeHTML(txid)}</code>.</blockquote>`,
+              7000
+            );
+            return;
+          }
 
-              if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
-                const liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
-                if (!liveMatch) {
-                  await sendAutoDeleteError(
-                    targetBot,
-                    chatId,
-                    msg.message_id,
-                    `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
-                    `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Verification Warning:</b>\n` +
-                    `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
-                    `<b>Please check:</b>\n` +
-                    `1. Transferred exact amount to Binance Pay ID <code>284910485</code>.\n` +
-                    `2. Copied exact <b>Order ID</b> from Binance App (Pay ➔ Orders).</blockquote>`,
-                    7000
-                  );
-                  return;
-                }
+          try {
+            const timestamp = Date.now();
+            const queryStr = `timestamp=${timestamp}`;
+            const signature = crypto
+              .createHmac('sha256', binanceSecretSetting.value)
+              .update(queryStr)
+              .digest('hex');
+
+            const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
+              headers: {
+                'X-MBX-APIKEY': binanceApiKeySetting.value,
+                'Content-Type': 'application/json'
               }
-            } catch (e) {
-              console.error("Binance live API check failed:", e);
+            });
+
+            let liveMatch = null;
+            if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
+              liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
             }
+
+            if (!liveMatch) {
+              await sendAutoDeleteError(
+                targetBot,
+                chatId,
+                msg.message_id,
+                `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
+                `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Verification Warning:</b>\n` +
+                `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
+                `<b>Please check:</b>\n` +
+                `1. Transferred exact amount to Binance Pay ID <code>284910485</code>.\n` +
+                `2. Copied exact <b>Order ID</b> from Binance App (Pay ➔ Orders).</blockquote>`,
+                7000
+              );
+              return;
+            }
+          } catch (e: any) {
+            console.error("Binance live API check failed:", e);
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Verification Error!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>API Verification Failure:</b>\n` +
+              `Failed to connect to Binance Pay API to verify Order ID <code>${escapeHTML(txid)}</code>.\n` +
+              `<i>Error: ${escapeHTML(e.response?.data?.message || e.message || 'API request failed')}</i>\n\n` +
+              `Please check your Order ID and try again or contact support.</blockquote>`,
+              7000
+            );
+            return;
           }
 
           await storage.updateTelegramUserByChatId(userId, { lastAction: null });
