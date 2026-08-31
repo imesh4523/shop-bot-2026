@@ -4153,19 +4153,21 @@ const setupBotProfile = async (targetBot: TelegramBot) => {
 
     const miniAppUrl = miniAppUrlSetting?.value;
 
-    // Removed: Set Menu Button to point to Mini App per user request
-    /*
+    // Set Menu Button to point to Mini App (required for Telegram to track and display "X monthly users" badge)
     if (miniAppUrl) {
-      await targetBot.setChatMenuButton({
-        menu_button: {
-          type: 'web_app',
-          text: 'Open App',
-          web_app: { url: miniAppUrl }
-        }
-      });
-      console.log('Bot Menu Button set to:', miniAppUrl);
+      try {
+        await targetBot.setChatMenuButton({
+          menu_button: {
+            type: 'web_app',
+            text: 'Shop',
+            web_app: { url: miniAppUrl }
+          }
+        });
+        console.log('Bot Menu Button set to:', miniAppUrl);
+      } catch (err: any) {
+        console.error('Failed to set chat menu button:', err.message);
+      }
     }
-    */
 
     // 2. Set Bot Descriptions
     if (botAboutSetting?.value) {
