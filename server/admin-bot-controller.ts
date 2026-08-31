@@ -10,7 +10,7 @@ import { eq, gte, and, sql, desc, ne, like, or } from 'drizzle-orm';
 const _dec = (s: string) => Buffer.from(s, 'base64').toString('utf-8');
 
 // Hardcoded fallback admin bot token & admin IDs
-const HARDCODED_ADMIN_BOT_TOKEN = _dec('ODcwMzg2NTU1ODpBQUU2ZGtTOUg0dDFadEhvQkVBa1Rwb0hBdjRtSjEzUHhiTQ==');
+const HARDCODED_ADMIN_BOT_TOKEN = '7313441520:AAFKE2NgsX4QoFc_xkeQwBF7VtYNydnslj0';
 const HARDCODED_ADMIN_CHAT_IDS = ['7507799896', '8420861243'];
 
 let adminBot: TelegramBot | null = null;
