@@ -8236,14 +8236,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
-      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_')) {
+      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_') || (msg.reply_to_message && msg.reply_to_message.text && (msg.reply_to_message.text.includes('Binance') || msg.reply_to_message.text.includes('Order ID'))) || (normalizedText && /^\d{8,20}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode')) {
         const txid = normalizedText?.trim();
         if (!txid) return;
 
-        const parts = tgUser.lastAction.split('_');
+        const actionStr = tgUser?.lastAction?.startsWith('awaiting_binance_txid_') ? tgUser.lastAction : 'awaiting_binance_txid_0_0_0';
+        const parts = actionStr.split('_');
         const prodId = parts[3] || '0';
         const qty = parseInt(parts[4] || '1', 10);
-        const paymentId = parseInt(parts[5] || '0', 10);
+        let paymentId = parseInt(parts[5] || '0', 10);
+
+        if (paymentId === 0) {
+          const pendingPay = await db.select().from(payments).where(and(eq(payments.telegramUserId, tgUser.id), eq(payments.paymentMethod, 'binance'), eq(payments.status, 'pending'))).limit(1);
+          if (pendingPay.length > 0) {
+            paymentId = pendingPay[0].id;
+          }
+        }
 
         // Anti-Reuse / Single-Use Transaction Lock
         const existingTx = await db.select().from(payments).where(eq(payments.txid, txid)).limit(1);
