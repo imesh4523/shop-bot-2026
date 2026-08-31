@@ -30,6 +30,14 @@ export function setMainBotReferenceForAdmin(bot: TelegramBot) {
   mainBotReference = bot;
 }
 
+export function escapeHTML(str?: string | null): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // Convert Telegram Message Entities (including Premium Custom Emojis) into HTML format
 export function entitiesToHTML(text: string, entities?: TelegramBot.MessageEntity[]): string {
   if (!text) return '';
@@ -275,7 +283,10 @@ export async function sendProductsAdminMenu(chatId: string | number) {
 
   for (const p of allProducts.slice(0, 15)) {
     const priceUSD = (p.price / 100).toFixed(2);
-    msg += `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>ID ${p.id}:</b> ${p.name} — <b>$${priceUSD}</b> (${p.category || 'General'})\n`;
+    const emojiId = p.customEmojiId || '5465416081105492147';
+    const nameEsc = escapeHTML(p.name);
+    const catEsc = escapeHTML(p.category || 'General');
+    msg += `<tg-emoji emoji-id="${emojiId}">📦</tg-emoji> <b>ID ${p.id}:</b> ${nameEsc} — <b>$${priceUSD}</b> (${catEsc})\n`;
   }
   if (allProducts.length > 15) {
     msg += `\n<i>...and ${allProducts.length - 15} more products.</i>\n`;
@@ -285,6 +296,7 @@ export async function sendProductsAdminMenu(chatId: string | number) {
     inline_keyboard: [
       [{ text: '➕ Add New Product', callback_data: 'admin_add_product' }],
       [{ text: '🔑 Add Stock / Accounts', callback_data: 'admin_add_stock' }],
+      [{ text: '✨ Set Product Premium Custom Emoji', callback_data: 'admin_edit_emoji' }],
       [{ text: '✏️ Edit Product Price', callback_data: 'admin_edit_price' }],
       [{ text: '🗑️ Delete Product', callback_data: 'admin_delete_product' }],
       [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
@@ -621,16 +633,61 @@ export async function initAdminBotController() {
         }
         if (session.step === 'add_prod_desc') {
           session.data.description = text;
+          session.step = 'add_prod_emoji';
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Select / Send Premium Custom Emoji for "${escapeHTML(session.data.name)}":</b>\n\nSend or paste ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and assign it to this product!\n\n<i>Or type <code>skip</code> to use default product icon.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+          return;
+        }
+
+        // Auto-Capture Custom Emoji Step for Product Creation
+        if (session.step === 'add_prod_emoji') {
+          let customEmojiId: string | null = null;
+          const entities = msg.caption_entities || msg.entities;
+
+          if (entities && entities.length > 0) {
+            const customEmojiEntity = entities.find(e => e.type === 'custom_emoji' && e.custom_emoji_id);
+            if (customEmojiEntity && customEmojiEntity.custom_emoji_id) {
+              customEmojiId = customEmojiEntity.custom_emoji_id;
+            }
+          }
+
           const [newProd] = await db.insert(products).values({
             name: session.data.name,
             price: session.data.price,
             category: session.data.category,
             description: session.data.description,
+            customEmojiId: customEmojiId || null,
             stockCount: 0
           }).returning();
 
           adminSessions.delete(chatId);
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Created Successfully!</b>\n\n<b>ID:</b> ${newProd.id}\n<b>Name:</b> ${newProd.name}\n<b>Price:</b> $${(newProd.price / 100).toFixed(2)}\n<b>Category:</b> ${newProd.category}`, { parse_mode: 'HTML' }).catch(() => {});
+          const emojiTag = customEmojiId ? `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji>` : `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji>`;
+          await adminBot?.sendMessage(chatId, `${emojiTag} <b>Product Created Successfully!</b>\n\n<b>ID:</b> ${newProd.id}\n<b>Name:</b> ${escapeHTML(newProd.name)}\n<b>Price:</b> $${(newProd.price / 100).toFixed(2)}\n<b>Category:</b> ${escapeHTML(newProd.category || 'General')}\n<b>Custom Emoji ID:</b> <code>${customEmojiId || 'Default'}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+          await sendProductsAdminMenu(chatId);
+          return;
+        }
+
+        // Auto-Capture Custom Emoji Step for Existing Product Update
+        if (session.step === 'update_prod_emoji') {
+          const productId = session.data.productId;
+          let customEmojiId: string | null = null;
+          const entities = msg.caption_entities || msg.entities;
+
+          if (entities && entities.length > 0) {
+            const customEmojiEntity = entities.find(e => e.type === 'custom_emoji' && e.custom_emoji_id);
+            if (customEmojiEntity && customEmojiEntity.custom_emoji_id) {
+              customEmojiId = customEmojiEntity.custom_emoji_id;
+            }
+          }
+
+          if (!customEmojiId) {
+            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">⚠️</tg-emoji> <b>No Premium Custom Emoji detected in your message!</b>\n\nPlease send or paste a Telegram Premium Custom Emoji from your emoji picker to link it to this product.`, { parse_mode: 'HTML' }).catch(() => {});
+            return;
+          }
+
+          await db.update(products).set({ customEmojiId }).where(eq(products.id, productId));
+          adminSessions.delete(chatId);
+
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji> <b>Product Premium Custom Emoji Updated!</b>\n\nCustom Emoji ID <code>${customEmojiId}</code> has been captured and linked to Product ID #${productId} across the system!`, { parse_mode: 'HTML' }).catch(() => {});
           await sendProductsAdminMenu(chatId);
           return;
         }
@@ -847,10 +904,11 @@ export async function initAdminBotController() {
         const [prod] = await db.select().from(products).where(eq(products.id, prodId));
         if (prod) {
           const priceUSD = (prod.price / 100).toFixed(2);
-          const text = `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>${prod.name}</b>\n\n` +
+          const emojiId = prod.customEmojiId || '5465416081105492147';
+          const text = `<tg-emoji emoji-id="${emojiId}">📦</tg-emoji> <b>${escapeHTML(prod.name)}</b>\n\n` +
             `<b>Price:</b> $${priceUSD} USD\n` +
             `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
-            `<b>Description:</b>\n${prod.description || 'Instant 24/7 delivery guaranteed.'}`;
+            `<b>Description:</b>\n${escapeHTML(prod.description) || 'Instant 24/7 delivery guaranteed.'}`;
 
           await adminBot?.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
         }
@@ -883,6 +941,29 @@ export async function initAdminBotController() {
         const prodId = parseInt(data.replace('sel_prod_stock_', ''));
         adminSessions.set(String(chatId), { step: 'add_stock_keys', data: { productId: prodId } });
         await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">🔑</tg-emoji> <b>Paste Accounts / Digital Keys line-by-line:</b>\n\nEach line will be added as 1 available stock account item.`, { parse_mode: 'HTML' }).catch(() => {});
+        return;
+      }
+
+      // Edit Product Custom Emoji Trigger
+      if (data === 'admin_edit_emoji') {
+        const allProds = await db.select().from(products);
+        if (allProds.length === 0) {
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No products available. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+          return;
+        }
+        const buttons = allProds.map(p => ([{
+          text: `✨ ${p.name} ($${(p.price / 100).toFixed(2)})`,
+          callback_data: `sel_prod_emoji_${p.id}`
+        }]));
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Select a Product to set/update its Telegram Premium Custom Emoji:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        return;
+      }
+
+      if (data?.startsWith('sel_prod_emoji_')) {
+        const prodId = parseInt(data.replace('sel_prod_emoji_', ''));
+        adminSessions.set(String(chatId), { step: 'update_prod_emoji', data: { productId: prodId } });
+        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Send / Paste Premium Custom Emoji for "${escapeHTML(prod?.name || 'Product')}":</b>\n\nSend ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and update the product in real-time!`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -951,7 +1032,7 @@ export async function initAdminBotController() {
           ]
         };
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${prodName} ($${priceUSD})\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${prodName} ($${priceUSD}) ]`, {
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${escapeHTML(prodName)} ($${priceUSD}) ]`, {
           parse_mode: 'HTML',
           reply_markup: keyboard
         }).catch(() => {});

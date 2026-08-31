@@ -2606,6 +2606,9 @@ const initBot = async () => {
           created_at TIMESTAMP DEFAULT NOW()
         )
       `);
+      await db.execute(sql`
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS custom_emoji_id TEXT;
+      `);
       console.log('[DB] reviews table verified/created');
 
       await db.execute(sql`
