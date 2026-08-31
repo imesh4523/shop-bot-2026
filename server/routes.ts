@@ -6189,8 +6189,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (err) { }
-
         const keyboard: any[][] = [
           [
             { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5201692367437974073' },
@@ -6202,33 +6200,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           ]
         ];
 
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const prompt = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_binance_amount_selection',
-          lastMessageId: prompt?.message_id
+          lastMessageId: query.message?.message_id
         });
         return;
       }
 
       if (data.startsWith('binance_amount_')) {
         const val = data.replace('binance_amount_', '');
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+
         if (val === 'custom') {
-          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Enter custom amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          const prompt = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Enter custom amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: [] }, query.message?.message_id);
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_binance_deposit_amount',
-            lastMessageId: prompt?.message_id
+            lastMessageId: query.message?.message_id
           });
           return;
         }
 
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
-
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
 
         const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         const payment = await storage.createPayment({
@@ -6256,10 +6254,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -6274,12 +6269,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-
         const keyboard: any[][] = [
           [
             { text: '1', callback_data: 'cryptomus_amount_1', icon_custom_emoji_id: '5201692367437974073' },
@@ -6291,41 +6280,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           ]
         ];
 
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5341506639688126935">💰</tg-emoji> Enter amount for <b>Cryptomus</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const prompt = `<tg-emoji emoji-id="5341506639688126935">💰</tg-emoji> Enter amount for <b>Cryptomus</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_cryptomus_amount_selection',
-          lastMessageId: prompt?.message_id
+          lastMessageId: query.message?.message_id
         });
         return;
       }
 
       if (data.startsWith('cryptomus_amount_')) {
         const val = data.replace('cryptomus_amount_', '');
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+
         if (val === 'custom') {
-          try {
-            if (query.message) {
-              await targetBot.deleteMessage(chatId, query.message.message_id);
-            }
-          } catch (e) { }
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5341506639688126935">💰</tg-emoji> Enter custom amount for <b>Cryptomus</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          const prompt = `<tg-emoji emoji-id="5341506639688126935">💰</tg-emoji> Enter custom amount for <b>Cryptomus</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: [] }, query.message?.message_id);
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_cryptomus_amount',
-            lastMessageId: prompt?.message_id
+            lastMessageId: query.message?.message_id
           });
           return;
         }
 
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
-
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (e) { }
 
         await processCryptomusInvoiceCreation(targetBot, chatId, tgUser, amount);
         return;
@@ -6342,8 +6323,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-        
         const keyboard: any[][] = [
           [
             { text: '1', callback_data: 'trc20_amount_1', icon_custom_emoji_id: '5201692367437974073' },
@@ -6355,33 +6334,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           ]
         ];
 
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Select or enter amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const prompt = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Select or enter amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_trc20_amount_selection',
-          lastMessageId: prompt?.message_id
+          lastMessageId: query.message?.message_id
         });
         return;
       }
 
       if (data.startsWith('trc20_amount_')) {
         const val = data.replace('trc20_amount_', '');
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+
         if (val === 'custom') {
-          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Enter custom amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          const prompt = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Enter custom amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: [] }, query.message?.message_id);
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_trc20_amount',
-            lastMessageId: prompt?.message_id
+            lastMessageId: query.message?.message_id
           });
           return;
         }
 
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
-
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
 
         const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
         const payment = await storage.createPayment({
@@ -6409,10 +6388,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -6427,8 +6403,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-        
         const keyboard: any[][] = [
           [
             { text: '1', callback_data: 'bep20_amount_1', icon_custom_emoji_id: '5201692367437974073' },
@@ -6440,33 +6414,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           ]
         ];
 
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Select or enter amount for <b>USDT (BEP-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const prompt = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Select or enter amount for <b>USDT (BEP-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_bep20_amount_selection',
-          lastMessageId: prompt?.message_id
+          lastMessageId: query.message?.message_id
         });
         return;
       }
 
       if (data.startsWith('bep20_amount_')) {
         const val = data.replace('bep20_amount_', '');
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+
         if (val === 'custom') {
-          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Enter custom amount for <b>USDT (BEP-20)</b>:`, { parse_mode: 'HTML' });
+          const prompt = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Enter custom amount for <b>USDT (BEP-20)</b>:`;
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: [] }, query.message?.message_id);
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_bep20_amount',
-            lastMessageId: prompt?.message_id
+            lastMessageId: query.message?.message_id
           });
           return;
         }
 
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
-
-        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
 
         const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         const payment = await storage.createPayment({
@@ -6494,10 +6468,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
