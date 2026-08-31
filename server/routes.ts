@@ -3575,7 +3575,6 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     navRow.push({
       text: 'Prev',
       callback_data: `tx_page_${currentPage - 1}`,
-      style: 'primary',
       icon_custom_emoji_id: '5370615926565641880'
     });
   }
@@ -3589,7 +3588,6 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     navRow.push({
       text: 'Next',
       callback_data: `tx_page_${currentPage + 1}`,
-      style: 'primary',
       icon_custom_emoji_id: '5370628901661842942'
     });
   }
@@ -3597,13 +3595,13 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
   const inline_keyboard = [
     navRow,
     [
-      { text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }
+      { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '5409048419211682843' }
     ],
     [
-      { text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }
+      { text: 'My purchases', callback_data: 'purchase_history', icon_custom_emoji_id: '5854908544712707500' }
     ],
     [
-      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+      { text: 'Back', callback_data: 'profile', icon_custom_emoji_id: '5976535107933050770' }
     ]
   ] as any;
 
