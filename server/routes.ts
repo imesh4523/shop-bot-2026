@@ -2559,24 +2559,20 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     return text.replace(/<tg-emoji[^>]*>(.*?)<\/tg-emoji>/gi, '$1');
   };
 
-  const isDocumentInvalid = (err: any): boolean => {
-    if (!err) return false;
-    const msg = err.message || "";
-    const desc = err.description || err.response?.body?.description || "";
-    const str = String(err);
-    return msg.includes('DOCUMENT_INVALID') || 
-           desc.includes('DOCUMENT_INVALID') || 
-           str.includes('DOCUMENT_INVALID');
+  const stripAllHtmlTags = (text: string): string => {
+    if (!text) return text;
+    return text.replace(/<[^>]*>/g, '');
   };
 
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
     try {
       return await originalSendMessage(chatId, text, options);
     } catch (err: any) {
-      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
-        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
-        const cleanText = stripEmojis(text);
-        return await originalSendMessage(chatId, cleanText, options);
+      if (typeof text === 'string' && options?.parse_mode) {
+        console.warn(`[Bot API] sendMessage error (${err?.message}). Retrying with stripped tags.`);
+        const cleanOpts = { ...options };
+        delete cleanOpts.parse_mode;
+        return await originalSendMessage(chatId, stripAllHtmlTags(text), cleanOpts).catch(() => {});
       }
       throw err;
     }
@@ -2586,10 +2582,11 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     try {
       return await originalEditMessageText(text, options);
     } catch (err: any) {
-      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
-        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
-        const cleanText = stripEmojis(text);
-        return await originalEditMessageText(cleanText, options);
+      if (typeof text === 'string' && options?.parse_mode) {
+        console.warn(`[Bot API] editMessageText error (${err?.message}). Retrying with stripped tags.`);
+        const cleanOpts = { ...options };
+        delete cleanOpts.parse_mode;
+        return await originalEditMessageText(stripAllHtmlTags(text), cleanOpts).catch(() => {});
       }
       throw err;
     }
@@ -2601,10 +2598,11 @@ const patchBotMethods = (targetBot: TelegramBot) => {
       return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
       const caption = options?.caption;
-      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
-        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
-        const cleanOptions = { ...options, caption: stripEmojis(caption) };
-        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts);
+      if (typeof caption === 'string' && options?.parse_mode) {
+        console.warn(`[Bot API] sendPhoto error (${err?.message}). Retrying sendPhoto with stripped tags.`);
+        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
+        delete cleanOptions.parse_mode;
+        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts).catch(() => {});
       }
       throw err;
     }
@@ -2615,10 +2613,11 @@ const patchBotMethods = (targetBot: TelegramBot) => {
       return await originalSendVideo(chatId, video, options);
     } catch (err: any) {
       const caption = options?.caption;
-      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
-        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
-        const cleanOptions = { ...options, caption: stripEmojis(caption) };
-        return await originalSendVideo(chatId, video, cleanOptions);
+      if (typeof caption === 'string' && options?.parse_mode) {
+        console.warn(`[Bot API] sendVideo error (${err?.message}). Retrying sendVideo with stripped tags.`);
+        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
+        delete cleanOptions.parse_mode;
+        return await originalSendVideo(chatId, video, cleanOptions).catch(() => {});
       }
       throw err;
     }
@@ -2629,10 +2628,11 @@ const patchBotMethods = (targetBot: TelegramBot) => {
       return await originalSendDocument(chatId, doc, options);
     } catch (err: any) {
       const caption = options?.caption;
-      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
-        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
-        const cleanOptions = { ...options, caption: stripEmojis(caption) };
-        return await originalSendDocument(chatId, doc, cleanOptions);
+      if (typeof caption === 'string' && options?.parse_mode) {
+        console.warn(`[Bot API] sendDocument error (${err?.message}). Retrying sendDocument with stripped tags.`);
+        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
+        delete cleanOptions.parse_mode;
+        return await originalSendDocument(chatId, doc, cleanOptions).catch(() => {});
       }
       throw err;
     }
@@ -7428,7 +7428,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       // If no parameter, show the standard welcome message with generated purple banner photo
       const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
-      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.`;
+      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
 
       const startInlineMarkup = {
         inline_keyboard: [
