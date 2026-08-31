@@ -7463,7 +7463,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const triggerFireworksAnimation = (fwMsg: any) => {
           if (!fwMsg || !fwMsg.message_id) return;
           let ticks = 0;
-          const maxTicks = 60; // 60 ticks @ 333ms = 20 seconds total
+          const maxTicks = 20; // 20 seconds total (1 edit per second)
           const interval = setInterval(async () => {
             ticks++;
             if (ticks >= maxTicks) {
@@ -7472,17 +7472,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             } else {
               const variations = [
                 fireworksEmoji,
-                `${fireworksEmoji} `,
-                ` ${fireworksEmoji}`
+                `${fireworksEmoji} ✨`,
+                `✨ ${fireworksEmoji}`,
+                `${fireworksEmoji} 💥`,
+                `💥 ${fireworksEmoji}`
               ];
-              const updatedText = variations[ticks % 3];
+              const updatedText = variations[ticks % variations.length];
               await targetBot.editMessageText(updatedText, {
                 chat_id: chatId,
                 message_id: fwMsg.message_id,
                 parse_mode: 'HTML'
-              }).catch(() => {});
+              }).catch((err: any) => {
+                console.log(`[Fireworks animation frame ${ticks} error]:`, err.message);
+              });
             }
-          }, 333);
+          }, 1000);
         };
 
         if (fs.existsSync(bannerPath)) {
