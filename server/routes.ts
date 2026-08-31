@@ -3150,14 +3150,15 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     `Choose payment method:`;
 
   const inline_keyboard = [
-    [{ text: '🎟️ Enter promo code', callback_data: 'enter_promocode' }],
-    [{ text: '🔸 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}` }],
+    [{ text: '🎟️ Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
+    [{ text: '🤖 CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5370919202796348364' }],
+    [{ text: '🔸 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5429518319243775957' }],
     [
-      { text: '🟡 USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}` },
-      { text: '🔴 USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}` }
+      { text: '🟡 USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
+      { text: '🔴 USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5404617696589390973' }
     ],
-    [{ text: '💳 Pay from balance', callback_data: `pay_bal_${productId}_${qty}` }],
-    [{ text: '🔙 Back', callback_data: `prod_${productId}` }]
+    [{ text: '💳 Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+    [{ text: '❌ Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
@@ -3485,18 +3486,18 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
 
   const inline_keyboard = [
     [
-      { text: '🤖 CryptoBot', callback_data: 'payment_cryptobot' }
+      { text: '🤖 CryptoBot', callback_data: 'payment_cryptobot', style: 'primary', icon_custom_emoji_id: '5370919202796348364' }
     ],
     [
-      { text: '🔸 Binance Pay / UID', callback_data: 'payment_binance' }
+      { text: '🔸 Binance Pay / UID', callback_data: 'payment_binance', style: 'primary', icon_custom_emoji_id: '5429518319243775957' }
     ],
     [
-      { text: '🟡 USDT • BEP-20', callback_data: 'payment_bep20' },
-      { text: '🔴 USDT • TRC-20', callback_data: 'payment_trc20' }
+      { text: '🟡 USDT • BEP-20', callback_data: 'payment_bep20', style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
+      { text: '🔴 USDT • TRC-20', callback_data: 'payment_trc20', style: 'primary', icon_custom_emoji_id: '5404617696589390973' }
     ],
     [
-      { text: '👤 Profile', callback_data: 'profile' },
-      { text: '❌ Cancel', callback_data: 'profile' }
+      { text: '👤 Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' },
+      { text: '❌ Cancel', callback_data: 'profile', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }
     ]
   ] as any;
 
@@ -5547,9 +5548,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). Once sent, tap "Check payment / I have paid" below to complete order!</blockquote>`;
 
           const keyboard = [
-            [{ text: '📋 Copy Wallet Address', callback_data: `copy_wallet_${method}` }],
-            [{ text: '✅ I have paid / Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}` }],
-            [{ text: '🔙 Back to Item', callback_data: `prod_${prodId}` }]
+            [{ text: '📋 Copy Wallet Address', callback_data: `copy_wallet_${method}`, style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
+            [{ text: '✅ I have paid / Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+            [{ text: '🔙 Back to Item', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
           ];
 
           if (query.message) {
@@ -5571,9 +5572,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           const payKeyboard = {
             inline_keyboard: [
-              [{ text: '📋 Copy Address', callback_data: `copy_wallet_${method}` }],
-              [{ text: '✅ I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}` }],
-              [{ text: '🔙 Back', callback_data: `prod_${prodId}` }]
+              [{ text: '📋 Copy Address', callback_data: `copy_wallet_${method}`, style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
+              [{ text: '✅ I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+              [{ text: '🔙 Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
             ]
           };
 
