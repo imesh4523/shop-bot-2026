@@ -7823,18 +7823,34 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
     };
 
     targetBot.on('message', async (msg) => {
-      const chatId = msg.chat.id;
-      const userId = msg.from?.id.toString();
-      if (!userId) return;
-      if (isDuplicateMessage(msg.message_id, chatId)) return;
-      const tgUser = await storage.getTelegramUser(userId);
+      try {
+        const chatId = msg.chat.id;
+        const userId = msg.from?.id.toString();
+        if (!userId) return;
+        if (isDuplicateMessage(msg.message_id, chatId)) return;
 
-      // Bypass processing if message is a command
-      if (msg.text?.startsWith('/')) return;
+        let tgUser = await storage.getTelegramUser(userId);
+        if (!tgUser) {
+          tgUser = await storage.getTelegramUserByChatId(chatId.toString());
+        }
+        if (!tgUser && msg.from) {
+          tgUser = await storage.createTelegramUser({
+            telegramId: userId,
+            username: msg.from.username,
+            firstName: msg.from.first_name,
+            lastName: msg.from.last_name,
+            balance: 0
+          });
+        }
 
-      const text = msg.text;
-      const normalizedText = text?.trim();
-      const cleanNavText = normalizedText ? normalizedText.replace(/<[^>]*>/g, '').trim() : '';
+        // Bypass processing if message is a command
+        if (msg.text?.startsWith('/')) return;
+
+        const text = msg.text;
+        const normalizedText = text?.trim();
+        const cleanNavText = normalizedText ? normalizedText.replace(/<[^>]*>/g, '').trim() : '';
+
+        console.log(`[Bot Message Received] Text: "${normalizedText}", User: ${userId}`);
 
       const replyText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '') : '';
       const isBinanceReply = replyText.includes('Binance') || replyText.includes('Order ID') || replyText.includes('Transaction ID');
@@ -9349,17 +9365,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         } catch (err: any) {
           await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
           const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Verification failed:</b> ${err.message || err}`, { parse_mode: 'HTML' });
-          const newAttempts = attempts + 1;
-          if (newAttempts >= 3) {
-            await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
-            const warnMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Too many failed attempts.</b> Please click "Check payment" again to retry.`, { parse_mode: 'HTML' });
-          } else {
-            await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: `awaiting_aptos_txid_${payment.id}_${newAttempts}` });
           }
-          setTimeout(() => {
-            targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
-          }, 15000);
         }
+      } catch (messageErr) {
+        console.error("Message Handler Global Catch Error:", messageErr);
       }
     });
 };
