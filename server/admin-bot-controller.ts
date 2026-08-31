@@ -641,6 +641,7 @@ export async function initAdminBotController() {
     console.log(`[ADMIN BOT] Initializing Multi-Server Admin Controller (${getServerName()})...`);
     await registerServerHeartbeat();
     adminBot = new TelegramBot(targetToken, { polling: true });
+    adminBot.removeAllListeners();
     patchBotMethods(adminBot);
 
     adminBot.on('polling_error', (err: any) => {
@@ -940,8 +941,19 @@ export async function initAdminBotController() {
     });
 
     // Handle Callback Queries (Buttons)
+    const handledAdminCallbackQueryIds = new Set<string>();
+
     adminBot.on('callback_query', async (query) => {
       if (!query.message) return;
+      if (query.id && handledAdminCallbackQueryIds.has(query.id)) return;
+      if (query.id) {
+        handledAdminCallbackQueryIds.add(query.id);
+        if (handledAdminCallbackQueryIds.size > 1000) {
+          const firstKey = handledAdminCallbackQueryIds.values().next().value;
+          if (firstKey) handledAdminCallbackQueryIds.delete(firstKey);
+        }
+      }
+
       const chatId = query.message.chat.id;
       const data = query.data;
 
@@ -1091,7 +1103,13 @@ export async function initAdminBotController() {
       // Broadcast Flow Triggers
       if (data === 'admin_start_broadcast') {
         adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
-        await adminBot?.sendMessage(chatId, `📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.editMessageText(`📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
+        }).catch(async () => {
+          await adminBot?.sendMessage(chatId, `📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
+        });
         return;
       }
 
@@ -1285,9 +1303,4 @@ export async function initAdminBotController() {
     console.error('[ADMIN BOT] Initialization failed:', err);
     return null;
   }
-}
-
-// Auto-run if executed directly as a script
-if (process.argv[1]?.includes('admin-bot-controller')) {
-  initAdminBotController().catch(err => console.error('[ADMIN BOT] Direct startup error:', err));
 }
