@@ -9399,12 +9399,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         } catch (err: any) {
           await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
           const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Verification failed:</b> ${err.message || err}`, { parse_mode: 'HTML' });
-          }
         }
-      } catch (messageErr) {
-        console.error("Message Handler Global Catch Error:", messageErr);
+      } else {
+        // Fallback for any unhandled text message: Always respond so bot is never silent
+        await targetBot.sendMessage(
+          chatId,
+          `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Binance Order ID Verification</b>\n\n` +
+          `If you are verifying a payment, please send your <b>8 to 20 digit Binance Order ID</b> in chat.\n\n` +
+          `<i>Example: <code>28491048591</code></i>\n\n` +
+          `Or tap <b>Catalog</b> below to browse products.`,
+          { parse_mode: 'HTML' }
+        );
       }
-    });
+    } catch (messageErr) {
+      console.error("Message Handler Global Catch Error:", messageErr);
+    }
+  });
 };
 initBot().catch(err => console.error("Initial bot setup failed:", err));
 initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));
