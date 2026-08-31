@@ -3151,11 +3151,11 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
 
   const inline_keyboard = [
     [{ text: '🎟️ Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
-    [{ text: '🤖 CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5370919202796348364' }],
-    [{ text: '🔸 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5429518319243775957' }],
+    [{ text: '🤖 CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5361914370068613491' }],
+    [{ text: '🔸 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5281029063459234079' }],
     [
-      { text: '🟡 USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
-      { text: '🔴 USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5404617696589390973' }
+      { text: '🟡 USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
+      { text: '🔴 USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [{ text: '💳 Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
     [{ text: '❌ Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
@@ -3486,14 +3486,14 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
 
   const inline_keyboard = [
     [
-      { text: '🤖 CryptoBot', callback_data: 'payment_cryptobot', style: 'primary', icon_custom_emoji_id: '5370919202796348364' }
+      { text: '🤖 CryptoBot', callback_data: 'payment_cryptobot', style: 'primary', icon_custom_emoji_id: '5361914370068613491' }
     ],
     [
-      { text: '🔸 Binance Pay / UID', callback_data: 'payment_binance', style: 'primary', icon_custom_emoji_id: '5429518319243775957' }
+      { text: '🔸 Binance Pay / UID', callback_data: 'payment_binance', style: 'primary', icon_custom_emoji_id: '5281029063459234079' }
     ],
     [
-      { text: '🟡 USDT • BEP-20', callback_data: 'payment_bep20', style: 'primary', icon_custom_emoji_id: '5404617696589390973' },
-      { text: '🔴 USDT • TRC-20', callback_data: 'payment_trc20', style: 'primary', icon_custom_emoji_id: '5404617696589390973' }
+      { text: '🟡 USDT • BEP-20', callback_data: 'payment_bep20', style: 'primary', icon_custom_emoji_id: '5280907155107506256' },
+      { text: '🔴 USDT • TRC-20', callback_data: 'payment_trc20', style: 'primary', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [
       { text: '👤 Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' },
@@ -5513,20 +5513,24 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const totalUSD = (qty * unitPriceUSD).toFixed(2);
         let networkTag = "TRC-20";
-        let coinEmoji = "🔴";
+        let coinEmoji = '<tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji>';
+        let networkEmojiId = "5936189134342199863";
         let walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
 
         if (method === 'bep20') {
           networkTag = "BEP-20";
-          coinEmoji = "🟡";
+          coinEmoji = '<tg-emoji emoji-id="5280907155107506256">🟡</tg-emoji>';
+          networkEmojiId = "5280907155107506256";
           walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         } else if (method === 'binance') {
           networkTag = "BINANCE PAY";
-          coinEmoji = "🔸";
+          coinEmoji = '<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>';
+          networkEmojiId = "5281029063459234079";
           walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         } else if (method === 'cryptobot') {
           networkTag = "CRYPTOBOT";
-          coinEmoji = "🤖";
+          coinEmoji = '<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji>';
+          networkEmojiId = "5361914370068613491";
         }
 
         try {
@@ -5541,7 +5545,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           const caption = `${coinEmoji} You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
             `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="${networkEmojiId}">🪙</tg-emoji>\n\n` +
             `<code>${walletAddress}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
@@ -6030,7 +6034,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               await targetBot.deleteMessage(chatId, query.message.message_id);
             }
           } catch (e) { }
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5361543877599724417">🤖</tg-emoji> Enter custom amount for <b>@CryptoBot</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji> Enter custom amount for <b>@CryptoBot</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_cryptobot_amount',
             lastMessageId: prompt?.message_id
@@ -6061,7 +6065,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           if (res.invoiceId) {
             await storage.updatePayment(newPayment.id, { externalId: res.invoiceId.toString() });
           }
-          const msgText = `<tg-emoji emoji-id="5361543877599724417">🤖</tg-emoji> <b>@CryptoBot Top-up Invoice</b>\n` +
+          const msgText = `<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji> <b>@CryptoBot Top-up Invoice</b>\n` +
             `➖➖➖➖➖➖➖➖➖➖\n` +
             `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Top-up amount: <b>$${amount.toFixed(2)} USD</b>\n` +
             `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Status: <tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending\n` +
@@ -6069,7 +6073,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `Click on the button below to pay via <b>@CryptoBot</b>:`;
 
           const keyboard: any[][] = [
-            [{ text: `Pay $${amount.toFixed(2)} via @CryptoBot`, url: res.payUrl, icon_custom_emoji_id: '5361543877599724417' }],
+            [{ text: `Pay $${amount.toFixed(2)} via @CryptoBot`, url: res.payUrl, icon_custom_emoji_id: '5361914370068613491' }],
             [{ text: 'Check top-up', callback_data: `check_payment_${newPayment.id}`, icon_custom_emoji_id: '6010111371251815589' }]
           ];
 
@@ -6111,16 +6115,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const keyboard: any[][] = [
           [
-            { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '5', callback_data: 'binance_amount_5', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5409048419211682843' }
+            { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5281029063459234079' },
+            { text: '5', callback_data: 'binance_amount_5', icon_custom_emoji_id: '5281029063459234079' },
+            { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5281029063459234079' }
           ],
           [
             { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
           ]
         ];
 
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
+        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
           parse_mode: 'HTML',
           reply_markup: { inline_keyboard: keyboard }
         });
@@ -6135,7 +6139,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const val = data.replace('binance_amount_', '');
         if (val === 'custom') {
           try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> Enter custom amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Enter custom amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: 'awaiting_binance_deposit_amount',
             lastMessageId: prompt?.message_id
@@ -6160,9 +6164,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: `awaiting_binance_txid_${payment.id}_0`
         });
 
-        const responseMsg = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+        const responseMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
           `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji>\n\n` +
+          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>\n\n` +
           `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
           `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
           `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
