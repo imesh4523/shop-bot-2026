@@ -5384,8 +5384,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data.startsWith('copy_wallet_')) {
-        let walletToCopy = data.substring(12);
+      if (data.startsWith('copy_wallet_') || data === 'copy_binance_id') {
+        let walletToCopy = data.replace('copy_wallet_', '');
+        if (data === 'copy_binance_id' || walletToCopy === 'binance') {
+          walletToCopy = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: `📋 Binance Pay ID: ${walletToCopy}`, show_alert: true }).catch(() => {});
+          }
+          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Binance Pay ID sent!</b> Long-press to copy:`, { parse_mode: 'HTML' });
+          await targetBot.sendMessage(chatId, `<code>${walletToCopy}</code>`, { parse_mode: 'HTML' });
+          return;
+        }
         if (walletToCopy === 'trc20') {
           walletToCopy = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "Not Set";
         } else if (walletToCopy === 'bep20') {
@@ -5683,6 +5692,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
+          [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_item_${payment.id}_${prodId}_${qty}_${method}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
@@ -5712,12 +5722,35 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const totalCents = Math.round(qty * unitPriceUSD * 100);
 
-        let isPaid = tgUser.balance >= totalCents;
-        if (!isPaid && paymentId > 0) {
-          const p = await storage.getPayment(paymentId);
-          if (p && p.status === 'completed') {
-            isPaid = true;
+        if (payment && payment.paymentMethod === 'binance') {
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: `awaiting_binance_txid_${prodId}_${qty}_${paymentId}`
+          });
+
+          const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
+            `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
+            `<i>Example: <code>28491048591</code></i>`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
+              [{ text: 'Cancel / Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+
+          if (query.message) {
+            try {
+              await targetBot.editMessageText(promptMsg, {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'HTML',
+                reply_markup: keyboard
+              });
+              return;
+            } catch (e) {}
           }
+          await targetBot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+          return;
         }
 
         if (isPaid) {
@@ -6320,6 +6353,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
+          [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
@@ -6574,6 +6608,42 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       if (data.startsWith('check_payment_')) {
         const paymentId = parseInt(data.substring(14));
         const paymentCheck = await storage.getPayment(paymentId);
+
+        if (paymentCheck && paymentCheck.paymentMethod === 'binance') {
+          if (paymentCheck.status === 'completed') {
+            await targetBot.answerCallbackQuery(query.id, { text: "Payment already verified!", show_alert: true }).catch(() => {});
+            return;
+          }
+
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: `awaiting_binance_txid_0_0_${paymentCheck.id}`
+          });
+
+          const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
+            `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
+            `<i>Example: <code>28491048591</code></i>`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
+              [{ text: 'Cancel / Back', callback_data: 'add_funds', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+
+          if (query.message) {
+            try {
+              await targetBot.editMessageText(promptMsg, {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'HTML',
+                reply_markup: keyboard
+              });
+              return;
+            } catch (e) {}
+          }
+          await targetBot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+          return;
+        }
 
         if (paymentCheck && paymentCheck.paymentMethod === 'cryptobot') {
           if (paymentCheck.status === 'completed') {
@@ -8058,6 +8128,79 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
+      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_')) {
+        const txid = normalizedText?.trim();
+        if (!txid) return;
+
+        const parts = tgUser.lastAction.split('_');
+        const prodId = parts[3] || '0';
+        const qty = parseInt(parts[4] || '1', 10);
+        const paymentId = parseInt(parts[5] || '0', 10);
+
+        // Anti-Reuse / Single-Use Transaction Lock
+        const existingTx = await db.select().from(payments).where(eq(payments.txid, txid)).limit(1);
+
+        if (existingTx && existingTx.length > 0) {
+          await targetBot.sendMessage(
+            chatId,
+            `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Transaction ID Already Used!</b>\n\n` +
+            `This Binance Transaction ID (<code>${escapeHTML(txid)}</code>) has already been redeemed and locked by another user.\n\n` +
+            `Each Binance Transaction ID can only be used once. Please check your Binance app for the correct Order ID.`,
+            { parse_mode: 'HTML' }
+          );
+          return;
+        }
+
+        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+        if (paymentId > 0) {
+          await storage.updatePayment(paymentId, { status: 'completed', txid: txid });
+        }
+
+        if (prodId === '0' && paymentId > 0) {
+          const paymentCheck = await storage.getPayment(paymentId);
+          if (paymentCheck) {
+            const depositAmountCents = paymentCheck.amount;
+            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
+            const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
+            const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
+
+            await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
+            return;
+          }
+        }
+
+        let productName = "Gemini Link 18 months";
+        let unitPriceUSD = 0.55;
+        const prodIdNum = parseInt(prodId);
+        if (!isNaN(prodIdNum)) {
+          const product = await storage.getProduct(prodIdNum);
+          if (product) {
+            productName = product.name;
+            unitPriceUSD = product.price / 100;
+          }
+        }
+        const totalCents = Math.round(qty * unitPriceUSD * 100);
+
+        let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const stock = await storage.getCredentialsByProduct(prodIdNum);
+        const avail = stock.find(c => c.status === 'available');
+        if (avail) {
+          credentialText = avail.data;
+          await storage.updateCredential(avail.id, { status: 'sold' });
+        }
+
+        const newOrder = await storage.createOrder({
+          telegramUserId: tgUser.id,
+          productId: prodIdNum,
+          quantity: qty,
+          totalPrice: totalCents,
+          status: 'completed',
+          credential: credentialText
+        } as any);
+
+        await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
+        return;
       } else if (tgUser?.lastAction?.startsWith('awaiting_review_comment_')) {
         const parts = tgUser.lastAction.split('_');
         const rating = parseInt(parts[3], 10) || 5;
