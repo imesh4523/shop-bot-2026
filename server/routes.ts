@@ -2566,7 +2566,10 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     const str = String(err);
     return msg.includes('DOCUMENT_INVALID') || 
            desc.includes('DOCUMENT_INVALID') || 
-           str.includes('DOCUMENT_INVALID');
+           str.includes('DOCUMENT_INVALID') ||
+           msg.includes("can't parse entities") ||
+           desc.includes("can't parse entities") ||
+           str.includes("can't parse entities");
   };
 
   const sanitizeOptions = (options?: any) => {
@@ -2822,6 +2825,28 @@ const initBot = async () => {
   }
 };
 const bannerFileIdCache: Record<string, string> = {};
+
+const sendAutoDeleteError = async (
+  targetBot: TelegramBot,
+  chatId: number | string,
+  userMessageId: number | undefined,
+  htmlText: string,
+  timeoutMs: number = 7000
+) => {
+  try {
+    const sentMsg = await targetBot.sendMessage(chatId, htmlText, { parse_mode: 'HTML' });
+    setTimeout(() => {
+      if (userMessageId) {
+        targetBot.deleteMessage(chatId, userMessageId).catch(() => {});
+      }
+      if (sentMsg?.message_id) {
+        targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => {});
+      }
+    }, timeoutMs);
+  } catch (err) {
+    console.error("sendAutoDeleteError failed:", err);
+  }
+};
 
 const sendOrEditScreenWithPhoto = async (
   targetBot: TelegramBot,
@@ -7901,13 +7926,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           // 1. Format check: Must be digits
           if (!/^\d{8,20}$/.test(txid)) {
-            await targetBot.sendMessage(
+            await sendAutoDeleteError(
+              targetBot,
               chatId,
+              msg.message_id,
               `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Invalid Binance Order ID Format!</b>\n\n` +
-              `Binance Order IDs must be an 8 to 20 digit number.\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Notice:</b> Binance Order IDs must be an 8 to 20 digit number.\n` +
               `<i>Example: <code>28491048591</code></i>\n\n` +
-              `Please check your Binance app (Pay -> Orders) and try again.`,
-              { parse_mode: 'HTML' }
+              `Please check your Binance app (Pay ➔ Orders) and enter the correct ID.</blockquote>`,
+              7000
             );
             return;
           }
@@ -7941,12 +7968,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const existingTx = await db.select().from(payments).where(eq(payments.txid, txid)).limit(1);
 
           if (existingTx && existingTx.length > 0) {
-            await targetBot.sendMessage(
+            await sendAutoDeleteError(
+              targetBot,
               chatId,
+              msg.message_id,
               `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Transaction ID Already Used!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="5364322626950938114">🔒</tg-emoji> <b>Security Notice:</b>\n` +
               `This Binance Transaction ID (<code>${escapeHTML(txid)}</code>) has already been redeemed and locked by another user.\n\n` +
-              `Each Binance Transaction ID can only be used once. Please check your Binance app for the correct Order ID.`,
-              { parse_mode: 'HTML' }
+              `Each Binance Transaction ID can only be used once. Please check your Binance app for your unique Order ID.</blockquote>`,
+              7000
             );
             return;
           }
@@ -7973,15 +8003,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
                 const liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
                 if (!liveMatch) {
-                  await targetBot.sendMessage(
+                  await sendAutoDeleteError(
+                    targetBot,
                     chatId,
+                    msg.message_id,
                     `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
+                    `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Verification Warning:</b>\n` +
                     `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
                     `<b>Please check:</b>\n` +
-                    `1. Ensure you transferred the exact amount to Binance Pay ID <code>284910485</code>.\n` +
-                    `2. Copy the exact <b>Order ID</b> from your Binance App (Pay -> Orders).\n\n` +
-                    `<i>If you need assistance, please write to support.</i>`,
-                    { parse_mode: 'HTML' }
+                    `1. Transferred exact amount to Binance Pay ID <code>284910485</code>.\n` +
+                    `2. Copied exact <b>Order ID</b> from Binance App (Pay ➔ Orders).</blockquote>`,
+                    7000
                   );
                   return;
                 }
@@ -8528,23 +8560,51 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         try {
           const promo = await storage.getPromoCodeByCode(enteredCode);
           if (!promo) {
-            await targetBot.sendMessage(chatId, `❌ <b>Invalid Promo Code</b>\n\n"${enteredCode}" does not exist. Please check spelling and try again.`, { parse_mode: 'HTML' });
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Invalid Promo Code!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> Code "<code>${escapeHTML(enteredCode)}</code>" does not exist.\nPlease check spelling and try again.</blockquote>`,
+              7000
+            );
             return;
           }
 
           if (promo.status !== 'active') {
-            await targetBot.sendMessage(chatId, `❌ <b>Promo Code Expired</b>\n\nThe code "${promo.code}" is no longer active.`, { parse_mode: 'HTML' });
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Promo Code Expired!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> The code "<code>${escapeHTML(promo.code)}</code>" is no longer active.</blockquote>`,
+              7000
+            );
             return;
           }
 
           if (promo.usesCount >= promo.maxUses) {
-            await targetBot.sendMessage(chatId, `❌ <b>Promo Code Limit Reached</b>\n\nThe code "${promo.code}" has reached its maximum redemption limit.`, { parse_mode: 'HTML' });
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Promo Code Limit Reached!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> The code "<code>${escapeHTML(promo.code)}</code>" has reached its maximum redemption limit.</blockquote>`,
+              7000
+            );
             return;
           }
 
           const alreadyRedeemed = await storage.getRedemptionByUserAndCode(tgUser.id, promo.id);
           if (alreadyRedeemed) {
-            await targetBot.sendMessage(chatId, `❌ <b>Already Redeemed</b>\n\nYou have already redeemed the code "${promo.code}".`, { parse_mode: 'HTML' });
+            await sendAutoDeleteError(
+              targetBot,
+              chatId,
+              msg.message_id,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Already Redeemed!</b>\n\n` +
+              `<blockquote><tg-emoji emoji-id="5364322626950938114">🔒</tg-emoji> You have already redeemed the promo code "<code>${escapeHTML(promo.code)}</code>".</blockquote>`,
+              7000
+            );
             return;
           }
 
@@ -9415,13 +9475,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
       } else {
         // Fallback for any unhandled text message: Always respond so bot is never silent
-        await targetBot.sendMessage(
+        await sendAutoDeleteError(
+          targetBot,
           chatId,
+          msg.message_id,
           `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Binance Order ID Verification</b>\n\n` +
-          `If you are verifying a payment, please send your <b>8 to 20 digit Binance Order ID</b> in chat.\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
+          `If you are verifying a deposit, please send your <b>8 to 20 digit Binance Order ID</b> in chat.\n` +
           `<i>Example: <code>28491048591</code></i>\n\n` +
-          `Or tap <b>Catalog</b> below to browse products.`,
-          { parse_mode: 'HTML' }
+          `Or tap <b>Catalog</b> below to browse products.</blockquote>`,
+          7000
         );
       }
     } catch (messageErr) {
