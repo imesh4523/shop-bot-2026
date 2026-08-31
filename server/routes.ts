@@ -2576,14 +2576,33 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     return text.replace(/<[^>]*>/g, '');
   };
 
+  const isEffectIdInvalid = (err: any): boolean => {
+    if (!err) return false;
+    const msg = err.message || "";
+    const desc = err.description || err.response?.body?.description || "";
+    const str = String(err);
+    return msg.includes('EFFECT_ID_INVALID') || desc.includes('EFFECT_ID_INVALID') || str.includes('EFFECT_ID_INVALID');
+  };
+
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
     try {
       return await originalSendMessage(chatId, text, options);
     } catch (err: any) {
+      if (options?.message_effect_id && isEffectIdInvalid(err)) {
+        console.warn(`[Bot API] EFFECT_ID_INVALID for sendMessage. Retrying without message_effect_id.`);
+        const cleanOpts = { ...options };
+        delete cleanOpts.message_effect_id;
+        try {
+          return await originalSendMessage(chatId, text, cleanOpts);
+        } catch (err2: any) {
+          err = err2;
+        }
+      }
       if (typeof text === 'string' && options?.parse_mode) {
         console.warn(`[Bot API] sendMessage error (${err?.message}). Retrying with stripped tags.`);
         const cleanOpts = { ...options };
         delete cleanOpts.parse_mode;
+        delete cleanOpts.message_effect_id;
         return await originalSendMessage(chatId, stripAllHtmlTags(text), cleanOpts).catch(() => {});
       }
       throw err;
@@ -2598,6 +2617,7 @@ const patchBotMethods = (targetBot: TelegramBot) => {
         console.warn(`[Bot API] editMessageText error (${err?.message}). Retrying with stripped tags.`);
         const cleanOpts = { ...options };
         delete cleanOpts.parse_mode;
+        delete cleanOpts.message_effect_id;
         return await originalEditMessageText(stripAllHtmlTags(text), cleanOpts).catch(() => {});
       }
       throw err;
@@ -2609,11 +2629,22 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     try {
       return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
+      if (options?.message_effect_id && isEffectIdInvalid(err)) {
+        console.warn(`[Bot API] EFFECT_ID_INVALID for sendPhoto. Retrying without message_effect_id.`);
+        const cleanOpts = { ...options };
+        delete cleanOpts.message_effect_id;
+        try {
+          return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
+        } catch (err2: any) {
+          err = err2;
+        }
+      }
       const caption = options?.caption;
       if (typeof caption === 'string' && options?.parse_mode) {
         console.warn(`[Bot API] sendPhoto error (${err?.message}). Retrying sendPhoto with stripped tags.`);
         const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
         delete cleanOptions.parse_mode;
+        delete cleanOptions.message_effect_id;
         return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts).catch(() => {});
       }
       throw err;
@@ -2888,7 +2919,7 @@ const sendOrEditScreenWithPhoto = async (
         sendPhotoOpts.message_effect_id = messageEffectId;
       }
       const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, sendPhotoOpts);
-      if (sentMsg.photo && sentMsg.photo.length > 0) {
+      if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0) {
         const fileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
         bannerFileIdCache[bannerPath] = fileId;
       }
