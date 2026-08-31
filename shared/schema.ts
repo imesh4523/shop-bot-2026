@@ -379,3 +379,24 @@ export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
 export type PromoCodeRedemption = typeof promoCodeRedemptions.$inferSelect;
 export type InsertPromoCodeRedemption = z.infer<typeof insertPromoCodeRedemptionSchema>;
 
+// Broadcast Logs & Recall Entities
+export const broadcastLogs = pgTable("broadcast_logs", {
+  id: serial("id").primaryKey(),
+  adminChatId: text("admin_chat_id").notNull(),
+  title: text("title"),
+  broadcastType: text("broadcast_type").notNull().default("text"), // text, photo
+  messageText: text("message_text"),
+  photoUrl: text("photo_url"),
+  targetProductId: integer("target_product_id"),
+  customButtonText: text("custom_button_text"),
+  customButtonUrl: text("custom_button_url"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentMessagesJson: text("sent_messages_json"), // Store JSON array of { chatId, messageId }
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBroadcastLogSchema = createInsertSchema(broadcastLogs).omit({ id: true, createdAt: true });
+export type BroadcastLog = typeof broadcastLogs.$inferSelect;
+export type InsertBroadcastLog = z.infer<typeof insertBroadcastLogSchema>;
+
+

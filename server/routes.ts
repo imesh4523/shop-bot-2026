@@ -23,7 +23,7 @@ import FormData from "form-data";
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
 import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
 import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
-import { initAdminBotController } from "./admin-bot-controller";
+import { initAdminBotController, setMainBotReferenceForAdmin } from "./admin-bot-controller";
 import { 
   processTelegramInspectorTrace, 
   getTraceHistory, 
@@ -552,8 +552,23 @@ export async function registerRoutes(
         promo_code_id INTEGER NOT NULL REFERENCES promo_codes(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS broadcast_logs (
+        id SERIAL PRIMARY KEY,
+        admin_chat_id TEXT NOT NULL,
+        title TEXT,
+        broadcast_type TEXT NOT NULL DEFAULT 'text',
+        message_text TEXT,
+        photo_url TEXT,
+        target_product_id INTEGER,
+        custom_button_text TEXT,
+        custom_button_url TEXT,
+        recipient_count INTEGER DEFAULT 0,
+        sent_messages_json TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
-    console.log('[DB] referrals and promo_codes tables verified/created');
+    console.log('[DB] referrals, promo_codes, and broadcast_logs tables verified/created');
   } catch (err: any) {
     console.error('Error verifying referrals table:', err.message);
   }
@@ -2632,6 +2647,7 @@ const initBot = async () => {
       patchBotMethods(bot);
       setupBotHandlers(bot);
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
+      setMainBotReferenceForAdmin(bot);
       console.log('Main bot initialized successfully');
     } else if (bot && token === inspectorToken) {
       console.log('Stopping main bot instance as token is assigned to Dedicated Inspector Bot...');

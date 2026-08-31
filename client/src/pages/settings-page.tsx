@@ -49,6 +49,33 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/EXTRA_INSTRUCTIONS"],
   });
 
+  const [adminBotToken, setAdminBotToken] = useState("");
+  const { data: adminBotTokenSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/ADMIN_BOT_TOKEN"],
+  });
+  useEffect(() => {
+    if (adminBotTokenSetting?.value) {
+      setAdminBotToken(adminBotTokenSetting.value);
+    }
+  }, [adminBotTokenSetting]);
+
+  const adminBotTokenMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "ADMIN_BOT_TOKEN",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ADMIN_BOT_TOKEN"] });
+      toast({
+        title: "Admin Bot Token Saved",
+        description: "Dedicated Telegram Admin Bot Token updated successfully.",
+      });
+    }
+  });
+
   const { data: broadcastSetting, isLoading: isBroadcastLoading } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/BROADCAST_BOT_TOKEN"],
   });
@@ -832,10 +859,29 @@ export default function SettingsPage() {
               <p className="text-xs text-white/40">
                 If provided, this bot will be used for sending broadcasts instead of the main bot.
               </p>
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label htmlFor="admin-bot-token" className="text-sm font-bold text-white/70 uppercase tracking-widest">Dedicated Admin Bot Token (Full Control)</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="admin-bot-token"
+                  type="password"
+                  placeholder="Telegram Admin Bot token for Full A-Z Management..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={adminBotToken}
+                  onChange={(e) => setAdminBotToken(e.target.value)}
+                />
+                <Button
+                  onClick={() => adminBotTokenMutation.mutate(adminBotToken)}
+                  disabled={adminBotTokenMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {adminBotTokenMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                This token controls the dedicated Admin Bot for managing products, customers, promo codes, gateways, and mass broadcasts.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="max-w-2xl">
         <Card className="glass-card border-0">
