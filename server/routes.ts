@@ -7836,6 +7836,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const normalizedText = text?.trim();
       const cleanNavText = normalizedText ? normalizedText.replace(/<[^>]*>/g, '').trim() : '';
 
+      const replyText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '') : '';
+      const isBinanceReply = replyText.includes('Binance') || replyText.includes('Order ID') || replyText.includes('Transaction ID');
+      const isBinanceState = tgUser?.lastAction?.startsWith('awaiting_binance_txid_');
+      const isNumericInput = Boolean(normalizedText && /^\d{5,25}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode' && tgUser?.lastAction !== 'awaiting_promocode_input');
+
       const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
       const supportBtnText = supportBtnTextSetting?.value || "Write to support";
 
@@ -8236,7 +8241,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
-      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_') || (msg.reply_to_message && msg.reply_to_message.text && (msg.reply_to_message.text.includes('Binance') || msg.reply_to_message.text.includes('Order ID'))) || (normalizedText && /^\d{5,25}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode')) {
+      } else if (isBinanceState || isBinanceReply || isNumericInput) {
         const txid = normalizedText?.trim();
         if (!txid) return;
 
