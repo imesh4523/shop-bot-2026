@@ -2724,8 +2724,9 @@ const initBot = async () => {
       `);
       await db.execute(sql`
         ALTER TABLE products ADD COLUMN IF NOT EXISTS custom_emoji_id TEXT;
+        ALTER TABLE payments ADD COLUMN IF NOT EXISTS txid TEXT;
       `);
-      console.log('[DB] reviews table verified/created');
+      console.log('[DB] reviews and payments tables verified/updated');
 
       await db.execute(sql`
         CREATE TABLE IF NOT EXISTS support_tickets (
@@ -7773,9 +7774,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            await targetBot.sendMessage(chatId, "\u200B", {
+            await targetBot.sendMessage(chatId, `<b>Menu Options</b>`, {
+              parse_mode: 'HTML',
               reply_markup: bottomKeyboard
-            }).catch(() => {});
+            }).catch(err => console.error("Bottom keyboard send error:", err));
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
