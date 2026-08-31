@@ -1899,7 +1899,7 @@ const formatOfferMessage = (offer: any, productType: string) => {
       const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
       const s = (totalSeconds % 60).toString().padStart(2, '0');
 
-      text += `<tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji>\n`;
+      text += `<tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji>\n`;
       const formatTimeDigit = (digit: string | undefined) => {
         const d = digit || '0';
         return `<tg-emoji emoji-id="${numEmojiMap[d] || numEmojiMap['0']}">🎁</tg-emoji>`;
@@ -2945,14 +2945,14 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   const { formatted: convertedBal } = formatPriceInCurrency(userBalNum, currCurrency);
   const balanceText = currCurrency === 'USD' ? `${balanceUSD} USD` : `${balanceUSD} USD (${convertedBal})`;
 
-  const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b> <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>\n\n` +
+  const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
     `🏅 Status: ${statusText}\n` +
     `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> 🎉`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -5269,7 +5269,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const keyboard = { inline_keyboard };
 
         if (query.message?.message_id) {
-          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`, {
+          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} 🎉`, {
             chat_id: chatId,
             message_id: query.message.message_id,
             reply_markup: keyboard,
@@ -5948,7 +5948,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
                 const s = (totalSeconds % 60).toString().padStart(2, '0');
 
-                text += `<tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji>\n`;
+                text += `<tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji>\n`;
                 const formatTimeDigit = (digit: string | undefined) => {
                   const d = digit || '0';
                   return `<tg-emoji emoji-id="${numEmojiMap[d] || numEmojiMap['0']}">🎁</tg-emoji>`;
@@ -7428,7 +7428,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       // If no parameter, show the standard welcome message with generated purple banner photo
       const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
-      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
+      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below. 🎉`;
 
       const startInlineMarkup = {
         inline_keyboard: [
