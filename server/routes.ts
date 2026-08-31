@@ -3564,11 +3564,25 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     `➖➖➖➖➖➖➖➖➖➖\n\n`;
 
   pageItems.forEach(item => {
-    const emoji = item.sign === '+' 
-      ? `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>` 
-      : `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>`;
-    txCaption += `🆔 <b>#${item.id}</b> • <code>${item.sign}$${item.amountUSD}</code> ${emoji}\n` +
-      `<i>${item.description}</i>\n\n`;
+    const typeEmoji = item.sign === '+' 
+      ? `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji>` 
+      : `<tg-emoji emoji-id="5445355530111437729">📤</tg-emoji>`;
+
+    const signEmoji = item.sign === '+' 
+      ? `<tg-emoji emoji-id="5397916757333654639">➕</tg-emoji>` 
+      : `<tg-emoji emoji-id="5364322626950938114">➖</tg-emoji>`;
+
+    const dollarEmoji = `<tg-emoji emoji-id="5197434882321567830">💲</tg-emoji>`;
+
+    let subIcon = `<i>${item.description}</i>`;
+    if (item.description.includes('BEP20')) {
+      subIcon = `<tg-emoji emoji-id="5280907155107506256">🟡</tg-emoji> <i>${item.description}</i>`;
+    } else if (item.description.includes('TRC20')) {
+      subIcon = `<tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji> <i>${item.description}</i>`;
+    }
+
+    txCaption += `${typeEmoji} <b>#${item.id}</b> • ${signEmoji}<code>$${item.amountUSD}</code> ${dollarEmoji}\n` +
+      `${subIcon}\n\n`;
   });
 
   txCaption += `➖➖➖➖➖➖➖➖➖➖`;
