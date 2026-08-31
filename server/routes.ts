@@ -20,15 +20,6 @@ import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
 import FormData from "form-data";
-
-export const TELEGRAM_MESSAGE_EFFECTS = {
-  CONFETTI: "5066970843586925436",
-  HEARTS: "5159385139981059251",
-  THUMBS_UP: "5107584321108051014",
-  FIRE: "5104858069142078462",
-  THUMBS_DOWN: "5104841245755180586",
-};
-
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
 import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
 import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
@@ -1068,10 +1059,7 @@ export async function registerRoutes(
               chunkMsg += `\nThank you for shopping with us! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
             }
 
-            await bot?.sendMessage(tgUser.id, chunkMsg, { 
-              parse_mode: 'HTML',
-              message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-            } as any);
+            await bot?.sendMessage(tgUser.id, chunkMsg, { parse_mode: 'HTML' });
           }
         } catch (err) {
           console.error("Failed to send bot DM for purchase:", err);
@@ -1911,7 +1899,7 @@ const formatOfferMessage = (offer: any, productType: string) => {
       const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
       const s = (totalSeconds % 60).toString().padStart(2, '0');
 
-      text += `<tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji>\n`;
+      text += `<tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji>\n`;
       const formatTimeDigit = (digit: string | undefined) => {
         const d = digit || '0';
         return `<tg-emoji emoji-id="${numEmojiMap[d] || numEmojiMap['0']}">🎁</tg-emoji>`;
@@ -2571,39 +2559,24 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     return text.replace(/<tg-emoji[^>]*>(.*?)<\/tg-emoji>/gi, '$1');
   };
 
-  const stripAllHtmlTags = (text: string): string => {
-    if (!text) return text;
-    return text.replace(/<[^>]*>/g, '');
-  };
-
-  const isEffectIdInvalid = (err: any): boolean => {
+  const isDocumentInvalid = (err: any): boolean => {
     if (!err) return false;
     const msg = err.message || "";
     const desc = err.description || err.response?.body?.description || "";
     const str = String(err);
-    return msg.includes('EFFECT_ID_INVALID') || desc.includes('EFFECT_ID_INVALID') || str.includes('EFFECT_ID_INVALID');
+    return msg.includes('DOCUMENT_INVALID') || 
+           desc.includes('DOCUMENT_INVALID') || 
+           str.includes('DOCUMENT_INVALID');
   };
 
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
     try {
       return await originalSendMessage(chatId, text, options);
     } catch (err: any) {
-      if (options?.message_effect_id && isEffectIdInvalid(err)) {
-        console.warn(`[Bot API] EFFECT_ID_INVALID for sendMessage. Retrying without message_effect_id.`);
-        const cleanOpts = { ...options };
-        delete cleanOpts.message_effect_id;
-        try {
-          return await originalSendMessage(chatId, text, cleanOpts);
-        } catch (err2: any) {
-          err = err2;
-        }
-      }
-      if (typeof text === 'string' && options?.parse_mode) {
-        console.warn(`[Bot API] sendMessage error (${err?.message}). Retrying with stripped tags.`);
-        const cleanOpts = { ...options };
-        delete cleanOpts.parse_mode;
-        delete cleanOpts.message_effect_id;
-        return await originalSendMessage(chatId, stripAllHtmlTags(text), cleanOpts).catch(() => {});
+      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
+        const cleanText = stripEmojis(text);
+        return await originalSendMessage(chatId, cleanText, options);
       }
       throw err;
     }
@@ -2613,12 +2586,10 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     try {
       return await originalEditMessageText(text, options);
     } catch (err: any) {
-      if (typeof text === 'string' && options?.parse_mode) {
-        console.warn(`[Bot API] editMessageText error (${err?.message}). Retrying with stripped tags.`);
-        const cleanOpts = { ...options };
-        delete cleanOpts.parse_mode;
-        delete cleanOpts.message_effect_id;
-        return await originalEditMessageText(stripAllHtmlTags(text), cleanOpts).catch(() => {});
+      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
+        const cleanText = stripEmojis(text);
+        return await originalEditMessageText(cleanText, options);
       }
       throw err;
     }
@@ -2629,23 +2600,11 @@ const patchBotMethods = (targetBot: TelegramBot) => {
     try {
       return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
-      if (options?.message_effect_id && isEffectIdInvalid(err)) {
-        console.warn(`[Bot API] EFFECT_ID_INVALID for sendPhoto. Retrying without message_effect_id.`);
-        const cleanOpts = { ...options };
-        delete cleanOpts.message_effect_id;
-        try {
-          return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
-        } catch (err2: any) {
-          err = err2;
-        }
-      }
       const caption = options?.caption;
-      if (typeof caption === 'string' && options?.parse_mode) {
-        console.warn(`[Bot API] sendPhoto error (${err?.message}). Retrying sendPhoto with stripped tags.`);
-        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
-        delete cleanOptions.parse_mode;
-        delete cleanOptions.message_effect_id;
-        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts).catch(() => {});
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendPhoto(chatId, photo, cleanOptions, fileOpts);
       }
       throw err;
     }
@@ -2656,11 +2615,10 @@ const patchBotMethods = (targetBot: TelegramBot) => {
       return await originalSendVideo(chatId, video, options);
     } catch (err: any) {
       const caption = options?.caption;
-      if (typeof caption === 'string' && options?.parse_mode) {
-        console.warn(`[Bot API] sendVideo error (${err?.message}). Retrying sendVideo with stripped tags.`);
-        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
-        delete cleanOptions.parse_mode;
-        return await originalSendVideo(chatId, video, cleanOptions).catch(() => {});
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendVideo(chatId, video, cleanOptions);
       }
       throw err;
     }
@@ -2671,11 +2629,10 @@ const patchBotMethods = (targetBot: TelegramBot) => {
       return await originalSendDocument(chatId, doc, options);
     } catch (err: any) {
       const caption = options?.caption;
-      if (typeof caption === 'string' && options?.parse_mode) {
-        console.warn(`[Bot API] sendDocument error (${err?.message}). Retrying sendDocument with stripped tags.`);
-        const cleanOptions = { ...options, caption: stripAllHtmlTags(caption) };
-        delete cleanOptions.parse_mode;
-        return await originalSendDocument(chatId, doc, cleanOptions).catch(() => {});
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendDocument(chatId, doc, cleanOptions);
       }
       throw err;
     }
@@ -2838,8 +2795,7 @@ const sendOrEditScreenWithPhoto = async (
   bannerPath: string,
   caption: string,
   replyMarkup: any,
-  messageId?: number,
-  messageEffectId?: string
+  messageId?: number
 ) => {
   const token = (targetBot as any)?.token;
 
@@ -2910,16 +2866,12 @@ const sendOrEditScreenWithPhoto = async (
 
   if (fs.existsSync(bannerPath)) {
     try {
-      const sendPhotoOpts: any = {
+      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
-      };
-      if (messageEffectId) {
-        sendPhotoOpts.message_effect_id = messageEffectId;
-      }
-      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, sendPhotoOpts);
-      if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0) {
+      });
+      if (sentMsg.photo && sentMsg.photo.length > 0) {
         const fileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
         bannerFileIdCache[bannerPath] = fileId;
       }
@@ -2929,14 +2881,10 @@ const sendOrEditScreenWithPhoto = async (
     }
   }
 
-  const sendMsgOpts: any = {
+  await targetBot.sendMessage(chatId, caption, {
     parse_mode: 'HTML',
     reply_markup: replyMarkup
-  };
-  if (messageEffectId) {
-    sendMsgOpts.message_effect_id = messageEffectId;
-  }
-  await targetBot.sendMessage(chatId, caption, sendMsgOpts);
+  });
 };
 
 const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userId: string, msgFrom?: any, messageId?: number) => {
@@ -3004,7 +2952,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> <tg-emoji emoji-id="5312384950484343160">🎉</tg-emoji>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -3018,19 +2966,6 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
       [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
     ] as any
   };
-
-  if (!messageId) {
-    try {
-      await targetBot.sendMessage(chatId, profileCaption, {
-        parse_mode: 'HTML',
-        reply_markup: profileInlineKeyboard,
-        message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-      } as any);
-      return;
-    } catch (err: any) {
-      console.error('Failed to send text profile message with effect:', err.message);
-    }
-  }
 
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId);
@@ -5334,7 +5269,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const keyboard = { inline_keyboard };
 
         if (query.message?.message_id) {
-          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} 🎉`, {
+          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`, {
             chat_id: chatId,
             message_id: query.message.message_id,
             reply_markup: keyboard,
@@ -6013,7 +5948,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
                 const s = (totalSeconds % 60).toString().padStart(2, '0');
 
-                text += `<tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5404617696589390973">🤩</tg-emoji>\n`;
+                text += `<tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji> <b>Hurry! Expires In</b> <tg-emoji emoji-id="5206715082582533386">🤩</tg-emoji>\n`;
                 const formatTimeDigit = (digit: string | undefined) => {
                   const d = digit || '0';
                   return `<tg-emoji emoji-id="${numEmojiMap[d] || numEmojiMap['0']}">🎁</tg-emoji>`;
@@ -7493,7 +7428,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       // If no parameter, show the standard welcome message with generated purple banner photo
       const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
-      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below. <tg-emoji emoji-id="5312384950484343160">🎉</tg-emoji>`;
+      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.`;
 
       const startInlineMarkup = {
         inline_keyboard: [
@@ -7511,21 +7446,33 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       };
 
       const sendWelcomeBanner = async () => {
-        try {
-          await targetBot.sendMessage(chatId, welcomeCaption, {
-            parse_mode: 'HTML',
-            reply_markup: startInlineMarkup,
-            message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-          } as any);
-        } catch (err: any) {
-          console.error('Failed to send welcome message with effect:', err.message);
-          await targetBot.sendMessage(chatId, welcomeCaption, {
-            parse_mode: 'HTML',
-            reply_markup: startInlineMarkup
-          }).catch(() => {});
+        if (fs.existsSync(bannerPath)) {
+          try {
+            await targetBot.sendPhoto(chatId, bannerPath, {
+              caption: welcomeCaption,
+              parse_mode: 'HTML',
+              reply_markup: startInlineMarkup
+            });
+            await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
+              reply_markup: {
+                keyboard: [
+                  [{ text: '🛍️ Catalog' }],
+                  [{ text: '👤 Profile' }],
+                  [
+                    { text: '🔗 Useful links' },
+                    { text: '💬 Support' }
+                  ]
+                ],
+                resize_keyboard: true
+              }
+            }).catch(() => {});
+            return;
+          } catch (err: any) {
+            console.error('Failed to send banner photo, falling back to text:', err.message);
+          }
         }
-
-        await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
+        await targetBot.sendMessage(chatId, welcomeCaption, {
+          parse_mode: 'HTML',
           reply_markup: {
             keyboard: [
               [{ text: '🛍️ Catalog' }],
@@ -7537,7 +7484,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             ],
             resize_keyboard: true
           }
-        }).catch(() => {});
+        });
       };
 
       if (!parameter) {
@@ -7763,10 +7710,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `Total Paid: <b>$${totalUSD}</b>\n\n` +
           `📦 <b>Your delivery details will be sent shortly automatically!</b>`;
 
-        await targetBot.sendMessage(chatId, successMsg, { 
-          parse_mode: 'HTML',
-          message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
-        } as any);
+        await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML' });
         return;
       }
 
