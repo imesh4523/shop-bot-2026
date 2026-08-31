@@ -2572,13 +2572,22 @@ const patchBotMethods = (targetBot: TelegramBot) => {
            str.includes("can't parse entities");
   };
 
-  const sanitizeOptions = (options?: any) => {
+  const isButtonStyleInvalid = (err: any): boolean => {
+    if (!err) return false;
+    const msg = err.message || "";
+    const desc = err.description || err.response?.body?.description || "";
+    const str = String(err);
+    return msg.includes('Invalid button style specified') || 
+           desc.includes('Invalid button style specified') || 
+           str.includes('Invalid button style specified');
+  };
+
+  const stripButtonStyles = (options?: any) => {
     if (!options) return options;
-    const opts = { ...options };
+    const opts = JSON.parse(JSON.stringify(options));
     if (opts.reply_markup) {
-      const clean = JSON.parse(JSON.stringify(opts.reply_markup));
-      if (clean.inline_keyboard && Array.isArray(clean.inline_keyboard)) {
-        for (const row of clean.inline_keyboard) {
+      if (opts.reply_markup.inline_keyboard && Array.isArray(opts.reply_markup.inline_keyboard)) {
+        for (const row of opts.reply_markup.inline_keyboard) {
           if (Array.isArray(row)) {
             for (const btn of row) {
               delete btn.style;
@@ -2586,59 +2595,69 @@ const patchBotMethods = (targetBot: TelegramBot) => {
           }
         }
       }
-      if (clean.keyboard && Array.isArray(clean.keyboard)) {
-        for (const row of clean.keyboard) {
+      if (opts.reply_markup.keyboard && Array.isArray(opts.reply_markup.keyboard)) {
+        for (const row of opts.reply_markup.keyboard) {
           if (Array.isArray(row)) {
             for (const btn of row) {
               delete btn.style;
-              delete btn.icon_custom_emoji_id;
             }
           }
         }
       }
-      opts.reply_markup = clean;
     }
     return opts;
   };
 
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
-    const cleanOpts = sanitizeOptions(options);
     try {
-      return await originalSendMessage(chatId, text, cleanOpts);
+      return await originalSendMessage(chatId, text, options);
     } catch (err: any) {
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendMessage to ${chatId}`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendMessage(chatId, text, cleanOpts);
+      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
         const cleanText = stripEmojis(text);
-        return await originalSendMessage(chatId, cleanText, cleanOpts);
+        return await originalSendMessage(chatId, cleanText, options);
       }
       throw err;
     }
   } as any;
 
   targetBot.editMessageText = async function(text: string, options?: any) {
-    const cleanOpts = sanitizeOptions(options);
     try {
-      return await originalEditMessageText(text, cleanOpts);
+      return await originalEditMessageText(text, options);
     } catch (err: any) {
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying editMessageText`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalEditMessageText(text, cleanOpts);
+      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
         const cleanText = stripEmojis(text);
-        return await originalEditMessageText(cleanText, cleanOpts);
+        return await originalEditMessageText(cleanText, options);
       }
       throw err;
     }
   } as any;
 
   targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any, fileOptions?: any) {
-    const cleanOpts = sanitizeOptions(options);
     const fileOpts = fileOptions || (Buffer.isBuffer(photo) ? { filename: 'photo.jpg', contentType: 'image/jpeg' } : undefined);
     try {
-      return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
+      return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendPhoto to ${chatId}`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
         return await originalSendPhoto(chatId, photo, retryOpts, fileOpts);
       }
       throw err;
@@ -7757,11 +7776,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const sendWelcomeBanner = async () => {
         const bottomKeyboard = {
           keyboard: [
-            [{ text: 'Catalog' }],
-            [{ text: 'Profile' }],
+            [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+            [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
             [
-              { text: 'Useful links' },
-              { text: 'Support' }
+              { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+              { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
             ]
           ],
           resize_keyboard: true
