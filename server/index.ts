@@ -102,6 +102,19 @@ async function startServer() {
 
     const port = parseInt(process.env.PORT || "5000", 10);
     console.log(`[SERVER] Attempting to listen on port ${port}...`);
+
+    httpServer.on("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        console.warn(`⚠️ [SERVER PORT WARNING] Port ${port} is occupied. Retrying connection in 1.5s...`);
+        setTimeout(() => {
+          httpServer.close();
+          httpServer.listen({ port, host: "0.0.0.0" });
+        }, 1500);
+      } else {
+        console.error("❌ Server HTTP error:", err?.message || err);
+      }
+    });
+
     httpServer.listen(
       {
         port,
