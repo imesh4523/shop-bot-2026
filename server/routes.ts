@@ -5690,11 +5690,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
+        const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+        const copyBtn = method === 'binance' 
+          ? { text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }
+          : { text: 'Copy Address', copy_text: { text: walletAddress }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' };
+
         const keyboard = [
-          [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+          [copyBtn],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_item_${payment.id}_${prodId}_${qty}_${method}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
-          [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
+          [{ text: 'Back to Item', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
         const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
@@ -5730,9 +5735,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
             `<i>Example: <code>28491048591</code></i>`;
 
+          const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
               [{ text: 'Cancel / Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
             ]
           };
@@ -6352,7 +6358,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
-          [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+          [{ text: 'Copy Binance ID', copy_text: { text: payId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
@@ -6622,9 +6628,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
             `<i>Example: <code>28491048591</code></i>`;
 
+          const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'Copy Binance ID', callback_data: 'copy_binance_id', style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
               [{ text: 'Cancel / Back', callback_data: 'add_funds', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
             ]
           };
