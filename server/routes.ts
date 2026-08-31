@@ -5422,7 +5422,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         try {
           const { generateStyledQRCode } = await import('./qr-generator');
           const qrBuffer = await generateStyledQRCode(walletAddress);
-          const amountUSD = payment ? (payment.amount / 100).toFixed(0) : '10';
+          const amountUSD = payment ? (payment.amount / 100).toFixed(2) : '10.00';
 
           const caption = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amountUSD} USDT</b> \n\n` +
             `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
@@ -5589,7 +5589,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             productName = product.name;
           }
         }
-        const totalUSD = (qty * unitPriceUSD).toFixed(0);
+        const totalUSD = (qty * unitPriceUSD).toFixed(2);
 
         let walletAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         if (method === 'trc20') {
@@ -5655,7 +5655,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         const totalUSDNum = qty * unitPriceUSD;
-        const totalUSD = totalUSDNum.toFixed(0);
+        const totalUSD = totalUSDNum.toFixed(2);
         let networkTag = "BEP20";
         let walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
 
