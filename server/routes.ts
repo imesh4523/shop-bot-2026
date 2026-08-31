@@ -5727,6 +5727,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const totalCents = Math.round(qty * unitPriceUSD * 100);
 
         if (payment && payment.paymentMethod === 'binance') {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: "💬 Send your Binance Order ID in chat!" }).catch(() => {});
+          }
+
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: `awaiting_binance_txid_${prodId}_${qty}_${paymentId}`
           });
@@ -5751,10 +5755,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 parse_mode: 'HTML',
                 reply_markup: keyboard
               });
-              return;
             } catch (e) {}
           }
-          await targetBot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+
+          await targetBot.sendMessage(chatId, `👇 <b>Reply to this message with your Binance Order ID:</b>`, {
+            parse_mode: 'HTML',
+            reply_markup: { force_reply: true, selective: true }
+          }).catch(() => {});
+
           return;
         }
 
@@ -6620,6 +6628,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             return;
           }
 
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: "💬 Send your Binance Order ID in chat!" }).catch(() => {});
+          }
+
           await storage.updateTelegramUserByChatId(chatId.toString(), {
             lastAction: `awaiting_binance_txid_0_0_${paymentCheck.id}`
           });
@@ -6644,10 +6656,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 parse_mode: 'HTML',
                 reply_markup: keyboard
               });
-              return;
             } catch (e) {}
           }
-          await targetBot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+
+          await targetBot.sendMessage(chatId, `👇 <b>Reply to this message with your Binance Order ID:</b>`, {
+            parse_mode: 'HTML',
+            reply_markup: { force_reply: true, selective: true }
+          }).catch(() => {});
+
           return;
         }
 
