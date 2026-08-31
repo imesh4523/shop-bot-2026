@@ -7888,8 +7888,169 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       const replyText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '') : '';
       const isBinanceReply = replyText.includes('Binance') || replyText.includes('Order ID') || replyText.includes('Transaction ID');
-      const isBinanceState = tgUser?.lastAction?.startsWith('awaiting_binance_txid_');
+      const isBinanceState = Boolean(tgUser?.lastAction?.startsWith('awaiting_binance_txid_'));
       const isNumericInput = Boolean(normalizedText && /^\d{5,25}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode' && tgUser?.lastAction !== 'awaiting_promocode_input');
+
+      console.log(`[Binance Check Priority] user=${userId}, isBinanceState=${isBinanceState}, isBinanceReply=${isBinanceReply}, isNumericInput=${isNumericInput}, text="${normalizedText}"`);
+
+      // HIGH PRIORITY: Process Binance Order ID / TxID inputs
+      if (isBinanceState || isBinanceReply || isNumericInput) {
+        const txid = normalizedText?.trim();
+        if (txid) {
+          console.log(`[Binance Order ID Recognized] Processing txid="${txid}" for user=${userId}`);
+
+          // 1. Format check: Must be digits
+          if (!/^\d{8,20}$/.test(txid)) {
+            await targetBot.sendMessage(
+              chatId,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Invalid Binance Order ID Format!</b>\n\n` +
+              `Binance Order IDs must be an 8 to 20 digit number.\n` +
+              `<i>Example: <code>28491048591</code></i>\n\n` +
+              `Please check your Binance app (Pay -> Orders) and try again.`,
+              { parse_mode: 'HTML' }
+            );
+            return;
+          }
+
+          const actionStr = tgUser?.lastAction?.startsWith('awaiting_binance_txid_') ? tgUser.lastAction : 'awaiting_binance_txid_0_0_0';
+          const parts = actionStr.split('_');
+          const prodId = parts[3] || '0';
+          const qty = parseInt(parts[4] || '1', 10);
+          let paymentId = parseInt(parts[5] || '0', 10);
+
+          if (paymentId === 0) {
+            const pendingPay = await db.select().from(payments)
+              .where(and(eq(payments.telegramUserId, tgUser.id), eq(payments.paymentMethod, 'binance'), eq(payments.status, 'pending')))
+              .orderBy(desc(payments.id))
+              .limit(1);
+
+            if (pendingPay.length > 0) {
+              paymentId = pendingPay[0].id;
+            } else if (prodId === '0') {
+              const fallbackPay = await storage.createPayment({
+                telegramUserId: tgUser.id,
+                amount: 500,
+                paymentMethod: 'binance',
+                status: 'pending'
+              });
+              paymentId = fallbackPay.id;
+            }
+          }
+
+          // Anti-Reuse / Single-Use Transaction Lock
+          const existingTx = await db.select().from(payments).where(eq(payments.txid, txid)).limit(1);
+
+          if (existingTx && existingTx.length > 0) {
+            await targetBot.sendMessage(
+              chatId,
+              `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Transaction ID Already Used!</b>\n\n` +
+              `This Binance Transaction ID (<code>${escapeHTML(txid)}</code>) has already been redeemed and locked by another user.\n\n` +
+              `Each Binance Transaction ID can only be used once. Please check your Binance app for the correct Order ID.`,
+              { parse_mode: 'HTML' }
+            );
+            return;
+          }
+
+          // Check Binance API Key live verification if configured
+          const binanceApiKeySetting = await storage.getSetting("BINANCE_PAY_API_KEY");
+          const binanceSecretSetting = await storage.getSetting("BINANCE_PAY_SECRET_KEY");
+          if (binanceApiKeySetting?.value && binanceSecretSetting?.value) {
+            try {
+              const timestamp = Date.now();
+              const queryStr = `timestamp=${timestamp}`;
+              const signature = crypto
+                .createHmac('sha256', binanceSecretSetting.value)
+                .update(queryStr)
+                .digest('hex');
+
+              const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
+                headers: {
+                  'X-MBX-APIKEY': binanceApiKeySetting.value,
+                  'Content-Type': 'application/json'
+                }
+              });
+
+              if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
+                const liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
+                if (!liveMatch) {
+                  await targetBot.sendMessage(
+                    chatId,
+                    `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
+                    `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
+                    `<b>Please check:</b>\n` +
+                    `1. Ensure you transferred the exact amount to Binance Pay ID <code>284910485</code>.\n` +
+                    `2. Copy the exact <b>Order ID</b> from your Binance App (Pay -> Orders).\n\n` +
+                    `<i>If you need assistance, please write to support.</i>`,
+                    { parse_mode: 'HTML' }
+                  );
+                  return;
+                }
+              }
+            } catch (e) {
+              console.error("Binance live API check failed:", e);
+            }
+          }
+
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+          if (paymentId > 0) {
+            await storage.updatePayment(paymentId, { status: 'completed', txid: txid });
+          }
+
+          const prodIdNum = parseInt(prodId, 10);
+          if (prodId === '0' || isNaN(prodIdNum) || prodIdNum <= 0) {
+            let depositAmountCents = 500;
+            if (paymentId > 0) {
+              const paymentCheck = await storage.getPayment(paymentId);
+              if (paymentCheck) depositAmountCents = paymentCheck.amount;
+            }
+
+            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
+            const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
+            const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
+
+            await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
+            await targetBot.sendMessage(
+              chatId,
+              `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Binance Order ID Verified!</b>\n\n` +
+              `Order ID <code>${escapeHTML(txid)}</code> verified successfully. <b>+$${(depositAmountCents / 100).toFixed(2)} USD</b> added to your balance.`,
+              { parse_mode: 'HTML' }
+            );
+            return;
+          }
+
+          let productName = "Gemini Link 18 months";
+          let unitPriceUSD = 0.55;
+          if (!isNaN(prodIdNum)) {
+            const product = await storage.getProduct(prodIdNum);
+            if (product) {
+              productName = product.name;
+              unitPriceUSD = product.price / 100;
+            }
+          }
+          const totalCents = Math.round(qty * unitPriceUSD * 100);
+
+          let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+          const stock = await storage.getCredentialsByProduct(prodIdNum);
+          const avail = stock.find(c => c.status === 'available');
+          if (avail) {
+            credentialText = avail.data;
+            await storage.updateCredential(avail.id, { status: 'sold' });
+          }
+
+          const newOrder = await storage.createOrder({
+            telegramUserId: tgUser.id,
+            productId: prodIdNum,
+            quantity: qty,
+            totalPrice: totalCents,
+            status: 'completed',
+            credential: credentialText
+          } as any);
+
+          await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
+          return;
+        }
+      }
 
       const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
       const supportBtnText = supportBtnTextSetting?.value || "Write to support";
@@ -8291,154 +8452,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
-      } else if (isBinanceState || isBinanceReply || isNumericInput) {
-        const txid = normalizedText?.trim();
-        if (!txid) return;
-
-        // 1. Format check: Must be digits
-        if (!/^\d{8,20}$/.test(txid)) {
-          await targetBot.sendMessage(
-            chatId,
-            `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Invalid Binance Order ID Format!</b>\n\n` +
-            `Binance Order IDs must be an 8 to 20 digit number.\n` +
-            `<i>Example: <code>28491048591</code></i>\n\n` +
-            `Please check your Binance app (Pay -> Orders) and try again.`,
-            { parse_mode: 'HTML' }
-          );
-          return;
-        }
-
-        const actionStr = tgUser?.lastAction?.startsWith('awaiting_binance_txid_') ? tgUser.lastAction : 'awaiting_binance_txid_0_0_0';
-        const parts = actionStr.split('_');
-        const prodId = parts[3] || '0';
-        const qty = parseInt(parts[4] || '1', 10);
-        let paymentId = parseInt(parts[5] || '0', 10);
-
-        if (paymentId === 0) {
-          const pendingPay = await db.select().from(payments)
-            .where(and(eq(payments.telegramUserId, tgUser.id), eq(payments.paymentMethod, 'binance'), eq(payments.status, 'pending')))
-            .orderBy(desc(payments.id))
-            .limit(1);
-
-          if (pendingPay.length > 0) {
-            paymentId = pendingPay[0].id;
-          } else if (prodId === '0') {
-            const fallbackPay = await storage.createPayment({
-              telegramUserId: tgUser.id,
-              amount: 500,
-              paymentMethod: 'binance',
-              status: 'pending'
-            });
-            paymentId = fallbackPay.id;
-          }
-        }
-
-        // Anti-Reuse / Single-Use Transaction Lock
-        const existingTx = await db.select().from(payments).where(eq(payments.txid, txid)).limit(1);
-
-        if (existingTx && existingTx.length > 0) {
-          await targetBot.sendMessage(
-            chatId,
-            `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Transaction ID Already Used!</b>\n\n` +
-            `This Binance Transaction ID (<code>${escapeHTML(txid)}</code>) has already been redeemed and locked by another user.\n\n` +
-            `Each Binance Transaction ID can only be used once. Please check your Binance app for the correct Order ID.`,
-            { parse_mode: 'HTML' }
-          );
-          return;
-        }
-
-        // Check Binance API Key live verification if configured
-        const binanceApiKeySetting = await storage.getSetting("BINANCE_PAY_API_KEY");
-        const binanceSecretSetting = await storage.getSetting("BINANCE_PAY_SECRET_KEY");
-        if (binanceApiKeySetting?.value && binanceSecretSetting?.value) {
-          try {
-            const timestamp = Date.now();
-            const queryStr = `timestamp=${timestamp}`;
-            const signature = crypto
-              .createHmac('sha256', binanceSecretSetting.value)
-              .update(queryStr)
-              .digest('hex');
-
-            const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
-              headers: {
-                'X-MBX-APIKEY': binanceApiKeySetting.value,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
-              const liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
-              if (!liveMatch) {
-                await targetBot.sendMessage(
-                  chatId,
-                  `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
-                  `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
-                  `<b>Please check:</b>\n` +
-                  `1. Ensure you transferred the exact amount to Binance Pay ID <code>284910485</code>.\n` +
-                  `2. Copy the exact <b>Order ID</b> from your Binance App (Pay -> Orders).\n\n` +
-                  `<i>If you need assistance, please write to support.</i>`,
-                  { parse_mode: 'HTML' }
-                );
-                return;
-              }
-            }
-          } catch (e) {
-            console.error("Binance live API check failed:", e);
-          }
-        }
-
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-
-        if (paymentId > 0) {
-          await storage.updatePayment(paymentId, { status: 'completed', txid: txid });
-        }
-
-        const prodIdNum = parseInt(prodId, 10);
-        if (prodId === '0' || isNaN(prodIdNum) || prodIdNum <= 0) {
-          let depositAmountCents = 500;
-          if (paymentId > 0) {
-            const paymentCheck = await storage.getPayment(paymentId);
-            if (paymentCheck) depositAmountCents = paymentCheck.amount;
-          }
-
-          await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
-          const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
-          const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
-
-          await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
-          return;
-        }
-
-        let productName = "Gemini Link 18 months";
-        let unitPriceUSD = 0.55;
-        if (!isNaN(prodIdNum)) {
-          const product = await storage.getProduct(prodIdNum);
-          if (product) {
-            productName = product.name;
-            unitPriceUSD = product.price / 100;
-          }
-        }
-        const totalCents = Math.round(qty * unitPriceUSD * 100);
-
-        let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
-        const stock = await storage.getCredentialsByProduct(prodIdNum);
-        const avail = stock.find(c => c.status === 'available');
-        if (avail) {
-          credentialText = avail.data;
-          await storage.updateCredential(avail.id, { status: 'sold' });
-        }
-
-        const newOrder = await storage.createOrder({
-          telegramUserId: tgUser.id,
-          productId: prodIdNum,
-          quantity: qty,
-          totalPrice: totalCents,
-          status: 'completed',
-          credential: credentialText
-        } as any);
-
-        await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
-        return;
       } else if (tgUser?.lastAction?.startsWith('awaiting_review_comment_')) {
         const parts = tgUser.lastAction.split('_');
         const rating = parseInt(parts[3], 10) || 5;
