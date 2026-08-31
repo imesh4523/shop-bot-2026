@@ -97,6 +97,31 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* User Stats Metrics */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <StatsCard
+          title="Total Bot Users"
+          value={stats?.totalUsers?.toString() || "0"}
+          icon={Users}
+          description="Total registered customers"
+          loading={statsLoading}
+        />
+        <StatsCard
+          title="Monthly New Users"
+          value={stats?.monthlyUsers?.toString() || "0"}
+          icon={Users}
+          description="New users in past 30 days"
+          loading={statsLoading}
+        />
+        <StatsCard
+          title="Active Users Today"
+          value={stats?.activeUsersToday?.toString() || "0"}
+          icon={TrendingUp}
+          description="Active in past 24 hours"
+          loading={statsLoading}
+        />
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         {/* Chart */}
         <Card className="col-span-4 glass-card p-2 border-0">

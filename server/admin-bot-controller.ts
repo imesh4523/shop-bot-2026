@@ -553,9 +553,15 @@ export async function generate24hDailyStatementText(targetServer?: string): Prom
     orderCount = recentOrders.length;
   } catch (err) { }
 
+  let monthlyUserCount = 0;
+  let activeUserCount = 0;
+
   try {
     const allUsers = await db.select().from(telegramUsers);
     totalUserCount = allUsers.length;
+    const past30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    monthlyUserCount = allUsers.filter(u => u.createdAt && new Date(u.createdAt) >= past30d).length;
+    activeUserCount = allUsers.filter(u => u.lastRequestAt && new Date(u.lastRequestAt) >= past24h).length;
   } catch (err) { }
 
   const isPaused = await isShopBotPaused();
@@ -578,6 +584,8 @@ export async function generate24hDailyStatementText(targetServer?: string): Prom
 
 👥 <b>CUSTOMER STATS</b>
 ▪️ Total Registered Customers: <b>${totalUserCount}</b>
+▪️ New Customers (Past 30d): <b>${monthlyUserCount}</b>
+▪️ Active Customers (Past 24h): <b>${activeUserCount}</b>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 <i>Generated automatically by Multi-Server Control Engine.</i>

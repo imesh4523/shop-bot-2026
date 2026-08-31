@@ -111,7 +111,7 @@ export interface IStorage {
   deleteBroadcastMessage(id: number): Promise<void>;
 
   // Stats
-  getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number }>;
+  getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number; totalUsers: number; monthlyUsers: number; activeUsersToday: number }>;
 
   // Settings
   getSetting(key: string): Promise<{ key: string; value: string } | undefined>;
@@ -478,7 +478,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stats
-  async getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number }> {
+  async getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number; totalUsers: number; monthlyUsers: number; activeUsersToday: number }> {
     const [sales] = await db.select({ count: count() }).from(orders);
     
     // Daily sales (last 24 hours)
@@ -507,12 +507,27 @@ export class DatabaseStorage implements IStorage {
 
     const [available] = await db.select({ count: count() }).from(products).where(eq(products.status, "available"));
 
+    // Bot User Metrics
+    const [totalUsersResult] = await db.select({ count: count() }).from(telegramUsers);
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [monthlyUsersResult] = await db.select({ count: count() })
+      .from(telegramUsers)
+      .where(sql`${telegramUsers.createdAt} >= ${thirtyDaysAgo}`);
+
+    const [activeUsersTodayResult] = await db.select({ count: count() })
+      .from(telegramUsers)
+      .where(sql`${telegramUsers.lastRequestAt} >= ${twentyFourHoursAgo}`);
+
     return {
       totalSales: sales.count,
       dailySales: dailySalesResult.count,
       totalRevenue: totalRevenue,
       dailyRevenue: dailyRevenue,
       availableProducts: available.count,
+      totalUsers: totalUsersResult?.count || 0,
+      monthlyUsers: monthlyUsersResult?.count || 0,
+      activeUsersToday: activeUsersTodayResult?.count || 0,
     };
   }
 
