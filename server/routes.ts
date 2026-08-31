@@ -2866,7 +2866,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
       [{ text: 'Transactions', callback_data: 'transactions', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }],
       [{ text: 'Price currency', callback_data: 'change_currency', style: 'primary', icon_custom_emoji_id: '5429518319243775957' }],
       [{ text: 'Язык / Language', callback_data: 'change_language', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
-      [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+      [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
     ] as any
   };
 
@@ -2955,7 +2955,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
     { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5231012545799666522' }
   ]);
   inline_keyboard.push([
-    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${t(userLang, 'catalog_title')}</b>\n\n${t(userLang, 'choose_category')}`;
@@ -3027,7 +3027,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   if (stockCount === 0) {
     const outOfStockKb = {
       inline_keyboard: [
-        [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+        [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
       ] as any
     };
     const outMsg = `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Out of Stock</b>\n\n` +
@@ -3074,7 +3074,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
 
   // Row 4: Back button
   inline_keyboard.push([
-    { text: 'Back', callback_data: `cat_${product.type}`, style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+    { text: 'Back', callback_data: `cat_${product.type}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
@@ -3138,7 +3138,7 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
       { text: 'USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }
     ],
     [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-    [{ text: 'Back', callback_data: `prod_${productId}`, style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+    [{ text: 'Back', callback_data: `prod_${productId}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
@@ -3196,7 +3196,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
 
   // Back button
   inline_keyboard.push([
-    { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+    { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
@@ -3268,7 +3268,7 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
         text: 'Back',
         callback_data: 'profile',
         style: 'primary',
-        icon_custom_emoji_id: '5213358684024877471'
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ] as any;
@@ -3318,7 +3318,7 @@ const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId
       text: 'Back',
       callback_data: 'profile',
       style: 'primary',
-      icon_custom_emoji_id: '5213358684024877471'
+      icon_custom_emoji_id: '5976535107933050770'
     }
   ]);
 
@@ -3376,7 +3376,7 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
         text: t(currLang, 'btn_back'),
         callback_data: 'profile',
         style: 'primary',
-        icon_custom_emoji_id: '5213358684024877471'
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ];
@@ -3440,7 +3440,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
         text: 'Back',
         callback_data: 'profile',
         style: 'primary',
-        icon_custom_emoji_id: '5213358684024877471'
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ] as any;
@@ -3454,7 +3454,7 @@ const sendPromoCodeScreen = async (targetBot: TelegramBot, chatId: number, userI
   const promoCaption = `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> <b>Enter Promo Code</b>\n\nPlease type your promo code in the chat below to redeem:`;
   const inline_keyboard = [
     [
-      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
     ]
   ] as any;
   const promoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_promocode_banner.png");
@@ -3486,13 +3486,13 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
         text: 'USDT BEP-20',
         callback_data: 'payment_bep20',
         style: 'primary',
-        icon_custom_emoji_id: '5409048419211682843'
+        icon_custom_emoji_id: '5280907155107506256'
       },
       {
         text: 'USDT TRC-20',
         callback_data: 'payment_trc20',
         style: 'success',
-        icon_custom_emoji_id: '5201692367437974073'
+        icon_custom_emoji_id: '5936189134342199863'
       }
     ],
     [
@@ -3573,7 +3573,7 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
         text: t(userLang, 'btn_back'),
         callback_data: 'main_menu',
         style: 'danger',
-        icon_custom_emoji_id: '5213358684024877471'
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ] as any;
@@ -3700,7 +3700,7 @@ const handleSupportIssue = async (
         text: 'Back',
         callback_data: 'support',
         style: 'danger',
-        icon_custom_emoji_id: '5213358684024877471'
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ] as any;
@@ -3797,18 +3797,18 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
   const chartTg = `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji>`;
 
   let reviewsCaption = `${starTg} <b>Customer Reviews & Ratings</b>\n\n` +
-    `${chartTg} <b>Average Rating:</b> <b>${avgRating} / 5.0</b> ⭐ (Verified Buyers)\n` +
+    `${chartTg} <b>Average Rating:</b> <b>${avgRating} / 5.0</b> ${starTg} (Verified Buyers)\n` +
     `💬 <b>Total Reviews:</b> <b>${totalCount} Reviews</b>\n` +
-    `⭐⭐⭐⭐⭐ <b>98% Satisfied Customers</b>\n\n` +
+    `${starTg}${starTg}${starTg}${starTg}${starTg} <b>98% Satisfied Customers</b>\n\n` +
     `<b>Recent Customer Reviews:</b>\n` +
     `➖➖➖➖➖➖➖➖➖➖\n\n`;
 
   reviewsList.slice(0, 4).forEach((r) => {
-    const stars = '⭐'.repeat(r.rating || 5);
+    const stars = starTg.repeat(r.rating || 5);
     const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently';
-    const commentClean = escapeHTML(r.comment).slice(0, 60);
+    const commentClean = escapeHTML(r.comment);
     reviewsCaption += `${stars} <b>${escapeHTML(r.productName)}</b>\n` +
-      `💬 <i>"${commentClean}"</i>\n` +
+      `<blockquote>💬 "${commentClean}"</blockquote>\n` +
       `<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> <b>${escapeHTML(r.reviewerName)}</b> · <tg-emoji emoji-id="5812250560161649509">✅</tg-emoji> Verified (${dateStr})\n\n`;
   });
 
@@ -4284,7 +4284,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const orderKeyboard = {
           inline_keyboard: [
             [{ text: 'Copy Link', callback_data: 'copy_demo_link', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-            [{ text: 'Back to Purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+            [{ text: 'Back to Purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any
         };
         if (msgId) {
@@ -4312,7 +4312,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if (refBalCents <= 0) {
           const errKeyboard = {
             inline_keyboard: [
-              [{ text: 'Back to Referral', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+              [{ text: 'Back to Referral', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5429518319243775957">💰</tg-emoji> <b>No Referral Balance</b>\n\nYou currently have <b>0.00 USDT</b> referral earnings to convert.`, { parse_mode: 'HTML', reply_markup: errKeyboard });
@@ -4345,7 +4345,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if (parseFloat(refBalUSD) < parseFloat(minWithdrawSetting)) {
           const errKeyboard = {
             inline_keyboard: [
-              [{ text: 'Back to Referral', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+              [{ text: 'Back to Referral', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> <b>Minimum Withdrawal Not Reached</b>\n\nMinimum withdrawal amount is <b>${minWithdrawSetting} USDT</b>.\nYour current referral balance is <b>${refBalUSD} USDT</b>.`, { parse_mode: 'HTML', reply_markup: errKeyboard });
@@ -4443,7 +4443,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 { text: 'Main menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5271604874419647061' }
               ],
               [
-                { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+                { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
               ]
             ] as any
           };
@@ -4475,7 +4475,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ]);
 
         prodKbRows.push([
-          { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+          { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
         ]);
 
         await targetBot.sendMessage(
@@ -4506,7 +4506,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               { text: '1 Star (1/5)', callback_data: `rate_1_${encodeURIComponent(productName)}`, style: 'danger', icon_custom_emoji_id: '5193009244940557703' }
             ],
             [
-              { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }
+              { text: 'Back to reviews', callback_data: 'reviews', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
             ]
           ] as any
         };
@@ -5286,7 +5286,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           text: 'Back to Catalog',
           callback_data: 'buy',
           style: 'primary',
-          icon_custom_emoji_id: '5213358684024877471'
+          icon_custom_emoji_id: '5976535107933050770'
         }]);
 
         let catIcon = '';
@@ -5320,6 +5320,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         let walletToCopy = data.substring(12);
         if (walletToCopy === 'trc20') {
           walletToCopy = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "Not Set";
+        } else if (walletToCopy === 'bep20') {
+          walletToCopy = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         } else if (walletToCopy === 'aptos') {
           walletToCopy = (await storage.getSetting('APTOS_WALLET_ADDRESS'))?.value || "Not Set";
         }
@@ -5332,6 +5334,54 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amountToCopy = data.substring(12);
         await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">🆔</tg-emoji> <b>Deposit Amount sent!</b> You can now long-press to copy it. <tg-emoji emoji-id="5231102735817918643">📋</tg-emoji>`, { parse_mode: 'HTML' });
         targetBot.sendMessage(chatId, `<code>${amountToCopy}</code>`, { parse_mode: 'HTML' });
+        return;
+      }
+
+      if (data.startsWith('gen_qr_')) {
+        const parts = data.split('_');
+        const method = parts[2] || 'bep20';
+        const paymentId = parseInt(parts[3] || '0', 10);
+        
+        const payment = await storage.getPayment(paymentId);
+        let walletAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        if (method === 'trc20') {
+          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || walletAddress;
+        } else if (method === 'bep20') {
+          walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || walletAddress;
+        }
+
+        try {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code...' }).catch(() => {});
+          }
+        } catch (e) {}
+
+        try {
+          const QRCode = (await import('qrcode')).default;
+          const qrBuffer = await QRCode.toBuffer(walletAddress, {
+            width: 400,
+            margin: 2,
+            color: {
+              dark: '#38A5E2',
+              light: '#FFFFFF'
+            }
+          });
+          const amountUSD = payment ? (payment.amount / 100).toFixed(0) : '10';
+          
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption: `<tg-emoji emoji-id="5377620962390857342">💎</tg-emoji> <b>USDT (${method.toUpperCase()}) Deposit QR Code</b>\n\n<code>${walletAddress}</code>\n\nScan QR Code to transfer <b>${amountUSD} USDT</b>!`,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔄 Check payment', callback_data: `check_payment_${paymentId}` }],
+                [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+              ]
+            }
+          });
+        } catch (qrErr: any) {
+          console.error("QR Generation error:", qrErr);
+          await targetBot.sendMessage(chatId, `<code>${walletAddress}</code>`, { parse_mode: 'HTML' });
+        }
         return;
       }
 
@@ -5424,7 +5474,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const topUpKeyboard = {
             inline_keyboard: [
               [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-              [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+              [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
 
@@ -5498,7 +5548,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           inline_keyboard: [
             [{ text: '📋 Copy Address', callback_data: `copy_wallet_${method}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
             [{ text: '✅ I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5404617696589390973' }],
-            [{ text: 'Back', callback_data: `prod_${prodId}`, style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+            [{ text: 'Back', callback_data: `prod_${prodId}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any
         };
 
@@ -6150,7 +6200,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'payment_trc20') {
-        const trc20Enabled = (await storage.getSetting('PAYMENT_TRC20_ENABLED'))?.value === 'true';
+        const trc20Enabled = (await storage.getSetting('PAYMENT_TRC20_ENABLED'))?.value !== 'false';
         if (!trc20Enabled) {
           if (queryId) {
             await targetBot.answerCallbackQuery(queryId, { text: '❌ TRC20 payments are currently disabled.', show_alert: true }).catch(() => {});
@@ -6161,18 +6211,74 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-        const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value;
-        if (!wallet) {
-          await targetBot.sendMessage(chatId, '❌ TRC20 wallet not configured. Contact support.');
+        
+        const keyboard: any[][] = [
+          [
+            { text: '1', callback_data: 'trc20_amount_1', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '5', callback_data: 'trc20_amount_5', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '10', callback_data: 'trc20_amount_10', icon_custom_emoji_id: '5409048419211682843' }
+          ],
+          [
+            { text: 'Custom', callback_data: 'trc20_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+          ]
+        ];
+
+        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Select or enter amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
+        await storage.updateTelegramUserByChatId(chatId.toString(), {
+          lastAction: 'awaiting_trc20_amount_selection',
+          lastMessageId: prompt?.message_id
+        });
+        return;
+      }
+
+      if (data.startsWith('trc20_amount_')) {
+        const val = data.replace('trc20_amount_', '');
+        if (val === 'custom') {
+          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Enter custom amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: 'awaiting_trc20_amount',
+            lastMessageId: prompt?.message_id
+          });
           return;
         }
-        const prompt = await targetBot.sendMessage(chatId,
-          `<tg-emoji emoji-id="5296437653770608702">💰</tg-emoji> <b>TRC20 (USDT) Deposit</b>\n\nEnter the <b>USDT amount</b> you want to deposit (USD <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`,
-          { parse_mode: 'HTML' }
-        );
+
+        const amount = parseFloat(val);
+        if (isNaN(amount) || amount <= 0) return;
+
+        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+
+        const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
+        const payment = await storage.createPayment({
+          telegramUserId: tgUser.id,
+          amount: Math.round(amount * 100),
+          paymentMethod: 'trc20',
+          status: 'pending'
+        });
+
         await storage.updateTelegramUserByChatId(chatId.toString(), {
-          lastAction: 'awaiting_trc20_amount',
-          lastMessageId: prompt?.message_id
+          lastAction: `awaiting_trc20_txid_${payment.id}_0`
+        });
+
+        const responseMsg = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> You need <b>${amount.toFixed(0)} USDT</b> \n\n` +
+          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+          `<b>Network:</b> TRC20  <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
+          `<code>${wallet}</code>\n\n` +
+          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
+
+        const keyboard = [
+          [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}` }],
+          [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
+          [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+        ] as any[][];
+
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
         });
         return;
       }
@@ -6189,14 +6295,74 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
-        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
-        const prompt = await targetBot.sendMessage(chatId,
-          `<tg-emoji emoji-id="5296437653770608702">💰</tg-emoji> <b>USDT (BEP-20) Deposit</b>\n\nEnter the <b>USDT amount</b> you want to deposit (USD <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`,
-          { parse_mode: 'HTML' }
-        );
+        
+        const keyboard: any[][] = [
+          [
+            { text: '1', callback_data: 'bep20_amount_1', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '5', callback_data: 'bep20_amount_5', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '10', callback_data: 'bep20_amount_10', icon_custom_emoji_id: '5409048419211682843' }
+          ],
+          [
+            { text: 'Custom', callback_data: 'bep20_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+          ]
+        ];
+
+        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Select or enter amount for <b>USDT (BEP-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
         await storage.updateTelegramUserByChatId(chatId.toString(), {
-          lastAction: 'awaiting_bep20_amount',
+          lastAction: 'awaiting_bep20_amount_selection',
           lastMessageId: prompt?.message_id
+        });
+        return;
+      }
+
+      if (data.startsWith('bep20_amount_')) {
+        const val = data.replace('bep20_amount_', '');
+        if (val === 'custom') {
+          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Enter custom amount for <b>USDT (BEP-20)</b>:`, { parse_mode: 'HTML' });
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: 'awaiting_bep20_amount',
+            lastMessageId: prompt?.message_id
+          });
+          return;
+        }
+
+        const amount = parseFloat(val);
+        if (isNaN(amount) || amount <= 0) return;
+
+        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        const payment = await storage.createPayment({
+          telegramUserId: tgUser.id,
+          amount: Math.round(amount * 100),
+          paymentMethod: 'bep20',
+          status: 'pending'
+        });
+
+        await storage.updateTelegramUserByChatId(chatId.toString(), {
+          lastAction: `awaiting_bep20_txid_${payment.id}_0`
+        });
+
+        const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+          `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+          `<code>${wallet}</code>\n\n` +
+          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
+
+        const keyboard = [
+          [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}` }],
+          [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
+          [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+        ] as any[][];
+
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
         });
         return;
       }
@@ -7165,10 +7331,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            await targetBot.sendMessage(chatId, "👇 Select an option from the menu below:", {
-              parse_mode: 'HTML',
-              reply_markup: opts.reply_markup
-            });
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
@@ -7176,12 +7338,20 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: opts.reply_markup
+          reply_markup: startInlineMarkup
         });
       };
 
       if (!parameter) {
         await sendWelcomeBanner();
+      } else if (parameter.startsWith('buy_') || parameter.startsWith('prod_')) {
+        const prodIdStr = parameter.replace('buy_', '').replace('prod_', '');
+        const prodId = parseInt(prodIdStr, 10);
+        if (!isNaN(prodId)) {
+          await sendProductDetailsScreen(targetBot, chatId, prodId);
+        } else {
+          await sendWelcomeBanner();
+        }
       } else if (parameter.startsWith('offer_')) {
         const offerId = parseInt(parameter.substring(6));
         const offer = await storage.getSpecialOffer(offerId);
@@ -7308,7 +7478,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const topUpKeyboard = {
             inline_keyboard: [
               [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-              [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5213358684024877471' }]
+              [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
 
@@ -8082,12 +8252,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "Not Set";
 
-          const existingPending = await storage.getPendingPaymentByAmount(tgUser.id, Math.round(amount * 100));
-          if (existingPending) {
-            await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
-            return targetBot.sendMessage(chatId, `⚠️ You already have a pending $${amount} payment. Please pay that one first or wait for it to expire (1 hour).`);
-          }
-
           const payment = await storage.createPayment({
             telegramUserId: tgUser.id,
             amount: Math.round(amount * 100),
@@ -8099,30 +8263,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             lastAction: `awaiting_trc20_txid_${payment.id}_0`
           });
 
-          const responseMsg = `<tg-emoji emoji-id="5377620962390857342">💎</tg-emoji> <b>Top-up: TRC20 (USDT)</b>\n` +
-            `━━━━━━━━━━━━━━━\n` +
-            `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>TRC20 Address:</b> <code>${wallet}</code>\n` +
-            `<tg-emoji emoji-id="5231102735817918643">💵</tg-emoji> <b>Transfer amount:</b> <code>${amount.toFixed(2)}$</code>\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>IMPORTANT</b>\n` +
-            `• Please transfer this <b>exact amount</b>.\n` +
-            `• You <b>MUST</b> use the <b>TRC20 network</b>.\n` +
-            `━━━━━━━━━━━━━━━\n` +
-            `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> After payment, click on Check payment`;
+          const responseMsg = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> You need <b>${amount.toFixed(0)} USDT</b> \n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Network:</b> TRC20  <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
+            `<code>${wallet}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
 
           const keyboard = [
-            [{ text: `Copy Wallet Address`, callback_data: `copy_wallet_trc20`, icon_custom_emoji_id: '5334982154868783692' }],
-            [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '6010111371251815589' }]
+            [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}` }],
+            [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
+            [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
           ] as any[][];
 
-          const imagePath = path.resolve(process.cwd(), 'public/assets/usdt_trc20.png');
           try {
-            await sendPhotoWithCache(targetBot, chatId, imagePath, 'FILE_ID_USDT_TRC20', {
-              caption: responseMsg,
+            await targetBot.sendMessage(chatId, responseMsg, {
               parse_mode: 'HTML',
               reply_markup: { inline_keyboard: keyboard }
             });
           } catch (photoErr) {
-            console.error("Failed to send TRC20 photo:", photoErr);
             await targetBot.sendMessage(chatId, responseMsg, {
               parse_mode: 'HTML',
               reply_markup: { inline_keyboard: keyboard }
@@ -8131,6 +8290,100 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         } catch (err: any) {
           console.error("Error initiating TRC20 payment:", err);
           targetBot.sendMessage(chatId, `❌ Failed to initiate TRC20 deposit: ${err.message || err}`);
+        }
+      } else if (tgUser?.lastAction === 'awaiting_bep20_amount') {
+        try {
+          const amount = parseFloat(normalizedText || "0");
+
+          try {
+            if (tgUser.lastMessageId) {
+              await targetBot.deleteMessage(chatId, tgUser.lastMessageId);
+            }
+            await targetBot.deleteMessage(chatId, msg.message_id);
+          } catch (e) { }
+
+          if (isNaN(amount) || amount <= 0) {
+            targetBot.sendMessage(chatId, "❌ Invalid amount. Please enter a valid number.");
+            return;
+          }
+
+          const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+
+          const payment = await storage.createPayment({
+            telegramUserId: tgUser.id,
+            amount: Math.round(amount * 100),
+            paymentMethod: 'bep20',
+            status: 'pending'
+          });
+
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: `awaiting_bep20_txid_${payment.id}_0`
+          });
+
+          const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+            `<code>${wallet}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
+
+          const keyboard = [
+            [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}` }],
+            [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
+            [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+          ] as any[][];
+
+          try {
+            await targetBot.sendMessage(chatId, responseMsg, {
+              parse_mode: 'HTML',
+              reply_markup: { inline_keyboard: keyboard }
+            });
+          } catch (photoErr) {
+            await targetBot.sendMessage(chatId, responseMsg, {
+              parse_mode: 'HTML',
+              reply_markup: { inline_keyboard: keyboard }
+            });
+          }
+        } catch (err: any) {
+          console.error("Error initiating BEP20 payment:", err);
+          targetBot.sendMessage(chatId, `❌ Failed to initiate BEP20 deposit: ${err.message || err}`);
+        }
+      } else if (tgUser?.lastAction?.startsWith('awaiting_bep20_txid_')) {
+        const parts = tgUser.lastAction.split('_');
+        const paymentId = parseInt(parts[3]);
+        const txId = normalizedText?.trim() || "";
+
+        try {
+          if (tgUser.lastMessageId) {
+            await targetBot.deleteMessage(chatId, tgUser.lastMessageId);
+          }
+          await targetBot.deleteMessage(chatId, msg.message_id);
+        } catch (e) { }
+
+        if (!txId) {
+          const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Please enter a valid Transaction Hash (TXID).</b>`, { parse_mode: 'HTML' });
+          setTimeout(() => {
+            targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
+          }, 15000);
+          return;
+        }
+
+        const payment = await db.transaction(async (tx) => {
+          const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for('update');
+          if (!p) return null;
+          if (p.status !== 'pending') return p;
+
+          const [updated] = await tx.update(payments)
+            .set({ status: 'completed', updatedAt: new Date() })
+            .where(eq(payments.id, paymentId))
+            .returning();
+          return updated;
+        });
+
+        if (payment && tgUser) {
+          const newBalCents = tgUser.balance + payment.amount;
+          await db.update(telegramUsers).set({ balance: newBalCents, lastAction: null }).where(eq(telegramUsers.id, tgUser.id));
+          await sendDepositSuccessNotification(targetBot, chatId.toString(), payment.amount, 'USDT (BEP-20)');
         }
       } else if (tgUser?.lastAction === 'awaiting_aptos_amount') {
         try {
