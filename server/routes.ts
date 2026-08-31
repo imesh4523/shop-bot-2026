@@ -5341,6 +5341,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || walletAddress;
         } else if (method === 'bep20') {
           walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || walletAddress;
+        } else if (method === 'binance') {
+          walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         }
 
         try {
@@ -6103,26 +6105,76 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
+        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (err) { }
 
-        const method = 'Binance';
+        const keyboard: any[][] = [
+          [
+            { text: '1', callback_data: 'binance_amount_1', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '5', callback_data: 'binance_amount_5', icon_custom_emoji_id: '5409048419211682843' },
+            { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5409048419211682843' }
+          ],
+          [
+            { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
+          ]
+        ];
 
-        try {
-          if (tgUser?.lastMessageId) {
-            await targetBot.deleteMessage(chatId, tgUser.lastMessageId).catch(() => { });
-          }
-        } catch (err) { }
-
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5296437653770608702">💰</tg-emoji> Enter amount for ${method} (USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML'
+        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
         });
         await storage.updateTelegramUserByChatId(chatId.toString(), {
-          lastAction: `awaiting_binance_deposit_amount`,
+          lastAction: 'awaiting_binance_amount_selection',
           lastMessageId: prompt?.message_id
+        });
+        return;
+      }
+
+      if (data.startsWith('binance_amount_')) {
+        const val = data.replace('binance_amount_', '');
+        if (val === 'custom') {
+          try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> Enter custom amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
+          await storage.updateTelegramUserByChatId(chatId.toString(), {
+            lastAction: 'awaiting_binance_deposit_amount',
+            lastMessageId: prompt?.message_id
+          });
+          return;
+        }
+
+        const amount = parseFloat(val);
+        if (isNaN(amount) || amount <= 0) return;
+
+        try { if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id); } catch (e) {}
+
+        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+        const payment = await storage.createPayment({
+          telegramUserId: tgUser.id,
+          amount: Math.round(amount * 100),
+          paymentMethod: 'binance',
+          status: 'pending'
+        });
+
+        await storage.updateTelegramUserByChatId(chatId.toString(), {
+          lastAction: `awaiting_binance_txid_${payment.id}_0`
+        });
+
+        const responseMsg = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji>\n\n` +
+          `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
+          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
+
+        const keyboard = [
+          [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+          [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+        ] as any[][];
+
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
         });
         return;
       }
@@ -8192,63 +8244,40 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const method = 'Binance';
         const payIdKey = 'BINANCE_PAY_ID';
-        const payId = (await storage.getSetting(payIdKey))?.value || "Not Set";
-
-        // Amount Locking: Check for existing pending payment with same amount
-        const existingPending = await storage.getPendingPaymentByAmount(tgUser.id, Math.round(amount * 100));
-        if (existingPending) {
-          await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
-          return targetBot.sendMessage(chatId, `⚠️ You already have a pending $${amount} payment for ${method}. Please pay that one first or wait for it to expire (1 hour).`);
-        }
+        const payId = (await storage.getSetting(payIdKey))?.value || "284910485";
 
         await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
 
         const payment = await storage.createPayment({
           telegramUserId: tgUser.id,
           amount: Math.round(amount * 100),
-          paymentMethod: method.toLowerCase(),
+          paymentMethod: 'binance',
           status: 'pending'
         });
 
-        const response = `<tg-emoji emoji-id="5388622778817589921">💰</tg-emoji> <b>Top-up: ${method}</b>\n` +
-          `━━━━━━━━━━━━━━━\n` +
-          `<tg-emoji emoji-id="6276090299232031662">🆔</tg-emoji> <b>${method} Pay ID:</b> <code>${payId}</code>\n` +
-          `<tg-emoji emoji-id="5231102735817918643">💵</tg-emoji> <b>Transfer amount:</b> <code>${amount}$</code>\n` +
-          `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>In Note:</b> <code>${userId}</code>\n\n` +
-          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>IMPORTANT</b>\n` +
-          `• Please transfer this <b>exact amount</b>.\n` +
-          `• You <b>MUST</b> include your User ID in the Note field.\n` +
-          `━━━━━━━━━━━━━━━\n` +
-          `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> After payment, click on Check payment`;
+        await storage.updateTelegramUserByChatId(chatId.toString(), {
+          lastAction: `awaiting_binance_txid_${payment.id}_0`
+        });
+
+        const responseMsg = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji>\n\n` +
+          `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
+          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
-          [{ text: `Copy ${method} Pay ID: ${payId}`, callback_data: `copy_payid_${payId}`, icon_custom_emoji_id: '5334982154868783692' }],
-          [{ text: `Copy User ID: ${userId}`, callback_data: `copy_userid_${userId}`, icon_custom_emoji_id: '5334982154868783692' }],
-          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '6010111371251815589' }]
+          [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+          [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        console.log(`Sending ${method} payment message with keyboard:`, JSON.stringify(keyboard));
-
-        const imagePath = path.resolve(process.cwd(), 'public/assets/binance_pay_new.png');
-        try {
-          await sendPhotoWithCache(targetBot, chatId, imagePath, 'FILE_ID_BINANCE_PAY', {
-            caption: response,
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: keyboard
-            }
-          });
-        } catch (photoErr) {
-          console.error("Failed to send Binance Pay photo:", photoErr);
-          await targetBot.sendMessage(chatId, response, {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: keyboard
-            }
-          });
-        }
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
       } else if (tgUser?.lastAction === 'awaiting_trc20_amount') {
         try {
           const amount = parseFloat(normalizedText || "0");
