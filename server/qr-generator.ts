@@ -10,7 +10,7 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
   const margin = 50;
   const gridWidth = width - margin * 2;
   const cellSize = gridWidth / size;
-  const cornerR = cellSize * 0.45; // Rounded corner radius for modules
+  const cornerR = cellSize * 0.45; // Rounded corner radius for liquid modules
 
   const image = new Jimp({ width, height, color: 0xFFFFFFFF });
 
@@ -22,7 +22,7 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
 
   const centerPx = width / 2;
   const centerPy = height / 2;
-  const badgeRadius = 95; // Center circular badge radius
+  const badgeRadius = 90; // Center circular badge radius
 
   // Eyes coordinates (7x7 top-left, top-right, bottom-left)
   const eyes = [
@@ -59,7 +59,7 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
       const dy = y - centerPy;
       const distSq = dx * dx + dy * dy;
 
-      // 1. CENTER BADGE WITH TWO-TONE "V" LOGO
+      // 1. CENTER BADGE WITH COMPACT TWO-TONE "V" LOGO
       if (distSq <= badgeRadius * badgeRadius) {
         if (distSq > (badgeRadius - 1.5) * (badgeRadius - 1.5)) {
           const alpha = Math.max(0, Math.min(1, (badgeRadius - Math.sqrt(distSq)) / 1.5));
@@ -69,9 +69,9 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
         const lx = x - centerPx;
         const ly = y - centerPy;
 
-        // V-Logo dimensions scaled to 800x800
-        const isLeftArm = (lx >= -38 && lx <= 2 && ly >= -20 && ly <= 26 && (ly - 1.15 * lx >= -3 && ly - 1.15 * lx <= 26));
-        const isRightArm = (lx >= -2 && lx <= 38 && ly >= -20 && ly <= 26 && (ly + 1.15 * lx >= -2 && ly + 1.15 * lx <= 26));
+        // Compact V-Logo dimensions (scaled down for exact fit)
+        const isLeftArm = (lx >= -28 && lx <= 1 && ly >= -14 && ly <= 18 && (ly - 1.15 * lx >= -2 && ly - 1.15 * lx <= 18));
+        const isRightArm = (lx >= -1 && lx <= 28 && ly >= -14 && ly <= 18 && (ly + 1.15 * lx >= -2 && ly + 1.15 * lx <= 18));
 
         if (isLeftArm) {
           image.setPixelColor(lightBlueLogo, x, y);
@@ -83,7 +83,7 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
         continue;
       }
 
-      // 2. CORNER EYE POSITION DETECTION PATTERNS (Smooth Rounded Squircles)
+      // 2. CORNER EYE POSITION DETECTION PATTERNS (Deep Smooth Curved Squircles)
       let inEyePattern = false;
       for (const eye of eyes) {
         const eyeX = margin + (eye.c + 3.5) * cellSize;
@@ -94,8 +94,8 @@ export async function generateStyledQRCode(text: string): Promise<Buffer> {
         const outerSize = 3.5 * cellSize;
         const innerCutout = 2.3 * cellSize;
         const dotSize = 1.35 * cellSize;
-        const frameRadius = 1.3 * cellSize;
-        const dotRadius = 0.7 * cellSize;
+        const frameRadius = 1.65 * cellSize; // Deep curved corner radius
+        const dotRadius = 0.85 * cellSize;   // Extra rounded center dot
 
         if (edx <= outerSize && edy <= outerSize) {
           const cdx = Math.max(0, edx - (outerSize - frameRadius));

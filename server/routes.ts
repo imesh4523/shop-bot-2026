@@ -5330,51 +5330,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data.startsWith('copy_amount_')) {
-        const amountToCopy = data.substring(12);
-        await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">🆔</tg-emoji> <b>Deposit Amount sent!</b> You can now long-press to copy it. <tg-emoji emoji-id="5231102735817918643">📋</tg-emoji>`, { parse_mode: 'HTML' });
-        targetBot.sendMessage(chatId, `<code>${amountToCopy}</code>`, { parse_mode: 'HTML' });
-        return;
-      }
-
       if (data.startsWith('gen_qr_')) {
-        const parts = data.split('_');
-        const method = parts[2] || 'bep20';
-        const paymentId = parseInt(parts[3] || '0', 10);
-        
-        const payment = await storage.getPayment(paymentId);
-        let walletAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
-        if (method === 'trc20') {
-          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || walletAddress;
-        } else if (method === 'bep20') {
-          walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || walletAddress;
-        }
-
         try {
           if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code...' }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, { text: '⚡ QR Code is already displayed in the image above!', show_alert: true }).catch(() => {});
           }
         } catch (e) {}
-
-        try {
-          const { generateStyledQRCode } = await import('./qr-generator');
-          const qrBuffer = await generateStyledQRCode(walletAddress);
-          const amountUSD = payment ? (payment.amount / 100).toFixed(0) : '10';
-          
-          await targetBot.sendPhoto(chatId, qrBuffer, {
-            caption: `<tg-emoji emoji-id="5377620962390857342">💎</tg-emoji> <b>USDT (${method.toUpperCase()}) Deposit QR Code</b>\n\n<code>${walletAddress}</code>\n\nScan QR Code to transfer <b>${amountUSD} USDT</b>!`,
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '🔄 Check payment', callback_data: `check_payment_${paymentId}` }],
-                [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
-              ]
-            }
-          });
-        } catch (qrErr: any) {
-          console.error("QR Generation error:", qrErr);
-          await targetBot.sendMessage(chatId, `<code>${walletAddress}</code>`, { parse_mode: 'HTML' });
-        }
         return;
       }
 
@@ -6264,15 +6225,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
 
         const keyboard = [
-          [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}` }],
-          [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
-          [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+          [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+          [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        try {
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(wallet);
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption: responseMsg,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (photoErr) {
+          await targetBot.sendMessage(chatId, responseMsg, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        }
         return;
       }
 
@@ -6348,15 +6319,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
 
         const keyboard = [
-          [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}` }],
-          [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
-          [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+          [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+          [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        try {
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(wallet);
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption: responseMsg,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (photoErr) {
+          await targetBot.sendMessage(chatId, responseMsg, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        }
         return;
       }
 
@@ -8264,13 +8245,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>`;
 
           const keyboard = [
-            [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}` }],
-            [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
-            [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+            [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+            [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
           try {
-            await targetBot.sendMessage(chatId, responseMsg, {
+            const { generateStyledQRCode } = await import('./qr-generator');
+            const qrBuffer = await generateStyledQRCode(wallet);
+            await targetBot.sendPhoto(chatId, qrBuffer, {
+              caption: responseMsg,
               parse_mode: 'HTML',
               reply_markup: { inline_keyboard: keyboard }
             });
@@ -8321,13 +8305,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>`;
 
           const keyboard = [
-            [{ text: '⏩ Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}` }],
-            [{ text: '🔄 Check payment', callback_data: `check_payment_${payment.id}` }],
-            [{ text: '⏪ < Change Network', callback_data: 'add_funds' }]
+            [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+            [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
           try {
-            await targetBot.sendMessage(chatId, responseMsg, {
+            const { generateStyledQRCode } = await import('./qr-generator');
+            const qrBuffer = await generateStyledQRCode(wallet);
+            await targetBot.sendPhoto(chatId, qrBuffer, {
+              caption: responseMsg,
               parse_mode: 'HTML',
               reply_markup: { inline_keyboard: keyboard }
             });
