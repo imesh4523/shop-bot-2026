@@ -38,6 +38,100 @@ export function escapeHTML(str?: string | null): string {
     .replace(/>/g, '&gt;');
 }
 
+export function patchBotMethods(targetBot: TelegramBot) {
+  if (!targetBot || (targetBot as any).__patched) return;
+  (targetBot as any).__patched = true;
+
+  const originalSendMessage = targetBot.sendMessage.bind(targetBot);
+  const originalEditMessageText = targetBot.editMessageText.bind(targetBot);
+  const originalSendPhoto = targetBot.sendPhoto.bind(targetBot);
+  const originalSendVideo = targetBot.sendVideo.bind(targetBot);
+  const originalSendDocument = targetBot.sendDocument.bind(targetBot);
+
+  const stripEmojis = (text: string): string => {
+    if (!text) return text;
+    return text.replace(/<tg-emoji[^>]*>(.*?)<\/tg-emoji>/gi, '$1');
+  };
+
+  const isDocumentInvalid = (err: any): boolean => {
+    if (!err) return false;
+    const msg = err.message || "";
+    const desc = err.description || err.response?.body?.description || "";
+    const str = String(err);
+    return msg.includes('DOCUMENT_INVALID') || 
+           desc.includes('DOCUMENT_INVALID') || 
+           str.includes('DOCUMENT_INVALID');
+  };
+
+  targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
+    try {
+      return await originalSendMessage(chatId, text, options);
+    } catch (err: any) {
+      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
+        const cleanText = stripEmojis(text);
+        return await originalSendMessage(chatId, cleanText, options);
+      }
+      throw err;
+    }
+  } as any;
+
+  targetBot.editMessageText = async function(text: string, options?: any) {
+    try {
+      return await originalEditMessageText(text, options);
+    } catch (err: any) {
+      if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
+        const cleanText = stripEmojis(text);
+        return await originalEditMessageText(cleanText, options);
+      }
+      throw err;
+    }
+  } as any;
+
+  targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any) {
+    try {
+      return await originalSendPhoto(chatId, photo, options);
+    } catch (err: any) {
+      const caption = options?.caption;
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendPhoto(chatId, photo, cleanOptions);
+      }
+      throw err;
+    }
+  } as any;
+
+  targetBot.sendVideo = async function(chatId: any, video: any, options?: any) {
+    try {
+      return await originalSendVideo(chatId, video, options);
+    } catch (err: any) {
+      const caption = options?.caption;
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendVideo(chatId, video, cleanOptions);
+      }
+      throw err;
+    }
+  } as any;
+
+  targetBot.sendDocument = async function(chatId: any, doc: any, options?: any) {
+    try {
+      return await originalSendDocument(chatId, doc, options);
+    } catch (err: any) {
+      const caption = options?.caption;
+      if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
+        console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
+        const cleanOptions = { ...options, caption: stripEmojis(caption) };
+        return await originalSendDocument(chatId, doc, cleanOptions);
+      }
+      throw err;
+    }
+  } as any;
+}
+
 // Convert Telegram Message Entities (including Premium Custom Emojis) into HTML format
 export function entitiesToHTML(text: string, entities?: TelegramBot.MessageEntity[]): string {
   if (!text) return '';
@@ -210,23 +304,23 @@ export async function addAdminChatId(newChatId: string): Promise<string[]> {
   return current;
 }
 
-// PERSISTENT ADMIN REPLY KEYBOARD (Always Available with 100% Premium Emoji IDs)
+// PERSISTENT ADMIN REPLY KEYBOARD
 export function getAdminReplyKeyboard() {
   return {
     keyboard: [
       [
-        { text: 'Products & Stock', icon_custom_emoji_id: '5465416081105492147' },
-        { text: 'Customer Accounts', icon_custom_emoji_id: '5260399854500191689' }
+        { text: 'Products & Stock' },
+        { text: 'Customer Accounts' }
       ],
       [
-        { text: 'Mass Broadcast', icon_custom_emoji_id: '5334982154868783692' },
-        { text: 'Promo Codes', icon_custom_emoji_id: '5814427657609153890' }
+        { text: 'Mass Broadcast' },
+        { text: 'Promo Codes' }
       ],
       [
-        { text: 'Settings & Gateways', icon_custom_emoji_id: '6235482598924095547' },
-        { text: 'Daily Reports', icon_custom_emoji_id: '5377620962390857342' }
+        { text: 'Settings & Gateways' },
+        { text: 'Daily Reports' }
       ]
-    ] as any,
+    ],
     resize_keyboard: true,
     persistent: true
   };
@@ -240,11 +334,11 @@ export async function sendAdminMenu(chatId: string | number) {
   const adminIds = await getAuthorizedAdminChatIds();
   const currentServer = selectedServerMap.get(String(chatId)) || getServerName();
 
-  const text = `<tg-emoji emoji-id="5465416081105492147">⚡</tg-emoji> <b>FULL A-Z ADMIN CONTROL PANEL</b>\n` +
+  const text = `⚡ <b>FULL A-Z ADMIN CONTROL PANEL</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `<tg-emoji emoji-id="5377620962390857342">🌐</tg-emoji> <b>Server Node:</b> <code>${currentServer}</code>\n` +
-    `<tg-emoji emoji-id="6235482598924095547">🤖</tg-emoji> <b>Shop Bot Status:</b> ${isPaused ? '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> PAUSED' : '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> ACTIVE'}\n` +
-    `<tg-emoji emoji-id="5260399854500191689">👥</tg-emoji> <b>Authorized Admins:</b> ${adminIds.length}\n\n` +
+    `🌐 <b>Server Node:</b> <code>${currentServer}</code>\n` +
+    `🤖 <b>Shop Bot Status:</b> ${isPaused ? '🔴 PAUSED' : '🟢 ACTIVE'}\n` +
+    `👥 <b>Authorized Admins:</b> ${adminIds.length}\n\n` +
     `Select a category from the menu below or use the persistent keyboard buttons:`;
 
   const keyboard = {
@@ -262,12 +356,12 @@ export async function sendAdminMenu(chatId: string | number) {
   await adminBot.sendMessage(chatId, text, {
     parse_mode: 'HTML',
     reply_markup: getAdminReplyKeyboard()
-  }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  }).catch(err => console.error('[ADMIN BOT] sendAdminMenu error:', err?.message || err));
 
-  await adminBot.sendMessage(chatId, `<tg-emoji emoji-id="5370919202796348364">👇</tg-emoji> <b>Control Dashboard Quick Actions:</b>`, {
+  await adminBot.sendMessage(chatId, `👇 <b>Control Dashboard Quick Actions:</b>`, {
     parse_mode: 'HTML',
     reply_markup: keyboard
-  }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  }).catch(err => console.error('[ADMIN BOT] sendAdminMenu quick actions error:', err?.message || err));
 }
 
 // ----------------------------------------------------
@@ -277,16 +371,16 @@ export async function sendProductsAdminMenu(chatId: string | number) {
   if (!adminBot) return;
   const allProducts = await db.select().from(products);
 
-  let msg = `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>PRODUCTS & STOCK MANAGEMENT</b>\n` +
+  let msg = `📦 <b>PRODUCTS & STOCK MANAGEMENT</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Total Products: <b>${allProducts.length}</b>\n\n`;
 
   for (const p of allProducts.slice(0, 15)) {
     const priceUSD = (p.price / 100).toFixed(2);
-    const emojiId = p.customEmojiId || '5465416081105492147';
+    const emojiTag = p.customEmojiId ? `<tg-emoji emoji-id="${p.customEmojiId}">📦</tg-emoji>` : `📦`;
     const nameEsc = escapeHTML(p.name);
     const catEsc = escapeHTML(p.category || 'General');
-    msg += `<tg-emoji emoji-id="${emojiId}">📦</tg-emoji> <b>ID ${p.id}:</b> ${nameEsc} — <b>$${priceUSD}</b> (${catEsc})\n`;
+    msg += `${emojiTag} <b>ID ${p.id}:</b> ${nameEsc} — <b>$${priceUSD}</b> (${catEsc})\n`;
   }
   if (allProducts.length > 15) {
     msg += `\n<i>...and ${allProducts.length - 15} more products.</i>\n`;
@@ -303,7 +397,7 @@ export async function sendProductsAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendProductsAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
@@ -313,7 +407,7 @@ export async function sendCustomersAdminMenu(chatId: string | number) {
   if (!adminBot) return;
   const usersCount = (await db.select().from(telegramUsers)).length;
 
-  const msg = `<tg-emoji emoji-id="5260399854500191689">👥</tg-emoji> <b>CUSTOMER ACCOUNTS MANAGEMENT</b>\n` +
+  const msg = `👥 <b>CUSTOMER ACCOUNTS MANAGEMENT</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Total Registered Customers: <b>${usersCount}</b>\n\n` +
     `Choose an action to manage customer balances, search users, or ban/unban customer accounts:`;
@@ -328,7 +422,7 @@ export async function sendCustomersAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendCustomersAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
@@ -338,13 +432,13 @@ export async function sendPromoCodesAdminMenu(chatId: string | number) {
   if (!adminBot) return;
   const codes = await db.select().from(promoCodes);
 
-  let msg = `<tg-emoji emoji-id="5814427657609153890">🎟️</tg-emoji> <b>PROMO CODES & DISCOUNTS</b>\n` +
+  let msg = `🎟️ <b>PROMO CODES & DISCOUNTS</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Total Active Codes: <b>${codes.length}</b>\n\n`;
 
   for (const c of codes) {
     const rewardUSD = (c.reward / 100).toFixed(2);
-    msg += `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <code>${c.code}</code>: <b>+$${rewardUSD}</b> (${c.usesCount}/${c.maxUses} used) [${c.status}]\n`;
+    msg += `▪️ <code>${c.code}</code>: <b>+$${rewardUSD}</b> (${c.usesCount}/${c.maxUses} used) [${c.status}]\n`;
   }
   if (codes.length === 0) {
     msg += `<i>No promo codes active yet.</i>\n`;
@@ -358,7 +452,7 @@ export async function sendPromoCodesAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendPromoCodesAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
@@ -372,12 +466,12 @@ export async function sendSettingsAdminMenu(chatId: string | number) {
   const binanceOn = (await storage.getSetting('PAYMENT_BINANCE_ENABLED'))?.value !== 'false';
   const cryptomusOn = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== 'false';
 
-  const msg = `<tg-emoji emoji-id="6235482598924095547">⚙️</tg-emoji> <b>SETTINGS & PAYMENT GATEWAYS</b>\n` +
+  const msg = `⚙️ <b>SETTINGS & PAYMENT GATEWAYS</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> BEP20 USDT: <b>${bep20On ? '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> Enabled' : '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> Disabled'}</b>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> TRC20 USDT: <b>${trc20On ? '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> Enabled' : '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> Disabled'}</b>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Binance Pay: <b>${binanceOn ? '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> Enabled' : '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> Disabled'}</b>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Cryptomus: <b>${cryptomusOn ? '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> Enabled' : '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> Disabled'}</b>\n`;
+    `▪️ BEP20 USDT: <b>${bep20On ? '🟢 Enabled' : '🔴 Disabled'}</b>\n` +
+    `▪️ TRC20 USDT: <b>${trc20On ? '🟢 Enabled' : '🔴 Disabled'}</b>\n` +
+    `▪️ Binance Pay: <b>${binanceOn ? '🟢 Enabled' : '🔴 Disabled'}</b>\n` +
+    `▪️ Cryptomus: <b>${cryptomusOn ? '🟢 Enabled' : '🔴 Disabled'}</b>\n`;
 
   const keyboard = {
     inline_keyboard: [
@@ -389,7 +483,7 @@ export async function sendSettingsAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendSettingsAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
@@ -400,7 +494,7 @@ export async function sendBroadcastAdminMenu(chatId: string | number) {
 
   const pastLogs = await db.select().from(broadcastLogs).orderBy(desc(broadcastLogs.createdAt)).limit(5);
 
-  let msg = `<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>MASS BROADCAST ENGINE</b>\n` +
+  let msg = `📢 <b>MASS BROADCAST ENGINE</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `Send rich announcement broadcasts to ALL registered main bot users.\n\n` +
     `<b>Recent Broadcasts & Recalls:</b>\n`;
@@ -409,7 +503,7 @@ export async function sendBroadcastAdminMenu(chatId: string | number) {
     msg += `<i>No broadcast logs recorded yet.</i>\n`;
   } else {
     for (const log of pastLogs) {
-      msg += `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Broadcast #${log.id}:</b> ${log.recipientCount} recipients [${log.broadcastType}] — ${log.createdAt ? new Date(log.createdAt).toISOString().split('T')[0] : ''}\n`;
+      msg += `▪️ <b>Broadcast #${log.id}:</b> ${log.recipientCount} recipients [${log.broadcastType}] — ${log.createdAt ? new Date(log.createdAt).toISOString().split('T')[0] : ''}\n`;
     }
   }
 
@@ -421,7 +515,7 @@ export async function sendBroadcastAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendMessage error:', err?.message || err));
+  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendBroadcastAdminMenu error:', err?.message || err));
 }
 
 export async function generate24hDailyStatementText(targetServer?: string): Promise<string> {
@@ -464,25 +558,25 @@ export async function generate24hDailyStatementText(targetServer?: string): Prom
   } catch (err) { }
 
   const isPaused = await isShopBotPaused();
-  const statusStr = isPaused ? '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> PAUSED (Maintenance Mode)' : '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> ACTIVE (Live)';
+  const statusStr = isPaused ? '🔴 PAUSED (Maintenance Mode)' : '🟢 ACTIVE (Live)';
 
   const statementText = `
-<tg-emoji emoji-id="5377620962390857342">🌐</tg-emoji> <b>MULTI-SERVER DAILY STATEMENT REPORT</b>
+🌐 <b>MULTI-SERVER DAILY STATEMENT REPORT</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-<tg-emoji emoji-id="5377620962390857342">🖥️</tg-emoji> <b>Server Node:</b> <code>${serverTag}</code>
-<tg-emoji emoji-id="6010111371251815589">📅</tg-emoji> <b>Date:</b> ${now.toISOString().split('T')[0]}
-<tg-emoji emoji-id="5361543877599724417">🤖</tg-emoji> <b>Node Status:</b> ${statusStr}
+🖥️ <b>Server Node:</b> <code>${serverTag}</code>
+📅 <b>Date:</b> ${now.toISOString().split('T')[0]}
+🤖 <b>Node Status:</b> ${statusStr}
 
-<tg-emoji emoji-id="5280907155107506256">💰</tg-emoji> <b>DEPOSITS (Past 24h)</b>
-<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Successful Deposits: <b>${depositCount}</b>
-<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Total Deposited: <b>$${(totalDepositAmount / 100).toFixed(2)}</b>
+💰 <b>DEPOSITS (Past 24h)</b>
+▪️ Successful Deposits: <b>${depositCount}</b>
+▪️ Total Deposited: <b>$${(totalDepositAmount / 100).toFixed(2)}</b>
 
-<tg-emoji emoji-id="5465416081105492147">🛒</tg-emoji> <b>ORDERS & SALES (Past 24h)</b>
-<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Products Sold: <b>${orderCount}</b>
-<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Total Sales Revenue: <b>$${(totalOrderRevenue / 100).toFixed(2)}</b>
+🛒 <b>ORDERS & SALES (Past 24h)</b>
+▪️ Products Sold: <b>${orderCount}</b>
+▪️ Total Sales Revenue: <b>$${(totalOrderRevenue / 100).toFixed(2)}</b>
 
-<tg-emoji emoji-id="5260399854500191689">👥</tg-emoji> <b>CUSTOMER STATS</b>
-<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Total Registered Customers: <b>${totalUserCount}</b>
+👥 <b>CUSTOMER STATS</b>
+▪️ Total Registered Customers: <b>${totalUserCount}</b>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 <i>Generated automatically by Multi-Server Control Engine.</i>
@@ -547,6 +641,7 @@ export async function initAdminBotController() {
     console.log(`[ADMIN BOT] Initializing Multi-Server Admin Controller (${getServerName()})...`);
     await registerServerHeartbeat();
     adminBot = new TelegramBot(targetToken, { polling: true });
+    patchBotMethods(adminBot);
 
     adminBot.on('polling_error', (err: any) => {
       console.warn('[ADMIN BOT] Polling error:', err?.message || err);
@@ -559,7 +654,7 @@ export async function initAdminBotController() {
     adminBot.onText(/\/(start|admin|menu|status|help)/, async (msg) => {
       const chatId = msg.chat.id;
       if (!(await isAuthorizedAdmin(chatId))) {
-        await adminBot?.sendMessage(chatId, '<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Access Denied. You are not an authorized admin.').catch(() => {});
+        await adminBot?.sendMessage(chatId, '❌ Access Denied. You are not an authorized admin.').catch(() => {});
         return;
       }
       adminSessions.delete(String(chatId));
@@ -611,30 +706,30 @@ export async function initAdminBotController() {
         if (session.step === 'add_prod_name') {
           session.data = { name: text };
           session.step = 'add_prod_price';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">💰</tg-emoji> Enter Product Price in USD (e.g. <code>5.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `💰 Enter Product Price in USD (e.g. <code>5.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'add_prod_price') {
           const price = parseFloat(text);
           if (isNaN(price) || price <= 0) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Invalid price. Enter numeric amount in USD (e.g. 5.00):`).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ Invalid price. Enter numeric amount in USD (e.g. 5.00):`).catch(() => {});
             return;
           }
           session.data.price = Math.round(price * 100);
           session.step = 'add_prod_category';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">📁</tg-emoji> Enter Category Name (e.g. <code>VPN</code>, <code>Streaming</code>, <code>Accounts</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `📁 Enter Category Name (e.g. <code>VPN</code>, <code>Streaming</code>, <code>Accounts</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'add_prod_category') {
           session.data.category = text;
           session.step = 'add_prod_desc';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> Enter Product Description:`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `📝 Enter Product Description:`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'add_prod_desc') {
           session.data.description = text;
           session.step = 'add_prod_emoji';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Select / Send Premium Custom Emoji for "${escapeHTML(session.data.name)}":</b>\n\nSend or paste ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and assign it to this product!\n\n<i>Or type <code>skip</code> to use default product icon.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `✨ <b>Select / Send Premium Custom Emoji for "${escapeHTML(session.data.name)}":</b>\n\nSend or paste ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and assign it to this product!\n\n<i>Or type <code>skip</code> to use default product icon.</i>`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
 
@@ -660,7 +755,7 @@ export async function initAdminBotController() {
           }).returning();
 
           adminSessions.delete(chatId);
-          const emojiTag = customEmojiId ? `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji>` : `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji>`;
+          const emojiTag = customEmojiId ? `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji>` : `📦`;
           await adminBot?.sendMessage(chatId, `${emojiTag} <b>Product Created Successfully!</b>\n\n<b>ID:</b> ${newProd.id}\n<b>Name:</b> ${escapeHTML(newProd.name)}\n<b>Price:</b> $${(newProd.price / 100).toFixed(2)}\n<b>Category:</b> ${escapeHTML(newProd.category || 'General')}\n<b>Custom Emoji ID:</b> <code>${customEmojiId || 'Default'}</code>`, { parse_mode: 'HTML' }).catch(() => {});
           await sendProductsAdminMenu(chatId);
           return;
@@ -680,7 +775,7 @@ export async function initAdminBotController() {
           }
 
           if (!customEmojiId) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">⚠️</tg-emoji> <b>No Premium Custom Emoji detected in your message!</b>\n\nPlease send or paste a Telegram Premium Custom Emoji from your emoji picker to link it to this product.`, { parse_mode: 'HTML' }).catch(() => {});
+            await adminBot?.sendMessage(chatId, `⚠️ <b>No Premium Custom Emoji detected in your message!</b>\n\nPlease send or paste a Telegram Premium Custom Emoji from your emoji picker to link it to this product.`, { parse_mode: 'HTML' }).catch(() => {});
             return;
           }
 
@@ -697,7 +792,7 @@ export async function initAdminBotController() {
           const productId = session.data.productId;
           const keys = text.split('\n').map(k => k.trim()).filter(k => k.length > 0);
           if (keys.length === 0) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No valid stock keys provided. Please paste stock credentials line-by-line.`).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ No valid stock keys provided. Please paste stock credentials line-by-line.`).catch(() => {});
             return;
           }
           const { stockAccounts } = await import('@shared/schema');
@@ -712,7 +807,7 @@ export async function initAdminBotController() {
           }
           await db.execute(sql`UPDATE products SET stock_count = stock_count + ${added} WHERE id = ${productId}`);
           adminSessions.delete(chatId);
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Successfully added ${added} stock accounts/keys to Product ID ${productId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `✅ <b>Successfully added ${added} stock accounts/keys to Product ID ${productId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
           await sendProductsAdminMenu(chatId);
           return;
         }
@@ -721,26 +816,26 @@ export async function initAdminBotController() {
         if (session.step === 'credit_user_search') {
           session.data = { target: text };
           session.step = 'credit_user_amount';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> Enter amount to <b>CREDIT (+)</b> in USD (e.g. <code>10.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `💵 Enter amount to <b>CREDIT (+)</b> in USD (e.g. <code>10.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'credit_user_amount') {
           const amount = parseFloat(text);
           if (isNaN(amount) || amount <= 0) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Invalid amount. Enter numeric USD amount:`).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ Invalid amount. Enter numeric USD amount:`).catch(() => {});
             return;
           }
           const target = session.data.target;
           const [user] = await db.select().from(telegramUsers).where(or(eq(telegramUsers.telegramId, target), eq(telegramUsers.username, target.replace('@', ''))));
           if (!user) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Customer user not found for ID/username: <code>${target}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ Customer user not found for ID/username: <code>${target}</code>`, { parse_mode: 'HTML' }).catch(() => {});
             adminSessions.delete(chatId);
             return;
           }
           const creditCents = Math.round(amount * 100);
           await db.execute(sql`UPDATE telegram_users SET balance = balance + ${creditCents} WHERE id = ${user.id}`);
           adminSessions.delete(chatId);
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Credited +$${amount.toFixed(2)} USD to User ${user.firstName || user.username || user.telegramId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `✅ <b>Credited +$${amount.toFixed(2)} USD to User ${user.firstName || user.username || user.telegramId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
           await sendCustomersAdminMenu(chatId);
           return;
         }
@@ -775,14 +870,14 @@ export async function initAdminBotController() {
               [{ text: '⚡ Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send' }]
             ]
           };
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded (${photoBuffer ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `📝 <b>Broadcast Content Recorded (${photoBuffer ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
           return;
         }
 
         if (session.step === 'broadcast_url_btn_text') {
           session.data.customButtonText = text;
           session.step = 'broadcast_url_btn_url';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">🔗</tg-emoji> Enter the Destination URL for the button (e.g. <code>https://t.me/...</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `🔗 Enter the Destination URL for the button (e.g. <code>https://t.me/...</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
 
@@ -797,7 +892,7 @@ export async function initAdminBotController() {
             ]
           };
 
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session.data.messageText}\n\n<b>Button:</b> [ ${session.data.customButtonText} ] -> ${session.data.customButtonUrl}`, {
+          await adminBot?.sendMessage(chatId, `📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session.data.messageText}\n\n<b>Button:</b> [ ${session.data.customButtonText} ] -> ${session.data.customButtonUrl}`, {
             parse_mode: 'HTML',
             reply_markup: keyboard
           }).catch(() => {});
@@ -808,24 +903,24 @@ export async function initAdminBotController() {
         if (session.step === 'promo_code_name') {
           session.data = { code: text.toUpperCase().trim() };
           session.step = 'promo_code_reward';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5280907155107506256">💰</tg-emoji> Enter Discount Reward Amount in USD (e.g. <code>5.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `💰 Enter Discount Reward Amount in USD (e.g. <code>5.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'promo_code_reward') {
           const reward = parseFloat(text);
           if (isNaN(reward) || reward <= 0) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Invalid reward. Enter numeric amount in USD (e.g. 5.00):`).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ Invalid reward. Enter numeric amount in USD (e.g. 5.00):`).catch(() => {});
             return;
           }
           session.data.reward = Math.round(reward * 100);
           session.step = 'promo_code_uses';
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">🔢</tg-emoji> Enter Maximum Uses Limit (e.g. <code>100</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `🔢 Enter Maximum Uses Limit (e.g. <code>100</code>):`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         if (session.step === 'promo_code_uses') {
           const uses = parseInt(text);
           if (isNaN(uses) || uses <= 0) {
-            await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Invalid limit. Enter integer limit:`).catch(() => {});
+            await adminBot?.sendMessage(chatId, `❌ Invalid limit. Enter integer limit:`).catch(() => {});
             return;
           }
           await db.insert(promoCodes).values({
@@ -836,7 +931,7 @@ export async function initAdminBotController() {
             status: 'active'
           });
           adminSessions.delete(chatId);
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Promo Code <code>${session.data.code}</code> Created Successfully! (+$${(session.data.reward / 100).toFixed(2)})</b>`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `✅ <b>Promo Code <code>${session.data.code}</code> Created Successfully! (+$${(session.data.reward / 100).toFixed(2)})</b>`, { parse_mode: 'HTML' }).catch(() => {});
           await sendPromoCodesAdminMenu(chatId);
           return;
         }
@@ -893,8 +988,8 @@ export async function initAdminBotController() {
         const currentlyPaused = await isShopBotPaused();
         const nextState = !currentlyPaused;
         await setShopBotPaused(nextState);
-        const newLabel = nextState ? '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> PAUSED (Maintenance Mode)' : '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> ACTIVE (Live)';
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5377620962390857342">🔄</tg-emoji> <b>[${getServerName()}] Status changed:</b> ${newLabel}`, { parse_mode: 'HTML' }).catch(() => {});
+        const newLabel = nextState ? '🔴 PAUSED (Maintenance Mode)' : '🟢 ACTIVE (Live)';
+        await adminBot?.sendMessage(chatId, `🔄 <b>[${getServerName()}] Status changed:</b> ${newLabel}`, { parse_mode: 'HTML' }).catch(() => {});
         await sendAdminMenu(chatId);
         return;
       }
@@ -904,8 +999,8 @@ export async function initAdminBotController() {
         const [prod] = await db.select().from(products).where(eq(products.id, prodId));
         if (prod) {
           const priceUSD = (prod.price / 100).toFixed(2);
-          const emojiId = prod.customEmojiId || '5465416081105492147';
-          const text = `<tg-emoji emoji-id="${emojiId}">📦</tg-emoji> <b>${escapeHTML(prod.name)}</b>\n\n` +
+          const emojiTag = prod.customEmojiId ? `<tg-emoji emoji-id="${prod.customEmojiId}">📦</tg-emoji>` : `📦`;
+          const text = `${emojiTag} <b>${escapeHTML(prod.name)}</b>\n\n` +
             `<b>Price:</b> $${priceUSD} USD\n` +
             `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
             `<b>Description:</b>\n${escapeHTML(prod.description) || 'Instant 24/7 delivery guaranteed.'}`;
@@ -918,7 +1013,7 @@ export async function initAdminBotController() {
       // Add Product Trigger
       if (data === 'admin_add_product') {
         adminSessions.set(String(chatId), { step: 'add_prod_name', data: {} });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>Adding New Product</b>\n\nPlease enter the <b>Product Name</b>:`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `📦 <b>Adding New Product</b>\n\nPlease enter the <b>Product Name</b>:`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -926,21 +1021,21 @@ export async function initAdminBotController() {
       if (data === 'admin_add_stock') {
         const allProds = await db.select().from(products);
         if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No products available. Please create a product first.`).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ No products available. Please create a product first.`).catch(() => {});
           return;
         }
         const buttons = allProds.map(p => ([{
           text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
           callback_data: `sel_prod_stock_${p.id}`
         }]));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>Select a product to add Stock Accounts / Keys:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `📦 <b>Select a product to add Stock Accounts / Keys:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
       }
 
       if (data?.startsWith('sel_prod_stock_')) {
         const prodId = parseInt(data.replace('sel_prod_stock_', ''));
         adminSessions.set(String(chatId), { step: 'add_stock_keys', data: { productId: prodId } });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">🔑</tg-emoji> <b>Paste Accounts / Digital Keys line-by-line:</b>\n\nEach line will be added as 1 available stock account item.`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🔑 <b>Paste Accounts / Digital Keys line-by-line:</b>\n\nEach line will be added as 1 available stock account item.`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -948,14 +1043,14 @@ export async function initAdminBotController() {
       if (data === 'admin_edit_emoji') {
         const allProds = await db.select().from(products);
         if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No products available. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ No products available. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         const buttons = allProds.map(p => ([{
           text: `✨ ${p.name} ($${(p.price / 100).toFixed(2)})`,
           callback_data: `sel_prod_emoji_${p.id}`
         }]));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Select a Product to set/update its Telegram Premium Custom Emoji:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `✨ <b>Select a Product to set/update its Telegram Premium Custom Emoji:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
       }
 
@@ -963,21 +1058,21 @@ export async function initAdminBotController() {
         const prodId = parseInt(data.replace('sel_prod_emoji_', ''));
         adminSessions.set(String(chatId), { step: 'update_prod_emoji', data: { productId: prodId } });
         const [prod] = await db.select().from(products).where(eq(products.id, prodId));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Send / Paste Premium Custom Emoji for "${escapeHTML(prod?.name || 'Product')}":</b>\n\nSend ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and update the product in real-time!`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `✨ <b>Send / Paste Premium Custom Emoji for "${escapeHTML(prod?.name || 'Product')}":</b>\n\nSend ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and update the product in real-time!`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
       // Credit balance trigger
       if (data === 'admin_credit_balance') {
         adminSessions.set(String(chatId), { step: 'credit_user_search' });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5260399854500191689">🔍</tg-emoji> Send the Customer's <b>Telegram Chat ID</b> or <b>Username</b> (e.g. <code>7507799896</code> or <code>@username</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🔍 Send the Customer's <b>Telegram Chat ID</b> or <b>Username</b> (e.g. <code>7507799896</code> or <code>@username</code>):`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
       // Create promo code trigger
       if (data === 'admin_create_promo') {
         adminSessions.set(String(chatId), { step: 'promo_code_name' });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5814427657609153890">🎟️</tg-emoji> Enter New <b>Promo Code</b> (e.g. <code>BONUS5</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🎟️ Enter New <b>Promo Code</b> (e.g. <code>BONUS5</code>):`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -987,7 +1082,7 @@ export async function initAdminBotController() {
         const key = `PAYMENT_${gw}_ENABLED`;
         const curr = (await storage.getSetting(key))?.value !== 'false';
         await storage.setSetting(key, curr ? 'false' : 'true');
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5377620962390857342">🔄</tg-emoji> <b>Gateway ${gw} status updated:</b> ${!curr ? '<tg-emoji emoji-id="5404617696589390973">🟢</tg-emoji> Enabled' : '<tg-emoji emoji-id="6298544405435387645">🔴</tg-emoji> Disabled'}`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🔄 <b>Gateway ${gw} status updated:</b> ${!curr ? '🟢 Enabled' : '🔴 Disabled'}`, { parse_mode: 'HTML' }).catch(() => {});
         await sendSettingsAdminMenu(chatId);
         return;
       }
@@ -995,21 +1090,21 @@ export async function initAdminBotController() {
       // Broadcast Flow Triggers
       if (data === 'admin_start_broadcast') {
         adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
       if (data === 'bcast_attach_product') {
         const allProds = await db.select().from(products);
         if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No products found in store. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ No products found in store. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
           return;
         }
         const buttons = allProds.map(p => ([{
           text: `🛒 Buy Now: ${p.name} ($${(p.price / 100).toFixed(2)})`,
           callback_data: `bcast_sel_prod_${p.id}`
         }]));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">🛒</tg-emoji> <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🛒 <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
       }
 
@@ -1032,7 +1127,7 @@ export async function initAdminBotController() {
           ]
         };
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${escapeHTML(prodName)} ($${priceUSD}) ]`, {
+        await adminBot?.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${escapeHTML(prodName)} ($${priceUSD}) ]`, {
           parse_mode: 'HTML',
           reply_markup: keyboard
         }).catch(() => {});
@@ -1041,7 +1136,7 @@ export async function initAdminBotController() {
 
       if (data === 'bcast_attach_url') {
         adminSessions.set(String(chatId), { step: 'broadcast_url_btn_text', data: adminSessions.get(String(chatId))?.data || {} });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> Enter Button Label Text (e.g. <code>Join Channel</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `📝 Enter Button Label Text (e.g. <code>Join Channel</code>):`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -1049,7 +1144,7 @@ export async function initAdminBotController() {
       if (data === 'bcast_confirm_send') {
         const session = adminSessions.get(String(chatId));
         if (!session || !session.data || (!session.data.messageText && !session.data.photoBuffer)) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No broadcast content found. Please restart broadcast creation.`).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ No broadcast content found. Please restart broadcast creation.`).catch(() => {});
           return;
         }
 
@@ -1059,7 +1154,7 @@ export async function initAdminBotController() {
         const customBtnText = session.data.customButtonText;
         const customBtnUrl = session.data.customButtonUrl;
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `⏳ <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
 
         const allUsers = await db.select().from(telegramUsers);
         const sentMessages: { chatId: string; messageId: number }[] = [];
@@ -1122,7 +1217,7 @@ export async function initAdminBotController() {
 
         adminSessions.delete(String(chatId));
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5803393311100113792">🎉</tg-emoji> <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🎉 <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n▪️ Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n▪️ Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
         await sendBroadcastAdminMenu(chatId);
         return;
       }
@@ -1131,14 +1226,14 @@ export async function initAdminBotController() {
       if (data === 'admin_recall_broadcast') {
         const pastLogs = await db.select().from(broadcastLogs).orderBy(desc(broadcastLogs.createdAt)).limit(10);
         if (pastLogs.length === 0) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No active broadcast campaigns found to recall.`).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ No active broadcast campaigns found to recall.`).catch(() => {});
           return;
         }
         const buttons = pastLogs.map(l => ([{
           text: `🗑️ Delete Broadcast #${l.id} (${l.recipientCount} users)`,
           callback_data: `exec_recall_${l.id}`
         }]));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">🗑️</tg-emoji> <b>Select a Broadcast Campaign to RECALL & DELETE from all users:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🗑️ <b>Select a Broadcast Campaign to RECALL & DELETE from all users:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
       }
 
@@ -1147,11 +1242,11 @@ export async function initAdminBotController() {
         const [log] = await db.select().from(broadcastLogs).where(eq(broadcastLogs.id, logId));
 
         if (!log || !log.sentMessagesJson) {
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Broadcast log #${logId} not found or has no record.`).catch(() => {});
+          await adminBot?.sendMessage(chatId, `❌ Broadcast log #${logId} not found or has no record.`).catch(() => {});
           return;
         }
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Recalling and deleting Broadcast #${logId} from ALL recipient chats...</b>`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `⏳ <b>Recalling and deleting Broadcast #${logId} from ALL recipient chats...</b>`, { parse_mode: 'HTML' }).catch(() => {});
 
         const sentMessages: { chatId: string; messageId: number }[] = JSON.parse(log.sentMessagesJson);
         let deletedCount = 0;
@@ -1167,7 +1262,7 @@ export async function initAdminBotController() {
 
         await db.delete(broadcastLogs).where(eq(broadcastLogs.id, logId));
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">🗑️</tg-emoji> <b>BROADCAST RECALL COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\nSuccessfully deleted <b>${deletedCount} / ${sentMessages.length}</b> broadcast messages across all Telegram chats.`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `🗑️ <b>BROADCAST RECALL COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\nSuccessfully deleted <b>${deletedCount} / ${sentMessages.length}</b> broadcast messages across all Telegram chats.`, { parse_mode: 'HTML' }).catch(() => {});
         await sendBroadcastAdminMenu(chatId);
         return;
       }
