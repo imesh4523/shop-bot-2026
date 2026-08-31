@@ -5331,11 +5331,52 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data.startsWith('gen_qr_')) {
+        const parts = data.split('_');
+        const method = parts[2] || 'bep20';
+        const paymentId = parseInt(parts[3] || '0', 10);
+
+        const payment = await storage.getPayment(paymentId);
+        let walletAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        if (method === 'trc20') {
+          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || walletAddress;
+        } else if (method === 'bep20') {
+          walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || walletAddress;
+        }
+
         try {
           if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '⚡ QR Code is already displayed in the image above!', show_alert: true }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code...' }).catch(() => {});
           }
         } catch (e) {}
+
+        try {
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(walletAddress);
+          const amountUSD = payment ? (payment.amount / 100).toFixed(0) : '10';
+
+          const caption = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amountUSD} USDT</b> \n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Network:</b> ${method.toUpperCase()}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+            `<code>${walletAddress}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amountUSD} USDT</b> to the address above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>`;
+
+          const keyboard = [
+            [{ text: 'Check payment', callback_data: `check_payment_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+          ] as any[][];
+
+          if (query.message) {
+            await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+          }
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (err: any) {
+          console.error("Failed to generate QR photo:", err);
+        }
         return;
       }
 
@@ -6230,20 +6271,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        try {
-          const { generateStyledQRCode } = await import('./qr-generator');
-          const qrBuffer = await generateStyledQRCode(wallet);
-          await targetBot.sendPhoto(chatId, qrBuffer, {
-            caption: responseMsg,
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
-        } catch (photoErr) {
-          await targetBot.sendMessage(chatId, responseMsg, {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
-        }
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
         return;
       }
 
@@ -6324,20 +6355,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        try {
-          const { generateStyledQRCode } = await import('./qr-generator');
-          const qrBuffer = await generateStyledQRCode(wallet);
-          await targetBot.sendPhoto(chatId, qrBuffer, {
-            caption: responseMsg,
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
-        } catch (photoErr) {
-          await targetBot.sendMessage(chatId, responseMsg, {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
-        }
+        await targetBot.sendMessage(chatId, responseMsg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: keyboard }
+        });
         return;
       }
 
@@ -6465,17 +6486,34 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        if (payment.paymentMethod === 'trc20' || payment.paymentMethod === 'aptos') {
-          // Revert processing status to pending so it can be checked
-          await storage.updatePayment(payment.id, { status: 'pending' });
+        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'aptos') {
+          if (paymentCheck.status === 'completed') {
+            await targetBot.answerCallbackQuery(query.id, { text: "✅ This payment has been already paid!", show_alert: true }).catch(() => {});
+            if (query.message) {
+              const paidMsg = `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>This payment has been already paid!</b>\n\n` +
+                `<b>Amount Paid:</b> $${(paymentCheck.amount / 100).toFixed(2)} USD\n` +
+                `<b>Status:</b> Completed`;
+              if (query.message.photo) {
+                await targetBot.editMessageCaption(paidMsg, {
+                  chat_id: chatId,
+                  message_id: query.message.message_id,
+                  parse_mode: 'HTML',
+                  reply_markup: { inline_keyboard: [] }
+                }).catch(() => {});
+              } else {
+                await targetBot.editMessageText(paidMsg, {
+                  chat_id: chatId,
+                  message_id: query.message.message_id,
+                  parse_mode: 'HTML',
+                  reply_markup: { inline_keyboard: [] }
+                }).catch(() => {});
+              }
+            }
+            return;
+          }
 
-          const promptMsgText = `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Enter your Transaction ID (TXID)</b>\n\nOur system will automatically detect your payment. Please copy and paste your TXID / Transaction Hash directly here:`;
-          const promptMsg = await targetBot.sendMessage(chatId, promptMsgText, { parse_mode: 'HTML' });
-
-          await storage.updateTelegramUserByChatId(chatId.toString(), {
-            lastAction: `awaiting_${payment.paymentMethod}_txid_${payment.id}_0`,
-            lastMessageId: promptMsg?.message_id
-          });
+          // Check if Cryptomus / blockchain payment was completed
+          await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not found on the blockchain yet. Please complete transfer and try again in a few moments.", show_alert: true }).catch(() => {});
           return;
         }
 
@@ -8250,20 +8288,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
-          try {
-            const { generateStyledQRCode } = await import('./qr-generator');
-            const qrBuffer = await generateStyledQRCode(wallet);
-            await targetBot.sendPhoto(chatId, qrBuffer, {
-              caption: responseMsg,
-              parse_mode: 'HTML',
-              reply_markup: { inline_keyboard: keyboard }
-            });
-          } catch (photoErr) {
-            await targetBot.sendMessage(chatId, responseMsg, {
-              parse_mode: 'HTML',
-              reply_markup: { inline_keyboard: keyboard }
-            });
-          }
+          await targetBot.sendMessage(chatId, responseMsg, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
         } catch (err: any) {
           console.error("Error initiating TRC20 payment:", err);
           targetBot.sendMessage(chatId, `❌ Failed to initiate TRC20 deposit: ${err.message || err}`);
@@ -8310,20 +8338,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
-          try {
-            const { generateStyledQRCode } = await import('./qr-generator');
-            const qrBuffer = await generateStyledQRCode(wallet);
-            await targetBot.sendPhoto(chatId, qrBuffer, {
-              caption: responseMsg,
-              parse_mode: 'HTML',
-              reply_markup: { inline_keyboard: keyboard }
-            });
-          } catch (photoErr) {
-            await targetBot.sendMessage(chatId, responseMsg, {
-              parse_mode: 'HTML',
-              reply_markup: { inline_keyboard: keyboard }
-            });
-          }
+          await targetBot.sendMessage(chatId, responseMsg, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
         } catch (err: any) {
           console.error("Error initiating BEP20 payment:", err);
           targetBot.sendMessage(chatId, `❌ Failed to initiate BEP20 deposit: ${err.message || err}`);
