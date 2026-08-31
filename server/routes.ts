@@ -2952,7 +2952,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> <tg-emoji emoji-id="5388622778817589921">🎉</tg-emoji>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -5269,7 +5269,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const keyboard = { inline_keyboard };
 
         if (query.message?.message_id) {
-          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} <tg-emoji emoji-id="5388622778817589921">🎉</tg-emoji>`, {
+          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} <tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`, {
             chat_id: chatId,
             message_id: query.message.message_id,
             reply_markup: keyboard,
@@ -7741,13 +7741,56 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         // Continued single unified message handler
         const text = msg.text;
         const normalizedText = text?.trim();
-      
+        const cleanNavText = normalizedText ? normalizedText.replace(/<[^>]*>/g, '').trim() : '';
+
       const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
       const supportBtnText = supportBtnTextSetting?.value || "Write to support";
 
-      if (normalizedText === '🛍️ Buy' || normalizedText === 'Buy' || normalizedText === 'Catalog' || normalizedText === '🛍️ Catalog' || normalizedText === '🛍 Catalog') {
-        console.log(`Catalog/Buy requested for user: ${userId}`);
+      if (cleanNavText.includes('Catalog') || cleanNavText.includes('Buy') || cleanNavText.includes('Shop') || cleanNavText === '🛍️ Buy' || cleanNavText === '🛍 Catalog') {
+        console.log(`[Nav] Catalog/Buy requested for user: ${userId}`);
         await sendCatalogMenu(targetBot, chatId);
+        return;
+      }
+
+      if (cleanNavText.includes('Profile')) {
+        console.log(`[Nav] Profile requested for user: ${userId}`);
+        await sendUserProfileCard(targetBot, chatId, userId, msg.from);
+        return;
+      }
+
+      if (cleanNavText.includes('Useful links') || cleanNavText.includes('Links')) {
+        console.log(`[Nav] Useful links requested for user: ${userId}`);
+        await sendUsefulLinksScreen(targetBot, chatId);
+        return;
+      }
+
+      if (cleanNavText.includes('Support') || cleanNavText === supportBtnText || cleanNavText.includes(supportBtnText)) {
+        console.log(`[Nav] Support requested for user: ${userId}`);
+        await sendSupportScreen(targetBot, chatId);
+        return;
+      }
+
+      if (cleanNavText.includes('FAQ') || cleanNavText.includes('Rules') || cleanNavText === '❓ FAQ') {
+        console.log(`[Nav] FAQ requested for user: ${userId}`);
+        const userName = tgUser?.firstName || 'User';
+        const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
+        const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+
+        const rulesMessage = `<tg-emoji emoji-id="5413554183502572090">👋</tg-emoji> <b>Welcome, ${userName}</b> <tg-emoji emoji-id="5413554183502572090">✨</tg-emoji>\n\n` +
+          `<tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji> <b>STORE RULES – PLEASE READ BEFORE BUYING</b> <tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji>\n\n` +
+          `<tg-emoji emoji-id="5220091753930959575">1️⃣</tg-emoji> <b>Login Warranty Included</b>\n` +
+          `You will receive a 100% working account at the time of purchase.\n` +
+          `<tg-emoji emoji-id="6010111371251815589">⏱️</tg-emoji> <i>Checking time: 10–30 minutes after delivery.</i>\n\n` +
+          `<tg-emoji emoji-id="5220041227935690133">2️⃣</tg-emoji> <b>Stay Safe & Secure</b>\n` +
+          `Always use quality proxies and a proper fingerprint/anti-detect browser to avoid any security issues.\n\n` +
+          `<tg-emoji emoji-id="5220224743298312689">3️⃣</tg-emoji> <b>User Responsibility</b>\n` +
+          `We are not responsible for any actions taken after purchase.\n` +
+          `Account usage is fully under the buyer’s responsibility.\n\n` +
+          `<tg-emoji emoji-id="4958734459869332468">💯</tg-emoji> <b>Follow the rules, stay secure, and enjoy your purchase!</b> <tg-emoji emoji-id="4958734459869332468">💯</tg-emoji>\n\n` +
+          `<tg-emoji emoji-id="5341498088408234504">⛱️</tg-emoji> <b>Need help or have questions?</b>\n` +
+          `<tg-emoji emoji-id="5282843764451195532">🎗️</tg-emoji> <b>Contact us:</b> <tg-emoji emoji-id="5461151367559141950">💌</tg-emoji> ${supportUsername}`;
+
+        targetBot.sendMessage(chatId, rulesMessage, { parse_mode: 'HTML' });
         return;
       }
 
