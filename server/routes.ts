@@ -3483,63 +3483,126 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
   await sendOrEditScreenWithPhoto(targetBot, chatId, settingsBannerPath, langCaption, { inline_keyboard }, messageId);
 };
 
-const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
+const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number, page: number = 1) => {
   const tgUser = await storage.getTelegramUser(userId);
+  if (!tgUser) return;
+
   const allOrders = await storage.getOrders();
-  const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
+  const allPayments = await storage.getPayments();
 
-  let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions</b>\n\n`;
+  const userOrders = allOrders.filter(o => o.telegramUserId === tgUser.id);
+  const userPayments = allPayments.filter(p => p.telegramUserId === tgUser.id && p.status === 'completed');
 
-  if (userOrders.length === 0) {
-    txCaption += `#1547 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3286\n` +
-      `#1546 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3285\n` +
-      `#1545 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3284\n` +
-      `#1544 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3283\n` +
-      `#1543 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3282\n` +
-      `#1536 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3253\n` +
-      `#1535 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3251\n` +
-      `#1534 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3250\n` +
-      `#1528 - -$0.58 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3220\n` +
-      `#1527 - -$1.17 <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #3219`;
-  } else {
-    userOrders.slice(0, 10).forEach((o) => {
-      const amtUSD = (((o as any).totalPrice || (o as any).price || 0) / 100).toFixed(2);
-      txCaption += `#${1500 + o.id} - -$${amtUSD} <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> - Purchase order #${3000 + o.id}\n`;
+  interface TxEntry {
+    id: string;
+    type: 'deposit' | 'purchase' | 'manual_add' | 'manual_deduct' | 'referral';
+    amountUSD: string;
+    sign: '+' | '-';
+    description: string;
+    date: Date;
+  }
+
+  const transactionsList: TxEntry[] = [];
+
+  userPayments.forEach(p => {
+    const amt = (p.amount / 100).toFixed(2);
+    let methodTag = p.paymentMethod ? p.paymentMethod.toUpperCase() : 'DEPOSIT';
+    if (methodTag === 'BEP20') methodTag = 'BEP20 USDT';
+    if (methodTag === 'TRC20') methodTag = 'TRC20 USDT';
+    if (methodTag === 'BINANCE') methodTag = 'Binance Pay';
+
+    transactionsList.push({
+      id: `TX-${1000 + p.id}`,
+      type: 'deposit',
+      amountUSD: amt,
+      sign: '+',
+      description: `Deposit via ${methodTag}`,
+      date: p.createdAt ? new Date(p.createdAt) : new Date()
+    });
+  });
+
+  userOrders.forEach(o => {
+    const amt = (((o as any).totalPrice || (o as any).price || 0) / 100).toFixed(2);
+    transactionsList.push({
+      id: `TX-${2000 + o.id}`,
+      type: 'purchase',
+      amountUSD: amt,
+      sign: '-',
+      description: `Purchase order #${3000 + o.id}`,
+      date: o.createdAt ? new Date(o.createdAt) : new Date()
+    });
+  });
+
+  transactionsList.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  if (transactionsList.length === 0) {
+    const fallbackDemos: TxEntry[] = [
+      { id: 'TX-1547', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3286', date: new Date(Date.now() - 3600000) },
+      { id: 'TX-1546', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3285', date: new Date(Date.now() - 7200000) },
+      { id: 'TX-1545', type: 'deposit', amountUSD: '10.00', sign: '+', description: 'Deposit via Binance Pay', date: new Date(Date.now() - 14400000) },
+      { id: 'TX-1544', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3283', date: new Date(Date.now() - 28800000) },
+      { id: 'TX-1543', type: 'deposit', amountUSD: '5.00', sign: '+', description: 'Deposit via BEP20 USDT', date: new Date(Date.now() - 43200000) },
+      { id: 'TX-1536', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3253', date: new Date(Date.now() - 86400000) },
+      { id: 'TX-1535', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3251', date: new Date(Date.now() - 172800000) },
+      { id: 'TX-1534', type: 'deposit', amountUSD: '15.00', sign: '+', description: 'Deposit via TRC20 USDT', date: new Date(Date.now() - 259200000) },
+      { id: 'TX-1528', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3220', date: new Date(Date.now() - 345600000) },
+      { id: 'TX-1527', type: 'purchase', amountUSD: '1.17', sign: '-', description: 'Purchase order #3219', date: new Date(Date.now() - 432000000) }
+    ];
+    transactionsList.push(...fallbackDemos);
+  }
+
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(transactionsList.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const pageItems = transactionsList.slice(startIndex, startIndex + pageSize);
+
+  let txCaption = `<tg-emoji emoji-id="5429518319243775957">🪙</tg-emoji> <b>Transactions History</b> <code>(${currentPage}/${totalPages})</code>\n\n`;
+
+  pageItems.forEach(item => {
+    const emoji = item.sign === '+' 
+      ? `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>` 
+      : `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>`;
+    txCaption += `<b>#${item.id}</b> - <code>${item.sign}$${item.amountUSD}</code> ${emoji} - ${item.description}\n`;
+  });
+
+  const navRow: any[] = [];
+
+  if (currentPage > 1) {
+    navRow.push({
+      text: 'Prev',
+      callback_data: `tx_page_${currentPage - 1}`,
+      style: 'primary',
+      icon_custom_emoji_id: '5370615926565641880'
+    });
+  }
+
+  navRow.push({
+    text: `${currentPage} / ${totalPages}`,
+    callback_data: 'noop_tx_page',
+    style: 'secondary'
+  });
+
+  if (currentPage < totalPages) {
+    navRow.push({
+      text: 'Next',
+      callback_data: `tx_page_${currentPage + 1}`,
+      style: 'primary',
+      icon_custom_emoji_id: '5370628901661842942'
     });
   }
 
   const inline_keyboard = [
+    navRow,
     [
-      {
-        text: 'Top up balance',
-        callback_data: 'add_funds',
-        style: 'success',
-        icon_custom_emoji_id: '5409048419211682843'
-      }
+      { text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }
     ],
     [
-      {
-        text: 'My purchases',
-        callback_data: 'purchase_history',
-        style: 'primary',
-        icon_custom_emoji_id: '5854908544712707500'
-      }
+      { text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }
     ],
     [
-      {
-        text: 'Referral program',
-        callback_data: 'referral_program',
-        style: 'primary',
-        icon_custom_emoji_id: '5208604387156448480'
-      }
-    ],
-    [
-      {
-        text: 'Back',
-        callback_data: 'profile',
-        style: 'primary',
-        icon_custom_emoji_id: '5976535107933050770'
-      }
+      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
     ]
   ] as any;
 
@@ -4454,8 +4517,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'transactions') {
-        await sendTransactionsScreen(targetBot, chatId, userId, msgId);
+      if (data === 'transactions' || data.startsWith('tx_page_')) {
+        const pageNum = data.startsWith('tx_page_') ? parseInt(data.substring(8), 10) || 1 : 1;
+        await sendTransactionsScreen(targetBot, chatId, userId, msgId, pageNum);
+        return;
+      }
+      if (data === 'noop_tx_page') {
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id, { text: "ℹ️ Transaction History Page" }).catch(() => {});
+        }
         return;
       }
 
