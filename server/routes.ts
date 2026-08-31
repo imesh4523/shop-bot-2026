@@ -7456,15 +7456,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
               reply_markup: {
                 keyboard: [
-                  [{ text: '🛍️ Catalog' }],
-                  [{ text: '👤 Profile' }],
                   [
-                    { text: '🔗 Useful links' },
-                    { text: '💬 Support' }
+                    { text: '🛍️ Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+                    { text: '👤 Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+                  ],
+                  [
+                    { text: '🔗 Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+                    { text: '💬 Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
                   ]
                 ],
                 resize_keyboard: true
-              }
+              } as any
             }).catch(() => {});
             return;
           } catch (err: any) {
@@ -7475,15 +7477,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           parse_mode: 'HTML',
           reply_markup: {
             keyboard: [
-              [{ text: '🛍️ Catalog' }],
-              [{ text: '👤 Profile' }],
               [
-                { text: '🔗 Useful links' },
-                { text: '💬 Support' }
+                { text: '🛍️ Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+                { text: '👤 Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+              ],
+              [
+                { text: '🔗 Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+                { text: '💬 Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
               ]
             ],
             resize_keyboard: true
-          }
+          } as any
         });
       };
 
