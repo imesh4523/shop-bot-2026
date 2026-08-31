@@ -2953,7 +2953,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> <tg-emoji emoji-id="5388622778817589921">🎉</tg-emoji>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -5270,7 +5270,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const keyboard = { inline_keyboard };
 
         if (query.message?.message_id) {
-          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate}`, {
+          await targetBot.editMessageText(`<tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Your Profile</b> <tg-emoji emoji-id="5456343263340405032">🛍</tg-emoji>\n━━━━━━━━━━━━━━━\n<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>ID:</b> ${tgUser.telegramId}\n\n<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Balance:</b> ${balanceUSD}$\n\n<tg-emoji emoji-id="5348256365477382384">⭐️</tg-emoji> <b>Purchased pcs:</b> ${userPurchases} pcs\n\n<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Registration:</b> ${regDate} <tg-emoji emoji-id="5388622778817589921">🎉</tg-emoji>`, {
             chat_id: chatId,
             message_id: query.message.message_id,
             reply_markup: keyboard,
