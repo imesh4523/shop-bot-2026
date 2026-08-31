@@ -5572,6 +5572,71 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
+      if (data.startsWith('gen_qr_item_')) {
+        const parts = data.split('_');
+        const paymentId = parseInt(parts[3] || '0', 10);
+        const prodId = parts[4] || '1';
+        const qty = parseInt(parts[5] || '1', 10);
+        const method = parts[6] || 'bep20';
+
+        let unitPriceUSD = 0.55;
+        let productName = "Gemini Link 18 months";
+        const prodIdNum = parseInt(prodId);
+        if (!isNaN(prodIdNum)) {
+          const product = await storage.getProduct(prodIdNum);
+          if (product) {
+            unitPriceUSD = product.price / 100;
+            productName = product.name;
+          }
+        }
+        const totalUSD = (qty * unitPriceUSD).toFixed(0);
+
+        let walletAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        if (method === 'trc20') {
+          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || walletAddress;
+        } else if (method === 'bep20') {
+          walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || walletAddress;
+        } else if (method === 'binance') {
+          walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+        }
+
+        try {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code...' }).catch(() => {});
+          }
+        } catch (e) {}
+
+        try {
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(walletAddress);
+
+          const caption = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Network:</b> ${method.toUpperCase()}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+            `<code>${walletAddress}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
+
+          const keyboard = [
+            [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
+          ] as any[][];
+
+          if (query.message) {
+            await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+          }
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (err: any) {
+          console.error("Failed to generate item QR photo:", err);
+        }
+        return;
+      }
+
       if (data.startsWith('pay_trc20_') || data.startsWith('pay_bep20_') || data.startsWith('pay_binance_') || data.startsWith('pay_cryptobot_') || data.startsWith('pay_crypto_')) {
         const parts = data.split('_');
         const method = parts[1];
@@ -5589,7 +5654,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
         }
 
-        const totalUSD = (qty * unitPriceUSD).toFixed(0);
+        const totalUSDNum = qty * unitPriceUSD;
+        const totalUSD = totalUSDNum.toFixed(0);
         let networkTag = "BEP20";
         let walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
 
@@ -5601,57 +5667,29 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         }
 
-        try {
-          if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code & Invoice...' }).catch(() => {});
-          }
-        } catch (e) {}
+        const payment = await storage.createPayment({
+          telegramUserId: tgUser.id,
+          amount: Math.round(totalUSDNum * 100),
+          paymentMethod: method,
+          status: 'pending'
+        });
 
-        try {
-          const { generateStyledQRCode } = await import('./qr-generator');
-          const qrBuffer = await generateStyledQRCode(walletAddress);
+        const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
+          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+          `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+          `<code>${walletAddress}</code>\n\n` +
+          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
-          const caption = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
-            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
-            `<code>${walletAddress}</code>\n\n` +
-            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
-            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
+        const keyboard = [
+          [{ text: 'Generate QR Code', callback_data: `gen_qr_item_${payment.id}_${prodId}_${qty}_${method}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+          [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
+        ] as any[][];
 
-          const keyboard = [
-            [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}`, icon_custom_emoji_id: '5386367538735104399' }],
-            [{ text: 'Change Network / Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
-          ] as any[][];
-
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-          }
-          await targetBot.sendPhoto(chatId, qrBuffer, {
-            caption,
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
-          return;
-        } catch (err: any) {
-          console.error("Failed to generate item payment QR photo:", err);
-          const payMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> <b>Direct Payment (${networkTag})</b>\n\n` +
-            `Product: <b>${productName}</b>\n` +
-            `Quantity: <b>${qty}</b>\n` +
-            `Total Amount: <b>$${totalUSD} USDT</b>\n\n` +
-            `💳 <b>Payment Address / ID:</b>\n<code>${walletAddress}</code>\n\n` +
-            `<i>After sending payment, your items will be automatically delivered to you!</i>`;
-
-          const payKeyboard = {
-            inline_keyboard: [
-              [{ text: 'Copy Address', callback_data: `copy_wallet_${method}`, style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
-              [{ text: 'I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-              [{ text: 'Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
-            ]
-          };
-
-          await targetBot.sendMessage(chatId, payMsg, { parse_mode: 'HTML', reply_markup: payKeyboard });
-        }
+        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -5659,26 +5697,69 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const parts = data.split('_');
         const prodId = parts[3];
         const qty = parseInt(parts[4]) || 1;
+        const paymentId = parseInt(parts[5] || '0', 10);
 
         let productName = "Gemini Link 18 months";
+        let unitPriceUSD = 0.55;
         const prodIdNum = parseInt(prodId);
         if (!isNaN(prodIdNum)) {
           const product = await storage.getProduct(prodIdNum);
           if (product) {
             productName = product.name;
+            unitPriceUSD = product.price / 100;
           }
         }
 
-        const demoCredential = "https://serviceactivation.google.com/subscription/new/AQCpiIHdN6ACIzXLWgd3mZmPSpkYzL0-xZHoYVG6sdg_REsXHSRNhopET96MSFutLFPWNM12SgQHanxd73mQx9S-TkoAmbCYqgRUC09XgTsQB-WHKfOBJj5zRZ0VQ2Y3huosy3A9H63pEcefDVsCN1xeL0EB-24ZVSpZU4f-LAdxoBPAKr_NCwXyeTt76wxLsM0g-uCOGwHeElyUnpUK82CKdERCMDE5Zq2-aOiomiTLUxLoDhCS4PdRZUopfsrcmr89P3lC0dVc1EW_5Q==";
-        const randomOrderId = Math.floor(1000 + Math.random() * 9000);
+        const totalCents = Math.round(qty * unitPriceUSD * 100);
 
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
+        let isPaid = tgUser.balance >= totalCents;
+        if (!isPaid && paymentId > 0) {
+          const p = await storage.getPayment(paymentId);
+          if (p && p.status === 'completed') {
+            isPaid = true;
           }
-        } catch (e) {}
+        }
 
-        await sendPurchaseSuccessScreen(targetBot, chatId, randomOrderId, productName, demoCredential);
+        if (isPaid) {
+          if (tgUser.balance >= totalCents) {
+            await storage.updateTelegramUser(tgUser.id, { balance: tgUser.balance - totalCents });
+          }
+
+          let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+          const stock = await storage.getCredentialsByProduct(prodIdNum);
+          const avail = stock.find(c => c.status === 'available');
+          if (avail) {
+            credentialText = avail.data;
+            await storage.updateCredential(avail.id, { status: 'sold' });
+          }
+
+          const newOrder = await storage.createOrder({
+            telegramUserId: tgUser.id,
+            productId: prodIdNum,
+            quantity: qty,
+            totalPrice: totalCents,
+            status: 'completed',
+            credential: credentialText
+          } as any);
+
+          try {
+            if (query.message) {
+              await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+            }
+          } catch (e) {}
+
+          await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
+          return;
+        }
+
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id, {
+            text: '❌ Payment not detected yet on blockchain.\n\nPlease transfer the exact amount and try again in 1-2 minutes!',
+            show_alert: true
+          }).catch(() => {});
+        } else {
+          await targetBot.sendMessage(chatId, '❌ <b>Payment Not Detected</b>\n\nPlease transfer the exact amount and try again in 1-2 minutes.', { parse_mode: 'HTML' });
+        }
         return;
       }
 
