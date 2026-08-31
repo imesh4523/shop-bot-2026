@@ -8236,9 +8236,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: null
         });
         await targetBot.sendMessage(chatId, "✅ DigitalOcean API key saved! You can now create droplets from your profile.");
-      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_') || (msg.reply_to_message && msg.reply_to_message.text && (msg.reply_to_message.text.includes('Binance') || msg.reply_to_message.text.includes('Order ID'))) || (normalizedText && /^\d{8,20}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode')) {
+      } else if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_') || (msg.reply_to_message && msg.reply_to_message.text && (msg.reply_to_message.text.includes('Binance') || msg.reply_to_message.text.includes('Order ID'))) || (normalizedText && /^\d{5,25}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode')) {
         const txid = normalizedText?.trim();
         if (!txid) return;
+
+        // 1. Format check: Must be digits
+        if (!/^\d{8,20}$/.test(txid)) {
+          await targetBot.sendMessage(
+            chatId,
+            `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Invalid Binance Order ID Format!</b>\n\n` +
+            `Binance Order IDs must be an 8 to 20 digit number.\n` +
+            `<i>Example: <code>28491048591</code></i>\n\n` +
+            `Please check your Binance app (Pay -> Orders) and try again.`,
+            { parse_mode: 'HTML' }
+          );
+          return;
+        }
 
         const actionStr = tgUser?.lastAction?.startsWith('awaiting_binance_txid_') ? tgUser.lastAction : 'awaiting_binance_txid_0_0_0';
         const parts = actionStr.split('_');
@@ -8265,6 +8278,46 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             { parse_mode: 'HTML' }
           );
           return;
+        }
+
+        // Check Binance API Key live verification if configured
+        const binanceApiKeySetting = await storage.getSetting("BINANCE_PAY_API_KEY");
+        const binanceSecretSetting = await storage.getSetting("BINANCE_PAY_SECRET_KEY");
+        if (binanceApiKeySetting?.value && binanceSecretSetting?.value) {
+          try {
+            const timestamp = Date.now();
+            const queryStr = `timestamp=${timestamp}`;
+            const signature = crypto
+              .createHmac('sha256', binanceSecretSetting.value)
+              .update(queryStr)
+              .digest('hex');
+
+            const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
+              headers: {
+                'X-MBX-APIKEY': binanceApiKeySetting.value,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
+              const liveMatch = res.data.data.find((t: any) => t.orderId === txid || t.transactionId === txid);
+              if (!liveMatch) {
+                await targetBot.sendMessage(
+                  chatId,
+                  `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
+                  `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
+                  `<b>Please check:</b>\n` +
+                  `1. Ensure you transferred the exact amount to Binance Pay ID <code>284910485</code>.\n` +
+                  `2. Copy the exact <b>Order ID</b> from your Binance App (Pay -> Orders).\n\n` +
+                  `<i>If you need assistance, please write to support.</i>`,
+                  { parse_mode: 'HTML' }
+                );
+                return;
+              }
+            }
+          } catch (e) {
+            console.error("Binance live API check failed:", e);
+          }
         }
 
         await storage.updateTelegramUserByChatId(userId, { lastAction: null });
