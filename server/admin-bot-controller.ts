@@ -241,13 +241,13 @@ export async function sendAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: 'Products & Stock', callback_data: 'menu_products', icon_custom_emoji_id: '5465416081105492147' }],
-      [{ text: 'Customer Accounts', callback_data: 'menu_customers', icon_custom_emoji_id: '5260399854500191689' }],
-      [{ text: 'Mass Broadcast', callback_data: 'menu_broadcast', icon_custom_emoji_id: '5334982154868783692' }],
-      [{ text: 'Promo Codes', callback_data: 'menu_promocodes', icon_custom_emoji_id: '5814427657609153890' }],
-      [{ text: 'Settings & Gateways', callback_data: 'menu_settings', icon_custom_emoji_id: '6235482598924095547' }],
-      [{ text: statusLabel, callback_data: 'toggle_status', icon_custom_emoji_id: isPaused ? '6298544405435387645' : '5404617696589390973' }],
-      [{ text: '24h Daily Statement', callback_data: 'get_statement', icon_custom_emoji_id: '5377620962390857342' }]
+      [{ text: '📦 Products & Stock', callback_data: 'menu_products' }],
+      [{ text: '👥 Customer Accounts', callback_data: 'menu_customers' }],
+      [{ text: '📢 Mass Broadcast', callback_data: 'menu_broadcast' }],
+      [{ text: '🎟️ Promo Codes', callback_data: 'menu_promocodes' }],
+      [{ text: '⚙️ Settings & Gateways', callback_data: 'menu_settings' }],
+      [{ text: statusLabel, callback_data: 'toggle_status' }],
+      [{ text: '📊 24h Daily Statement', callback_data: 'get_statement' }]
     ]
   };
 
@@ -283,11 +283,11 @@ export async function sendProductsAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: 'Add New Product', callback_data: 'admin_add_product', icon_custom_emoji_id: '5465416081105492147' }],
-      [{ text: 'Add Stock / Accounts', callback_data: 'admin_add_stock', icon_custom_emoji_id: '5334982154868783692' }],
-      [{ text: 'Edit Product Price', callback_data: 'admin_edit_price', icon_custom_emoji_id: '5814427657609153890' }],
-      [{ text: 'Delete Product', callback_data: 'admin_delete_product', icon_custom_emoji_id: '6298544405435387645' }],
-      [{ text: 'Back to Main Admin Menu', callback_data: 'admin_main_menu', icon_custom_emoji_id: '5976535107933050770' }]
+      [{ text: '➕ Add New Product', callback_data: 'admin_add_product' }],
+      [{ text: '🔑 Add Stock / Accounts', callback_data: 'admin_add_stock' }],
+      [{ text: '✏️ Edit Product Price', callback_data: 'admin_edit_price' }],
+      [{ text: '🗑️ Delete Product', callback_data: 'admin_delete_product' }],
+      [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
     ]
   };
 
@@ -308,11 +308,11 @@ export async function sendCustomersAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: 'Search Customer Profile', callback_data: 'admin_search_customer', icon_custom_emoji_id: '5260399854500191689' }],
-      [{ text: 'Credit User Balance', callback_data: 'admin_credit_balance', icon_custom_emoji_id: '5377620962390857342' }],
-      [{ text: 'Debit User Balance', callback_data: 'admin_debit_balance', icon_custom_emoji_id: '6298544405435387645' }],
-      [{ text: 'Ban / Unban Customer', callback_data: 'admin_toggle_ban', icon_custom_emoji_id: '6298544405435387645' }],
-      [{ text: 'Back to Main Admin Menu', callback_data: 'admin_main_menu', icon_custom_emoji_id: '5976535107933050770' }]
+      [{ text: '🔍 Search Customer Profile', callback_data: 'admin_search_customer' }],
+      [{ text: '💵 Credit User Balance', callback_data: 'admin_credit_balance' }],
+      [{ text: '➖ Debit User Balance', callback_data: 'admin_debit_balance' }],
+      [{ text: '🚫 Ban / Unban Customer', callback_data: 'admin_toggle_ban' }],
+      [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
     ]
   };
 
@@ -340,9 +340,9 @@ export async function sendPromoCodesAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: 'Create New Promo Code', callback_data: 'admin_create_promo', icon_custom_emoji_id: '5814427657609153890' }],
-      [{ text: 'Delete Promo Code', callback_data: 'admin_delete_promo', icon_custom_emoji_id: '6298544405435387645' }],
-      [{ text: 'Back to Main Admin Menu', callback_data: 'admin_main_menu', icon_custom_emoji_id: '5976535107933050770' }]
+      [{ text: '➕ Create New Promo Code', callback_data: 'admin_create_promo' }],
+      [{ text: '🗑️ Delete Promo Code', callback_data: 'admin_delete_promo' }],
+      [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
     ]
   };
 
@@ -369,11 +369,11 @@ export async function sendSettingsAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: `BEP20: ${bep20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_bep20', icon_custom_emoji_id: '5280907155107506256' }, { text: `TRC20: ${trc20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_trc20', icon_custom_emoji_id: '5936189134342199863' }],
-      [{ text: `Binance: ${binanceOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_binance', icon_custom_emoji_id: '5409048419211682843' }, { text: `Cryptomus: ${cryptomusOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_cryptomus', icon_custom_emoji_id: '5377620962390857342' }],
-      [{ text: 'Update Wallet Address / Pay ID', callback_data: 'admin_edit_wallet_settings', icon_custom_emoji_id: '5334982154868783692' }],
-      [{ text: 'Change Admin Bot Token', callback_data: 'prompt_add_bot_token', icon_custom_emoji_id: '6235482598924095547' }],
-      [{ text: 'Back to Main Admin Menu', callback_data: 'admin_main_menu', icon_custom_emoji_id: '5976535107933050770' }]
+      [{ text: `BEP20: ${bep20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_bep20' }, { text: `TRC20: ${trc20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_trc20' }],
+      [{ text: `Binance: ${binanceOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_binance' }, { text: `Cryptomus: ${cryptomusOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_cryptomus' }],
+      [{ text: '✏️ Update Wallet Address / Pay ID', callback_data: 'admin_edit_wallet_settings' }],
+      [{ text: '🔑 Change Admin Bot Token', callback_data: 'prompt_add_bot_token' }],
+      [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
     ]
   };
 
@@ -403,9 +403,9 @@ export async function sendBroadcastAdminMenu(chatId: string | number) {
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: 'Create New Broadcast', callback_data: 'admin_start_broadcast', icon_custom_emoji_id: '5334982154868783692' }],
-      [{ text: 'Delete / Recall Sent Broadcast', callback_data: 'admin_recall_broadcast', icon_custom_emoji_id: '6298544405435387645' }],
-      [{ text: 'Back to Main Admin Menu', callback_data: 'admin_main_menu', icon_custom_emoji_id: '5976535107933050770' }]
+      [{ text: '➕ Create New Broadcast', callback_data: 'admin_start_broadcast' }],
+      [{ text: '🗑️ Delete / Recall Sent Broadcast', callback_data: 'admin_recall_broadcast' }],
+      [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
     ]
   };
 
@@ -706,9 +706,9 @@ export async function initAdminBotController() {
 
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'Attach Buy Now Product Button', callback_data: 'bcast_attach_product', icon_custom_emoji_id: '5465416081105492147' }],
-              [{ text: 'Attach Custom URL Button', callback_data: 'bcast_attach_url', icon_custom_emoji_id: '5334982154868783692' }],
-              [{ text: 'Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send', icon_custom_emoji_id: '5377620962390857342' }]
+              [{ text: '🛒 Attach Buy Now Product Button', callback_data: 'bcast_attach_product' }],
+              [{ text: '🔗 Attach Custom URL Button', callback_data: 'bcast_attach_url' }],
+              [{ text: '⚡ Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send' }]
             ]
           };
           await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded (with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
@@ -728,8 +728,8 @@ export async function initAdminBotController() {
 
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send', icon_custom_emoji_id: '5377620962390857342' }],
-              [{ text: 'Cancel Broadcast', callback_data: 'admin_main_menu', icon_custom_emoji_id: '6298544405435387645' }]
+              [{ text: '⚡ CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send' }],
+              [{ text: '❌ Cancel Broadcast', callback_data: 'admin_main_menu' }]
             ]
           };
 
@@ -850,9 +850,8 @@ export async function initAdminBotController() {
           return;
         }
         const buttons = allProds.map(p => ([{
-          text: `${p.name} ($${(p.price / 100).toFixed(2)})`,
-          callback_data: `sel_prod_stock_${p.id}`,
-          icon_custom_emoji_id: '5465416081105492147'
+          text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
+          callback_data: `sel_prod_stock_${p.id}`
         }]));
         await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>Select a product to add Stock Accounts / Keys:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
@@ -899,33 +898,38 @@ export async function initAdminBotController() {
 
       if (data === 'bcast_attach_product') {
         const allProds = await db.select().from(products);
+        if (allProds.length === 0) {
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No products found in store. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+          return;
+        }
         const buttons = allProds.map(p => ([{
-          text: `Buy Now: ${p.name} ($${(p.price / 100).toFixed(2)})`,
-          callback_data: `bcast_sel_prod_${p.id}`,
-          icon_custom_emoji_id: '5465416081105492147'
+          text: `🛒 Buy Now: ${p.name} ($${(p.price / 100).toFixed(2)})`,
+          callback_data: `bcast_sel_prod_${p.id}`
         }]));
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">🛒</tg-emoji> Select Product to attach as "Buy Now" button:`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5465416081105492147">🛒</tg-emoji> <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
       }
 
       if (data?.startsWith('bcast_sel_prod_')) {
         const prodId = parseInt(data.replace('bcast_sel_prod_', ''));
         const session = adminSessions.get(String(chatId));
-        if (session && session.data) {
+        if (session) {
+          session.data = session.data || {};
           session.data.targetProductId = prodId;
         }
 
         const [prod] = await db.select().from(products).where(eq(products.id, prodId));
         const prodName = prod ? prod.name : `Product #${prodId}`;
+        const priceUSD = prod ? (prod.price / 100).toFixed(2) : '0.00';
 
         const keyboard = {
           inline_keyboard: [
-            [{ text: 'CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send', icon_custom_emoji_id: '5377620962390857342' }],
-            [{ text: 'Cancel Broadcast', callback_data: 'admin_main_menu', icon_custom_emoji_id: '6298544405435387645' }]
+            [{ text: '⚡ CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send' }],
+            [{ text: '❌ Cancel Broadcast', callback_data: 'admin_main_menu' }]
           ]
         };
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${prodName}\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ Buy Now: ${prodName} ]`, {
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${prodName} ($${priceUSD})\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${prodName} ($${priceUSD}) ]`, {
           parse_mode: 'HTML',
           reply_markup: keyboard
         }).catch(() => {});
@@ -958,12 +962,12 @@ export async function initAdminBotController() {
         const sentMessages: { chatId: string; messageId: number }[] = [];
         let successCount = 0;
 
-        // Build inline keyboard for broadcast
+        // Build 100% valid Telegram Bot API inline keyboard for broadcast
         const inlineKeyboard: any[][] = [];
         if (targetProdId) {
           const [prod] = await db.select().from(products).where(eq(products.id, targetProdId));
-          const btnLabel = prod ? `Buy Now: ${prod.name} ($${(prod.price / 100).toFixed(2)})` : `Buy Now`;
-          inlineKeyboard.push([{ text: btnLabel, callback_data: `prod_${targetProdId}`, icon_custom_emoji_id: '5465416081105492147' }]);
+          const btnLabel = prod ? `🛒 Buy Now: ${prod.name} ($${(prod.price / 100).toFixed(2)})` : `🛒 Buy Now`;
+          inlineKeyboard.push([{ text: btnLabel, callback_data: `prod_${targetProdId}` }]);
         } else if (customBtnText && customBtnUrl) {
           inlineKeyboard.push([{ text: customBtnText, url: customBtnUrl }]);
         }
@@ -991,7 +995,7 @@ export async function initAdminBotController() {
               successCount++;
             }
           } catch (err: any) {
-            // Ignore individual chat send errors (e.g. blocked users)
+            console.error(`[BROADCAST] Error sending to user ${user.telegramId}:`, err?.message || err);
           }
         }
 
@@ -1023,9 +1027,8 @@ export async function initAdminBotController() {
           return;
         }
         const buttons = pastLogs.map(l => ([{
-          text: `Delete Broadcast #${l.id} (${l.recipientCount} users)`,
-          callback_data: `exec_recall_${l.id}`,
-          icon_custom_emoji_id: '6298544405435387645'
+          text: `🗑️ Delete Broadcast #${l.id} (${l.recipientCount} users)`,
+          callback_data: `exec_recall_${l.id}`
         }]));
         await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">🗑️</tg-emoji> <b>Select a Broadcast Campaign to RECALL & DELETE from all users:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
         return;
