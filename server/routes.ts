@@ -7428,7 +7428,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       // If no parameter, show the standard welcome message with generated purple banner photo
       const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
-      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to </b><b>@Imesh_cloud_bot</b><b> !</b>\n\nChoose a section from the menu below.`;
+      const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to</b>\n<b>@Imesh_cloud_bot</b> !\n\nChoose a section from the menu below.`;
 
       const startInlineMarkup = {
         inline_keyboard: [
@@ -7458,38 +7458,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           resize_keyboard: true
         } as any;
 
-        const fireworksEmoji = `<tg-emoji emoji-id="4958488079070397388">🎆</tg-emoji>`;
-
-        const triggerFireworksAnimation = (fwMsg: any) => {
-          if (!fwMsg || !fwMsg.message_id) return;
-          let ticks = 0;
-          const maxTicks = 20; // 20 seconds total (1 edit per second)
-          const interval = setInterval(async () => {
-            ticks++;
-            if (ticks >= maxTicks) {
-              clearInterval(interval);
-              await targetBot.deleteMessage(chatId, fwMsg.message_id).catch(() => {});
-            } else {
-              const variations = [
-                fireworksEmoji,
-                `${fireworksEmoji} ✨`,
-                `✨ ${fireworksEmoji}`,
-                `${fireworksEmoji} 💥`,
-                `💥 ${fireworksEmoji}`
-              ];
-              const updatedText = variations[ticks % variations.length];
-              await targetBot.editMessageText(updatedText, {
-                chat_id: chatId,
-                message_id: fwMsg.message_id,
-                parse_mode: 'HTML',
-                reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
-              }).catch((err: any) => {
-                console.log(`[Fireworks animation frame ${ticks} error]:`, err.message);
-              });
-            }
-          }, 1000);
-        };
-
         if (fs.existsSync(bannerPath)) {
           try {
             await targetBot.sendPhoto(chatId, bannerPath, {
@@ -7497,27 +7465,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            const fwMsg = await targetBot.sendMessage(chatId, fireworksEmoji, {
-              parse_mode: 'HTML',
-              reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
-            }).catch(() => null);
-
-            if (fwMsg) {
-              triggerFireworksAnimation(fwMsg);
-            }
+            await targetBot.sendMessage(chatId, "👇", {
+              reply_markup: bottomKeyboard
+            }).catch(() => {});
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
           }
         }
-        const fwMsg = await targetBot.sendMessage(chatId, welcomeCaption, {
+        await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
-        }).catch(() => null);
-
-        if (fwMsg) {
-          triggerFireworksAnimation(fwMsg);
-        }
+          reply_markup: bottomKeyboard
+        });
       };
 
       if (!parameter) {
