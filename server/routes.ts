@@ -3582,8 +3582,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
 
   navRow.push({
     text: `${currentPage} / ${totalPages}`,
-    callback_data: 'noop_tx_page',
-    style: 'secondary'
+    callback_data: 'noop_tx_page'
   });
 
   if (currentPage < totalPages) {
@@ -5764,8 +5763,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         const copyBtn = method === 'binance' 
-          ? { text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }
-          : { text: 'Copy Address', copy_text: { text: walletAddress }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' };
+          ? { text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }
+          : { text: 'Copy Address', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' };
 
         const keyboard = [
           [copyBtn],
@@ -5814,7 +5813,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }],
               [{ text: 'Cancel / Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
             ]
           };
@@ -6438,7 +6437,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
-          [{ text: 'Copy Binance ID', copy_text: { text: payId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+          [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
@@ -6715,7 +6714,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
             inline_keyboard: [
-              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, style: 'primary', icon_custom_emoji_id: '5231102735817918643' }],
+              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }],
               [{ text: 'Cancel / Back', callback_data: 'add_funds', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
             ]
           };
