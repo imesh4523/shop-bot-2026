@@ -7458,6 +7458,28 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           resize_keyboard: true
         } as any;
 
+        const fireworksEmoji = `<tg-emoji emoji-id="4958488079070397388">🎆</tg-emoji>`;
+
+        const triggerFireworksAnimation = (fwMsg: any) => {
+          if (!fwMsg || !fwMsg.message_id) return;
+          let ticks = 0;
+          const maxTicks = 8;
+          const interval = setInterval(async () => {
+            ticks++;
+            if (ticks >= maxTicks) {
+              clearInterval(interval);
+              await targetBot.deleteMessage(chatId, fwMsg.message_id).catch(() => {});
+            } else {
+              const updatedText = ticks % 2 === 0 ? fireworksEmoji : `${fireworksEmoji} `;
+              await targetBot.editMessageText(updatedText, {
+                chat_id: chatId,
+                message_id: fwMsg.message_id,
+                parse_mode: 'HTML'
+              }).catch(() => {});
+            }
+          }, 1000);
+        };
+
         if (fs.existsSync(bannerPath)) {
           try {
             await targetBot.sendPhoto(chatId, bannerPath, {
@@ -7465,18 +7487,27 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            await targetBot.sendMessage(chatId, "👇", {
+            const fwMsg = await targetBot.sendMessage(chatId, fireworksEmoji, {
+              parse_mode: 'HTML',
               reply_markup: bottomKeyboard
-            }).catch(() => {});
+            }).catch(() => null);
+
+            if (fwMsg) {
+              triggerFireworksAnimation(fwMsg);
+            }
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
           }
         }
-        await targetBot.sendMessage(chatId, welcomeCaption, {
+        const fwMsg = await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
           reply_markup: bottomKeyboard
-        });
+        }).catch(() => null);
+
+        if (fwMsg) {
+          triggerFireworksAnimation(fwMsg);
+        }
       };
 
       if (!parameter) {
