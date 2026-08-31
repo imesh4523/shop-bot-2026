@@ -5758,7 +5758,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             } catch (e) {}
           }
 
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
+          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
             reply_markup: { force_reply: true, selective: true }
           }).catch(() => {});
@@ -6659,7 +6659,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             } catch (e) {}
           }
 
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
+          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
             reply_markup: { force_reply: true, selective: true }
           }).catch(() => {});
