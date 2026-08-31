@@ -20,6 +20,15 @@ import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
 import FormData from "form-data";
+
+export const TELEGRAM_MESSAGE_EFFECTS = {
+  CONFETTI: "5066970843586925436",
+  HEARTS: "5159385139981059251",
+  THUMBS_UP: "5107584321108051014",
+  FIRE: "5104858069142078462",
+  THUMBS_DOWN: "5104841245755180586",
+};
+
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
 import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
 import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
@@ -1059,7 +1068,10 @@ export async function registerRoutes(
               chunkMsg += `\nThank you for shopping with us! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
             }
 
-            await bot?.sendMessage(tgUser.id, chunkMsg, { parse_mode: 'HTML' });
+            await bot?.sendMessage(tgUser.id, chunkMsg, { 
+              parse_mode: 'HTML',
+              message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+            } as any);
           }
         } catch (err) {
           console.error("Failed to send bot DM for purchase:", err);
@@ -2795,7 +2807,8 @@ const sendOrEditScreenWithPhoto = async (
   bannerPath: string,
   caption: string,
   replyMarkup: any,
-  messageId?: number
+  messageId?: number,
+  messageEffectId?: string
 ) => {
   const token = (targetBot as any)?.token;
 
@@ -2866,11 +2879,15 @@ const sendOrEditScreenWithPhoto = async (
 
   if (fs.existsSync(bannerPath)) {
     try {
-      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, {
+      const sendPhotoOpts: any = {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
-      });
+      };
+      if (messageEffectId) {
+        sendPhotoOpts.message_effect_id = messageEffectId;
+      }
+      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, sendPhotoOpts);
       if (sentMsg.photo && sentMsg.photo.length > 0) {
         const fileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
         bannerFileIdCache[bannerPath] = fileId;
@@ -2881,10 +2898,14 @@ const sendOrEditScreenWithPhoto = async (
     }
   }
 
-  await targetBot.sendMessage(chatId, caption, {
+  const sendMsgOpts: any = {
     parse_mode: 'HTML',
     reply_markup: replyMarkup
-  });
+  };
+  if (messageEffectId) {
+    sendMsgOpts.message_effect_id = messageEffectId;
+  }
+  await targetBot.sendMessage(chatId, caption, sendMsgOpts);
 };
 
 const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userId: string, msgFrom?: any, messageId?: number) => {
@@ -2968,7 +2989,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   };
 
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
-  await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId);
+  await sendOrEditScreenWithPhoto(targetBot, chatId, profileBannerPath, profileCaption, profileInlineKeyboard, messageId, TELEGRAM_MESSAGE_EFFECTS.CONFETTI);
 };
 
 const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId?: number) => {
@@ -7451,8 +7472,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: startInlineMarkup
-            });
+              reply_markup: startInlineMarkup,
+              message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+            } as any);
             await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
               reply_markup: {
                 keyboard: [
@@ -7483,8 +7505,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               ]
             ],
             resize_keyboard: true
-          }
-        });
+          },
+          message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+        } as any);
       };
 
       if (!parameter) {
@@ -7710,7 +7733,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `Total Paid: <b>$${totalUSD}</b>\n\n` +
           `📦 <b>Your delivery details will be sent shortly automatically!</b>`;
 
-        await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML' });
+        await targetBot.sendMessage(chatId, successMsg, { 
+          parse_mode: 'HTML',
+          message_effect_id: TELEGRAM_MESSAGE_EFFECTS.CONFETTI
+        } as any);
         return;
       }
 
