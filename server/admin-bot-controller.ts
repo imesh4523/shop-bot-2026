@@ -493,6 +493,13 @@ export async function initAdminBotController() {
     await registerServerHeartbeat();
     adminBot = new TelegramBot(targetToken, { polling: true });
 
+    adminBot.on('polling_error', (err: any) => {
+      console.warn('[ADMIN BOT] Polling error:', err?.message || err);
+    });
+    adminBot.on('error', (err: any) => {
+      console.warn('[ADMIN BOT] General error:', err?.message || err);
+    });
+
     // Handle commands
     adminBot.onText(/\/(start|admin|menu|status|help)/, async (msg) => {
       const chatId = msg.chat.id;
