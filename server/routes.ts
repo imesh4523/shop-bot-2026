@@ -3150,14 +3150,14 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     `Choose payment method:`;
 
   const inline_keyboard = [
-    [{ text: 'Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
-    [{ text: 'Binance UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+    [{ text: '🎟️ Enter promo code', callback_data: 'enter_promocode' }],
+    [{ text: '🔸 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}` }],
     [
-      { text: 'USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' },
-      { text: 'USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }
+      { text: '🟡 USDT • BEP-20', callback_data: `pay_bep20_${productId}_${qty}` },
+      { text: '🔴 USDT • TRC-20', callback_data: `pay_trc20_${productId}_${qty}` }
     ],
-    [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-    [{ text: 'Back', callback_data: `prod_${productId}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+    [{ text: '💳 Pay from balance', callback_data: `pay_bal_${productId}_${qty}` }],
+    [{ text: '🔙 Back', callback_data: `prod_${productId}` }]
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
@@ -3485,48 +3485,18 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
 
   const inline_keyboard = [
     [
-      {
-        text: 'CryptoBot',
-        callback_data: 'payment_cryptobot',
-        style: 'primary',
-        icon_custom_emoji_id: '5361543877599724417'
-      }
+      { text: '🤖 CryptoBot', callback_data: 'payment_cryptobot' }
     ],
     [
-      {
-        text: 'Binance UID',
-        callback_data: 'payment_binance',
-        style: 'success',
-        icon_custom_emoji_id: '6235482598924095547'
-      }
+      { text: '🔸 Binance Pay / UID', callback_data: 'payment_binance' }
     ],
     [
-      {
-        text: 'USDT BEP-20',
-        callback_data: 'payment_bep20',
-        style: 'primary',
-        icon_custom_emoji_id: '5280907155107506256'
-      },
-      {
-        text: 'USDT TRC-20',
-        callback_data: 'payment_trc20',
-        style: 'success',
-        icon_custom_emoji_id: '5936189134342199863'
-      }
+      { text: '🟡 USDT • BEP-20', callback_data: 'payment_bep20' },
+      { text: '🔴 USDT • TRC-20', callback_data: 'payment_trc20' }
     ],
     [
-      {
-        text: 'Profile',
-        callback_data: 'profile',
-        style: 'primary',
-        icon_custom_emoji_id: '5260399854500191689'
-      },
-      {
-        text: 'Cancel',
-        callback_data: 'profile',
-        style: 'danger',
-        icon_custom_emoji_id: '5274099962655816924'
-      }
+      { text: '👤 Profile', callback_data: 'profile' },
+      { text: '❌ Cancel', callback_data: 'profile' }
     ]
   ] as any;
 

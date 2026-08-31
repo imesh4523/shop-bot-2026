@@ -748,7 +748,8 @@ export async function initAdminBotController() {
           const [newProd] = await db.insert(products).values({
             name: session.data.name,
             price: session.data.price,
-            category: session.data.category,
+            type: session.data.category || 'General',
+            category: session.data.category || 'General',
             description: session.data.description,
             customEmojiId: customEmojiId || null,
             stockCount: 0
