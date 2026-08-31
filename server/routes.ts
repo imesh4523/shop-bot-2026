@@ -7463,11 +7463,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: startInlineMarkup
-            });
-            await targetBot.sendMessage(chatId, "👇", {
               reply_markup: bottomKeyboard
-            }).catch(() => {});
+            });
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
