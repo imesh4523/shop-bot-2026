@@ -7481,7 +7481,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               await targetBot.editMessageText(updatedText, {
                 chat_id: chatId,
                 message_id: fwMsg.message_id,
-                parse_mode: 'HTML'
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
               }).catch((err: any) => {
                 console.log(`[Fireworks animation frame ${ticks} error]:`, err.message);
               });
@@ -7498,7 +7499,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             });
             const fwMsg = await targetBot.sendMessage(chatId, fireworksEmoji, {
               parse_mode: 'HTML',
-              reply_markup: bottomKeyboard
+              reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
             }).catch(() => null);
 
             if (fwMsg) {
@@ -7511,7 +7512,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
         const fwMsg = await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: bottomKeyboard
+          reply_markup: { inline_keyboard: [[{ text: '🎆 Celebration 🎆', callback_data: 'fw_burst' }]] }
         }).catch(() => null);
 
         if (fwMsg) {
