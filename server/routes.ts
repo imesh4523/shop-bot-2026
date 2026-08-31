@@ -5511,35 +5511,74 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         const totalUSD = (qty * unitPriceUSD).toFixed(2);
-        let methodTitle = "USDT (TRC-20)";
+        let networkTag = "TRC-20";
+        let coinEmoji = "🔴";
         let walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
 
         if (method === 'bep20') {
-          methodTitle = "USDT (BEP-20)";
+          networkTag = "BEP-20";
+          coinEmoji = "🟡";
           walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         } else if (method === 'binance') {
-          methodTitle = "Binance Pay / UID";
+          networkTag = "BINANCE PAY";
+          coinEmoji = "🔸";
           walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         } else if (method === 'cryptobot') {
-          methodTitle = "CryptoBot Direct Pay";
+          networkTag = "CRYPTOBOT";
+          coinEmoji = "🤖";
         }
 
-        const payMsg = `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> <b>Direct Payment (${methodTitle})</b>\n\n` +
-          `Product: <b>${productName}</b>\n` +
-          `Quantity: <b>${qty}</b>\n` +
-          `Total Amount: <b>$${totalUSD}</b>\n\n` +
-          `💳 <b>Payment Address / ID:</b>\n<code>${walletAddress}</code>\n\n` +
-          `<i>After sending payment, your items will be automatically delivered to you!</i>`;
+        try {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚡ Generating QR Code & Invoice...' }).catch(() => {});
+          }
+        } catch (e) {}
 
-        const payKeyboard = {
-          inline_keyboard: [
-            [{ text: '📋 Copy Address', callback_data: `copy_wallet_${method}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-            [{ text: '✅ I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5404617696589390973' }],
-            [{ text: 'Back', callback_data: `prod_${prodId}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
-          ] as any
-        };
+        try {
+          const { generateStyledQRCode } = await import('./qr-generator');
+          const qrBuffer = await generateStyledQRCode(walletAddress);
 
-        await targetBot.sendMessage(chatId, payMsg, { parse_mode: 'HTML', reply_markup: payKeyboard });
+          const caption = `${coinEmoji} You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+            `<code>${walletAddress}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). Once sent, tap "Check payment / I have paid" below to complete order!</blockquote>`;
+
+          const keyboard = [
+            [{ text: '📋 Copy Wallet Address', callback_data: `copy_wallet_${method}` }],
+            [{ text: '✅ I have paid / Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}` }],
+            [{ text: '🔙 Back to Item', callback_data: `prod_${prodId}` }]
+          ];
+
+          if (query.message) {
+            await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+          }
+          await targetBot.sendPhoto(chatId, qrBuffer, {
+            caption,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (err: any) {
+          console.error("Failed to generate item payment QR photo:", err);
+          const payMsg = `${coinEmoji} <b>Direct Payment (${networkTag})</b>\n\n` +
+            `Product: <b>${productName}</b>\n` +
+            `Quantity: <b>${qty}</b>\n` +
+            `Total Amount: <b>$${totalUSD} USDT</b>\n\n` +
+            `💳 <b>Payment Address / ID:</b>\n<code>${walletAddress}</code>\n\n` +
+            `<i>After sending payment, your items will be automatically delivered to you!</i>`;
+
+          const payKeyboard = {
+            inline_keyboard: [
+              [{ text: '📋 Copy Address', callback_data: `copy_wallet_${method}` }],
+              [{ text: '✅ I have paid', callback_data: `confirm_direct_pay_${prodId}_${qty}` }],
+              [{ text: '🔙 Back', callback_data: `prod_${prodId}` }]
+            ]
+          };
+
+          await targetBot.sendMessage(chatId, payMsg, { parse_mode: 'HTML', reply_markup: payKeyboard });
+        }
         return;
       }
 
