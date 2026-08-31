@@ -3484,14 +3484,16 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
 };
 
 const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number, page: number = 1) => {
-  const tgUser = await storage.getTelegramUser(userId);
-  if (!tgUser) return;
+  let tgUser = await storage.getTelegramUser(userId);
+  if (!tgUser) {
+    tgUser = await storage.getTelegramUserByChatId(chatId.toString());
+  }
 
   const allOrders = await storage.getOrders();
-  const allPayments = await storage.getPayments();
+  const allPayments = await db.select().from(payments);
 
-  const userOrders = allOrders.filter(o => o.telegramUserId === tgUser.id);
-  const userPayments = allPayments.filter(p => p.telegramUserId === tgUser.id && p.status === 'completed');
+  const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
+  const userPayments = tgUser ? allPayments.filter(p => p.telegramUserId === tgUser.id && p.status === 'completed') : [];
 
   interface TxEntry {
     id: string;
