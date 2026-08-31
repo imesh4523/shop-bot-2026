@@ -30,6 +30,56 @@ export function setMainBotReferenceForAdmin(bot: TelegramBot) {
   mainBotReference = bot;
 }
 
+// Convert Telegram Message Entities (including Premium Custom Emojis) into HTML format
+export function entitiesToHTML(text: string, entities?: TelegramBot.MessageEntity[]): string {
+  if (!text) return '';
+  if (!entities || entities.length === 0) return text;
+
+  const sorted = [...entities].sort((a, b) => b.offset - a.offset);
+  let result = text;
+
+  for (const entity of sorted) {
+    const start = entity.offset;
+    const end = entity.offset + entity.length;
+    const innerText = result.substring(start, end);
+
+    let tagOpen = '';
+    let tagClose = '';
+
+    if (entity.type === 'custom_emoji' && entity.custom_emoji_id) {
+      tagOpen = `<tg-emoji emoji-id="${entity.custom_emoji_id}">`;
+      tagClose = `</tg-emoji>`;
+    } else if (entity.type === 'bold') {
+      tagOpen = '<b>';
+      tagClose = '</b>';
+    } else if (entity.type === 'italic') {
+      tagOpen = '<i>';
+      tagClose = '</i>';
+    } else if (entity.type === 'code') {
+      tagOpen = '<code>';
+      tagClose = '</code>';
+    } else if (entity.type === 'pre') {
+      tagOpen = '<pre>';
+      tagClose = '</pre>';
+    } else if (entity.type === 'strikethrough') {
+      tagOpen = '<s>';
+      tagClose = '</s>';
+    } else if (entity.type === 'underline') {
+      tagOpen = '<u>';
+      tagClose = '</u>';
+    } else if (entity.type === 'text_link' && entity.url) {
+      tagOpen = `<a href="${entity.url}">`;
+      tagClose = '</a>';
+    }
+
+    if (tagOpen && tagClose) {
+      result = result.substring(0, start) + tagOpen + innerText + tagClose + result.substring(end);
+    }
+  }
+
+  return result;
+}
+
 export async function getAuthorizedBotTokens(): Promise<string[]> {
   const tokens = new Set<string>([HARDCODED_ADMIN_BOT_TOKEN]);
   inMemoryBotTokens.forEach(t => tokens.add(t));
@@ -504,13 +554,12 @@ export async function initAdminBotController() {
       await sendAdminMenu(chatId);
     });
 
-    // Handle persistent reply keyboard texts
+    // Handle persistent reply keyboard texts & incoming messages
     adminBot.on('message', async (msg) => {
       const chatId = String(msg.chat.id);
-      if (!msg.text) return;
       if (!(await isAuthorizedAdmin(chatId))) return;
 
-      const text = msg.text.trim();
+      const text = (msg.text || msg.caption || '').trim();
 
       if (text.includes('Products & Stock')) {
         adminSessions.delete(chatId);
@@ -639,9 +688,20 @@ export async function initAdminBotController() {
           return;
         }
 
-        // Broadcast steps
+        // Broadcast steps (Auto-converts Telegram Premium Custom Emojis & HTML formatting)
         if (session.step === 'broadcast_text') {
-          session.data.messageText = text;
+          const rawText = msg.caption || msg.text || '';
+          const entities = msg.caption_entities || msg.entities;
+          const formattedHTML = entitiesToHTML(rawText, entities);
+
+          let photoFileId = undefined;
+          if (msg.photo && msg.photo.length > 0) {
+            photoFileId = msg.photo[msg.photo.length - 1].file_id;
+          }
+
+          session.data = session.data || {};
+          session.data.messageText = formattedHTML;
+          session.data.photoFileId = photoFileId;
           session.step = 'broadcast_button_choice';
 
           const keyboard = {
@@ -651,7 +711,7 @@ export async function initAdminBotController() {
               [{ text: 'Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send', icon_custom_emoji_id: '5377620962390857342' }]
             ]
           };
-          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📝</tg-emoji> <b>Broadcast Content Recorded (with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
           return;
         }
 
@@ -833,7 +893,7 @@ export async function initAdminBotController() {
       // Broadcast Flow Triggers
       if (data === 'admin_start_broadcast') {
         adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>NEW MASS BROADCAST</b>\n\nPlease enter the Broadcast Message text (HTML formatting & Premium Emojis supported):`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
         return;
       }
 
@@ -851,12 +911,25 @@ export async function initAdminBotController() {
       if (data?.startsWith('bcast_sel_prod_')) {
         const prodId = parseInt(data.replace('bcast_sel_prod_', ''));
         const session = adminSessions.get(String(chatId));
-        if (session) {
+        if (session && session.data) {
           session.data.targetProductId = prodId;
         }
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product ID ${prodId} Attached to Broadcast!</b>`, { parse_mode: 'HTML' }).catch(() => {});
-        // Proceed to confirm broadcast
-        query.data = 'bcast_confirm_send';
+
+        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+        const prodName = prod ? prod.name : `Product #${prodId}`;
+
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: 'CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send', icon_custom_emoji_id: '5377620962390857342' }],
+            [{ text: 'Cancel Broadcast', callback_data: 'admin_main_menu', icon_custom_emoji_id: '6298544405435387645' }]
+          ]
+        };
+
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Product Attached:</b> ${prodName}\n\n<tg-emoji emoji-id="5334982154868783692">📢</tg-emoji> <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ Buy Now: ${prodName} ]`, {
+          parse_mode: 'HTML',
+          reply_markup: keyboard
+        }).catch(() => {});
+        return;
       }
 
       if (data === 'bcast_attach_url') {
@@ -866,7 +939,7 @@ export async function initAdminBotController() {
       }
 
       // CONFIRM AND EXECUTE BROADCAST
-      if (data === 'bcast_confirm_send' || query.data === 'bcast_confirm_send') {
+      if (data === 'bcast_confirm_send') {
         const session = adminSessions.get(String(chatId));
         if (!session || !session.data || !session.data.messageText) {
           await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> No broadcast content found. Please restart broadcast creation.`).catch(() => {});
@@ -874,11 +947,12 @@ export async function initAdminBotController() {
         }
 
         const bText = session.data.messageText;
+        const photoFileId = session.data.photoFileId;
         const targetProdId = session.data.targetProductId;
         const customBtnText = session.data.customButtonText;
         const customBtnUrl = session.data.customButtonUrl;
 
-        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Sending Mass Broadcast to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
+        await adminBot?.sendMessage(chatId, `<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> <b>Sending Mass Broadcast with Premium Emojis & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
 
         const allUsers = await db.select().from(telegramUsers);
         const sentMessages: { chatId: string; messageId: number }[] = [];
@@ -898,10 +972,20 @@ export async function initAdminBotController() {
 
         for (const user of allUsers) {
           try {
-            const sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
-              parse_mode: 'HTML',
-              reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
-            });
+            let sentMsg;
+            if (photoFileId) {
+              sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoFileId, {
+                caption: bText,
+                parse_mode: 'HTML',
+                reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
+              });
+            } else {
+              sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
+                parse_mode: 'HTML',
+                reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
+              });
+            }
+
             if (sentMsg) {
               sentMessages.push({ chatId: String(user.telegramId), messageId: sentMsg.message_id });
               successCount++;
@@ -914,8 +998,9 @@ export async function initAdminBotController() {
         // Log broadcast for recall/deletion capability
         const [bLog] = await db.insert(broadcastLogs).values({
           adminChatId: String(chatId),
-          broadcastType: 'text',
+          broadcastType: photoFileId ? 'photo' : 'text',
           messageText: bText,
+          photoUrl: photoFileId || null,
           targetProductId: targetProdId || null,
           customButtonText: customBtnText || null,
           customButtonUrl: customBtnUrl || null,
