@@ -7453,6 +7453,19 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
+            await targetBot.sendMessage(chatId, "👇 Choose an option from the menu:", {
+              reply_markup: {
+                keyboard: [
+                  [{ text: '🛍️ Catalog' }],
+                  [{ text: '👤 Profile' }],
+                  [
+                    { text: '🔗 Useful links' },
+                    { text: '💬 Support' }
+                  ]
+                ],
+                resize_keyboard: true
+              }
+            }).catch(() => {});
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
@@ -7460,7 +7473,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: startInlineMarkup
+          reply_markup: {
+            keyboard: [
+              [{ text: '🛍️ Catalog' }],
+              [{ text: '👤 Profile' }],
+              [
+                { text: '🔗 Useful links' },
+                { text: '💬 Support' }
+              ]
+            ],
+            resize_keyboard: true
+          }
         });
       };
 
