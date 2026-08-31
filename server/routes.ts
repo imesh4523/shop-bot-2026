@@ -5589,26 +5589,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
         }
 
-        const totalUSD = (qty * unitPriceUSD).toFixed(2);
-        let networkTag = "TRC-20";
-        let coinEmoji = '<tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji>';
-        let networkEmojiId = "5936189134342199863";
-        let walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
+        const totalUSD = (qty * unitPriceUSD).toFixed(0);
+        let networkTag = "BEP20";
+        let walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
 
-        if (method === 'bep20') {
-          networkTag = "BEP-20";
-          coinEmoji = '<tg-emoji emoji-id="5280907155107506256">🟡</tg-emoji>';
-          networkEmojiId = "5280907155107506256";
-          walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        if (method === 'trc20') {
+          networkTag = "TRC20";
+          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
         } else if (method === 'binance') {
           networkTag = "BINANCE PAY";
-          coinEmoji = '<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>';
-          networkEmojiId = "5281029063459234079";
           walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
-        } else if (method === 'cryptobot') {
-          networkTag = "CRYPTOBOT";
-          coinEmoji = '<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji>';
-          networkEmojiId = "5361914370068613491";
         }
 
         try {
@@ -5621,19 +5611,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const { generateStyledQRCode } = await import('./qr-generator');
           const qrBuffer = await generateStyledQRCode(walletAddress);
 
-          const caption = `${coinEmoji} You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
+          const caption = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
             `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="${networkEmojiId}">🪙</tg-emoji>\n\n` +
+            `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
             `<code>${walletAddress}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
-            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). Once sent, tap "Check payment / I have paid" below to complete order!</blockquote>`;
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
-            [{ text: 'Copy Wallet Address', callback_data: `copy_wallet_${method}`, style: 'primary', icon_custom_emoji_id: '5271604874419647061' }],
-            [{ text: 'I have paid / Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-            [{ text: 'Back to Item', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
-          ];
+            [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network / Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
+          ] as any[][];
 
           if (query.message) {
             await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
@@ -5643,9 +5632,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: keyboard }
           });
+          return;
         } catch (err: any) {
           console.error("Failed to generate item payment QR photo:", err);
-          const payMsg = `${coinEmoji} <b>Direct Payment (${networkTag})</b>\n\n` +
+          const payMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> <b>Direct Payment (${networkTag})</b>\n\n` +
             `Product: <b>${productName}</b>\n` +
             `Quantity: <b>${qty}</b>\n` +
             `Total Amount: <b>$${totalUSD} USDT</b>\n\n` +
