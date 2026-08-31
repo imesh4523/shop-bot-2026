@@ -3043,7 +3043,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   if (stockCount === 0) {
     const outOfStockKb = {
       inline_keyboard: [
-        [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+        [{ text: '🔙 Back to Catalog', callback_data: 'buy' }]
       ] as any
     };
     const outMsg = `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Out of Stock</b>\n\n` +
@@ -3067,7 +3067,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row1: any[] = [];
   [1, 2, 3].forEach(qty => {
     if (qty <= stockCount) {
-      row1.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'primary' });
+      row1.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}` });
     }
   });
   if (row1.length > 0) inline_keyboard.push(row1);
@@ -3076,7 +3076,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row2: any[] = [];
   [5, 10, 20].forEach(qty => {
     if (qty <= stockCount) {
-      row2.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'primary' });
+      row2.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}` });
     }
   });
   if (row2.length > 0) inline_keyboard.push(row2);
@@ -3084,13 +3084,13 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   // Row 3: Other quantity (only if stockCount > 1)
   if (stockCount > 1) {
     inline_keyboard.push([
-      { text: 'Other quantity', callback_data: `qty_other_${product.id}`, style: 'success', icon_custom_emoji_id: '5201692367437974073' }
+      { text: '💵 Other quantity', callback_data: `qty_other_${product.id}` }
     ]);
   }
 
   // Row 4: Back button
   inline_keyboard.push([
-    { text: 'Back', callback_data: `cat_${product.type}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    { text: '🔙 Back', callback_data: `cat_${product.type}` }
   ]);
 
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");

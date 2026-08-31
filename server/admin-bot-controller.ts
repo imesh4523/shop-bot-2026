@@ -842,6 +842,21 @@ export async function initAdminBotController() {
         return;
       }
 
+      if (data?.startsWith('prod_')) {
+        const prodId = parseInt(data.replace('prod_', ''));
+        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+        if (prod) {
+          const priceUSD = (prod.price / 100).toFixed(2);
+          const text = `<tg-emoji emoji-id="5465416081105492147">📦</tg-emoji> <b>${prod.name}</b>\n\n` +
+            `<b>Price:</b> $${priceUSD} USD\n` +
+            `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
+            `<b>Description:</b>\n${prod.description || 'Instant 24/7 delivery guaranteed.'}`;
+
+          await adminBot?.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
+        }
+        return;
+      }
+
       // Add Product Trigger
       if (data === 'admin_add_product') {
         adminSessions.set(String(chatId), { step: 'add_prod_name', data: {} });
