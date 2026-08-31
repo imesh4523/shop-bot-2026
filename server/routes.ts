@@ -2952,7 +2952,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b> 🎉`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>\n<tg-emoji emoji-id="5388622778817589921">🎉</tg-emoji>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
