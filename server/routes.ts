@@ -5982,41 +5982,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'payment_cryptobot') {
-        const cryptobotEnabled = (await storage.getSetting('PAYMENT_CRYPTOBOT_ENABLED'))?.value !== 'false';
-        if (!cryptobotEnabled) {
-          if (queryId) {
-            await targetBot.answerCallbackQuery(queryId, { text: '❌ CryptoBot payments are currently disabled.', show_alert: true }).catch(() => {});
-          } else {
-            await targetBot.sendMessage(chatId, '❌ CryptoBot payments are currently disabled by the admin.');
-          }
-          return;
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id, {
+            text: '⚠️ This payment gateway is currently under maintenance.',
+            show_alert: true
+          }).catch(() => {});
+        } else {
+          await targetBot.sendMessage(chatId, '⚠️ This payment gateway is currently under maintenance.');
         }
-
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-
-        const keyboard: any[][] = [
-          [
-            { text: '1', callback_data: 'cryptobot_amount_1', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '5', callback_data: 'cryptobot_amount_5', icon_custom_emoji_id: '5409048419211682843' },
-            { text: '10', callback_data: 'cryptobot_amount_10', icon_custom_emoji_id: '5409048419211682843' }
-          ],
-          [
-            { text: 'Custom', callback_data: 'cryptobot_amount_custom', icon_custom_emoji_id: '5814427657609153890' }
-          ]
-        ];
-
-        const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5361543877599724417">🤖</tg-emoji> Enter amount for <b>@CryptoBot</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
-        await storage.updateTelegramUserByChatId(chatId.toString(), {
-          lastAction: 'awaiting_cryptobot_amount_selection',
-          lastMessageId: prompt?.message_id
-        });
         return;
       }
 
