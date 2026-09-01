@@ -4596,9 +4596,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const startInlineMarkup = {
           inline_keyboard: [
             [
-              { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
-            ],
-            [
+              { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
               { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
             ],
             [
@@ -7756,14 +7754,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const startInlineMarkup = {
         inline_keyboard: [
           [
-            { text: 'Catalog', callback_data: 'buy', icon_custom_emoji_id: '5377660214096974712' }
+            { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+            { text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
           ],
           [
-            { text: 'Profile', callback_data: 'profile', icon_custom_emoji_id: '5260399854500191689' }
-          ],
-          [
-            { text: 'Useful links', callback_data: 'useful_links', icon_custom_emoji_id: '5271604874419647061' },
-            { text: 'Support', callback_data: 'support', icon_custom_emoji_id: '5260535596941582167' }
+            { text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+            { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
           ]
         ]
       };
