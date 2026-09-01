@@ -4596,7 +4596,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const startInlineMarkup = {
           inline_keyboard: [
             [
-              { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+              { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
+            ],
+            [
               { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
             ],
             [
@@ -7754,7 +7756,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const startInlineMarkup = {
         inline_keyboard: [
           [
-            { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+            { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
+          ],
+          [
             { text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
           ],
           [
