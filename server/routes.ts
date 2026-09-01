@@ -2896,31 +2896,7 @@ const sendOrEditScreenWithPhoto = async (
   const token = (targetBot as any)?.token;
 
   if (messageId && fs.existsSync(bannerPath)) {
-    const cachedFileId = bannerFileIdCache[bannerPath];
-
-    // 1. Try editing in-place using cached Telegram file_id (0-latency instant in-place edit)
-    if (cachedFileId) {
-      try {
-        await targetBot.editMessageMedia(
-          {
-            type: 'photo',
-            media: cachedFileId,
-            caption,
-            parse_mode: 'HTML'
-          } as any,
-          {
-            chat_id: chatId,
-            message_id: messageId,
-            reply_markup: replyMarkup
-          } as any
-        );
-        return;
-      } catch (err: any) {
-        console.log('[editMessageMedia cached file_id fallback]:', err.message);
-      }
-    }
-
-    // 2. Try editing in-place with multipart file upload via FormData / Telegram Bot API
+    // 1. Always edit in-place with fresh photo stream upload via FormData / Telegram Bot API
     if (token) {
       try {
         const form = new FormData();
@@ -2941,12 +2917,7 @@ const sendOrEditScreenWithPhoto = async (
           headers: form.getHeaders()
         });
 
-        if (res.data?.ok && res.data?.result?.photo) {
-          const photos = res.data.result.photo;
-          const fileId = photos[photos.length - 1]?.file_id;
-          if (fileId) {
-            bannerFileIdCache[bannerPath] = fileId;
-          }
+        if (res.data?.ok) {
           return;
         }
       } catch (err: any) {
@@ -2954,7 +2925,7 @@ const sendOrEditScreenWithPhoto = async (
       }
     }
 
-    // 3. Fallback: if in-place media edit failed, delete old message and send new photo message so photo is 100% updated
+    // 2. Fallback: if in-place media edit failed, delete old message and send new photo message so photo is 100% updated
     try {
       await targetBot.deleteMessage(chatId, messageId).catch(() => {});
     } catch (e2) {}
@@ -2962,18 +2933,14 @@ const sendOrEditScreenWithPhoto = async (
 
   if (fs.existsSync(bannerPath)) {
     try {
-      const sentMsg = await targetBot.sendPhoto(chatId, bannerPath, {
+      await targetBot.sendPhoto(chatId, bannerPath, {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
       });
-      if (sentMsg.photo && sentMsg.photo.length > 0) {
-        const fileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
-        bannerFileIdCache[bannerPath] = fileId;
-      }
       return;
     } catch (err: any) {
-      console.error('Failed to send photo, falling back to text:', err.message);
+      console.error("Failed to sendPhoto:", err.message);
     }
   }
 
