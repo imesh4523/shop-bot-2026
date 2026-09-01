@@ -85,34 +85,11 @@ async function sendPhotoWithCache(
   cacheKey: string,
   options: TelegramBot.SendPhotoOptions
 ): Promise<TelegramBot.Message> {
-  const cachedSetting = await storage.getSetting(cacheKey);
-  if (cachedSetting?.value) {
-    try {
-      console.log(`[Bot API] Sending photo using cached file_id for ${cacheKey}`);
-      return await targetBot.sendPhoto(chatId, cachedSetting.value, options);
-    } catch (err: any) {
-      console.warn(`[Bot API] Failed to send photo using cached file_id for ${cacheKey}: ${err.message || err}. Falling back to file upload.`);
-      await storage.updateSetting(cacheKey, "");
-    }
-  }
-
   if (!fs.existsSync(imagePath)) {
     throw new Error(`Photo file not found at: ${imagePath}`);
   }
   const photoBuffer = fs.readFileSync(imagePath);
-
-  console.log(`[Bot API] Uploading photo buffer for ${cacheKey}`);
-  const msg = await targetBot.sendPhoto(chatId, photoBuffer, options);
-
-  if (msg.photo && msg.photo.length > 0) {
-    const fileId = msg.photo[msg.photo.length - 1].file_id;
-    console.log(`[Bot API] Successfully uploaded photo. Caching file_id: ${fileId} for ${cacheKey}`);
-    await storage.updateSetting(cacheKey, fileId).catch(err => {
-      console.error(`[Bot API] Failed to save cached file_id:`, err);
-    });
-  }
-
-  return msg;
+  return await targetBot.sendPhoto(chatId, photoBuffer, options);
 }
 
 async function verifyDepositViaBinance(
