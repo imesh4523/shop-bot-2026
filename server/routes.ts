@@ -8972,24 +8972,23 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           lastAction: `awaiting_binance_txid_${payment.id}_0`
         });
 
-        const responseMsg = `<tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+        const responseMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
           `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5409048419211682843">🟡</tg-emoji>\n\n` +
+          `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>\n\n` +
           `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
           `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
-          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
+          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
+          [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await targetBot.sendMessage(chatId, responseMsg, {
-          parse_mode: 'HTML',
-          reply_markup: { inline_keyboard: keyboard }
-        });
+        const binanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_binance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, responseMsg, { inline_keyboard: keyboard });
       } else if (tgUser?.lastAction === 'awaiting_trc20_amount') {
         try {
           const amount = parseFloat(normalizedText || "0");
@@ -9024,19 +9023,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<b>Network:</b> TRC20  <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
             `<code>${wallet}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>TRC20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>TRC20</b> to this address, otherwise coins will be lost.</i>\n\n` +
             `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
+            [{ text: 'Copy Address', copy_text: { text: wallet }, icon_custom_emoji_id: '5231102735817918643' }],
             [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
             [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
             [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
-          await targetBot.sendMessage(chatId, responseMsg, {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
+          const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, responseMsg, { inline_keyboard: keyboard });
         } catch (err: any) {
           console.error("Error initiating TRC20 payment:", err);
           targetBot.sendMessage(chatId, `❌ Failed to initiate TRC20 deposit: ${err.message || err}`);
@@ -9075,19 +9073,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
             `<code>${wallet}</code>\n\n` +
             `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
             `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
           const keyboard = [
+            [{ text: 'Copy Address', copy_text: { text: wallet }, icon_custom_emoji_id: '5231102735817918643' }],
             [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
             [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
             [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
-          await targetBot.sendMessage(chatId, responseMsg, {
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: keyboard }
-          });
+          const bep20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_bep20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bep20BannerPath, responseMsg, { inline_keyboard: keyboard });
         } catch (err: any) {
           console.error("Error initiating BEP20 payment:", err);
           targetBot.sendMessage(chatId, `❌ Failed to initiate BEP20 deposit: ${err.message || err}`);
