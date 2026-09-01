@@ -2846,6 +2846,20 @@ const initBot = async () => {
 };
 const bannerFileIdCache: Record<string, string> = {};
 
+const getPersistentBottomKeyboard = () => ({
+  keyboard: [
+    [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+    [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+    [
+      { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+      { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+    ]
+  ],
+  resize_keyboard: true,
+  is_persistent: true,
+  one_time_keyboard: false
+});
+
 const sendAutoDeleteError = async (
   targetBot: TelegramBot,
   chatId: number | string,
@@ -2862,6 +2876,9 @@ const sendAutoDeleteError = async (
       if (sentMsg?.message_id) {
         targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => {});
       }
+      targetBot.sendMessage(chatId, "\u2060", {
+        reply_markup: getPersistentBottomKeyboard()
+      }).catch(() => {});
     }, timeoutMs);
   } catch (err) {
     console.error("sendAutoDeleteError failed:", err);
@@ -7804,17 +7821,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       };
 
       const sendWelcomeBanner = async () => {
-        const bottomKeyboard = {
-          keyboard: [
-            [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-            [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
-            [
-              { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
-              { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
-            ]
-          ],
-          resize_keyboard: true
-        };
+        const bottomKeyboard = getPersistentBottomKeyboard();
 
         if (fs.existsSync(bannerPath)) {
           try {
