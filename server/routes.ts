@@ -5612,6 +5612,30 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
+          const token = (targetBot as any)?.token;
+          if (query.message?.message_id && token) {
+            try {
+              const form = new FormData();
+              form.append('chat_id', chatId.toString());
+              form.append('message_id', query.message.message_id.toString());
+              form.append('media', JSON.stringify({
+                type: 'photo',
+                media: 'attach://qr_file',
+                caption: caption,
+                parse_mode: 'HTML'
+              }));
+              form.append('reply_markup', JSON.stringify({ inline_keyboard: keyboard }));
+              form.append('qr_file', qrBuffer, { filename: 'qr.png', contentType: 'image/png' });
+
+              const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
+                headers: form.getHeaders()
+              });
+              if (res.data?.ok) return;
+            } catch (e: any) {
+              console.log('[editMessageMedia QR error]:', e.message);
+            }
+          }
+
           if (query.message) {
             await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
           }
@@ -5782,6 +5806,30 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
             [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
+
+          const token = (targetBot as any)?.token;
+          if (query.message?.message_id && token) {
+            try {
+              const form = new FormData();
+              form.append('chat_id', chatId.toString());
+              form.append('message_id', query.message.message_id.toString());
+              form.append('media', JSON.stringify({
+                type: 'photo',
+                media: 'attach://qr_file',
+                caption: caption,
+                parse_mode: 'HTML'
+              }));
+              form.append('reply_markup', JSON.stringify({ inline_keyboard: keyboard }));
+              form.append('qr_file', qrBuffer, { filename: 'qr.png', contentType: 'image/png' });
+
+              const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
+                headers: form.getHeaders()
+              });
+              if (res.data?.ok) return;
+            } catch (e: any) {
+              console.log('[editMessageMedia item QR error]:', e.message);
+            }
+          }
 
           if (query.message) {
             await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
