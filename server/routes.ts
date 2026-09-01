@@ -6474,8 +6474,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ];
 
         const prompt = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> Select or enter amount for <b>Binance Pay</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
-        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+        const binanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_binance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
 
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_binance_amount_selection',
@@ -6528,7 +6528,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        const binanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_binance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -6609,8 +6610,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ];
 
         const prompt = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> Select or enter amount for <b>USDT (TRC-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
-        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+        const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
 
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_trc20_amount_selection',
@@ -6662,7 +6663,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -6689,8 +6691,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ];
 
         const prompt = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> Select or enter amount for <b>USDT (BEP-20)</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`;
-        const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
+        const bep20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_bep20_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bep20BannerPath, prompt, { inline_keyboard: keyboard }, query.message?.message_id);
 
         await storage.updateTelegramUserByChatId(chatId.toString(), {
           lastAction: 'awaiting_bep20_amount_selection',
