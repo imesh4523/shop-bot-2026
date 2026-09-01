@@ -3018,7 +3018,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const profileInlineKeyboard = {
     inline_keyboard: [
-      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
       [{ text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
       [{ text: 'Referral program', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
       [{ text: 'Promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
@@ -3676,7 +3676,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
 
   inline_keyboard.push(
     [
-      { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '5409048419211682843' }
+      { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '6050684909389880647' }
     ],
     [
       { text: 'My purchases', callback_data: 'purchase_history', icon_custom_emoji_id: '5854908544712707500' }
@@ -5732,7 +5732,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if ((tgUser.balance || 0) / 100 < qty * unitPriceUSD) {
           const topUpKeyboard = {
             inline_keyboard: [
-              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
               [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
@@ -5874,13 +5874,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const totalUSDNum = qty * unitPriceUSD;
         const totalUSD = totalUSDNum.toFixed(2);
         let networkTag = "BEP20";
+        let networkEmojiId = "5280907155107506256";
         let walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
 
         if (method === 'trc20') {
           networkTag = "TRC20";
+          networkEmojiId = "5936189134342199863";
           walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
         } else if (method === 'binance') {
           networkTag = "BINANCE PAY";
+          networkEmojiId = "5281029063459234079";
           walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         }
 
@@ -5891,9 +5894,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           status: 'pending'
         });
 
-        const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
+        const responseMsg = `<tg-emoji emoji-id="${networkEmojiId}">💰</tg-emoji> You need to pay <b>${totalUSD} USDT</b> for <b>${qty}x ${productName}</b>\n\n` +
           `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-          `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+          `<b>Network:</b> ${networkTag}  <tg-emoji emoji-id="${networkEmojiId}">💰</tg-emoji>\n\n` +
           `<code>${walletAddress}</code>\n\n` +
           `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${totalUSD} USDT</b> to the address above.\n\n` +
           `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${networkTag}</b> to this address, otherwise coins will be lost.</i>\n\n` +
@@ -7962,7 +7965,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const replyText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '') : '';
       const isBinanceReply = replyText.includes('Binance') || replyText.includes('Order ID') || replyText.includes('Transaction ID');
       const isBinanceState = Boolean(tgUser?.lastAction?.startsWith('awaiting_binance_txid_'));
-      const isNumericInput = Boolean(normalizedText && /^\d{5,25}$/.test(normalizedText) && tgUser?.lastAction !== 'awaiting_promocode' && tgUser?.lastAction !== 'awaiting_promocode_input');
+      const isDepositAmountState = Boolean(tgUser?.lastAction?.includes('_amount'));
+      const isNumericInput = Boolean(
+        normalizedText &&
+        /^\d{5,25}$/.test(normalizedText) &&
+        !isDepositAmountState &&
+        !tgUser?.lastAction?.startsWith('awaiting_custom_qty_') &&
+        tgUser?.lastAction !== 'awaiting_promocode' &&
+        tgUser?.lastAction !== 'awaiting_promocode_input'
+      );
 
       console.log(`[Binance Check Priority] user=${userId}, isBinanceState=${isBinanceState}, isBinanceReply=${isBinanceReply}, isNumericInput=${isNumericInput}, text="${normalizedText}"`);
 
@@ -8248,7 +8259,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if ((tgUser.balance || 0) / 100 < qty * unitPriceUSD) {
           const topUpKeyboard = {
             inline_keyboard: [
-              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
               [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
