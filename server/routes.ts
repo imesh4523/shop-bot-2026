@@ -5533,7 +5533,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
         const caption = `${catIcon} <b>${category}</b>\n\nSelect the product you need:`;
-        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard: keyboard });
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
 
@@ -5628,23 +5628,13 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data.startsWith('prod_')) {
         const productId = parseInt(data.substring(5));
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-        await sendProductDetailsScreen(targetBot, chatId, productId);
+        await sendProductDetailsScreen(targetBot, chatId, productId, undefined, query.message?.message_id);
         return;
       }
 
       if (data.startsWith('preset_buy_')) {
         const category = data.substring(11);
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-        await sendProductDetailsScreen(targetBot, chatId, category, category);
+        await sendProductDetailsScreen(targetBot, chatId, category, category, query.message?.message_id);
         return;
       }
 
@@ -5659,12 +5649,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const parts = data.split('_');
         const prodId = parts[2];
         const qty = parseInt(parts[3]) || 1;
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-        await sendOrderCalculationScreen(targetBot, chatId, prodId, qty);
+        await sendOrderCalculationScreen(targetBot, chatId, prodId, qty, query.message?.message_id);
         return;
       }
 
@@ -6367,13 +6352,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data === 'add_funds') {
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-
-        await sendAddFundsScreen(targetBot, chatId);
+        await sendAddFundsScreen(targetBot, chatId, query.message?.message_id);
         return;
       }
 
