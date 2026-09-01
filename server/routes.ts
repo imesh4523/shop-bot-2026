@@ -2853,9 +2853,6 @@ const sendAutoDeleteError = async (
       if (sentMsg?.message_id) {
         targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => {});
       }
-      targetBot.sendMessage(chatId, "\u2060", {
-        reply_markup: getPersistentBottomKeyboard()
-      }).catch(() => {});
     }, timeoutMs);
   } catch (err) {
     console.error("sendAutoDeleteError failed:", err);
@@ -7781,9 +7778,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            await targetBot.sendMessage(chatId, "\u2060", {
-              reply_markup: bottomKeyboard
-            }).catch(err => console.error("Bottom keyboard send error:", err));
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
