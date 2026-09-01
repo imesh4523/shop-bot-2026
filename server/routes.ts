@@ -2872,9 +2872,11 @@ const sendOrEditScreenWithPhoto = async (
 ) => {
   const token = (targetBot as any)?.token;
 
-  if (messageId && fs.existsSync(bannerPath)) {
-    // 1. Always edit in-place with fresh photo stream upload via FormData / Telegram Bot API
-    if (token) {
+  if (fs.existsSync(bannerPath)) {
+    const fileBuffer = fs.readFileSync(bannerPath);
+    const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+
+    if (messageId && token) {
       try {
         const form = new FormData();
         form.append('chat_id', chatId.toString());
@@ -2888,7 +2890,10 @@ const sendOrEditScreenWithPhoto = async (
         if (replyMarkup) {
           form.append('reply_markup', JSON.stringify(replyMarkup));
         }
-        form.append('banner_file', fs.createReadStream(bannerPath));
+        form.append('banner_file', fileBuffer, {
+          filename: dynamicFilename,
+          contentType: 'image/png'
+        });
 
         const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
           headers: form.getHeaders()
@@ -2900,20 +2905,20 @@ const sendOrEditScreenWithPhoto = async (
       } catch (err: any) {
         console.log('[editMessageMedia multipart upload error]:', err.response?.data || err.message);
       }
+
+      try {
+        await targetBot.deleteMessage(chatId, messageId).catch(() => {});
+      } catch (e2) {}
     }
 
-    // 2. Fallback: if in-place media edit failed, delete old message and send new photo message so photo is 100% updated
     try {
-      await targetBot.deleteMessage(chatId, messageId).catch(() => {});
-    } catch (e2) {}
-  }
-
-  if (fs.existsSync(bannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, bannerPath, {
+      await targetBot.sendPhoto(chatId, fileBuffer, {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
+      }, {
+        filename: dynamicFilename,
+        contentType: 'image/png'
       });
       return;
     } catch (err: any) {
