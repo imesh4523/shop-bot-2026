@@ -8,27 +8,27 @@ const HEIGHT = 720;
 
 // Color Definitions (RGBA)
 const BG_COLOR = 0x0b0e17ff;         // Deep dark navy
-const CARD_BG = 0x0d111aff;          // Inner card background
+const CARD_BG = 0x0f1420ff;          // Inner card background
 const GOLD_COLOR = 0xffc107ff;       // Vibrant gold yellow
 const CORAL_COLOR = 0xff3d00ff;      // Bright coral red
 const WHITE_COLOR = 0xffffffff;      // Pure white
-const BADGE_BG = 0xeeeeeeff;         // Light silver white for badge
-const BADGE_TEXT_COLOR = 0x333333ff; // Dark gray text for badge
-const GRID_COLOR = 0x222a36ff;       // Grid line color
+const BADGE_BG = 0xf0f2f5ff;         // Light silver white for badge
+const GRID_COLOR = 0x1a2332ff;       // Grid line color
+const GLOW_COLOR = 0x2d3a52ff;       // Soft inner glow
 
 const banners = [
-  { filename: "imesh_cloudbot_banner.png", title: "WELCOME", subtitle: "MAIN MENU" },
-  { filename: "imesh_cloudbot_catalog_banner.png", title: "CATALOG", subtitle: "PRODUCT CENTER" },
-  { filename: "imesh_cloudbot_profile_banner.png", title: "PROFILE", subtitle: "USER DASHBOARD" },
-  { filename: "imesh_cloudbot_orders_banner.png", title: "MY PURCHASES", subtitle: "ORDER CENTER" },
-  { filename: "imesh_cloudbot_referral_banner.png", title: "REFERRAL PROGRAM", subtitle: "REWARD CENTER" },
-  { filename: "imesh_cloudbot_promocode_banner.png", title: "PROMO CODE", subtitle: "REDEEM CENTER" },
-  { filename: "imesh_cloudbot_transactions_banner.png", title: "TRANSACTIONS", subtitle: "HISTORY CENTER" },
-  { filename: "imesh_cloudbot_balance_banner.png", title: "TOP UP", subtitle: "BALANCE CENTER" },
-  { filename: "imesh_cloudbot_info_banner.png", title: "USEFUL LINKS", subtitle: "INFO CENTER" },
-  { filename: "imesh_cloudbot_payment_banner.png", title: "PAYMENT", subtitle: "CHECKOUT CENTER" },
-  { filename: "imesh_cloudbot_currency_banner.png", title: "CURRENCY", subtitle: "PRICE DISPLAY" },
-  { filename: "imesh_cloudbot_settings_banner.png", title: "SETTINGS", subtitle: "PREFERENCES" },
+  { filename: "imesh_cloudbot_banner.png", title: "WELCOME", subtitle: "MAIN MENU", accent: 0xff9100ff },
+  { filename: "imesh_cloudbot_catalog_banner.png", title: "CATALOG", subtitle: "PRODUCT CENTER", accent: 0x00e676ff },
+  { filename: "imesh_cloudbot_profile_banner.png", title: "PROFILE", subtitle: "USER DASHBOARD", accent: 0x00b0ffff },
+  { filename: "imesh_cloudbot_orders_banner.png", title: "MY PURCHASES", subtitle: "ORDER CENTER", accent: 0xff3d00ff },
+  { filename: "imesh_cloudbot_referral_banner.png", title: "REFERRAL PROGRAM", subtitle: "REWARD CENTER", accent: 0xe040fbff },
+  { filename: "imesh_cloudbot_promocode_banner.png", title: "PROMO CODE", subtitle: "REDEEM CENTER", accent: 0xffd600ff },
+  { filename: "imesh_cloudbot_transactions_banner.png", title: "TRANSACTIONS", subtitle: "HISTORY CENTER", accent: 0x00bfa5ff },
+  { filename: "imesh_cloudbot_balance_banner.png", title: "TOP UP", subtitle: "BALANCE CENTER", accent: 0x76ff03ff },
+  { filename: "imesh_cloudbot_info_banner.png", title: "USEFUL LINKS", subtitle: "INFO CENTER", accent: 0x29b6f6ff },
+  { filename: "imesh_cloudbot_payment_banner.png", title: "PAYMENT", subtitle: "CHECKOUT CENTER", accent: 0xffab00ff },
+  { filename: "imesh_cloudbot_currency_banner.png", title: "CURRENCY", subtitle: "PRICE DISPLAY", accent: 0xab47bcff },
+  { filename: "imesh_cloudbot_settings_banner.png", title: "SETTINGS", subtitle: "PREFERENCES", accent: 0x78909cff },
 ];
 
 async function generateBanners() {
@@ -46,15 +46,14 @@ async function generateBanners() {
   }
 
   for (const item of banners) {
-    console.log(`Generating 16:9 banner: ${item.filename} (${item.title})...`);
+    console.log(`Generating 16:9 ultra banner: ${item.filename} (${item.title})...`);
 
     // Create 1280x720 canvas
     const img = new Jimp({ width: WIDTH, height: HEIGHT, color: BG_COLOR });
 
-    // 1. Draw Perspective / Isometric Grid Lines & Starry Particles
+    // 1. Draw Perspective Grid Background
     for (let x = 0; x < WIDTH; x += 40) {
       for (let y = 0; y < HEIGHT; y++) {
-        // Draw vertical grid lines
         if (x % 80 === 0) {
           img.setPixelColor(GRID_COLOR, x, y);
         }
@@ -66,7 +65,7 @@ async function generateBanners() {
       }
     }
 
-    // Add star dots
+    // Add bright starry background dots
     const starCoords = [
       [150, 100], [350, 80], [900, 60], [1100, 120],
       [200, 650], [450, 680], [850, 670], [1050, 630],
@@ -78,7 +77,7 @@ async function generateBanners() {
       img.setPixelColor(WHITE_COLOR, sx, sy + 1);
     }
 
-    // 2. Draw Top Right Coral Red Ribbon Corner Accent
+    // 2. Draw Top Right Coral Red Corner Ribbon
     for (let y = 0; y < 140; y++) {
       for (let x = WIDTH - (140 - y) * 2; x < WIDTH; x++) {
         if (x >= 0 && x < WIDTH) {
@@ -87,7 +86,7 @@ async function generateBanners() {
       }
     }
 
-    // 3. Draw Bottom Left Golden Yellow Ribbon Corner Accent
+    // 3. Draw Bottom Left Golden Yellow Corner Ribbon
     for (let y = HEIGHT - 140; y < HEIGHT; y++) {
       for (let x = 0; x < (y - (HEIGHT - 140)) * 2; x++) {
         if (x >= 0 && x < WIDTH) {
@@ -96,7 +95,7 @@ async function generateBanners() {
       }
     }
 
-    // 4. Draw Center Card Container Frame
+    // 4. Draw Main Card Container (60, 50, 1160, 620)
     const cardX = 60;
     const cardY = 50;
     const cardW = 1160;
@@ -105,7 +104,6 @@ async function generateBanners() {
 
     for (let y = cardY; y < cardY + cardH; y++) {
       for (let x = cardX; x < cardX + cardW; x++) {
-        // Corner rounding check
         const inTL = (x - (cardX + borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 <= borderRadius ** 2;
         const inTR = (x - (cardX + cardW - borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 <= borderRadius ** 2;
         const inBL = (x - (cardX + borderRadius)) ** 2 + (y - (cardY + cardH - borderRadius)) ** 2 <= borderRadius ** 2;
@@ -120,25 +118,51 @@ async function generateBanners() {
         const insideCard = !isCornerZone || inTL || inTR || inBL || inBR;
 
         if (insideCard) {
-          // Border check (outer 3px border is GOLD_COLOR)
           const isBorder =
-            x < cardX + 3 || x >= cardX + cardW - 3 ||
-            y < cardY + 3 || y >= cardY + cardH - 3 ||
-            (inTL && (x - (cardX + borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 >= (borderRadius - 3) ** 2) ||
-            (inTR && (x - (cardX + cardW - borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 >= (borderRadius - 3) ** 2) ||
-            (inBL && (x - (cardX + borderRadius)) ** 2 + (y - (cardY + cardH - borderRadius)) ** 2 >= (borderRadius - 3) ** 2) ||
-            (inBR && (x - (cardX + cardW - borderRadius)) ** 2 + (y - (cardY + cardH - borderRadius)) ** 2 >= (borderRadius - 3) ** 2);
+            x < cardX + 4 || x >= cardX + cardW - 4 ||
+            y < cardY + 4 || y >= cardY + cardH - 4 ||
+            (inTL && (x - (cardX + borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 >= (borderRadius - 4) ** 2) ||
+            (inTR && (x - (cardX + cardW - borderRadius)) ** 2 + (y - (cardY + borderRadius)) ** 2 >= (borderRadius - 4) ** 2) ||
+            (inBL && (x - (cardX + borderRadius)) ** 2 + (y - (cardY + cardH - borderRadius)) ** 2 >= (borderRadius - 4) ** 2) ||
+            (inBR && (x - (cardX + cardW - borderRadius)) ** 2 + (y - (cardY + cardH - borderRadius)) ** 2 >= (borderRadius - 4) ** 2);
 
           if (isBorder) {
             img.setPixelColor(GOLD_COLOR, x, y);
           } else {
-            img.setPixelColor(CARD_BG, x, y);
+            // Subtle Radial Inner Lighting Effect inside Card
+            const distCenter = Math.sqrt((x - 640) ** 2 + (y - 360) ** 2);
+            if (distCenter < 280) {
+              img.setPixelColor(GLOW_COLOR, x, y);
+            } else {
+              img.setPixelColor(CARD_BG, x, y);
+            }
           }
         }
       }
     }
 
-    // 5. Draw Top Left White Glass Badge Pill
+    // 5. Draw 4 Decorative Corner Circles (Matching Design Frame)
+    const corners = [
+      [cardX + 12, cardY + 12],
+      [cardX + cardW - 12, cardY + 12],
+      [cardX + 12, cardY + cardH - 12],
+      [cardX + cardW - 12, cardY + cardH - 12]
+    ];
+    for (const [cx, cy] of corners) {
+      const circleR = 26;
+      for (let cy_pos = cy - circleR; cy_pos <= cy + circleR; cy_pos++) {
+        for (let cx_pos = cx - circleR; cx_pos <= cx + circleR; cx_pos++) {
+          const distSq = (cx_pos - cx) ** 2 + (cy_pos - cy) ** 2;
+          if (distSq <= circleR ** 2 && distSq >= (circleR - 3) ** 2) {
+            if (cx_pos >= 0 && cx_pos < WIDTH && cy_pos >= 0 && cy_pos < HEIGHT) {
+              img.setPixelColor(GOLD_COLOR, cx_pos, cy_pos);
+            }
+          }
+        }
+      }
+    }
+
+    // 6. Draw Top Left White Glass Badge Pill ("IMESH CLOUD STORE")
     const badgeX = 90;
     const badgeY = 85;
     const badgeW = 260;
@@ -150,7 +174,7 @@ async function generateBanners() {
         const inTL = (x - (badgeX + badgeR)) ** 2 + (y - (badgeY + badgeR)) ** 2 <= badgeR ** 2;
         const inTR = (x - (badgeX + badgeW - badgeR)) ** 2 + (y - (badgeY + badgeR)) ** 2 <= badgeR ** 2;
         const inBL = (x - (badgeX + badgeR)) ** 2 + (y - (badgeY + badgeH - badgeR)) ** 2 <= badgeR ** 2;
-        const inBR = (x - (badgeX + badgeW - badgeR)) ** 2 + (y - (badgeY + badgeH - badgeR)) ** 2 <= badgeR ** 2;
+        const inBR = (x - (badgeX + badgeW - badgeR)) ** 2 + (y - (badgeY + badgeW - badgeR)) ** 2 <= badgeR ** 2;
 
         const isCornerZone =
           (x < badgeX + badgeR && y < badgeY + badgeR) ||
@@ -167,11 +191,11 @@ async function generateBanners() {
     // Print Badge Text
     img.print({ font: font16, x: badgeX + 18, y: badgeY + 12, text: "IMESH CLOUD STORE" });
 
-    // 6. Draw Center Title Text (64px White)
+    // 7. Draw Center Title Text (64px White)
     img.print({
       font: font64,
       x: 0,
-      y: 250,
+      y: 245,
       text: {
         text: item.title,
         alignmentX: 2, // CENTER
@@ -179,12 +203,12 @@ async function generateBanners() {
       maxWidth: WIDTH
     });
 
-    // 7. Draw Subtitle Capsule Pill Frame
-    const subW = Math.max(280, item.subtitle.length * 20 + 60);
-    const subH = 54;
+    // 8. Draw Subtitle Capsule Pill Frame with Section Accent Border
+    const subW = Math.max(290, item.subtitle.length * 20 + 60);
+    const subH = 56;
     const subX = Math.round((WIDTH - subW) / 2);
-    const subY = 370;
-    const subR = 27;
+    const subY = 365;
+    const subR = 28;
 
     for (let y = subY; y < subY + subH; y++) {
       for (let x = subX; x < subX + subW; x++) {
@@ -203,12 +227,12 @@ async function generateBanners() {
 
         if (insideSub) {
           const isBorder =
-            x < subX + 2 || x >= subX + subW - 2 ||
-            y < subY + 2 || y >= subY + subH - 2 ||
-            (inTL && (x - (subX + subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 2) ** 2) ||
-            (inTR && (x - (subX + subW - subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 2) ** 2) ||
-            (inBL && (x - (subX + subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 2) ** 2) ||
-            (inBR && (x - (subX + subW - subR)) ** 2 + (y - (subY + subH - subR)) ** 2 >= (subR - 2) ** 2);
+            x < subX + 3 || x >= subX + subW - 3 ||
+            y < subY + 3 || y >= subY + subH - 3 ||
+            (inTL && (x - (subX + subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 3) ** 2) ||
+            (inTR && (x - (subX + subW - subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 3) ** 2) ||
+            (inBL && (x - (subX + subR)) ** 2 + (y - (subY + subR)) ** 2 >= (subR - 3) ** 2) ||
+            (inBR && (x - (subX + subW - subR)) ** 2 + (y - (subY + subH - subR)) ** 2 >= (subR - 3) ** 2);
 
           if (isBorder) {
             img.setPixelColor(GOLD_COLOR, x, y);
@@ -223,7 +247,7 @@ async function generateBanners() {
     img.print({
       font: font32,
       x: subX,
-      y: subY + 10,
+      y: subY + 11,
       text: {
         text: item.subtitle,
         alignmentX: 2, // CENTER
@@ -231,7 +255,7 @@ async function generateBanners() {
       maxWidth: subW
     });
 
-    // 8. Draw Bottom Accent Lines
+    // 9. Draw Bottom Accent Lines
     const lineY = 590;
     for (let x = 90; x < 950; x++) {
       img.setPixelColor(GOLD_COLOR, x, lineY);
@@ -242,7 +266,7 @@ async function generateBanners() {
       img.setPixelColor(CORAL_COLOR, x, lineY + 7);
     }
 
-    // 9. Draw Bottom Right Circular Play Button Icon (Golden Circle with White Play Triangle)
+    // 10. Draw Bottom Right Circular Play Button Icon (Golden Circle with White Play Triangle)
     const playCenterX = 1100;
     const playCenterY = 570;
     const playR = 42;
@@ -267,10 +291,10 @@ async function generateBanners() {
     // Save image file in public/
     const targetPath = path.join(publicDir, item.filename);
     await img.write(targetPath);
-    console.log(`Saved: ${targetPath}`);
+    console.log(`Saved ultra banner: ${targetPath}`);
   }
 
-  console.log("All 10 banners generated successfully!");
+  console.log("All 12 banners regenerated successfully!");
 }
 
 generateBanners().catch(err => {
