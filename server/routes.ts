@@ -1027,16 +1027,26 @@ export async function registerRoutes(
               ? `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Credentials (Part ${partNum}/${totalParts}):</b>\n`
               : `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Your Credentials:</b>\n`;
 
+            const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
             chunk.forEach((item, idx) => {
-              const num = (i + idx + 1).toString().padStart(2, '0');
-              chunkMsg += `<b>Item ${num}:</b> <code>${item.content}</code>\n`;
+              const globalIdx = i + idx;
+              const numBadge = numEmojis[globalIdx] || `${globalIdx + 1}.`;
+              chunkMsg += `${numBadge} <blockquote><code>${item.content}</code></blockquote>\n`;
             });
 
             if (i + CHUNK_SIZE >= allItems.length) {
               chunkMsg += `\nThank you for shopping with us! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
             }
 
-            await bot?.sendMessage(tgUser.id, chunkMsg, { parse_mode: 'HTML' });
+            const fullCopyStr = chunk.map(c => c.content).join('\n');
+            await bot?.sendMessage(tgUser.id, chunkMsg, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: 'Copy Credentials', copy_text: { text: fullCopyStr }, icon_custom_emoji_id: '5231102735817918643' }]
+                ]
+              }
+            });
           }
         } catch (err) {
           console.error("Failed to send bot DM for purchase:", err);
@@ -1156,16 +1166,26 @@ export async function registerRoutes(
               ? `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Credentials (Part ${partNum}/${totalParts}):</b>\n`
               : `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Your Credentials:</b>\n`;
 
+            const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
             chunk.forEach((item, idx) => {
-              const num = (i + idx + 1).toString().padStart(2, '0');
-              chunkMsg += `<b>Item ${num}:</b> <code>${item.content}</code>\n`;
+              const globalIdx = i + idx;
+              const numBadge = numEmojis[globalIdx] || `${globalIdx + 1}.`;
+              chunkMsg += `${numBadge} <blockquote><code>${item.content}</code></blockquote>\n`;
             });
 
             if (i + BUNDLE_CHUNK_SIZE >= bundleItems.length) {
               chunkMsg += `\nEnjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
             }
 
-            await offerBot?.sendMessage(tgUser.id, chunkMsg, { parse_mode: 'HTML' });
+            const fullCopyStr = chunk.map(c => c.content).join('\n');
+            await offerBot?.sendMessage(tgUser.id, chunkMsg, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: 'Copy Credentials', copy_text: { text: fullCopyStr }, icon_custom_emoji_id: '5231102735817918643' }]
+                ]
+              }
+            });
           }
         } catch (err) {
           console.error("Failed to send bundle DM:", err);
@@ -3290,6 +3310,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   const allOrders = await storage.getOrders();
 
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
+  userOrders.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b>\n\n` +
     `Choose an order below to open details and old links/codes.`;
@@ -3300,26 +3321,27 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     for (const order of userOrders) {
       const product = await storage.getProduct(order.productId);
       const name = product ? product.name : `Order #${order.id}`;
+      const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
       inline_keyboard.push([
         {
           text: `${name}`,
           callback_data: `view_order_${order.id}`,
           style: 'primary',
-          icon_custom_emoji_id: '5404617696589390973'
+          icon_custom_emoji_id: productEmoji
         }
       ]);
     }
   } else {
     // Preset orders matching screenshot for complete demo experience
     const demoOrders = [
-      { id: 1, name: 'Gemini Link 18 months' },
-      { id: 2, name: 'Gemini Link 18 months' },
-      { id: 3, name: 'Gemini Link 18 months' },
-      { id: 4, name: 'Gemini Link 18 months' },
-      { id: 5, name: 'Gemini Link 18 months' },
-      { id: 6, name: 'Gemini Link 18 months' },
+      { id: 8, name: 'Gemini Link 18 months' },
       { id: 7, name: 'Gemini Link 18 months' },
-      { id: 8, name: 'Gemini Link 18 months' }
+      { id: 6, name: 'Gemini Link 18 months' },
+      { id: 5, name: 'Gemini Link 18 months' },
+      { id: 4, name: 'Gemini Link 18 months' },
+      { id: 3, name: 'Gemini Link 18 months' },
+      { id: 2, name: 'Gemini Link 18 months' },
+      { id: 1, name: 'Gemini Link 18 months' }
     ];
 
     for (const d of demoOrders) {
@@ -3328,7 +3350,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
           text: `${d.name}`,
           callback_data: `view_demo_order_${d.id}`,
           style: 'primary',
-          icon_custom_emoji_id: '5404617696589390973'
+          icon_custom_emoji_id: '5854908544712707500'
         }
       ]);
     }
@@ -4467,29 +4489,53 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       if (data.startsWith('view_demo_order_') || data.startsWith('view_order_')) {
-        const orderMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>Order Details</b>\n\n` +
-          `Product: <b>Gemini Link 18 months</b>\n` +
+        const orderIdStr = data.replace('view_demo_order_', '').replace('view_order_', '');
+        const orderId = parseInt(orderIdStr, 10);
+
+        let productName = 'Gemini Link 18 months';
+        let credsList: string[] = [];
+
+        if (data.startsWith('view_order_') && !isNaN(orderId)) {
+          const allOrders = await storage.getOrders();
+          const targetOrder = allOrders.find(o => o.id === orderId);
+          if (targetOrder) {
+            const product = await storage.getProduct(targetOrder.productId);
+            if (product) productName = product.name;
+            try {
+              const matchedCreds = await db.select().from(credentials).where(eq(credentials.orderId, orderId));
+              credsList = matchedCreds.map(c => c.content);
+            } catch (e) {}
+          }
+        }
+
+        if (credsList.length === 0) {
+          credsList = ['https://gemini.google.com/share/activation_key_demo_18months'];
+        }
+
+        const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+        let credsFormatted = '';
+        let copyTextFull = '';
+
+        credsList.forEach((cred, idx) => {
+          const badge = numEmojis[idx] || `${idx + 1}.`;
+          credsFormatted += `${badge} <blockquote><code>${cred}</code></blockquote>\n`;
+          copyTextFull += (copyTextFull ? '\n' : '') + cred;
+        });
+
+        const orderMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>Order Details${isNaN(orderId) ? '' : ` #${orderId}`}</b>\n\n` +
+          `Product: <b>${productName}</b>\n` +
           `Status: <b>Completed</b> <tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>\n\n` +
-          `🔗 <b>Link / Code:</b>\n<code>https://gemini.google.com/share/activation_key_demo_18months</code>`;
-        
+          `🔑 <b>Delivered Credentials (${credsList.length} item${credsList.length > 1 ? 's' : ''}):</b>\n${credsFormatted}`;
+
         const orderKeyboard = {
           inline_keyboard: [
-            [{ text: 'Copy Link', callback_data: 'copy_demo_link', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+            [{ text: 'Copy Credentials', copy_text: { text: copyTextFull }, icon_custom_emoji_id: '5231102735817918643' }],
             [{ text: 'Back to Purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any
         };
-        if (msgId) {
-          try {
-            await targetBot.editMessageCaption(orderMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: orderKeyboard });
-            return;
-          } catch (e) {
-            try {
-              await targetBot.editMessageText(orderMsg, { chat_id: chatId, message_id: msgId, parse_mode: 'HTML', reply_markup: orderKeyboard });
-              return;
-            } catch (err) {}
-          }
-        }
-        await targetBot.sendMessage(chatId, orderMsg, { parse_mode: 'HTML', reply_markup: orderKeyboard });
+
+        const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, ordersBannerPath, orderMsg, orderKeyboard, msgId);
         return;
       }
 
