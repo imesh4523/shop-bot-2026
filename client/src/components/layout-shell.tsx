@@ -19,6 +19,7 @@ import {
   Smile,
   Ticket,
   LifeBuoy,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
     { name: 'Support Tickets', href: '/support-tickets', icon: LifeBuoy },
     { name: 'Payments', href: '/payments', icon: User },
+    { name: 'Database Backup', href: '/backups', icon: Database },
     { name: 'Special Offers', href: '/special-offers', icon: Tag },
     { name: 'Promo Codes', href: '/promo-codes', icon: Ticket },
     { name: 'AWS Checker', href: '/aws-checker', icon: ShieldCheck },
