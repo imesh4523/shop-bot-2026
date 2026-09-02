@@ -2983,14 +2983,14 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   const userBalUSD = userToDisplay.balance / 100;
   const userValueUSD = Math.max(totalSpentUSD, totalDepositedUSD, userBalUSD);
 
-  let statusText = '<tg-emoji emoji-id="5803357151770449172">🏅</tg-emoji> <b>Standard</b> · <i>starter member</i>';
+  let statusText = '<tg-emoji emoji-id="5803357151770449172">🏅</tg-emoji> <b>Standard</b>';
 
   if (userValueUSD >= 1000) {
-    statusText = '<tg-emoji emoji-id="5789828777882162072">🌟</tg-emoji> <b>Top Legend VIP</b> · <i>top tier ($1000+)</i>';
+    statusText = '<tg-emoji emoji-id="5789828777882162072">🌟</tg-emoji> <b>Top Legend VIP</b>';
   } else if (userValueUSD >= 300) {
-    statusText = '<tg-emoji emoji-id="5278467510604160626">👑</tg-emoji> <b>Legend VIP</b> · <i>high tier ($300+)</i>';
+    statusText = '<tg-emoji emoji-id="5278467510604160626">👑</tg-emoji> <b>Legend VIP</b>';
   } else if (userValueUSD >= 10) {
-    statusText = '<tg-emoji emoji-id="5321167461280662157">💎</tg-emoji> <b>Diamond VIP</b> · <i>diamond tier ($10+)</i>';
+    statusText = '<tg-emoji emoji-id="5321167461280662157">💎</tg-emoji> <b>Diamond VIP</b>';
   }
 
   // Get last redeemed promo code
@@ -3009,12 +3009,13 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
-    `Status: ${statusText}\n` +
+    `<tg-emoji emoji-id="5424746623462823358">🏅</tg-emoji> Status: ${statusText}\n` +
     `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>\n` +
+    `<tg-emoji emoji-id="5850383023572259486">📊</tg-emoji> Total spent: <b>$${totalSpentUSD.toFixed(2)} USD</b>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
