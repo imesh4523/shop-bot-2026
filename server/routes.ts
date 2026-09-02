@@ -7295,7 +7295,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value;
+        const amount = parseFloat(val);
+        if (isNaN(amount) || amount <= 0) return;
+
+        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         if (!payId || payId.trim() === '') {
           if (query?.id) {
             await targetBot.answerCallbackQuery(query.id, { text: '⚠️ Binance Pay ID is not configured by the admin.', show_alert: true }).catch(() => {});
@@ -7526,7 +7529,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data === 'payment_bep20') {
         const bep20Enabled = (await storage.getSetting('PAYMENT_BEP20_ENABLED'))?.value !== 'false';
-        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value;
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
 
         if (!bep20Enabled || !wallet || wallet.trim() === '') {
           if (query?.id) {
@@ -7587,7 +7590,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
 
-        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value;
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         if (!wallet || wallet.trim() === '') {
           if (query?.id) {
             await targetBot.answerCallbackQuery(query.id, { text: '⚠️ BEP20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
