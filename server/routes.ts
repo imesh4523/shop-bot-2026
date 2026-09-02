@@ -2884,8 +2884,12 @@ const initBot = async () => {
           updated_at TIMESTAMP DEFAULT NOW()
         );
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_request_at TIMESTAMP DEFAULT NOW();
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_currency TEXT DEFAULT 'USD';
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referral_code TEXT;
       `);
-      console.log('[DB] support_tickets table verified/created');
+      console.log('[DB] support_tickets & telegram_users columns verified/created');
     } catch (e) {
       console.error('Error verifying database tables:', e);
     }
