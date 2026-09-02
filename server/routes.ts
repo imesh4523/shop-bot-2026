@@ -5704,6 +5704,39 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
+      if (data.startsWith('download_txt_')) {
+        const orderId = parseInt(data.substring(13), 10);
+        const allOrders = await storage.getOrders();
+        const targetOrder = allOrders.find(o => o.id === orderId);
+        let credContent = '';
+        let prodName = 'items';
+        if (targetOrder) {
+          const cred = (await storage.getCredentials()).find(c => c.id === targetOrder.credentialId);
+          if (cred) credContent = cred.content;
+          const prod = await storage.getProduct(targetOrder.productId);
+          if (prod) prodName = prod.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+        if (!credContent) {
+          credContent = `Order #${orderId} delivered successfully.`;
+        }
+
+        const fileName = `order_${orderId}_${prodName}.txt`;
+        const buffer = Buffer.from(credContent, 'utf-8');
+
+        await targetBot.sendDocument(chatId, buffer, {
+          caption: `File for order #${orderId}`
+        }, {
+          filename: fileName,
+          contentType: 'text/plain'
+        }).catch(err => console.error("Error sending order TXT file:", err));
+        return;
+      }
+
+      if (data.startsWith('leave_review_')) {
+        await sendCustomerReviewsScreen(targetBot, chatId, query.message?.message_id);
+        return;
+      }
+
       if (data.startsWith('qty_other_')) {
         const prodId = data.substring(10);
         await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_custom_qty_${prodId}` });
@@ -6118,25 +6151,37 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           });
 
           // 4. Success Response
-          let successMsg = `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Purchase Successful!</b> <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>\n\n` +
-            `<tg-emoji emoji-id="5231102735817918643">🎁</tg-emoji> Product: <b>${offer.name}</b>\n` +
-            `📦 Quantity: <b>${offer.bundleQuantity || 1} pcs</b>\n` +
-            `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> Price: <b>$${(offer.price / 100).toFixed(2)}</b>\n\n` +
-            `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Your Credentials:</b>\n`;
+          let prodEmojiId = '5377660214096974712';
+          const userOrders = await storage.getOrders();
+          const lastOrderId = userOrders.length > 0 ? userOrders[0].id : 3659;
 
-          result.availableCredentials.forEach((c, index) => {
-            const num = (index + 1).toString().padStart(2, '0');
-            successMsg += `<b>Account ${num}:</b> <code>${c.content}</code>\n`;
-          });
+          let credentialsFormatted = '';
+          if (result.availableCredentials.length === 1) {
+            credentialsFormatted = `<b>Your item, easy to copy:</b>\n<code>${escapeHTML(result.availableCredentials[0].content)}</code>`;
+          } else {
+            credentialsFormatted = `<b>Your items, easy to copy:</b>\n` + result.availableCredentials.map((c, i) => `${i + 1}️⃣ <code>${escapeHTML(c.content)}</code>`).join('\n\n');
+          }
 
-          successMsg += `\nThank you for shopping with us! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
+          const successMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>\n\n` +
+            `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(offer.name)}</b>\n` +
+            `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${lastOrderId}</b>\n\n` +
+            `${credentialsFormatted}\n\n` +
+            `Thank you for your purchase! If you have questions, contact support.\n` +
+            `A review would help us if everything went well.`;
+
+          const purchaseSuccessKeyboard = {
+            inline_keyboard: [
+              [{ text: 'Download TXT', callback_data: `download_txt_${lastOrderId}`, style: 'primary', icon_custom_emoji_id: '5443127283898405358' }],
+              [{ text: 'Leave a review', callback_data: `leave_review_${lastOrderId}`, style: 'primary', icon_custom_emoji_id: '5193009244940557703' }],
+              [{ text: 'Main menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5416041192905265756' }]
+            ] as any
+          };
 
           confirmingOffers.delete(chatIdStr);
 
-          await targetBot.editMessageText(successMsg, {
-            chat_id: chatId,
-            message_id: query.message?.message_id,
-            parse_mode: 'HTML'
+          await targetBot.sendMessage(chatId, successMsg, {
+            parse_mode: 'HTML',
+            reply_markup: purchaseSuccessKeyboard
           });
 
           // Emit real-time notification to Admin Dashboard
@@ -8847,12 +8892,47 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           });
 
           // 6. Success Response
-          let productName = result.product.name.replace(/🇱🇰/g, '<tg-emoji emoji-id="5224277294050192388">🇱🇰</tg-emoji>');
-          productName = productName.replace(/\bAWS\b/gi, '<tg-emoji emoji-id="5785025630055700143">☁️</tg-emoji> AWS');
+          let prodEmojiId = result.product.customEmojiId || (result.product as any).custom_emoji_id;
+          if (!prodEmojiId) {
+            const pType = (result.product.type || result.product.name || '').toLowerCase();
+            if (pType.includes('aws')) prodEmojiId = '5785025630055700143';
+            else if (pType.includes('digital ocean') || pType.includes('digitalocean')) prodEmojiId = '5785345544989710932';
+            else if (pType.includes('linode')) prodEmojiId = '5787285044846399857';
+            else if (pType.includes('azure')) prodEmojiId = '5785185643357279341';
+            else if (pType.includes('gcp') || pType.includes('google cloud')) prodEmojiId = '5785061312643994750';
+            else if (pType.includes('kamatera')) prodEmojiId = '5785070770161980265';
+            else if (pType.includes('gemini')) prodEmojiId = '5377660214096974712';
+            else if (pType.includes('chatgpt') || pType.includes('grok')) prodEmojiId = '5404617696589390973';
+            else prodEmojiId = '5854908544712707500';
+          }
 
-          const itemsText = result.availableCredentials.map((c, index) => `<b>${(index + 1).toString().padStart(2, '0')}.</b>\n${escapeHTML(c.content)}`).join('\n\n');
+          const userOrders = await storage.getOrders();
+          const lastOrder = userOrders.length > 0 ? userOrders[0] : null;
+          const lastOrderId = lastOrder ? lastOrder.id : 3659;
 
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Purchase successful!</b> <tg-emoji emoji-id="5431411862950388510">🙏</tg-emoji>\n\n<b>Product:</b> ${productName}\n<b>Quantity:</b> ${quantity}\n<b>Total:</b> $${(result.totalPrice / 100).toFixed(2)}\n\n<b>Your items:</b>\n\n${itemsText}`, { parse_mode: 'HTML' });
+          let credentialsFormatted = '';
+          if (result.availableCredentials.length === 1) {
+            credentialsFormatted = `<b>Your item, easy to copy:</b>\n<code>${escapeHTML(result.availableCredentials[0].content)}</code>`;
+          } else {
+            credentialsFormatted = `<b>Your items, easy to copy:</b>\n` + result.availableCredentials.map((c, i) => `${i + 1}️⃣ <code>${escapeHTML(c.content)}</code>`).join('\n\n');
+          }
+
+          const successMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>\n\n` +
+            `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(result.product.name)}</b>\n` +
+            `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${lastOrderId}</b>\n\n` +
+            `${credentialsFormatted}\n\n` +
+            `Thank you for your purchase! If you have questions, contact support.\n` +
+            `A review would help us if everything went well.`;
+
+          const purchaseSuccessKeyboard = {
+            inline_keyboard: [
+              [{ text: 'Download TXT', callback_data: `download_txt_${lastOrderId}`, style: 'primary', icon_custom_emoji_id: '5443127283898405358' }],
+              [{ text: 'Leave a review', callback_data: `leave_review_${lastOrderId}`, style: 'primary', icon_custom_emoji_id: '5193009244940557703' }],
+              [{ text: 'Main menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5416041192905265756' }]
+            ] as any
+          };
+
+          await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML', reply_markup: purchaseSuccessKeyboard });
 
           // Emit real-time notification to Admin Dashboard
           const userDisplayName = tgUser.firstName || tgUser.username || "User";
