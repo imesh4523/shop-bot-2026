@@ -6624,16 +6624,39 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const totalUSD = totalUSDNum.toFixed(2);
         let networkTag = "BEP20";
         let networkEmojiId = "5280907155107506256";
-        let walletAddress = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        let settingKey = 'BEP20_WALLET_ADDRESS';
 
         if (method === 'trc20') {
           networkTag = "TRC20";
           networkEmojiId = "5936189134342199863";
-          walletAddress = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
+          settingKey = 'TRC20_WALLET_ADDRESS';
         } else if (method === 'binance') {
           networkTag = "BINANCE PAY";
           networkEmojiId = "5281029063459234079";
-          walletAddress = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+          settingKey = 'BINANCE_PAY_ID';
+        }
+
+        const walletAddress = (await storage.getSetting(settingKey))?.value;
+
+        if (!walletAddress || walletAddress.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, {
+              text: `⚠️ ${networkTag} address is not configured by the admin! Please select another payment method.`,
+              show_alert: true
+            }).catch(() => {});
+          }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>${networkTag} Not Configured</b>\n\n` +
+            `The admin has not configured the <b>${networkTag}</b> wallet address in Admin Settings.\n` +
+            `Please choose another payment method or contact support!`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Item', callback_data: `prod_${prodId}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
+          return;
         }
 
         const payment = await storage.createPayment({
@@ -7193,12 +7216,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data === 'payment_binance') {
         const binanceEnabled = (await storage.getSetting('PAYMENT_BINANCE_ENABLED'))?.value !== 'false';
-        if (!binanceEnabled) {
+        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value;
+
+        if (!binanceEnabled || !payId || payId.trim() === '') {
           if (query?.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '❌ Binance Pay is currently disabled.', show_alert: true }).catch(() => {});
-          } else {
-            await targetBot.sendMessage(chatId, '❌ Binance Pay is currently disabled by the admin.');
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ Binance Pay ID is not configured by the admin.', show_alert: true }).catch(() => {});
           }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>Binance Pay Not Configured</b>\n\n` +
+            `Binance Pay ID has not been configured by the admin in Admin Settings.\n` +
+            `Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
           return;
         }
 
@@ -7241,10 +7274,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const amount = parseFloat(val);
-        if (isNaN(amount) || amount <= 0) return;
-
-        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+        const payId = (await storage.getSetting('BINANCE_PAY_ID'))?.value;
+        if (!payId || payId.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ Binance Pay ID is not configured by the admin.', show_alert: true }).catch(() => {});
+          }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>Binance Pay Not Configured</b>\n\n` +
+            `Binance Pay ID has not been configured by the admin in Admin Settings. Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
+          return;
+        }
         const payment = await storage.createPayment({
           telegramUserId: tgUser.id,
           amount: Math.round(amount * 100),
@@ -7350,12 +7395,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data === 'payment_trc20') {
         const trc20Enabled = (await storage.getSetting('PAYMENT_TRC20_ENABLED'))?.value !== 'false';
-        if (!trc20Enabled) {
-          if (queryId) {
-            await targetBot.answerCallbackQuery(queryId, { text: '❌ TRC20 payments are currently disabled.', show_alert: true }).catch(() => {});
-          } else {
-            await targetBot.sendMessage(chatId, '❌ TRC20 payments are currently disabled by the admin.');
+        const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value;
+
+        if (!trc20Enabled || !wallet || wallet.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ TRC20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
           }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>TRC20 Not Configured</b>\n\n` +
+            `TRC20 USDT wallet address has not been configured by the admin in Admin Settings.\n` +
+            `Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
           return;
         }
 
@@ -7401,7 +7456,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
 
-        const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "T9xR1J9v1aN2k3L4m5P6q7R8s9T0u1V2w3";
+        const wallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value;
+        if (!wallet || wallet.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ TRC20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
+          }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>TRC20 Not Configured</b>\n\n` +
+            `TRC20 USDT wallet address has not been configured by the admin in Admin Settings. Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
+          return;
+        }
         const payment = await storage.createPayment({
           telegramUserId: tgUser.id,
           amount: Math.round(amount * 100),
@@ -7435,12 +7505,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data === 'payment_bep20') {
         const bep20Enabled = (await storage.getSetting('PAYMENT_BEP20_ENABLED'))?.value !== 'false';
-        if (!bep20Enabled) {
-          if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '❌ BEP20 payments are currently disabled.', show_alert: true }).catch(() => {});
-          } else {
-            await targetBot.sendMessage(chatId, '❌ BEP20 payments are currently disabled by the admin.');
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value;
+
+        if (!bep20Enabled || !wallet || wallet.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ BEP20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
           }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>BEP20 Not Configured</b>\n\n` +
+            `BEP20 USDT wallet address has not been configured by the admin in Admin Settings.\n` +
+            `Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const bep20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_bep20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bep20BannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
           return;
         }
 
@@ -7486,7 +7566,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
 
-        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value;
+        if (!wallet || wallet.trim() === '') {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ BEP20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
+          }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>BEP20 Not Configured</b>\n\n` +
+            `BEP20 USDT wallet address has not been configured by the admin in Admin Settings. Please select another payment method!`;
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const bep20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_bep20_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bep20BannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
+          return;
+        }
         const payment = await storage.createPayment({
           telegramUserId: tgUser.id,
           amount: Math.round(amount * 100),
