@@ -48,6 +48,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Customer Audit & Fix', href: '/customer-tracker', icon: ShieldCheck },
     { name: 'Broadcast', href: '/broadcast', icon: Megaphone },
     { name: 'Products', href: '/products', icon: Package },
     { name: 'Inventory', href: '/inventory', icon: Package },

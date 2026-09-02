@@ -28,6 +28,7 @@ import TelegramClientPage from "@/pages/telegram-client-page";
 import BackupPage from "@/pages/backup-page";
 import ForwardPage from "@/pages/forward-page";
 import SupportTicketsPage from "@/pages/support-tickets-page";
+import CustomerTrackerPage from "@/pages/customer-tracker-page";
 import MiniAppShop from "@/pages/mini-app-shop";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -73,6 +74,10 @@ function Router() {
 
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
+      </Route>
+
+      <Route path="/customer-tracker">
+        <ProtectedRoute component={CustomerTrackerPage} />
       </Route>
       
       <Route path="/products">
