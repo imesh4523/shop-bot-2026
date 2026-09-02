@@ -5858,9 +5858,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const tempFilePath = path.join(tempDir, fileName);
         fs.writeFileSync(tempFilePath, credContent, 'utf-8');
 
+        const fileCaption = `<tg-emoji emoji-id="5258514780469075716">📂</tg-emoji> File for order #${orderId}`;
+
         try {
           await targetBot.sendDocument(chatId, tempFilePath, {
-            caption: `📄 <b>File for Order #${orderId}</b>`,
+            caption: fileCaption,
             parse_mode: 'HTML'
           });
         } catch (err: any) {
@@ -5870,7 +5872,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             try {
               const form = new FormData();
               form.append('chat_id', chatId.toString());
-              form.append('caption', `📄 <b>File for Order #${orderId}</b>`);
+              form.append('caption', fileCaption);
               form.append('parse_mode', 'HTML');
               form.append('document', fs.createReadStream(tempFilePath), { filename: fileName, contentType: 'text/plain' });
               await axios.post(`https://api.telegram.org/bot${token}/sendDocument`, form, { headers: form.getHeaders() });
