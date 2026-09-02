@@ -3891,9 +3891,11 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
 
   const allOrders = await storage.getOrders();
   const allPayments = await db.select().from(payments);
+  const allPreorders = await storage.getPreorders();
 
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
   const userPayments = tgUser ? allPayments.filter(p => p.telegramUserId === tgUser.id && p.status === 'completed') : [];
+  const userPreorders = tgUser ? allPreorders.filter(po => po.telegramUserId === tgUser.id) : [];
 
   interface TxEntry {
     id: string;
@@ -3964,6 +3966,25 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     });
   }
 
+  for (const po of userPreorders) {
+    const totalAmt = (po.totalPrice / 100).toFixed(2);
+    const product = po.product || (await storage.getProduct(po.productId));
+    const baseName = product ? product.name : `Product #${po.productId}`;
+    const prodName = po.quantity > 1 ? `${baseName} (${po.quantity} Pcs)` : baseName;
+    const prodEmoji = product ? (product.customEmojiId || (product as any).custom_emoji_id || '5411590687663608498') : '5411590687663608498';
+    const statusTag = po.status === 'fulfilled' ? 'Fulfilled' : 'Active Queue';
+
+    transactionsList.push({
+      id: `PRE-${3000 + po.id}`,
+      type: 'purchase',
+      amountUSD: totalAmt,
+      sign: '-',
+      description: `Pre-Order #${po.id} ${prodName} [${statusTag}]`,
+      customEmojiId: prodEmoji,
+      date: po.createdAt ? new Date(po.createdAt) : new Date()
+    });
+  }
+
   transactionsList.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   if (transactionsList.length === 0) {
@@ -4004,6 +4025,8 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
       subIcon = `<tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji> <i>${item.description}</i>`;
     } else if (item.description.includes('Binance')) {
       subIcon = `<tg-emoji emoji-id="5936122953191135570">🌐</tg-emoji> <i>${item.description}</i>`;
+    } else if (item.description.includes('Pre-Order')) {
+      subIcon = `<tg-emoji emoji-id="5411590687663608498">⚡</tg-emoji> <i>${item.description}</i>`;
     }
 
     txCaption += `${typeEmoji} <b>#${item.id}</b> • ${signEmoji}<code>$${item.amountUSD}</code> ${dollarEmoji}\n` +
