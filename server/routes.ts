@@ -4897,8 +4897,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         setTimeout(() => actionLocks.delete(actionLockKey), 4000);
       }
 
-      // 1. Immediately answer the callback query to clear client spinner (except for check_payment_ & cryptobot where custom alert popup is shown)
-      if (!data.startsWith('check_payment_') && !data.includes('cryptobot')) {
+      // 1. Immediately answer the callback query to clear client spinner (except for check_payment_, cryptobot & pay_bal_ where custom alert popup is shown)
+      if (!data.startsWith('check_payment_') && !data.includes('cryptobot') && !data.startsWith('pay_bal_')) {
         try {
           console.log(`[Bot Callback] Answering callback query: ${callbackId}`);
           await targetBot.answerCallbackQuery(query.id);
@@ -6349,23 +6349,32 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const userBalUSD = ((tgUser.balance || 0) / 100).toFixed(2);
 
         if ((tgUser.balance || 0) / 100 < qty * unitPriceUSD) {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, {
+              text: `⚠️ Insufficient Balance!\n\nRequired: $${totalUSD}\nYour Balance: $${userBalUSD}\n\nPlease top up your balance first.`,
+              show_alert: true
+            }).catch(() => {});
+          }
+
           const topUpKeyboard = {
             inline_keyboard: [
               [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-              [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+              [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
 
           const errCaption = `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> <b>Insufficient Balance</b>\n\n` +
             `Required: <b>$${totalUSD}</b> (${qty}x ${productName})\n` +
             `Your Balance: <b>$${userBalUSD}</b>\n\n` +
-            `Please top up your balance to complete this purchase.`;
+            `Please top up your balance to complete this purchase!`;
 
-          await targetBot.sendMessage(chatId, errCaption, {
-            parse_mode: 'HTML',
-            reply_markup: topUpKeyboard
-          });
+          const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, errCaption, topUpKeyboard, query.message?.message_id);
           return;
+        }
+
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id).catch(() => {});
         }
 
         let targetProduct: any = null;
