@@ -1416,6 +1416,9 @@ app.patch("/api/credentials/:id", isAuth, async (req, res) => {
     const input = insertCredentialSchema.partial().parse(req.body);
     const [updated] = await db.update(credentials).set(input).where(eq(credentials.id, id)).returning();
     if (!updated) return res.status(404).json({ message: "Credential not found" });
+    if (updated.status === 'available') {
+      autoFulfillPendingPreorders(updated.productId).catch(e => console.error("[AutoFulfill Error]:", e));
+    }
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: "Invalid input" });
@@ -4351,12 +4354,14 @@ const autoFulfillPendingPreorders = async (targetProductId?: number) => {
         });
 
         const tgUser = (await storage.getAllTelegramUsers()).find(u => u.id === preorder.telegramUserId);
-        if (tgUser && mainBotReference) {
+        const activeBot = await getBroadcastBot();
+        if (tgUser && activeBot) {
+          console.log(`[Pre-Order AutoFulfill] Sending auto-fulfilled credentials to Telegram user ${tgUser.telegramId}...`);
           await sendOrderSuccessMessage(
-            mainBotReference,
+            activeBot,
             Number(tgUser.telegramId),
             firstOrderId,
-            `Pre-Order Fulfilled: ${prod.name}`,
+            `Pre-Order: ${prod.name}`,
             deliveredItems
           ).catch(e => console.error("Error sending pre-order fulfillment bot message:", e));
         }
@@ -6234,11 +6239,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }
           } catch (e) {}
 
-          const preorderMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
+          const preorderMsg = `<tg-emoji emoji-id="4958610528588008305">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
             `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)} (${qty} Pcs)</b>\n` +
-            `<tg-emoji emoji-id="5370615926565641880">◀️</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
-            `<tg-emoji emoji-id="5850383023572259486">📊</tg-emoji> Total Paid: <b>$${totalUSD} USD</b>\n\n` +
-            `<tg-emoji emoji-id="5215570077876756627">⚡</tg-emoji> <b>Priority Queue Guarantee:</b>\n` +
+            `<tg-emoji emoji-id="5256247952564825322">◀️</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
+            `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji>Total Paid: <b>$${totalUSD} USD</b>\n\n` +
+            `<tg-emoji emoji-id="5411590687663608498">⚡️</tg-emoji><b>Priority Queue Guarantee:</b>\n` +
             `Your pre-order has been registered. As soon as the admin adds new stock for this item, your credentials will automatically be sent to you in this chat!\n\n` +
             `Thank you for your purchase!`;
 
