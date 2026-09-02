@@ -125,6 +125,10 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/PAYMENT_CRYPTOMUS_ENABLED"],
   });
 
+  const { data: cryptomusWebBtnSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SHOW_CRYPTOMUS_WEB_BUTTON"],
+  });
+
   const { data: cryptoBotEnabledSetting } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/PAYMENT_CRYPTOBOT_ENABLED"],
   });
@@ -209,6 +213,7 @@ export default function SettingsPage() {
 
   const [binanceEnabled, setBinanceEnabled] = useState(true);
   const [cryptomusEnabled, setCryptomusEnabled] = useState(true);
+  const [cryptomusWebBtnEnabled, setCryptomusWebBtnEnabled] = useState(true);
   const [trc20Enabled, setTrc20Enabled] = useState(false);
   const [aptosEnabled, setAptosEnabled] = useState(false);
   const [trc20Wallet, setTrc20Wallet] = useState("");
@@ -234,6 +239,10 @@ export default function SettingsPage() {
   useEffect(() => {
     if (cryptomusEnabledSetting?.value !== undefined) setCryptomusEnabled(cryptomusEnabledSetting.value === "true");
   }, [cryptomusEnabledSetting]);
+
+  useEffect(() => {
+    if (cryptomusWebBtnSetting?.value !== undefined) setCryptomusWebBtnEnabled(cryptomusWebBtnSetting.value !== "false");
+  }, [cryptomusWebBtnSetting]);
 
   useEffect(() => {
     if (cryptoBotEnabledSetting?.value !== undefined) setCryptoBotEnabled(cryptoBotEnabledSetting.value !== "false");
@@ -1549,6 +1558,25 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <p className="text-[10px] text-white/40">Get your API key from Cryptomus dashboard. Keep it secure!</p>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-bold text-white">"Pay on Cryptomus" Button (BEP20 / TRC20)</Label>
+                    <p className="text-xs text-white/50">Show or hide the "Pay on Cryptomus Web" button when deposit address is generated in Telegram Bot.</p>
+                  </div>
+                  <Button
+                    variant={cryptomusWebBtnEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !cryptomusWebBtnEnabled;
+                      setCryptomusWebBtnEnabled(newValue);
+                      togglePaymentMutation.mutate({ key: "SHOW_CRYPTOMUS_WEB_BUTTON", value: newValue.toString() });
+                    }}
+                    className={cryptomusWebBtnEnabled ? "bg-purple-500 hover:bg-purple-600" : "border-white/20"}
+                  >
+                    {cryptomusWebBtnEnabled ? "ON" : "OFF"}
+                  </Button>
                 </div>
               </div>
             </div>

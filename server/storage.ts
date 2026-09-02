@@ -231,6 +231,7 @@ export class DatabaseStorage implements IStorage {
       { key: "PAYMENT_APTOS_ENABLED", value: "false" },
       { key: "PAYMENT_CRYPTOBOT_ENABLED", value: "true" },
       { key: "PAYMENT_CRYPTOMUS_ENABLED", value: "true" },
+      { key: "SHOW_CRYPTOMUS_WEB_BUTTON", value: "false" },
       { key: "PAYMENT_BINANCE_ENABLED", value: "true" },
       { key: "TRC20_VERIFICATION_MODE", value: "binance" },
       { key: "APTOS_VERIFICATION_MODE", value: "binance" },
@@ -243,6 +244,8 @@ export class DatabaseStorage implements IStorage {
       const existing = await db.select().from(settings).where(eq(settings.key, s.key));
       if (existing.length === 0) {
         await db.insert(settings).values({ key: s.key, value: s.value });
+      } else if (s.key === "SHOW_CRYPTOMUS_WEB_BUTTON") {
+        await db.update(settings).set({ value: "false" }).where(eq(settings.key, s.key));
       } else if (s.key === "INSPECTOR_BOT_TOKEN" && (!existing[0].value || existing[0].value === "")) {
         await db.update(settings).set({ value: s.value }).where(eq(settings.key, s.key));
       }
