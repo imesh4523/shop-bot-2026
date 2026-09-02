@@ -3011,12 +3011,41 @@ const sendOrEditScreenWithPhoto = async (
   bannerPath: string,
   caption: string,
   replyMarkup: any,
-  messageId?: number
+  messageId?: number,
+  forceMediaEdit: boolean = false
 ) => {
   const token = (targetBot as any)?.token;
 
   if (messageId) {
-    // Attempt 1: Edit message caption in-place (Fastest, cleanest Telegram edit!)
+    if (forceMediaEdit && fs.existsSync(bannerPath) && token) {
+      try {
+        const fileBuffer = fs.readFileSync(bannerPath);
+        const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+        const form = new FormData();
+        form.append('chat_id', chatId.toString());
+        form.append('message_id', messageId.toString());
+        form.append('media', JSON.stringify({
+          type: 'photo',
+          media: 'attach://banner_file',
+          caption: caption,
+          parse_mode: 'HTML'
+        }));
+        if (replyMarkup) {
+          form.append('reply_markup', JSON.stringify(replyMarkup));
+        }
+        form.append('banner_file', fileBuffer, {
+          filename: dynamicFilename,
+          contentType: 'image/png'
+        });
+
+        const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
+          headers: form.getHeaders()
+        });
+        if (res.data?.ok) return;
+      } catch (errMedia: any) {}
+    }
+
+    // Attempt 1: Edit message caption in-place
     try {
       await targetBot.editMessageCaption(caption, {
         chat_id: chatId,
@@ -6140,9 +6169,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>\n\n` +
             `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amountUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
+          const copyBtn = method === 'binance'
+            ? { text: 'Copy Binance ID', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' }
+            : { text: 'Copy Wallet Address', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' };
+
           const keyboard = [
+            [copyBtn],
             [{ text: 'Check payment', callback_data: `check_payment_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
-            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+            [{ text: 'Back to Payment Options', callback_data: `payment_${method}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
           const token = (targetBot as any)?.token;
@@ -6493,9 +6527,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>${method.toUpperCase()}</b> to this address, otherwise coins will be lost.</i>\n\n` +
             `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${totalUSD} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
+          const copyBtn = method === 'binance'
+            ? { text: 'Copy Binance ID', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' }
+            : { text: 'Copy Wallet Address', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' };
+
           const keyboard = [
+            [copyBtn],
             [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
-            [{ text: 'Back to Item', callback_data: `prod_${prodId}`, icon_custom_emoji_id: '5976535107933050770' }]
+            [{ text: 'Back to Payment Options', callback_data: `pay_${method}_${prodId}_${qty}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
           ] as any[][];
 
           const token = (targetBot as any)?.token;
@@ -6620,7 +6659,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ] as any[][];
 
         const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id, true);
         return;
       }
 
@@ -7225,7 +7264,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ] as any[][];
 
         const binanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_binance_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id, true);
         return;
       }
 
@@ -7361,7 +7400,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         ] as any[][];
 
         const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id, true);
         return;
       }
 
@@ -7442,7 +7481,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
 
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
+        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id, true);
         return;
       }
 
