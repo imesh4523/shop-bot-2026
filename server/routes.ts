@@ -3334,8 +3334,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
           row1.push({
             text: `${q} pcs`,
             callback_data: `buy_qty_${product.id}_${q}`,
-            style: 'success',
-            icon_custom_emoji_id: '5409048419211682843'
+            style: 'success'
           });
         });
         if (row1.length > 0) qtyButtons.push(row1);
@@ -3344,8 +3343,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
           row2.push({
             text: `${q} pcs`,
             callback_data: `buy_qty_${product.id}_${q}`,
-            style: 'success',
-            icon_custom_emoji_id: '5409048419211682843'
+            style: 'success'
           });
         });
         if (row2.length > 0) qtyButtons.push(row2);
@@ -3364,10 +3362,10 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
         }]);
 
         const preMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${escapeHTML(product.name)}</b>\n\n` +
-          `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Price per unit: <b>${priceDisplay}</b>\n` +
-          `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Stock Status: <b>0 Pcs (Pre-Order Active 24/7)</b>\n` +
-          `<tg-emoji emoji-id="5215570077876756627">⚡</tg-emoji> Pre-Orders Available: <b>${availableQuota} Pcs</b>\n\n` +
-          `<blockquote><tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>24/7 Pre-Order Guarantee:</b>\n` +
+          `<tg-emoji emoji-id="5197434882321567830">💵</tg-emoji>Price per unit: <b>${priceDisplay}</b>\n` +
+          `<tg-emoji emoji-id="5440621591387980068">🔜</tg-emoji>Stock Status: <b>0 Pcs (Pre-Order Active 24/7)</b>\n` +
+          `<tg-emoji emoji-id="5411590687663608498">⚡️</tg-emoji> Pre-Orders Available: <b>${availableQuota} Pcs</b>\n\n` +
+          `<blockquote><tg-emoji emoji-id="4958610528588008305">✅</tg-emoji> <b>24/7 Pre-Order Guarantee:</b>\n` +
           `Place your pre-order now! As soon as stock is added by the admin, your credentials will automatically be sent to you in this chat with priority #1.</blockquote>\n\n` +
           `<b>Select quantity to pre-order:</b>`;
 
@@ -3417,7 +3415,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row1: any[] = [];
   [1, 2, 3].forEach(qty => {
     if (qty <= stockCount) {
-      row1.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
+      row1.push({ text: `${qty} pcs`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
     }
   });
   if (row1.length > 0) inline_keyboard.push(row1);
@@ -3426,7 +3424,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row2: any[] = [];
   [5, 10, 20].forEach(qty => {
     if (qty <= stockCount) {
-      row2.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
+      row2.push({ text: `${qty} pcs`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
     }
   });
   if (row2.length > 0) inline_keyboard.push(row2);
