@@ -30,6 +30,29 @@ import {
   clearTraceHistory, 
   deleteTraceRecord 
 } from "./telegram-inspector";
+
+const formatSriLankaTime = (dateInput?: Date | string | number, formatPattern: 'full' | 'short' | 'time' | 'date' = 'full'): string => {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const utcMs = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const slDate = new Date(utcMs + (3600000 * 5.5));
+
+  const yyyy = slDate.getFullYear();
+  const mm = String(slDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(slDate.getDate()).padStart(2, '0');
+  const hh = String(slDate.getHours()).padStart(2, '0');
+  const min = String(slDate.getMinutes()).padStart(2, '0');
+  const ss = String(slDate.getSeconds()).padStart(2, '0');
+
+  if (formatPattern === 'short') {
+    return `${mm}/${dd} ${hh}:${min}`;
+  } else if (formatPattern === 'time') {
+    return `${hh}:${min}:${ss}`;
+  } else if (formatPattern === 'date') {
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} (SL Time)`;
+};
+
 import bcrypt from "bcryptjs";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -3537,30 +3560,71 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
 const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number, page: number = 1) => {
   const tgUser = await storage.getTelegramUser(userId);
   const allOrders = await storage.getOrders();
+  const userPreorders = tgUser ? await storage.getPreordersByUser(tgUser.id) : [];
 
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id || String(o.telegramUserId) === tgUser.telegramId || String(o.telegramUserId) === userId) : [];
   userOrders.sort((a, b) => (b.id || 0) - (a.id || 0));
 
+  const itemsList: { id: number; productId: number; quantity: number; isPreorder: boolean; createdAt: Date }[] = [];
+
+  for (const po of userPreorders) {
+    if (po.status === 'pending_fulfillment') {
+      itemsList.push({
+        id: po.id,
+        productId: po.productId,
+        quantity: po.quantity,
+        isPreorder: true,
+        createdAt: po.createdAt ? new Date(po.createdAt) : new Date()
+      });
+    }
+  }
+
+  for (const order of userOrders) {
+    const orderTime = new Date(order.createdAt).getTime();
+    const existingBatch = itemsList.find(b =>
+      !b.isPreorder &&
+      b.productId === order.productId &&
+      Math.abs(new Date(b.createdAt).getTime() - orderTime) <= 30000
+    );
+
+    if (existingBatch) {
+      existingBatch.quantity += 1;
+    } else {
+      itemsList.push({
+        id: order.id,
+        productId: order.productId,
+        quantity: 1,
+        isPreorder: false,
+        createdAt: new Date(order.createdAt)
+      });
+    }
+  }
+
+  itemsList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
   const inline_keyboard: any[] = [];
   const pageSize = 10;
 
-  if (userOrders.length > 0) {
-    const totalPages = Math.max(1, Math.ceil(userOrders.length / pageSize));
+  if (itemsList.length > 0) {
+    const totalPages = Math.max(1, Math.ceil(itemsList.length / pageSize));
     const currentPage = Math.min(Math.max(1, page), totalPages);
     const startIndex = (currentPage - 1) * pageSize;
-    const pageOrders = userOrders.slice(startIndex, startIndex + pageSize);
+    const pageItems = itemsList.slice(startIndex, startIndex + pageSize);
 
-    for (const order of pageOrders) {
-      const product = await storage.getProduct(order.productId);
-      const name = product ? product.name : `Order #${order.id}`;
+    for (const item of pageItems) {
+      const product = await storage.getProduct(item.productId);
+      const baseName = product ? product.name : `Product #${item.productId}`;
+      const qtyStr = item.quantity > 1 ? ` (${item.quantity} Pcs)` : '';
+      const preorderTag = item.isPreorder ? ' [Pre-Order]' : '';
+      const name = `${baseName}${qtyStr}${preorderTag}`;
       const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
-      const timeStr = formatSriLankaTime(order.createdAt, 'short');
+      const timeStr = formatSriLankaTime(item.createdAt, 'short');
 
       inline_keyboard.push([
         {
           text: `${name} (${timeStr})`,
-          callback_data: `view_order_${order.id}`,
-          style: 'success',
+          callback_data: item.isPreorder ? 'noop_purchases_page' : `view_order_${item.id}`,
+          style: item.isPreorder ? 'primary' : 'success',
           icon_custom_emoji_id: productEmoji
         }
       ]);
@@ -3587,16 +3651,11 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
       inline_keyboard.push(navRow);
     }
   } else {
-    // Preset demo orders with date/time format matching requirement
     const demoOrders = [
-      { id: 8, name: 'Gemini Link 18 months', time: '09/02 - 12:04' },
-      { id: 7, name: 'Gemini Link 18 months', time: '09/02 - 11:45' },
-      { id: 6, name: 'Gemini Link 18 months', time: '09/01 - 18:30' },
-      { id: 5, name: 'Gemini Link 18 months', time: '09/01 - 15:20' },
-      { id: 4, name: 'Gemini Link 18 months', time: '08/31 - 20:10' },
-      { id: 3, name: 'Gemini Link 18 months', time: '08/31 - 14:05' },
-      { id: 2, name: 'Gemini Link 18 months', time: '08/30 - 19:40' },
-      { id: 1, name: 'Gemini Link 18 months', time: '08/30 - 10:15' }
+      { id: 8, name: 'Gemini Link 18 months', time: '09/02 12:04' },
+      { id: 7, name: 'Gemini Link 18 months', time: '09/02 11:45' },
+      { id: 6, name: 'Gemini Link 18 months', time: '09/01 18:30' },
+      { id: 5, name: 'Gemini Link 18 months', time: '09/01 15:20' }
     ];
 
     for (const d of demoOrders) {
@@ -3611,7 +3670,6 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     }
   }
 
-  // Control buttons matching screenshot
   inline_keyboard.push(
     [
       { text: 'Top up balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5409048419211682843' }
@@ -3621,8 +3679,8 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     ]
   );
 
-  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b> <code>(Page ${page})</code>\n\n` +
-    `Choose an order below to open details and delivered items.`;
+  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My Purchases</b> <code>(Page ${page})</code>\n\n` +
+    `Click on any purchase to view credentials or download TXT:`;
 
   const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, ordersBannerPath, ordersCaption, { inline_keyboard }, messageId);
@@ -3851,20 +3909,43 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
     });
   });
 
-  for (const o of userOrders) {
-    const product = await storage.getProduct(o.productId);
-    const amt = product ? (product.price / 100).toFixed(2) : '3.00';
-    const prodName = product ? product.name : `Product #${o.productId}`;
+  const orderBatches: { id: number; productId: number; quantity: number; createdAt: Date }[] = [];
+
+  userOrders.forEach(o => {
+    const orderTime = new Date(o.createdAt).getTime();
+    const existingBatch = orderBatches.find(b =>
+      b.productId === o.productId &&
+      Math.abs(new Date(b.createdAt).getTime() - orderTime) <= 30000
+    );
+
+    if (existingBatch) {
+      existingBatch.quantity += 1;
+    } else {
+      orderBatches.push({
+        id: o.id,
+        productId: o.productId,
+        quantity: 1,
+        createdAt: new Date(o.createdAt)
+      });
+    }
+  });
+
+  for (const batch of orderBatches) {
+    const product = await storage.getProduct(batch.productId);
+    const unitPrice = product ? (product.price / 100) : 3.00;
+    const totalAmt = (unitPrice * batch.quantity).toFixed(2);
+    const baseName = product ? product.name : `Product #${batch.productId}`;
+    const prodName = batch.quantity > 1 ? `${baseName} (${batch.quantity} Pcs)` : baseName;
     const prodEmoji = product ? (product.customEmojiId || (product as any).custom_emoji_id || '5854908544712707500') : '5854908544712707500';
 
     transactionsList.push({
-      id: `TX-${2000 + o.id}`,
+      id: `TX-${2000 + batch.id}`,
       type: 'purchase',
-      amountUSD: amt,
+      amountUSD: totalAmt,
       sign: '-',
-      description: `Purchase ${prodName} (Order #${o.id})`,
+      description: `Purchase ${prodName} (Order #${batch.id})`,
       customEmojiId: prodEmoji,
-      date: o.createdAt ? new Date(o.createdAt) : new Date()
+      date: batch.createdAt
     });
   }
 
@@ -5847,12 +5928,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const products = await storage.getProducts();
         const categoryProducts = products.filter(p => p.type === category && p.status === 'available');
 
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (err) { }
-
         const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
         const keyboard: any[] = [];
         if (categoryProducts.length > 0) {
@@ -6226,6 +6301,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if (!isNaN(prodIdNum)) {
           targetProduct = await storage.getProduct(prodIdNum);
         }
+        if (!targetProduct && typeof prodId === 'string') {
+          const allProds = await storage.getProducts();
+          targetProduct = allProds.find(p => p.type === prodId || p.name === prodId || p.name.includes(prodId));
+        }
 
         const availableCreds = targetProduct ? (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available') : [];
 
@@ -6250,12 +6329,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             status: 'pending_fulfillment'
           });
 
-          try {
-            if (query.message) {
-              await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-            }
-          } catch (e) {}
-
           const slTimeStr = formatSriLankaTime(new Date(), 'full');
           const preorderMsg = `<tg-emoji emoji-id="4958610528588008305">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
             `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)} (${qty} Pcs)</b>\n` +
@@ -6273,7 +6346,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             ]
           };
 
-          await targetBot.sendMessage(chatId, preorderMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+          const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, preorderMsg, keyboard, query.message?.message_id);
           autoFulfillPendingPreorders(targetProduct.id).catch(() => {});
           return;
         }
@@ -6733,32 +6807,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'purchase_history') {
-        const allOrders = await storage.getOrders();
-        const userIdNum = tgUser.id;
-        const userOrders = allOrders.filter(o => o.telegramUserId === userIdNum);
 
-        if (userOrders.length === 0) {
-          await targetBot.sendMessage(chatId, '📜 You haven\'t purchased anything yet.');
-          return;
-        }
-
-        const keyboard = {
-          inline_keyboard: [
-            [{ text: '🛍 Last 10 Purchases', callback_data: 'history_last10' }],
-            [{ text: '📜 Show All History', callback_data: 'history_all' }],
-            [{ text: '🔙 Back', callback_data: 'profile_refresh' }]
-          ]
-        };
-
-        const menuText = `<tg-emoji emoji-id="5334982154868783692">📊</tg-emoji> <tg-emoji emoji-id="6276090299232031662">📜</tg-emoji> <b>Purchase History Menu</b>\n\nPlease select an option below: <tg-emoji emoji-id="5231102735817918643">🎁</tg-emoji>`;
-
-        await targetBot.sendMessage(chatId, menuText, {
-          parse_mode: 'HTML',
-          reply_markup: keyboard
-        });
-        return;
-      }
 
       if (data === 'history_last10' || data === 'history_all') {
         const allOrders = await storage.getOrders();
