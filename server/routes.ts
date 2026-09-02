@@ -6536,7 +6536,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data.startsWith('pay_trc20_') || data.startsWith('pay_bep20_') || data.startsWith('pay_binance_') || data.startsWith('pay_cryptobot_') || data.startsWith('pay_crypto_')) {
+      if (data.startsWith('pay_cryptobot_')) {
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id, {
+            text: "🛠️ CryptoBot payment is currently under maintenance. Please choose another payment method!",
+            show_alert: true
+          }).catch(() => {});
+        }
+        return;
+      }
+
+      if (data.startsWith('pay_trc20_') || data.startsWith('pay_bep20_') || data.startsWith('pay_binance_') || data.startsWith('pay_crypto_')) {
         const parts = data.split('_');
         const method = parts[1];
         const prodId = parts[2];
@@ -7101,88 +7111,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'payment_cryptobot') {
+      if (data === 'payment_cryptobot' || data.startsWith('cryptobot_amount_')) {
         if (query.id) {
           await targetBot.answerCallbackQuery(query.id, {
-            text: '⚠️ This payment gateway is currently under maintenance.',
+            text: "🛠️ CryptoBot payment is currently under maintenance. Please choose another payment method!",
             show_alert: true
           }).catch(() => {});
         } else {
-          await targetBot.sendMessage(chatId, '⚠️ This payment gateway is currently under maintenance.');
-        }
-        return;
-      }
-
-      if (data.startsWith('cryptobot_amount_')) {
-        const val = data.replace('cryptobot_amount_', '');
-        if (val === 'custom') {
-          try {
-            if (query.message) {
-              await targetBot.deleteMessage(chatId, query.message.message_id);
-            }
-          } catch (e) { }
-          const prompt = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji> Enter custom amount for <b>@CryptoBot</b> deposit in USD (<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>):`, { parse_mode: 'HTML' });
-          await storage.updateTelegramUserByChatId(chatId.toString(), {
-            lastAction: 'awaiting_cryptobot_amount',
-            lastMessageId: prompt?.message_id
-          });
-          return;
-        }
-
-        const amount = parseFloat(val);
-        if (isNaN(amount) || amount <= 0) return;
-
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (e) { }
-
-        const newPayment = await storage.createPayment({
-          telegramUserId: tgUser.id,
-          amount: Math.round(amount * 100),
-          paymentMethod: 'cryptobot',
-          status: 'pending'
-        });
-
-        const res = await createCryptoBotInvoice(amount, newPayment.id.toString());
-        await storage.updateTelegramUser(tgUser.id, { lastAction: null });
-
-        if (res.success && res.payUrl) {
-          if (res.invoiceId) {
-            await storage.updatePayment(newPayment.id, { externalId: res.invoiceId.toString() });
-          }
-          const msgText = `<tg-emoji emoji-id="5361914370068613491">🤖</tg-emoji> <b>@CryptoBot Top-up Invoice</b>\n` +
-            `➖➖➖➖➖➖➖➖➖➖\n` +
-            `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Top-up amount: <b>$${amount.toFixed(2)} USD</b>\n` +
-            `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Status: <tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending\n` +
-            `➖➖➖➖➖➖➖➖➖➖\n` +
-            `Click on the button below to pay via <b>@CryptoBot</b>:`;
-
-          const keyboard: any[][] = [
-            [{ text: `Pay $${amount.toFixed(2)} via @CryptoBot`, url: res.payUrl, icon_custom_emoji_id: '5361914370068613491' }],
-            [{ text: 'Check top-up', callback_data: `check_payment_${newPayment.id}`, icon_custom_emoji_id: '6010111371251815589' }]
-          ];
-
-          const imagePath = path.resolve(process.cwd(), 'public/assets/cryptobot.png');
-          try {
-            await sendPhotoWithCache(targetBot, chatId, imagePath, 'FILE_ID_CRYPTOBOT', {
-              caption: msgText,
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: keyboard
-              }
-            });
-          } catch (photoErr) {
-            await targetBot.sendMessage(chatId, msgText, {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: keyboard
-              }
-            });
-          }
-        } else {
-          targetBot.sendMessage(chatId, `❌ Failed to create @CryptoBot invoice: ${res.error || 'Please check admin settings'}`);
+          await targetBot.sendMessage(chatId, '🛠️ CryptoBot payment is currently under maintenance. Please choose another payment method!');
         }
         return;
       }
