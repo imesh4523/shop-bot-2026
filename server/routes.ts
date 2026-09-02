@@ -2884,12 +2884,29 @@ const initBot = async () => {
           updated_at TIMESTAMP DEFAULT NOW()
         );
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS attachment_url TEXT;
-        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_request_at TIMESTAMP DEFAULT NOW();
-        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_currency TEXT DEFAULT 'USD';
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS spam_violations INTEGER DEFAULT 0;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_request_at TIMESTAMP DEFAULT NOW();
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_action TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_message_id INTEGER;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_error_message_id INTEGER;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS tutorial_buy_video TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS tutorial_deposit_video TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS do_api_key TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_droplet_id TEXT;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS last_offer_broadcast_id INTEGER;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_currency TEXT DEFAULT 'USD';
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS selected_language TEXT DEFAULT 'en';
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referral_balance INTEGER DEFAULT 0;
+        ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referred_by TEXT;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+        ALTER TABLE special_offers ADD COLUMN IF NOT EXISTS custom_emoji_id TEXT;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS custom_emoji_id TEXT;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT false;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;
       `);
-      console.log('[DB] support_tickets & telegram_users columns verified/created');
+      console.log('[DB] Complete schema columns verified/migrated successfully!');
     } catch (e) {
       console.error('Error verifying database tables:', e);
     }
