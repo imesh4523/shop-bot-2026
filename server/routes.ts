@@ -8947,16 +8947,19 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }
 
             if (!liveMatch) {
+              const payIdSetting = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+              const notFoundMsg = `<tg-emoji emoji-id="5850627871067870443">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
+                `<blockquote><tg-emoji emoji-id="4956611513369494230">⚠️</tg-emoji> <b>Verification Warning:</b>\n` +
+                `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.</blockquote>\n\n` +
+                `<b>Please check:</b>\n` +
+                `<blockquote>1. Transferred exact amount to Binance Pay ID <code>${escapeHTML(payIdSetting)}</code>.\n` +
+                `2. Copied exact <b>Order ID</b> from Binance App (Pay ➔ Orders). <tg-emoji emoji-id="5395661577380707230">👍</tg-emoji></blockquote>`;
+
               await sendAutoDeleteError(
                 targetBot,
                 chatId,
                 msg.message_id,
-                `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance Payment Not Found!</b>\n\n` +
-                `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Verification Warning:</b>\n` +
-                `We could not verify Order ID <code>${escapeHTML(txid)}</code> on Binance Pay.\n\n` +
-                `<b>Please check:</b>\n` +
-                `1. Transferred exact amount to Binance Pay ID <code>284910485</code>.\n` +
-                `2. Copied exact <b>Order ID</b> from Binance App (Pay ➔ Orders).</blockquote>`,
+                notFoundMsg,
                 7000
               );
               return;
