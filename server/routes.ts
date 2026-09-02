@@ -3257,26 +3257,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
     }
   }
 
-  // Include categories matching preset demo experience
-  const presetCategories = [
-    { name: 'Standoff 2', icon: '5456343263340405032', stock: 12 },
-    { name: 'Gemini', icon: '5404617696589390973', stock: 8 },
-    { name: 'CHAT GPT', icon: '6113971389935391397', stock: 15 },
-    { name: 'CLAUDE', icon: '5854908544712707500', stock: 5 },
-    { name: 'SuperGrok', icon: '5312441427764989435', stock: 0 },
-    { name: 'Perplexity', icon: '5208604387156448480', stock: 7 }
-  ];
 
-  for (const preset of presetCategories) {
-    if (!categoryMap.has(preset.name)) {
-      categoryMap.set(preset.name, {
-        stock: preset.stock,
-        hasPreorder: false,
-        maxPreorderQuota: 0,
-        iconEmojiId: preset.icon
-      });
-    }
-  }
 
   const inline_keyboard: any[] = [];
 
@@ -6054,16 +6035,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }]);
           }
         } else {
-          const isSuperGrokOut = category === 'SuperGrok';
-          if (showOutOfStock || !isSuperGrokOut) {
-            const { formatted: pPrice } = formatPriceInCurrency(10, userCurrency);
-            keyboard.push([{
-              text: `${category} Account - ${pPrice} | ${isSuperGrokOut ? 'Out of Stock' : '5 Pcs'}`,
-              callback_data: `preset_buy_${category}`,
-              style: isSuperGrokOut ? 'danger' : 'success',
-              icon_custom_emoji_id: '5456343263340405032'
-            }]);
-          }
+          keyboard.push([{
+            text: 'No products available in this category.',
+            callback_data: 'buy',
+            style: 'danger',
+            icon_custom_emoji_id: '5976535107933050770'
+          }]);
         }
 
         // Add Back to Catalog button
