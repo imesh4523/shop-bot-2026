@@ -2959,13 +2959,19 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     lastAction: null
   });
 
-  const allOrders = await storage.getOrders();
-  const userOrders = allOrders.filter(o => o.telegramUserId === userToDisplay.id);
-  const userPurchases = userOrders.length;
+  // Query user's completed orders joined with products table to calculate accurate total spent
+  const userOrdersWithProducts = await db.select({
+    orderId: orders.id,
+    price: products.price
+  })
+  .from(orders)
+  .leftJoin(products, eq(orders.productId, products.id))
+  .where(eq(orders.telegramUserId, userToDisplay.id));
 
+  const userPurchases = userOrdersWithProducts.length;
   let totalSpentCents = 0;
-  userOrders.forEach(o => {
-    totalSpentCents += ((o as any).totalPrice || (o as any).price || 0);
+  userOrdersWithProducts.forEach(o => {
+    totalSpentCents += (o.price || 0);
   });
 
   let totalDepositedCents = 0;
