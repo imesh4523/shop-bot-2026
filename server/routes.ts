@@ -3584,11 +3584,12 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   }
 
   for (const order of userOrders) {
-    const orderTime = new Date(order.createdAt).getTime();
+    const orderTime = order.createdAt ? new Date(order.createdAt).getTime() : 0;
     const existingBatch = itemsList.find(b =>
       !b.isPreorder &&
       b.productId === order.productId &&
-      Math.abs(new Date(b.createdAt).getTime() - orderTime) <= 30000
+      orderTime > 0 &&
+      Math.abs(b.createdAt.getTime() - orderTime) <= 60000
     );
 
     if (existingBatch) {
@@ -3599,12 +3600,12 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
         productId: order.productId,
         quantity: 1,
         isPreorder: false,
-        createdAt: new Date(order.createdAt)
+        createdAt: order.createdAt ? new Date(order.createdAt) : new Date()
       });
     }
   }
 
-  itemsList.sort((a, b) => Number(b.id) - Number(a.id));
+  itemsList.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
   const inline_keyboard: any[] = [];
   const pageSize = 10;
@@ -4948,23 +4949,46 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             if (targetOrder.createdAt) {
               orderDateStr = formatSriLankaTime(targetOrder.createdAt, 'full');
             }
-            const product = await storage.getProduct(targetOrder.productId);
-            if (product) productName = product.name;
+            if (targetOrder.product) {
+              productName = targetOrder.product.name;
+            } else {
+              const product = await storage.getProduct(targetOrder.productId);
+              if (product) productName = product.name;
+            }
 
-            const orderTime = new Date(targetOrder.createdAt).getTime();
-            const batchOrders = allOrders.filter(o =>
-              o.telegramUserId === targetOrder.telegramUserId &&
-              o.productId === targetOrder.productId &&
-              Math.abs(new Date(o.createdAt).getTime() - orderTime) <= 30000
-            );
+            if ((targetOrder as any).credential?.content) {
+              credsList.push((targetOrder as any).credential.content);
+            } else if (targetOrder.credentialId) {
+              try {
+                const [cred] = await db.select().from(credentials).where(eq(credentials.id, targetOrder.credentialId));
+                if (cred && cred.content) credsList.push(cred.content);
+              } catch (e) {}
+            }
 
-            for (const bOrder of batchOrders) {
-              if (bOrder.credentialId) {
-                const cred = await storage.getCredential(bOrder.credentialId);
-                if (cred && cred.content) {
-                  credsList.push(cred.content);
+            try {
+              const targetTime = targetOrder.createdAt ? new Date(targetOrder.createdAt).getTime() : 0;
+              if (targetTime > 0) {
+                const batchOrders = allOrders.filter(o =>
+                  o.telegramUserId === targetOrder.telegramUserId &&
+                  o.productId === targetOrder.productId &&
+                  o.createdAt &&
+                  Math.abs(new Date(o.createdAt).getTime() - targetTime) <= 60000
+                );
+
+                for (const bOrder of batchOrders) {
+                  const content = (bOrder as any).credential?.content;
+                  if (content && !credsList.includes(content)) {
+                    credsList.push(content);
+                  } else if (bOrder.credentialId) {
+                    const [bCred] = await db.select().from(credentials).where(eq(credentials.id, bOrder.credentialId));
+                    if (bCred && bCred.content && !credsList.includes(bCred.content)) {
+                      credsList.push(bCred.content);
+                    }
+                  }
                 }
               }
+            } catch (batchErr) {
+              console.error("[view_order batch error]:", batchErr);
             }
           }
         }
