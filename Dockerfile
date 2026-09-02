@@ -9,21 +9,21 @@ RUN apt-get update && apt-get install -y curl gnupg2 lsb-release \
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
+# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install --production
+RUN npm install
 
-# Copy pre-built dist and public assets (build done locally, no OOM risk)
-COPY dist/ ./dist/
-COPY public/ ./public/
+# Copy source files
+COPY . .
+
+# Build client assets & server dist bundle inside container
+RUN npm run build
 
 # Set production environment
 ENV NODE_ENV=production
 
-# Expose the API port
+# Expose port
 EXPOSE 5000
 
-# Start the application directly with node (no npm run start)
+# Start the application
 CMD ["node", "dist/index.cjs"]
-
-
