@@ -3604,7 +3604,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     }
   }
 
-  itemsList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  itemsList.sort((a, b) => Number(b.id) - Number(a.id));
 
   const inline_keyboard: any[] = [];
   const pageSize = 10;
@@ -4937,24 +4937,40 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const orderIdStr = data.replace('view_demo_order_', '').replace('view_order_', '');
         const orderId = parseInt(orderIdStr, 10);
 
-        let productName = 'Gemini Link 18 months';
+        let productName = 'Digital Account';
         let credsList: string[] = [];
+        let orderDateStr = formatSriLankaTime(new Date(), 'full');
 
         if (data.startsWith('view_order_') && !isNaN(orderId)) {
           const allOrders = await storage.getOrders();
           const targetOrder = allOrders.find(o => o.id === orderId);
           if (targetOrder) {
+            if (targetOrder.createdAt) {
+              orderDateStr = formatSriLankaTime(targetOrder.createdAt, 'full');
+            }
             const product = await storage.getProduct(targetOrder.productId);
             if (product) productName = product.name;
-            try {
-              const matchedCreds = await db.select().from(credentials).where(eq(credentials.orderId, orderId));
-              credsList = matchedCreds.map(c => c.content);
-            } catch (e) {}
+
+            const orderTime = new Date(targetOrder.createdAt).getTime();
+            const batchOrders = allOrders.filter(o =>
+              o.telegramUserId === targetOrder.telegramUserId &&
+              o.productId === targetOrder.productId &&
+              Math.abs(new Date(o.createdAt).getTime() - orderTime) <= 30000
+            );
+
+            for (const bOrder of batchOrders) {
+              if (bOrder.credentialId) {
+                const cred = await storage.getCredential(bOrder.credentialId);
+                if (cred && cred.content) {
+                  credsList.push(cred.content);
+                }
+              }
+            }
           }
         }
 
         if (credsList.length === 0) {
-          credsList = ['https://gemini.google.com/share/activation_key_demo_18months'];
+          credsList = ['No credential details found for this order.'];
         }
 
         const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
@@ -4968,8 +4984,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         });
 
         const orderMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>Order Details${isNaN(orderId) ? '' : ` #${orderId}`}</b>\n\n` +
-          `Product: <b>${productName}</b>\n` +
-          `Status: <b>Completed</b> <tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>\n\n` +
+          `Product: <b>${escapeHTML(productName)}</b>\n` +
+          `Status: <b>Completed</b> <tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>\n` +
+          `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Purchase Time: <b>${orderDateStr}</b>\n\n` +
           `🔑 <b>Delivered Credentials (${credsList.length} item${credsList.length > 1 ? 's' : ''}):</b>\n${credsFormatted}`;
 
         const orderKeyboard = {
