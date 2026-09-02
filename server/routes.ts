@@ -4887,8 +4887,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         setTimeout(() => actionLocks.delete(actionLockKey), 4000);
       }
 
-      // 1. Immediately answer the callback query to clear client spinner (except for check_payment_ where custom modal alert popup is shown)
-      if (!data.startsWith('check_payment_')) {
+      // 1. Immediately answer the callback query to clear client spinner (except for check_payment_ & cryptobot where custom alert popup is shown)
+      if (!data.startsWith('check_payment_') && !data.includes('cryptobot')) {
         try {
           console.log(`[Bot Callback] Answering callback query: ${callbackId}`);
           await targetBot.answerCallbackQuery(query.id);
@@ -6543,6 +6543,19 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             show_alert: true
           }).catch(() => {});
         }
+
+        const maintenanceMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>Payment Gateway Under Maintenance</b>\n\n` +
+          `<b>@CryptoBot</b> payment system is currently undergoing scheduled maintenance.\n` +
+          `Please select <b>Binance Pay</b>, <b>USDT (BEP20 / TRC20)</b>, or <b>Pay from balance</b> to complete your payment!`;
+
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+          ]
+        };
+
+        const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, maintenanceMsg, keyboard, query.message?.message_id);
         return;
       }
 
@@ -7117,9 +7130,20 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             text: "🛠️ CryptoBot payment is currently under maintenance. Please choose another payment method!",
             show_alert: true
           }).catch(() => {});
-        } else {
-          await targetBot.sendMessage(chatId, '🛠️ CryptoBot payment is currently under maintenance. Please choose another payment method!');
         }
+
+        const maintenanceMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>Payment Gateway Under Maintenance</b>\n\n` +
+          `<b>@CryptoBot</b> payment system is currently undergoing scheduled maintenance.\n` +
+          `Please select <b>Binance Pay</b>, <b>USDT (BEP20 / TRC20)</b>, or <b>Pay from balance</b> to complete your payment!`;
+
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+          ]
+        };
+
+        const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, maintenanceMsg, keyboard, query.message?.message_id);
         return;
       }
 
