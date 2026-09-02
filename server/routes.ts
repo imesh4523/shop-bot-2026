@@ -8684,8 +8684,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       };
 
       const sendWelcomeBanner = async () => {
-        const bottomKeyboard = getPersistentBottomKeyboard();
-
         if (fs.existsSync(bannerPath)) {
           try {
             await targetBot.sendPhoto(chatId, bannerPath, {
@@ -8693,16 +8691,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-
-            await targetBot.sendMessage(chatId, "👇 Choose a section:", {
-              parse_mode: 'HTML',
-              reply_markup: bottomKeyboard
-            }).catch(() => {});
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
           }
         }
+        const bottomKeyboard = getPersistentBottomKeyboard();
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
           reply_markup: bottomKeyboard
