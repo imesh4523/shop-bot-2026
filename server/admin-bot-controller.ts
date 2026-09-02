@@ -1129,7 +1129,7 @@ export async function initAdminBotController() {
           return;
         }
         const buttons = allProds.map(p => ([{
-          text: `🛒 Buy Now: ${p.name} ($${(p.price / 100).toFixed(2)})`,
+          text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
           callback_data: `bcast_sel_prod_${p.id}`
         }]));
         await adminBot?.sendMessage(chatId, `🛒 <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
@@ -1155,7 +1155,7 @@ export async function initAdminBotController() {
           ]
         };
 
-        await adminBot?.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🛒 Buy Now: ${escapeHTML(prodName)} ($${priceUSD}) ]`, {
+        await adminBot?.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🟢 Buy Now ]`, {
           parse_mode: 'HTML',
           reply_markup: keyboard
         }).catch(() => {});
@@ -1191,9 +1191,12 @@ export async function initAdminBotController() {
         // Build 100% valid Telegram Bot API inline keyboard for broadcast
         const inlineKeyboard: any[][] = [];
         if (targetProdId) {
-          const [prod] = await db.select().from(products).where(eq(products.id, targetProdId));
-          const btnLabel = prod ? `🛒 Buy Now: ${prod.name} ($${(prod.price / 100).toFixed(2)})` : `🛒 Buy Now`;
-          inlineKeyboard.push([{ text: btnLabel, callback_data: `prod_${targetProdId}` }]);
+          inlineKeyboard.push([{
+            text: 'Buy Now',
+            callback_data: `prod_${targetProdId}`,
+            style: 'success',
+            icon_custom_emoji_id: '5361781191722699867'
+          }]);
         } else if (customBtnText && customBtnUrl) {
           inlineKeyboard.push([{ text: customBtnText, url: customBtnUrl }]);
         }
