@@ -3259,6 +3259,11 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
       availableQuota = Math.max(0, p.preorderQuota || 0);
     }
 
+    // Skip product if stock is 0, pre-orders are disabled for this product, and showOutOfStock is false
+    if (stock === 0 && !p.isPreorderEnabled && !showOutOfStock) {
+      continue;
+    }
+
     if (!categoryMap.has(p.type)) {
       categoryMap.set(p.type, {
         stock,
@@ -6242,11 +6247,19 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
         const keyboard: any[] = [];
+        let validProductCount = 0;
+
         if (categoryProducts.length > 0) {
           for (const p of categoryProducts) {
             const stock = await storage.getCredentialsByProduct(p.id);
             const availableStock = stock.filter(c => c.status === 'available').length;
 
+            // Skip product if stock is 0, pre-orders are disabled, and showOutOfStock is false
+            if (availableStock === 0 && !p.isPreorderEnabled && !showOutOfStock) {
+              continue;
+            }
+
+            validProductCount++;
             const { formatted: pPrice } = formatPriceInCurrency(p.price / 100, userCurrency);
             let buttonStyle = 'success';
             let stockText = `${availableStock} Pcs`;
@@ -6274,7 +6287,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               icon_custom_emoji_id: p.customEmojiId || '5456343263340405032'
             }]);
           }
-        } else {
+        }
+
+        if (validProductCount === 0) {
           keyboard.push([{
             text: 'No products available in this category.',
             callback_data: 'buy',
@@ -9391,12 +9406,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
 
       if (normalizedText === '📋 Availability') {
+        const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
+        const showOutOfStock = showOutOfStockSetting?.value === "true";
         const products = await storage.getProducts();
         const availableProducts = [];
         for (const p of products) {
           if (p.status !== 'available') continue;
           const stock = (await storage.getCredentialsByProduct(p.id)).filter(c => c.status === 'available');
-          if (stock.length > 0) {
+          const isPreorder = p.isPreorderEnabled && (p.preorderQuota || 0) > 0;
+          if (stock.length > 0 || isPreorder || showOutOfStock) {
             availableProducts.push({ ...p, stockCount: stock.length });
           }
         }
