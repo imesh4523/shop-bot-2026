@@ -4728,7 +4728,7 @@ async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: n
   const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
 
   if (!apiKey || !merchantId) {
-    targetBot.sendMessage(chatId, "❌ Cryptomus is not configured by admin.");
+    targetBot.sendMessage(chatId, "⚠️ Cryptomus API keys are not configured by the admin. Please select Binance Pay or USDT (BEP20 / TRC20).");
     return;
   }
 
@@ -7278,12 +7278,27 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
       if (data === 'payment_cryptomus') {
         const cryptomusEnabled = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== 'false';
-        if (!cryptomusEnabled) {
-          if (queryId) {
-            await targetBot.answerCallbackQuery(queryId, { text: '❌ Cryptomus payments are currently disabled.', show_alert: true }).catch(() => {});
-          } else {
-            await targetBot.sendMessage(chatId, '❌ Cryptomus payments are currently disabled by the admin.');
+        const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value || (await storage.getSetting('CRYPTOMUS_PAYMENT_KEY'))?.value;
+        const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
+
+        if (!cryptomusEnabled || !apiKey || !merchantId) {
+          if (query?.id) {
+            await targetBot.answerCallbackQuery(query.id, {
+              text: '⚠️ Cryptomus API keys are not configured by the admin! Please select Binance Pay or USDT (BEP20 / TRC20).',
+              show_alert: true
+            }).catch(() => {});
           }
+          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>Cryptomus Payment Not Configured</b>\n\n` +
+            `Cryptomus API Key and Merchant ID have not been configured by the admin.\n` +
+            `Please select <b>Binance Pay</b> or <b>USDT (BEP20 / TRC20)</b> to complete your payment!`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+            ]
+          };
+          const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+          await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, notConfiguredMsg, keyboard, query.message?.message_id);
           return;
         }
 
