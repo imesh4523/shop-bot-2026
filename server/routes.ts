@@ -3224,7 +3224,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row1: any[] = [];
   [1, 2, 3].forEach(qty => {
     if (qty <= stockCount) {
-      row1.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}` });
+      row1.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
     }
   });
   if (row1.length > 0) inline_keyboard.push(row1);
@@ -3233,7 +3233,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const row2: any[] = [];
   [5, 10, 20].forEach(qty => {
     if (qty <= stockCount) {
-      row2.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}` });
+      row2.push({ text: `${qty}`, callback_data: `buy_qty_${product.id}_${qty}`, style: 'success' });
     }
   });
   if (row2.length > 0) inline_keyboard.push(row2);
@@ -3241,7 +3241,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   // Row 3: Other quantity (only if stockCount > 1)
   if (stockCount > 1) {
     inline_keyboard.push([
-      { text: '💵 Other quantity', callback_data: `qty_other_${product.id}` }
+      { text: 'Other quantity', callback_data: `qty_other_${product.id}`, icon_custom_emoji_id: '6050684909389880647' }
     ]);
   }
 
