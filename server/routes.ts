@@ -2712,30 +2712,36 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   } as any;
 
   targetBot.sendVideo = async function(chatId: any, video: any, options?: any) {
-    const cleanOpts = sanitizeOptions(options);
     try {
-      return await originalSendVideo(chatId, video, cleanOpts);
+      return await originalSendVideo(chatId, video, options);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendVideo(chatId, video, cleanOpts);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
         return await originalSendVideo(chatId, video, retryOpts);
       }
       throw err;
     }
   } as any;
 
-  targetBot.sendDocument = async function(chatId: any, doc: any, options?: any) {
-    const cleanOpts = sanitizeOptions(options);
+  targetBot.sendDocument = async function(chatId: any, doc: any, options?: any, fileOptions?: any) {
     try {
-      return await originalSendDocument(chatId, doc, cleanOpts);
+      return await originalSendDocument(chatId, doc, options, fileOptions);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendDocument(chatId, doc, cleanOpts, fileOptions);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
-        return await originalSendDocument(chatId, doc, retryOpts);
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
+        return await originalSendDocument(chatId, doc, retryOpts, fileOptions);
       }
       throw err;
     }
@@ -5845,13 +5851,38 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         const fileName = `order_${orderId}_${prodName}.txt`;
-        const buffer = Buffer.from(credContent, 'utf-8');
+        const tempDir = path.join(process.cwd(), 'tmp');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        const tempFilePath = path.join(tempDir, fileName);
+        fs.writeFileSync(tempFilePath, credContent, 'utf-8');
 
         try {
-          await targetBot.sendDocument(chatId, buffer, { caption: `File for order #${orderId}` }, { filename: fileName, contentType: 'text/plain' });
+          await targetBot.sendDocument(chatId, tempFilePath, {
+            caption: `📄 <b>File for Order #${orderId}</b>`,
+            parse_mode: 'HTML'
+          });
         } catch (err: any) {
-          console.error("Error sending order TXT file:", err);
-          await targetBot.sendMessage(chatId, `📄 <b>Order #${orderId} Delivered Items:</b>\n\n<code>${escapeHTML(credContent)}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+          console.error("Error sending order TXT file via targetBot:", err);
+          const token = (targetBot as any)?.token;
+          if (token) {
+            try {
+              const form = new FormData();
+              form.append('chat_id', chatId.toString());
+              form.append('caption', `📄 <b>File for Order #${orderId}</b>`);
+              form.append('parse_mode', 'HTML');
+              form.append('document', fs.createReadStream(tempFilePath), { filename: fileName, contentType: 'text/plain' });
+              await axios.post(`https://api.telegram.org/bot${token}/sendDocument`, form, { headers: form.getHeaders() });
+            } catch (e2: any) {
+              console.error("Error sending order TXT file via Direct API:", e2);
+              await targetBot.sendMessage(chatId, `📄 <b>Order #${orderId} Delivered Items:</b>\n\n<code>${escapeHTML(credContent)}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+            }
+          }
+        } finally {
+          setTimeout(() => {
+            fs.unlink(tempFilePath, () => {});
+          }, 2000);
         }
         return;
       }
