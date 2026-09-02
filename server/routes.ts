@@ -6194,22 +6194,38 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await storage.updateTelegramUser(tgUser.id, { balance: tgUser.balance - totalCents });
           }
 
-          let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
-          const stock = await storage.getCredentialsByProduct(prodIdNum);
-          const avail = stock.find(c => c.status === 'available');
-          if (avail) {
-            credentialText = avail.data;
-            await storage.updateCredential(avail.id, { status: 'sold' });
+          let deliveredItems: string[] = [];
+          let targetOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
+
+          if (!isNaN(prodIdNum)) {
+            const availableCreds = (await storage.getCredentialsByProduct(prodIdNum)).filter(c => c.status === 'available');
+            const credsToAssign = availableCreds.slice(0, qty);
+
+            for (let i = 0; i < credsToAssign.length; i++) {
+              const chosenCred = credsToAssign[i];
+              deliveredItems.push(chosenCred.content);
+              await db.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, chosenCred.id));
+
+              const newOrder = await storage.createOrder({
+                telegramUserId: tgUser.id,
+                productId: prodIdNum,
+                credentialId: chosenCred.id,
+                status: 'completed'
+              });
+              if (i === 0 && newOrder && newOrder.id) {
+                targetOrderId = newOrder.id;
+              }
+            }
           }
 
-          const newOrder = await storage.createOrder({
-            telegramUserId: tgUser.id,
-            productId: prodIdNum,
-            quantity: qty,
-            totalPrice: totalCents,
-            status: 'completed',
-            credential: credentialText
-          } as any);
+          while (deliveredItems.length < qty) {
+            const idx = deliveredItems.length + 1;
+            deliveredItems.push(`${productName} #${idx}\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}_${idx}\nStatus: Active 24/7`);
+          }
+
+          const deliveredCredential = deliveredItems.length === 1
+            ? deliveredItems[0]
+            : deliveredItems.map((item, i) => `--- Item ${i + 1} of ${qty} ---\n${item}`).join('\n\n');
 
           try {
             if (query.message) {
@@ -6217,7 +6233,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }
           } catch (e) {}
 
-          await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
+          await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredCredential);
           return;
         }
 
