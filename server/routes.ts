@@ -7675,7 +7675,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
 
           if (query.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: "💬 Send your Binance Order ID in chat!" }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, {
+              text: "❌ Binance Payment Not Found!\n\nPlease reply with your Binance Order ID in the chat to complete verification.",
+              show_alert: true
+            }).catch(() => {});
           }
 
           await storage.updateTelegramUserByChatId(chatId.toString(), {
