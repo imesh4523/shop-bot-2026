@@ -3863,20 +3863,20 @@ const sendDepositSuccessNotification = async (
   chatId: number | string,
   amountUSD: number,
   newBalanceUSD: number,
-  methodName: string,
+  methodName: string = 'Admin Deposit',
   txId?: string
 ) => {
   const tgUser = await storage.getTelegramUserByChatId(chatId.toString()) || await storage.getTelegramUser(chatId.toString());
   const userLang = (tgUser as any)?.selectedLanguage || 'en';
 
-  const caption = `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> <b>Deposit Successful!</b>\n` +
-    `➖➖➖➖➖➖➖➖➖➖\n` +
-    `<tg-emoji emoji-id="5409048419211682843">💰</tg-emoji> Amount Credited: <b>+$${amountUSD.toFixed(2)} USD</b>\n` +
+  const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Balance Added Successfully!</b>\n` +
+    `➖➖➖➖➖➖➖➖➖➖\n\n` +
+    `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Amount Credited: <b>+$${amountUSD.toFixed(2)} USD</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
     `<tg-emoji emoji-id="5370919202796348364">💳</tg-emoji> Payment Method: <b>${methodName}</b>\n` +
-    `${txId ? `<tg-emoji emoji-id="6276090299232031662">🧾</tg-emoji> Transaction ID: <code>${txId}</code>\n` : ''}` +
-    `➖➖➖➖➖➖➖➖➖➖\n` +
+    `${txId ? `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Reference ID: <code>${txId}</code>\n` : ''}` +
+    `➖➖➖➖➖➖➖➖➖➖\n\n` +
     `<tg-emoji emoji-id="6032693626394382504">💎</tg-emoji> Your New Balance: <b>$${newBalanceUSD.toFixed(2)} USD</b>\n\n` +
-    `Thank you for trusting <b>Shopeefy</b>! Your balance has been updated automatically. ✨`;
+    `<tg-emoji emoji-id="5377660214096974712">✨</tg-emoji> Thank you for trusting <b>Shopeefy</b>! Your balance has been updated.`;
 
   const inline_keyboard = [
     [
@@ -3886,11 +3886,8 @@ const sendDepositSuccessNotification = async (
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
-
-  // Send beautiful deposit success banner
   await sendOrEditScreenWithPhoto(targetBot, Number(chatId), paymentBannerPath, caption, { inline_keyboard });
 
-  // Send Animated Gift Sticker immediately after deposit message and auto-delete after 5 seconds
   try {
     const stickerMsg = await targetBot.sendSticker(Number(chatId), DEPOSIT_SUCCESS_STICKER_FILE_ID);
     if (stickerMsg && stickerMsg.message_id) {

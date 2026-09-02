@@ -847,6 +847,37 @@ export async function initAdminBotController() {
           await db.execute(sql`UPDATE telegram_users SET balance = balance + ${creditCents} WHERE id = ${user.id}`);
           adminSessions.delete(chatId);
           await adminBot?.sendMessage(chatId, `✅ <b>Credited +$${amount.toFixed(2)} USD to User ${user.firstName || user.username || user.telegramId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+
+          if (mainBotReference && user.telegramId) {
+            const newBalUSD = ((user.balance || 0) + creditCents) / 100;
+            const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Balance Added Successfully!</b>\n` +
+              `➖➖➖➖➖➖➖➖➖➖\n\n` +
+              `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Amount Credited: <b>+$${amount.toFixed(2)} USD</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
+              `<tg-emoji emoji-id="5370919202796348364">💳</tg-emoji> Payment Method: <b>Admin Manual Credit</b>\n` +
+              `➖➖➖➖➖➖➖➖➖➖\n\n` +
+              `<tg-emoji emoji-id="6032693626394382504">💎</tg-emoji> Your New Balance: <b>$${newBalUSD.toFixed(2)} USD</b>\n\n` +
+              `<tg-emoji emoji-id="5377660214096974712">✨</tg-emoji> Thank you for trusting <b>Shopeefy</b>! Your balance has been updated.`;
+
+            const inline_keyboard = [
+              [
+                { text: '🛍️ Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
+                { text: '👤 Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' }
+              ]
+            ];
+            const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+            if (fs.existsSync(paymentBannerPath)) {
+              mainBotReference.sendPhoto(Number(user.telegramId), fs.createReadStream(paymentBannerPath), {
+                caption,
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard } as any
+              }).catch(() => {});
+            } else {
+              mainBotReference.sendMessage(Number(user.telegramId), caption, {
+                parse_mode: 'HTML',
+                reply_markup: { inline_keyboard } as any
+              }).catch(() => {});
+            }
+          }
           await sendCustomersAdminMenu(chatId);
           return;
         }
