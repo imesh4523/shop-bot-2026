@@ -3323,25 +3323,41 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
       if (availableQuota > 0) {
         // Render Pre-Order Product Screen
         const qtyButtons: any[][] = [];
-        const maxBtnQty = Math.min(availableQuota, 5);
+        
+        // Multi-row grid layout: Row 1 (1 pcs, 2 pcs, 3 pcs), Row 2 (5 pcs, 10 pcs)
         const row1: any[] = [];
-        for (let i = 1; i <= maxBtnQty; i++) {
+        const row2: any[] = [];
+        const qtysRow1 = [1, 2, 3].filter(q => q <= availableQuota);
+        const qtysRow2 = [5, 10, 20].filter(q => q <= availableQuota);
+
+        qtysRow1.forEach(q => {
           row1.push({
-            text: `${i} pcs`,
-            callback_data: `buy_qty_${product.id}_${i}`,
-            style: 'primary',
+            text: `${q} pcs`,
+            callback_data: `buy_qty_${product.id}_${q}`,
+            style: 'success',
             icon_custom_emoji_id: '5409048419211682843'
           });
-        }
-        qtyButtons.push(row1);
+        });
+        if (row1.length > 0) qtyButtons.push(row1);
+
+        qtysRow2.forEach(q => {
+          row2.push({
+            text: `${q} pcs`,
+            callback_data: `buy_qty_${product.id}_${q}`,
+            style: 'success',
+            icon_custom_emoji_id: '5409048419211682843'
+          });
+        });
+        if (row2.length > 0) qtyButtons.push(row2);
+
         qtyButtons.push([{
           text: 'Custom Pre-Order Quantity',
           callback_data: `qty_other_${product.id}`,
-          style: 'primary',
+          style: 'success',
           icon_custom_emoji_id: '5312441427764989435'
         }]);
         qtyButtons.push([{
-          text: '🔙 Back to Catalog',
+          text: 'Back to Catalog',
           callback_data: 'buy',
           style: 'primary',
           icon_custom_emoji_id: '5976535107933050770'
@@ -3351,7 +3367,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
           `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Price per unit: <b>${priceDisplay}</b>\n` +
           `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Stock Status: <b>0 Pcs (Pre-Order Active 24/7)</b>\n` +
           `<tg-emoji emoji-id="5215570077876756627">⚡</tg-emoji> Pre-Orders Available: <b>${availableQuota} Pcs</b>\n\n` +
-          `<blockquote><tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>24/7 Pre-Order Guarantee:</b>\n` +
+          `<blockquote><tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>24/7 Pre-Order Guarantee:</b>\n` +
           `Place your pre-order now! As soon as stock is added by the admin, your credentials will automatically be sent to you in this chat with priority #1.</blockquote>\n\n` +
           `<b>Select quantity to pre-order:</b>`;
 
@@ -3424,7 +3440,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
 
   // Row 4: Back button
   inline_keyboard.push([
-    { text: '🔙 Back', callback_data: `cat_${product.type}` }
+    { text: 'Back to Category', callback_data: `cat_${product.type}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
@@ -3814,36 +3830,36 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
       amountUSD: amt,
       sign: '+',
       description: `Deposit via ${methodTag}`,
+      customEmojiId: '5409048419211682843',
       date: p.createdAt ? new Date(p.createdAt) : new Date()
     });
   });
 
-  userOrders.forEach(o => {
-    const amt = (((o as any).totalPrice || (o as any).price || 0) / 100).toFixed(2);
+  for (const o of userOrders) {
+    const product = await storage.getProduct(o.productId);
+    const amt = product ? (product.price / 100).toFixed(2) : '3.00';
+    const prodName = product ? product.name : `Product #${o.productId}`;
+    const prodEmoji = product ? (product.customEmojiId || (product as any).custom_emoji_id || '5854908544712707500') : '5854908544712707500';
+
     transactionsList.push({
       id: `TX-${2000 + o.id}`,
       type: 'purchase',
       amountUSD: amt,
       sign: '-',
-      description: `Purchase order #${3000 + o.id}`,
+      description: `Purchase ${prodName} (Order #${o.id})`,
+      customEmojiId: prodEmoji,
       date: o.createdAt ? new Date(o.createdAt) : new Date()
     });
-  });
+  }
 
   transactionsList.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   if (transactionsList.length === 0) {
     const fallbackDemos: TxEntry[] = [
-      { id: 'TX-1547', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3286', date: new Date(Date.now() - 3600000) },
-      { id: 'TX-1546', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3285', date: new Date(Date.now() - 7200000) },
-      { id: 'TX-1545', type: 'deposit', amountUSD: '10.00', sign: '+', description: 'Deposit via Binance Pay', date: new Date(Date.now() - 14400000) },
-      { id: 'TX-1544', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3283', date: new Date(Date.now() - 28800000) },
-      { id: 'TX-1543', type: 'deposit', amountUSD: '5.00', sign: '+', description: 'Deposit via BEP20 USDT', date: new Date(Date.now() - 43200000) },
-      { id: 'TX-1536', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3253', date: new Date(Date.now() - 86400000) },
-      { id: 'TX-1535', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3251', date: new Date(Date.now() - 172800000) },
-      { id: 'TX-1534', type: 'deposit', amountUSD: '15.00', sign: '+', description: 'Deposit via TRC20 USDT', date: new Date(Date.now() - 259200000) },
-      { id: 'TX-1528', type: 'purchase', amountUSD: '0.58', sign: '-', description: 'Purchase order #3220', date: new Date(Date.now() - 345600000) },
-      { id: 'TX-1527', type: 'purchase', amountUSD: '1.17', sign: '-', description: 'Purchase order #3219', date: new Date(Date.now() - 432000000) }
+      { id: 'TX-1547', type: 'purchase', amountUSD: '3.00', sign: '-', description: 'Purchase AWS 5 vcpu (Order #3286)', customEmojiId: '5785025630055700143', date: new Date(Date.now() - 3600000) },
+      { id: 'TX-1546', type: 'purchase', amountUSD: '3.00', sign: '-', description: 'Purchase AWS 5 vcpu (Order #3285)', customEmojiId: '5785025630055700143', date: new Date(Date.now() - 7200000) },
+      { id: 'TX-1545', type: 'deposit', amountUSD: '10.00', sign: '+', description: 'Deposit via Binance Pay', customEmojiId: '5409048419211682843', date: new Date(Date.now() - 14400000) },
+      { id: 'TX-1544', type: 'purchase', amountUSD: '3.00', sign: '-', description: 'Purchase AWS 5 vcpu (Order #3283)', customEmojiId: '5785025630055700143', date: new Date(Date.now() - 28800000) }
     ];
     transactionsList.push(...fallbackDemos);
   }
@@ -3861,7 +3877,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
   pageItems.forEach(item => {
     const typeEmoji = item.sign === '+' 
       ? `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji>` 
-      : `<tg-emoji emoji-id="5445355530111437729">📤</tg-emoji>`;
+      : `<tg-emoji emoji-id="${item.customEmojiId || '5854908544712707500'}">📦</tg-emoji>`;
 
     const signEmoji = item.sign === '+' 
       ? `<tg-emoji emoji-id="5397916757333654639">➕</tg-emoji>` 
@@ -6221,17 +6237,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           } catch (e) {}
 
           const preorderMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
-            `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)}</b> (${qty} Pcs)\n` +
-            `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
-            `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Total Paid: <b>$${totalUSD} USD</b>\n\n` +
-            `⚡ <b>Priority Queue Guarantee:</b>\n` +
+            `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)} (${qty} Pcs)</b>\n` +
+            `<tg-emoji emoji-id="5370615926565641880">◀️</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
+            `<tg-emoji emoji-id="5850383023572259486">📊</tg-emoji> Total Paid: <b>$${totalUSD} USD</b>\n\n` +
+            `<tg-emoji emoji-id="5215570077876756627">⚡</tg-emoji> <b>Priority Queue Guarantee:</b>\n` +
             `Your pre-order has been registered. As soon as the admin adds new stock for this item, your credentials will automatically be sent to you in this chat!\n\n` +
             `Thank you for your purchase!`;
 
           const keyboard = {
             inline_keyboard: [
-              [{ text: '🛍️ Catalog', callback_data: 'buy' }],
-              [{ text: '👤 Profile', callback_data: 'profile' }]
+              [{ text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5854908544712707500' }],
+              [{ text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }]
             ]
           };
 
