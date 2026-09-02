@@ -8691,7 +8691,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: bottomKeyboard
+              reply_markup: startInlineMarkup
             });
             return;
           } catch (err: any) {
