@@ -5533,15 +5533,27 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           icon_custom_emoji_id: '5976535107933050770'
         }]);
 
-        let catIcon = '';
-        const catLower = category.toLowerCase();
-        if (catLower.includes('aws')) catIcon = '<tg-emoji emoji-id="5785025630055700143">☁️</tg-emoji> ';
-        else if (catLower.includes('digital ocean') || catLower.includes('digitalocean')) catIcon = '<tg-emoji emoji-id="6235413342576450502">💧</tg-emoji> ';
-        else if (catLower.includes('azure')) catIcon = '<tg-emoji emoji-id="6235420094265037090">☁️</tg-emoji> ';
-        else if (catLower.includes('kamatera')) catIcon = '<tg-emoji emoji-id="6235239937566838722">☁️</tg-emoji> ';
+        let catEmojiId = '';
+        if (categoryProducts.length > 0 && ((categoryProducts[0] as any).customEmojiId || (categoryProducts[0] as any).custom_emoji_id)) {
+          catEmojiId = (categoryProducts[0] as any).customEmojiId || (categoryProducts[0] as any).custom_emoji_id;
+        }
 
+        if (!catEmojiId) {
+          const catLower = category.toLowerCase();
+          if (catLower.includes('aws')) catEmojiId = '5785025630055700143';
+          else if (catLower.includes('digital ocean') || catLower.includes('digitalocean')) catEmojiId = '5785345544989710932';
+          else if (catLower.includes('linode')) catEmojiId = '5787285044846399857';
+          else if (catLower.includes('azure')) catEmojiId = '5785185643357279341';
+          else if (catLower.includes('gcp') || catLower.includes('google cloud')) catEmojiId = '5785061312643994750';
+          else if (catLower.includes('kamatera')) catEmojiId = '5785070770161980265';
+          else if (catLower.includes('gemini')) catEmojiId = '5377660214096974712';
+          else if (catLower.includes('chatgpt') || catLower.includes('grok')) catEmojiId = '5404617696589390973';
+          else catEmojiId = '5456343263340405032';
+        }
+
+        const catEmojiTag = catEmojiId ? `<tg-emoji emoji-id="${catEmojiId}">✨</tg-emoji>` : '';
         const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-        const caption = `${catIcon} <b>${category}</b>\n\nSelect the product you need:`;
+        const caption = `<b>${category}</b> ${catEmojiTag}\n\nSelect the product you need:`;
         await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
       }
