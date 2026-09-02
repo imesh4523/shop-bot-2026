@@ -29,6 +29,7 @@ import BackupPage from "@/pages/backup-page";
 import ForwardPage from "@/pages/forward-page";
 import SupportTicketsPage from "@/pages/support-tickets-page";
 import CustomerTrackerPage from "@/pages/customer-tracker-page";
+import PreordersPage from "@/pages/preorders-page";
 import MiniAppShop from "@/pages/mini-app-shop";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -78,6 +79,10 @@ function Router() {
 
       <Route path="/customer-tracker">
         <ProtectedRoute component={CustomerTrackerPage} />
+      </Route>
+
+      <Route path="/preorders">
+        <ProtectedRoute component={PreordersPage} />
       </Route>
       
       <Route path="/products">

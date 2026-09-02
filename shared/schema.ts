@@ -25,6 +25,8 @@ export const products = pgTable("products", {
   price: integer("price").notNull(), // In cents
   customEmojiId: text("custom_emoji_id"),
   status: text("status").notNull().default("available"),
+  isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
+  preorderQuota: integer("preorder_quota").notNull().default(50),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -399,5 +401,33 @@ export const broadcastLogs = pgTable("broadcast_logs", {
 export const insertBroadcastLogSchema = createInsertSchema(broadcastLogs).omit({ id: true, createdAt: true });
 export type BroadcastLog = typeof broadcastLogs.$inferSelect;
 export type InsertBroadcastLog = z.infer<typeof insertBroadcastLogSchema>;
+
+// Pre-Orders Table
+export const preorders = pgTable("preorders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull().default(1),
+  totalPrice: integer("total_price").notNull(), // In cents
+  status: text("status").notNull().default("pending_fulfillment"), // pending_fulfillment, fulfilled, cancelled
+  fulfilledCredentialIds: text("fulfilled_credential_ids"), // JSON array of credential IDs
+  createdAt: timestamp("created_at").defaultNow(),
+  fulfilledAt: timestamp("fulfilled_at"),
+});
+
+export const preordersRelations = relations(preorders, ({ one }) => ({
+  product: one(products, {
+    fields: [preorders.productId],
+    references: [products.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [preorders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertPreorderSchema = createInsertSchema(preorders).omit({ id: true, createdAt: true, fulfilledAt: true });
+export type Preorder = typeof preorders.$inferSelect;
+export type InsertPreorder = z.infer<typeof insertPreorderSchema>;
 
 

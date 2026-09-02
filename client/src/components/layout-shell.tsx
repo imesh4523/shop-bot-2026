@@ -20,6 +20,7 @@ import {
   Ticket,
   LifeBuoy,
   Database,
+  Clock,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Pre-Orders', href: '/preorders', icon: Clock },
     { name: 'Customer Audit & Fix', href: '/customer-tracker', icon: ShieldCheck },
     { name: 'Broadcast', href: '/broadcast', icon: Megaphone },
     { name: 'Products', href: '/products', icon: Package },

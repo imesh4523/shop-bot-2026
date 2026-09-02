@@ -190,6 +190,8 @@ function CredentialsDialog({ product }: { product: Product }) {
 const productFormSchema = insertProductSchema.extend({
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   customEmojiId: z.string().optional().nullable(),
+  isPreorderEnabled: z.boolean().default(false),
+  preorderQuota: z.coerce.number().default(50),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -433,6 +435,8 @@ function EditProductDialog({
       description: product.description || "",
       price: product.price / 100,
       customEmojiId: product.customEmojiId || "",
+      isPreorderEnabled: (product as any).isPreorderEnabled ?? false,
+      preorderQuota: (product as any).preorderQuota ?? 50,
     },
   });
 
@@ -556,6 +560,42 @@ function EditProductDialog({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <FormField
+                control={form.control}
+                name="isPreorderEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order Enabled</FormLabel>
+                      <FormDescription className="text-[10px] text-slate-400">Allow customers to pre-order when 0 stock</FormDescription>
+                    </div>
+                    <FormControl>
+                      <input 
+                        type="checkbox" 
+                        checked={field.value} 
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="preorderQuota"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Pre-Order Quota (Pcs)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="50" className="glass-panel h-10 rounded-xl border-purple-500/30 bg-purple-950/20 text-sm text-white font-bold" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -682,6 +722,8 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
       description: "",
       price: 0,
       customEmojiId: "",
+      isPreorderEnabled: false,
+      preorderQuota: 50,
     },
   });
 
@@ -834,6 +876,42 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <FormField
+                control={form.control}
+                name="isPreorderEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order Enabled</FormLabel>
+                      <FormDescription className="text-[10px] text-slate-400">Allow customers to pre-order when 0 stock</FormDescription>
+                    </div>
+                    <FormControl>
+                      <input 
+                        type="checkbox" 
+                        checked={field.value} 
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="preorderQuota"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Pre-Order Quota (Pcs)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="50" className="glass-panel h-10 rounded-xl border-purple-500/30 bg-purple-950/20 text-sm text-white font-bold" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <DialogFooter className="pt-4 border-t border-white/5 gap-3">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-6 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">

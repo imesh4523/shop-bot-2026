@@ -52,7 +52,10 @@ import {
   type InsertReview,
   supportTickets,
   type SupportTicket,
-  type InsertSupportTicket
+  type InsertSupportTicket,
+  preorders,
+  type Preorder,
+  type InsertPreorder
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -84,6 +87,12 @@ export interface IStorage {
   // Orders
   getOrders(): Promise<(Order & { product: Product | null; telegramUser: TelegramUser | null })[]>;
   createOrder(order: InsertOrder): Promise<Order>;
+
+  // Pre-Orders
+  getPreorders(): Promise<(Preorder & { product: Product | null; telegramUser: TelegramUser | null })[]>;
+  getPendingPreordersByProduct(productId: number): Promise<Preorder[]>;
+  createPreorder(preorder: InsertPreorder): Promise<Preorder>;
+  updatePreorder(id: number, data: Partial<Preorder>): Promise<Preorder>;
 
   // Payments
   createPayment(payment: InsertPayment): Promise<Payment>;
@@ -887,6 +896,54 @@ export class DatabaseStorage implements IStorage {
 
   async updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket> {
     const [updated] = await db.update(supportTickets).set({ status, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
+    return updated;
+  }
+
+  // Pre-Orders
+  async getPreorders(): Promise<(Preorder & { product: Product | null; telegramUser: TelegramUser | null })[]> {
+    try {
+      const rows = await db
+        .select()
+        .from(preorders)
+        .leftJoin(products, eq(preorders.productId, products.id))
+        .leftJoin(telegramUsers, eq(preorders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(preorders.createdAt));
+
+      return rows.map((row) => ({
+        ...row.preorders,
+        product: row.products,
+        telegramUser: row.telegram_users,
+      }));
+    } catch (e) {
+      console.error("Error fetching preorders:", e);
+      return [];
+    }
+  }
+
+  async getPendingPreordersByProduct(productId: number): Promise<Preorder[]> {
+    try {
+      return await db
+        .select()
+        .from(preorders)
+        .where(and(eq(preorders.productId, productId), eq(preorders.status, "pending_fulfillment")))
+        .orderBy(preorders.createdAt);
+    } catch (e) {
+      console.error("Error fetching pending preorders:", e);
+      return [];
+    }
+  }
+
+  async createPreorder(preorder: InsertPreorder): Promise<Preorder> {
+    const [inserted] = await db.insert(preorders).values(preorder).returning();
+    return inserted;
+  }
+
+  async updatePreorder(id: number, data: Partial<Preorder>): Promise<Preorder> {
+    const [updated] = await db
+      .update(preorders)
+      .set(data)
+      .where(eq(preorders.id, id))
+      .returning();
     return updated;
   }
 }

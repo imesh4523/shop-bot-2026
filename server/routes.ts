@@ -1390,6 +1390,9 @@ app.post("/api/credentials", isAuth, async (req, res) => {
       console.error("AWS Auto-detection error:", autoErr);
     }
 
+    // Auto fulfill any pending preorders if this was stock addition
+    autoFulfillPendingPreorders(input.productId).catch(e => console.error("[AutoFulfill Error]:", e));
+
     res.status(201).json(credential);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -1679,6 +1682,28 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
   }
 });
 
+// Verify/create preorders table and product columns
+try {
+  db.execute(sql`
+    CREATE TABLE IF NOT EXISTS preorders (
+      id SERIAL PRIMARY KEY,
+      telegram_user_id INTEGER NOT NULL REFERENCES telegram_users(id),
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      quantity INTEGER NOT NULL DEFAULT 1,
+      total_price INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_fulfillment',
+      fulfilled_credential_ids TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      fulfilled_at TIMESTAMP
+    );
+  `).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT FALSE;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;`).catch(() => {});
+  console.log("[DB] preorders table & product preorder columns verified/created");
+} catch (err) {
+  console.error("[DB Init Preorders Error]:", err);
+}
+
 app.post('/api/admin/audit-and-fix', isAuth, async (req, res) => {
   try {
     const allUsers = await storage.getAllTelegramUsers();
@@ -1726,6 +1751,25 @@ app.post('/api/admin/audit-and-fix', isAuth, async (req, res) => {
   } catch (err: any) {
     console.error('[Audit Error]:', err);
     res.status(500).json({ message: err.message || "Audit failed" });
+  }
+});
+
+// Pre-Orders API
+app.get('/api/preorders', isAuth, async (req, res) => {
+  try {
+    const list = await storage.getPreorders();
+    res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch preorders" });
+  }
+});
+
+app.post('/api/admin/fulfill-preorders', isAuth, async (req, res) => {
+  try {
+    await autoFulfillPendingPreorders();
+    res.json({ success: true, message: "Auto-fulfillment run complete!" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Fulfillment failed" });
   }
 });
 
@@ -3247,6 +3291,52 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const priceDisplay = userCurrency === 'USD' ? `$${priceUSDNum.toFixed(2)}` : `${priceFormatted} ($${priceUSDNum.toFixed(2)} USD)`;
 
   if (stockCount === 0) {
+    if (product.isPreorderEnabled) {
+      const pendingPreorders = await storage.getPendingPreordersByProduct(product.id);
+      const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
+      const availableQuota = Math.max(0, (product.preorderQuota || 50) - preordersCount);
+
+      if (availableQuota > 0) {
+        // Render Pre-Order Product Screen
+        const qtyButtons: any[][] = [];
+        const maxBtnQty = Math.min(availableQuota, 5);
+        const row1: any[] = [];
+        for (let i = 1; i <= maxBtnQty; i++) {
+          row1.push({
+            text: `${i} pcs`,
+            callback_data: `buy_qty_${product.id}_${i}`,
+            style: 'primary',
+            icon_custom_emoji_id: '5409048419211682843'
+          });
+        }
+        qtyButtons.push(row1);
+        qtyButtons.push([{
+          text: 'Custom Pre-Order Quantity',
+          callback_data: `qty_other_${product.id}`,
+          style: 'primary',
+          icon_custom_emoji_id: '5312441427764989435'
+        }]);
+        qtyButtons.push([{
+          text: '🔙 Back to Catalog',
+          callback_data: 'buy',
+          style: 'primary',
+          icon_custom_emoji_id: '5976535107933050770'
+        }]);
+
+        const preMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${escapeHTML(product.name)}</b>\n\n` +
+          `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Price per unit: <b>${priceDisplay}</b>\n` +
+          `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Stock Status: <b>0 Pcs (Pre-Order Active 24/7)</b>\n` +
+          `<tg-emoji emoji-id="5215570077876756627">⚡</tg-emoji> Pre-Orders Available: <b>${availableQuota} Pcs</b>\n\n` +
+          `<blockquote><tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>24/7 Pre-Order Guarantee:</b>\n` +
+          `Place your pre-order now! As soon as stock is added by the admin, your credentials will automatically be sent to you in this chat with priority #1.</blockquote>\n\n` +
+          `<b>Select quantity to pre-order:</b>`;
+
+        const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
+        await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, preMsg, { inline_keyboard: qtyButtons }, messageId);
+        return;
+      }
+    }
+
     const outOfStockKb = {
       inline_keyboard: [
         [{ text: '🔙 Back to Catalog', callback_data: 'buy' }]
@@ -4177,6 +4267,66 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
 
   const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, reviewsCaption, { inline_keyboard }, messageId);
+};
+
+const autoFulfillPendingPreorders = async (targetProductId?: number) => {
+  try {
+    const allProducts = targetProductId ? [await storage.getProduct(targetProductId)].filter(Boolean) : await storage.getProducts();
+
+    for (const prod of allProducts) {
+      if (!prod) continue;
+      const pendingPreorders = await storage.getPendingPreordersByProduct(prod.id);
+      if (pendingPreorders.length === 0) continue;
+
+      for (const preorder of pendingPreorders) {
+        const availableCreds = (await storage.getCredentialsByProduct(prod.id)).filter(c => c.status === 'available');
+        if (availableCreds.length < preorder.quantity) {
+          continue;
+        }
+
+        const credsToAssign = availableCreds.slice(0, preorder.quantity);
+        const deliveredItems: string[] = [];
+        const assignedIds: number[] = [];
+        let firstOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
+
+        for (let i = 0; i < credsToAssign.length; i++) {
+          const cred = credsToAssign[i];
+          deliveredItems.push(cred.content);
+          assignedIds.push(cred.id);
+          await db.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, cred.id));
+
+          const newOrder = await storage.createOrder({
+            telegramUserId: preorder.telegramUserId,
+            productId: prod.id,
+            credentialId: cred.id,
+            status: 'completed'
+          });
+          if (i === 0 && newOrder && newOrder.id) {
+            firstOrderId = newOrder.id;
+          }
+        }
+
+        await storage.updatePreorder(preorder.id, {
+          status: 'fulfilled',
+          fulfilledCredentialIds: JSON.stringify(assignedIds),
+          fulfilledAt: new Date()
+        });
+
+        const tgUser = (await storage.getAllTelegramUsers()).find(u => u.id === preorder.telegramUserId);
+        if (tgUser && mainBotReference) {
+          await sendOrderSuccessMessage(
+            mainBotReference,
+            Number(tgUser.telegramId),
+            firstOrderId,
+            `Pre-Order Fulfilled: ${prod.name}`,
+            deliveredItems
+          ).catch(e => console.error("Error sending pre-order fulfillment bot message:", e));
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[AutoFulfill Preorders Error]:", err);
+  }
 };
 
 const sendOrderSuccessMessage = async (
@@ -5650,11 +5800,30 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             const stock = await storage.getCredentialsByProduct(p.id);
             const availableStock = stock.filter(c => c.status === 'available').length;
 
-            if (!showOutOfStock && availableStock === 0) continue;
-
             const { formatted: pPrice } = formatPriceInCurrency(p.price / 100, userCurrency);
-            const buttonStyle = availableStock > 0 ? 'success' : 'danger';
-            const stockText = availableStock > 0 ? `${availableStock} Pcs` : `Out of Stock`;
+            let buttonStyle = 'success';
+            let stockText = `${availableStock} Pcs`;
+
+            if (availableStock === 0) {
+              if (p.isPreorderEnabled) {
+                const pendingPreorders = await storage.getPendingPreordersByProduct(p.id);
+                const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
+                const availableQuota = Math.max(0, (p.preorderQuota || 50) - preordersCount);
+                if (availableQuota > 0) {
+                  buttonStyle = 'primary';
+                  stockText = `Pre-Order Available: ${availableQuota} Pcs`;
+                } else {
+                  buttonStyle = 'danger';
+                  stockText = `Out of Stock`;
+                }
+              } else {
+                buttonStyle = 'danger';
+                stockText = `Out of Stock`;
+              }
+            }
+
+            if (!showOutOfStock && availableStock === 0 && buttonStyle === 'danger') continue;
+
             keyboard.push([{
               text: `${p.name} - ${pPrice} | ${stockText}`,
               callback_data: `prod_${p.id}`,
@@ -5995,15 +6164,67 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
+        let targetProduct: any = null;
+        if (!isNaN(prodIdNum)) {
+          targetProduct = await storage.getProduct(prodIdNum);
+        }
+
+        const availableCreds = targetProduct ? (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available') : [];
+
+        if (targetProduct && availableCreds.length < qty && targetProduct.isPreorderEnabled) {
+          const pendingPreorders = await storage.getPendingPreordersByProduct(targetProduct.id);
+          const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
+          const availableQuota = Math.max(0, (targetProduct.preorderQuota || 50) - preordersCount);
+
+          if (qty > availableQuota) {
+            await targetBot.sendMessage(chatId, `❌ Maximum pre-order quota available is ${availableQuota} Pcs.`);
+            return;
+          }
+
+          const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
+          await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
+
+          const newPreorder = await storage.createPreorder({
+            telegramUserId: tgUser.id,
+            productId: targetProduct.id,
+            quantity: qty,
+            totalPrice: Math.round(qty * unitPriceUSD * 100),
+            status: 'pending_fulfillment'
+          });
+
+          try {
+            if (query.message) {
+              await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+            }
+          } catch (e) {}
+
+          const preorderMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
+            `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)}</b> (${qty} Pcs)\n` +
+            `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
+            `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Total Paid: <b>$${totalUSD} USD</b>\n\n` +
+            `⚡ <b>Priority Queue Guarantee:</b>\n` +
+            `Your pre-order has been registered. As soon as the admin adds new stock for this item, your credentials will automatically be sent to you in this chat!\n\n` +
+            `Thank you for your purchase!`;
+
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: '🛍️ Catalog', callback_data: 'buy' }],
+              [{ text: '👤 Profile', callback_data: 'profile' }]
+            ]
+          };
+
+          await targetBot.sendMessage(chatId, preorderMsg, { parse_mode: 'HTML', reply_markup: keyboard });
+          autoFulfillPendingPreorders(targetProduct.id).catch(() => {});
+          return;
+        }
+
         const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
         await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
 
         let deliveredItems: string[] = [];
         let targetOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
 
-        // Fetch real credentials from DB if matching product exists
-        if (!isNaN(prodIdNum)) {
-          const availableCreds = (await storage.getCredentialsByProduct(prodIdNum)).filter(c => c.status === 'available');
+        if (availableCreds.length > 0) {
           const credsToAssign = availableCreds.slice(0, qty);
 
           for (let i = 0; i < credsToAssign.length; i++) {
