@@ -3017,7 +3017,8 @@ const sendOrEditScreenWithPhoto = async (
   const token = (targetBot as any)?.token;
 
   if (messageId) {
-    if (forceMediaEdit && fs.existsSync(bannerPath) && token) {
+    // Attempt 1: ALWAYS try editMessageMedia first if banner file exists (so QR code photos are ALWAYS replaced smoothly!)
+    if (fs.existsSync(bannerPath) && token) {
       try {
         const fileBuffer = fs.readFileSync(bannerPath);
         const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
@@ -7213,7 +7214,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             { text: '10', callback_data: 'binance_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
+            { text: 'Custom', callback_data: 'binance_amount_custom', icon_custom_emoji_id: '6050684909389880647' }
+          ],
+          [
+            { text: 'Back', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
           ]
         ];
 
@@ -7295,7 +7299,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             { text: '10', callback_data: 'cryptomus_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'cryptomus_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
+            { text: 'Custom', callback_data: 'cryptomus_amount_custom', icon_custom_emoji_id: '6050684909389880647' }
+          ],
+          [
+            { text: 'Back', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
           ]
         ];
 
@@ -7349,7 +7356,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             { text: '10', callback_data: 'trc20_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'trc20_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
+            { text: 'Custom', callback_data: 'trc20_amount_custom', icon_custom_emoji_id: '6050684909389880647' }
+          ],
+          [
+            { text: 'Back', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
           ]
         ];
 
@@ -7431,7 +7441,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             { text: '10', callback_data: 'bep20_amount_10', icon_custom_emoji_id: '5201692367437974073' }
           ],
           [
-            { text: 'Custom', callback_data: 'bep20_amount_custom', icon_custom_emoji_id: '5201692367437974073' }
+            { text: 'Custom', callback_data: 'bep20_amount_custom', icon_custom_emoji_id: '6050684909389880647' }
+          ],
+          [
+            { text: 'Back', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
           ]
         ];
 
