@@ -460,21 +460,18 @@ function EditProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[500px] rounded-3xl p-8 shadow-4xl animate-in fade-in zoom-in duration-300">
-        <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-md">
-              <Edit2 className="w-5 h-5" />
+      <DialogContent className="glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[460px] max-h-[85vh] overflow-y-auto rounded-3xl p-5 shadow-4xl animate-in fade-in zoom-in duration-300">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-lg font-black text-white tracking-tighter flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+              <Edit2 className="w-4 h-4" />
             </div>
             Edit Product
           </DialogTitle>
-          <DialogDescription className="text-white/40 font-medium text-sm">
-            Update product details for {product.name}.
-          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6">
+          <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-3">
             <FormField
               control={form.control}
               name="name"
@@ -482,14 +479,14 @@ function EditProductDialog({
                 <FormItem>
                   <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Product Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="AWS 10k Credits Account" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all shadow-inner" {...field} />
+                    <Input placeholder="AWS 10k Credits Account" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
                   </FormControl>
                   <FormMessage className="text-red-400 font-bold text-xs" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="type"
@@ -498,7 +495,7 @@ function EditProductDialog({
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Provider</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all">
+                        <SelectTrigger className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white focus:border-purple-500/50 transition-all">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
@@ -524,7 +521,7 @@ function EditProductDialog({
                   <FormItem>
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Price ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
+                      <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
                     </FormControl>
                     <FormMessage className="text-red-400 font-bold text-xs" />
                   </FormItem>
@@ -538,7 +535,7 @@ function EditProductDialog({
                 <FormControl>
                   <Input 
                     placeholder="Enter custom type (e.g. Vultr, Oracle)" 
-                    className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all"
+                    className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white focus:border-purple-500/50 transition-all"
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value)}
                   />
@@ -551,32 +548,31 @@ function EditProductDialog({
               name="customEmojiId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Custom Premium Emoji ID (Optional)</FormLabel>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Custom Premium Emoji ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 5785345544989710932" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono" {...field} value={field.value ?? ""} />
+                    <Input placeholder="e.g. 5785345544989710932" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono" {...field} value={field.value ?? ""} />
                   </FormControl>
-                  <FormDescription className="text-[10px] text-white/30">Telegram Premium Emoji ID to display on bot product buttons</FormDescription>
                   <FormMessage className="text-red-400 font-bold text-xs" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
               <FormField
                 control={form.control}
                 name="isPreorderEnabled"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div>
-                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order Enabled</FormLabel>
-                      <FormDescription className="text-[10px] text-slate-400">Allow customers to pre-order when 0 stock</FormDescription>
+                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order</FormLabel>
+                      <FormDescription className="text-[9px] text-slate-400">Allow when 0 stock</FormDescription>
                     </div>
                     <FormControl>
                       <input 
                         type="checkbox" 
                         checked={field.value} 
                         onChange={(e) => field.onChange(e.target.checked)}
-                        className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
+                        className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
                       />
                     </FormControl>
                   </FormItem>
@@ -588,9 +584,9 @@ function EditProductDialog({
                 name="preorderQuota"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Pre-Order Quota (Pcs)</FormLabel>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Quota (Pcs)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="50" className="glass-panel h-10 rounded-xl border-purple-500/30 bg-purple-950/20 text-sm text-white font-bold" {...field} />
+                      <Input type="number" placeholder="50" className="glass-panel h-8 rounded-lg border-purple-500/30 bg-purple-950/20 text-xs text-white font-bold" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -606,7 +602,7 @@ function EditProductDialog({
                   <FormControl>
                     <Textarea 
                       placeholder="Account details, limits, etc." 
-                      className="glass-panel rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all min-h-[80px] py-3"
+                      className="glass-panel rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all min-h-[45px] py-1.5"
                       {...field}
                       value={field.value ?? ""}
                     />
@@ -616,11 +612,11 @@ function EditProductDialog({
               )}
             />
 
-            <DialogFooter className="pt-4 border-t border-white/5 gap-3">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-6 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">
+            <DialogFooter className="pt-2 border-t border-white/5 gap-2 sticky bottom-0 bg-background/95 backdrop-blur-xl py-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-8 px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="h-11 px-8 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:opacity-90 font-black uppercase tracking-widest text-[9px] shadow-xl transition-all active:scale-95">
+              <Button type="submit" disabled={updateMutation.isPending} className="h-8 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:opacity-90 font-black uppercase tracking-widest text-[9px] shadow-xl transition-all active:scale-95">
                 {updateMutation.isPending ? "Updating..." : "Update Product"}
               </Button>
             </DialogFooter>
@@ -757,21 +753,18 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
           <Plus className="mr-2 h-4 w-4" /> Add
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[500px] rounded-3xl p-8 shadow-4xl animate-in fade-in zoom-in duration-300">
-        <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-              <Plus className="w-5 h-5" />
+      <DialogContent className="glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[460px] max-h-[85vh] overflow-y-auto rounded-3xl p-5 shadow-4xl animate-in fade-in zoom-in duration-300">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-lg font-black text-white tracking-tighter flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white shadow-md">
+              <Plus className="w-4 h-4" />
             </div>
             Create Product
           </DialogTitle>
-          <DialogDescription className="text-white/40 font-medium text-sm">
-            Add a new cloud account to your inventory.
-          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             <FormField
               control={form.control}
               name="name"
@@ -779,14 +772,14 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 <FormItem>
                   <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Product Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="AWS 10k Credits Account" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all shadow-inner" {...field} />
+                    <Input placeholder="AWS 10k Credits Account" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
                   </FormControl>
                   <FormMessage className="text-red-400 font-bold text-xs" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="type"
@@ -795,7 +788,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Provider</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all">
+                        <SelectTrigger className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white focus:border-purple-500/50 transition-all">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
@@ -821,7 +814,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                   <FormItem>
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Price ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
+                      <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
                     </FormControl>
                     <FormMessage className="text-red-400 font-bold text-xs" />
                   </FormItem>
@@ -835,7 +828,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 <FormControl>
                   <Input 
                     placeholder="Enter custom type (e.g. Vultr, Oracle)" 
-                    className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all"
+                    className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white focus:border-purple-500/50 transition-all"
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value)}
                   />
@@ -848,51 +841,31 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
               name="customEmojiId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Custom Premium Emoji ID (Optional)</FormLabel>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Custom Premium Emoji ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 5785345544989710932" className="glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono" {...field} value={field.value ?? ""} />
-                  </FormControl>
-                  <FormDescription className="text-[10px] text-white/30">Telegram Premium Emoji ID to display on bot product buttons</FormDescription>
-                  <FormMessage className="text-red-400 font-bold text-xs" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Account details, limits, etc." 
-                      className="glass-panel rounded-xl border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all min-h-[80px] py-3"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
+                    <Input placeholder="e.g. 5785345544989710932" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage className="text-red-400 font-bold text-xs" />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
               <FormField
                 control={form.control}
                 name="isPreorderEnabled"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div>
-                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order Enabled</FormLabel>
-                      <FormDescription className="text-[10px] text-slate-400">Allow customers to pre-order when 0 stock</FormDescription>
+                      <FormLabel className="text-xs font-bold text-white">24/7 Pre-Order</FormLabel>
+                      <FormDescription className="text-[9px] text-slate-400">Allow when 0 stock</FormDescription>
                     </div>
                     <FormControl>
                       <input 
                         type="checkbox" 
                         checked={field.value} 
                         onChange={(e) => field.onChange(e.target.checked)}
-                        className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
+                        className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
                       />
                     </FormControl>
                   </FormItem>
@@ -904,20 +877,39 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 name="preorderQuota"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Pre-Order Quota (Pcs)</FormLabel>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-purple-300 ml-0.5">Quota (Pcs)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="50" className="glass-panel h-10 rounded-xl border-purple-500/30 bg-purple-950/20 text-sm text-white font-bold" {...field} />
+                      <Input type="number" placeholder="50" className="glass-panel h-8 rounded-lg border-purple-500/30 bg-purple-950/20 text-xs text-white font-bold" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
               />
             </div>
 
-            <DialogFooter className="pt-4 border-t border-white/5 gap-3">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-6 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Account details, limits, etc." 
+                      className="glass-panel rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all min-h-[45px] py-1.5"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-400 font-bold text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="pt-2 border-t border-white/5 gap-2 sticky bottom-0 bg-background/95 backdrop-blur-xl py-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-8 px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending} className="h-11 px-8 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[9px] shadow-xl">
+              <Button type="submit" disabled={isPending} className="h-8 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[9px] shadow-xl">
                 {isPending ? "Adding..." : "Add Product"}
               </Button>
             </DialogFooter>
