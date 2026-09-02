@@ -7917,25 +7917,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Binance payment verified!</b> $${expectedAmount} has been added to your balance.`, { parse_mode: 'HTML' });
               } else {
                 await storage.updatePayment(payment.id, { status: 'pending' });
-                const failMsg = `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Binance transaction not found.</b>\n\nPlease ensure you included your User ID in the Note field and transferred the exact amount. <tg-emoji emoji-id="6298544405435387645">❌</tg-emoji>`;
-                const sentMsg = await targetBot.sendMessage(chatId, failMsg, { parse_mode: 'HTML' });
-                if (sentMsg) {
-                  await storage.updateTelegramUser(tgUser.id, { lastErrorMessageId: sentMsg.message_id });
-                  setTimeout(() => {
-                    targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
-                  }, 15000);
+                if (query?.id) {
+                  await targetBot.answerCallbackQuery(query.id, {
+                    text: "❌ Payment not found! Please send your Binance Order ID in chat or complete the transfer.",
+                    show_alert: true
+                  }).catch(() => {});
                 }
               }
             } else {
               await storage.updatePayment(payment.id, { status: 'pending' });
               if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
-              const failMsg = `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Binance transaction not found.</b>\n\nPlease ensure you included your User ID in the Note field and transferred the exact amount. <tg-emoji emoji-id="6298544405435387645">❌</tg-emoji>`;
-              const sentMsg = await targetBot.sendMessage(chatId, failMsg, { parse_mode: 'HTML' });
-              if (sentMsg) {
-                await storage.updateTelegramUser(tgUser.id, { lastErrorMessageId: sentMsg.message_id });
-                setTimeout(() => {
-                  targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
-                }, 15000);
+              if (query?.id) {
+                await targetBot.answerCallbackQuery(query.id, {
+                  text: "❌ Payment not found! Please send your Binance Order ID in chat or complete the transfer.",
+                  show_alert: true
+                }).catch(() => {});
               }
             }
           } else if (payment.paymentMethod === 'cryptomus') {
