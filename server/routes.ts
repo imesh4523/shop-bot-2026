@@ -4475,6 +4475,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 }
 
   const processedCallbacks = new Set<string>();
+  const actionLocks = new Set<string>();
 
   targetBot.on('callback_query', async (query) => {
     try {
@@ -4494,6 +4495,16 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       if (!chatId || !data || !userId) {
         console.log(`[Bot Callback] Missing required info: chatId=${chatId}, data=${data}, userId=${userId}`);
         return;
+      }
+
+      const actionLockKey = `${userId}_${data}`;
+      if (data.startsWith('pay_bal_') || data.startsWith('buy_offer_') || data.startsWith('buy_qty_') || data.startsWith('set_curr_') || data.startsWith('set_lang_')) {
+        if (actionLocks.has(actionLockKey)) {
+          console.log(`[Bot Callback] Action ${actionLockKey} is already in progress. Double-click prevented.`);
+          return;
+        }
+        actionLocks.add(actionLockKey);
+        setTimeout(() => actionLocks.delete(actionLockKey), 4000);
       }
 
       // 1. Immediately answer the callback query to clear client spinner (except for check_payment_ where custom modal alert popup is shown)
