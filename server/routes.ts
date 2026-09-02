@@ -1935,7 +1935,7 @@ setInterval(async () => {
           message_id: u.lastOfferBroadcastId!,
           parse_mode: 'HTML',
           reply_markup: {
-            inline_keyboard: [[{ text: `🎁 Claim Your Offer ($${priceUSD})`, callback_data: `buy_offer_${offer.id}` }]]
+            inline_keyboard: [[{ text: 'Buy Now', callback_data: `buy_offer_${offer.id}`, style: 'success', icon_custom_emoji_id: '5361781191722699867' }]]
           }
         });
       } catch (err: any) {
@@ -1977,7 +1977,7 @@ const startFastTimer = async (telegramId: string, offerId: number, messageId: nu
         message_id: messageId,
         parse_mode: 'HTML',
         reply_markup: {
-          inline_keyboard: [[{ text: `🎁 Claim Your Offer ($${priceUSD})`, callback_data: `buy_offer_${offer.id}` }]]
+          inline_keyboard: [[{ text: 'Buy Now', callback_data: `buy_offer_${offer.id}`, style: 'success', icon_custom_emoji_id: '5361781191722699867' }]]
         }
       });
     } catch (err: any) {
@@ -2024,7 +2024,7 @@ app.post("/api/special-offers/:id/broadcast", isAuth, async (req, res) => {
         const sentMsg = await mainBot.sendMessage(targetId, text, {
           parse_mode: 'HTML',
           reply_markup: {
-            inline_keyboard: [[{ text: `🎁 Claim Your Offer ($${priceUSD})`, callback_data: `buy_offer_${offer.id}` }]]
+            inline_keyboard: [[{ text: 'Buy Now', callback_data: `buy_offer_${offer.id}`, style: 'success', icon_custom_emoji_id: '5361781191722699867' }]]
           }
         });
 
@@ -6303,7 +6303,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             if (offer.description) text += `<i>${offer.description}</i>\n`;
             text += `━━━━━━━━━━━━━━━\n\n`;
 
-            keyboard.inline_keyboard.push([{ text: `🎁 Claim Your Offer ($${priceUSD})`, callback_data: `buy_offer_${offer.id}` }]);
+            keyboard.inline_keyboard.push([{ text: 'Buy Now', callback_data: `buy_offer_${offer.id}`, style: 'success', icon_custom_emoji_id: '5361781191722699867' }]);
           }
 
           keyboard.inline_keyboard.push([{ text: '🔙 Back', callback_data: 'profile_refresh' }]);
