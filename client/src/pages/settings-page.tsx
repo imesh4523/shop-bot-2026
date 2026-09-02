@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Save, Loader2, Sparkles, Lock, Megaphone } from "lucide-react";
+import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package } from "lucide-react";
 
 export default function SettingsPage() {
   const { toast } = useToast();
