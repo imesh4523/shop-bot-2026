@@ -10487,18 +10487,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Verification failed:</b> ${err.message || err}`, { parse_mode: 'HTML' });
         }
       } else {
-        // Fallback for any unhandled text message: Always respond so bot is never silent
-        await sendAutoDeleteError(
-          targetBot,
-          chatId,
-          msg.message_id,
-          `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Binance Order ID Verification</b>\n\n` +
-          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
-          `If you are verifying a deposit, please send your <b>8 to 20 digit Binance Order ID</b> in chat.\n` +
-          `<i>Example: <code>28491048591</code></i>\n\n` +
-          `Or tap <b>Catalog</b> below to browse products.</blockquote>`,
-          7000
-        );
+        if (tgUser?.lastAction?.startsWith('awaiting_binance_txid_')) {
+          await sendAutoDeleteError(
+            targetBot,
+            chatId,
+            msg.message_id,
+            `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Binance Order ID Verification</b>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
+            `If you are verifying a deposit, please send your <b>8 to 20 digit Binance Order ID</b> in chat.\n` +
+            `<i>Example: <code>28491048591</code></i>\n\n` +
+            `Or tap <b>Catalog</b> below to browse products.</blockquote>`,
+            7000
+          );
+        } else {
+          console.log(`[Unhandled Text Message] user=${userId}, text="${normalizedText}", lastAction=${tgUser?.lastAction}`);
+        }
       }
     } catch (messageErr) {
       console.error("Message Handler Global Catch Error:", messageErr);
