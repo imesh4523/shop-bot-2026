@@ -4202,17 +4202,17 @@ const sendOrderSuccessMessage = async (
     const endIdx = Math.min(startIdx + chunkSize, totalItems);
     const chunk = itemsArray.slice(startIdx, endIdx);
 
-    const chunkContent = chunk.length === 1 && totalItems === 1
-      ? chunk[0]
-      : chunk.map((item, i) => `--- Item ${startIdx + i + 1} of ${totalItems} ---\n${item}`).join('\n\n');
+    const formattedChunkItems = chunk.length === 1 && totalItems === 1
+      ? `<code>${escapeHTML(chunk[0])}</code>`
+      : chunk.map((item, i) => `--- Item ${startIdx + i + 1} ---\n<code>${escapeHTML(item)}</code>`).join('\n\n');
 
     const partInfo = totalMessages > 1 ? ` (Part ${msgIdx + 1}/${totalMessages} - Items ${startIdx + 1} to ${endIdx})` : '';
 
     const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>${partInfo}\n\n` +
       `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
       `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n\n` +
-      `<b>Your item(s), easy to copy:</b>\n` +
-      `<code>${escapeHTML(chunkContent)}</code>\n\n` +
+      `<b>Your item(s), easy to copy:</b>\n\n` +
+      `${formattedChunkItems}\n\n` +
       `Thank you for your purchase! If you have questions, contact support.\n` +
       `A review would help us if everything went well.`;
 
@@ -5834,13 +5834,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         let credContent = '';
         let prodName = 'items';
         if (targetOrder) {
-          const cred = (await storage.getCredentials()).find(c => c.id === targetOrder.credentialId);
+          const allCreds = await db.select().from(credentials);
+          const cred = allCreds.find(c => c.id === targetOrder.credentialId);
           if (cred) credContent = cred.content;
           const prod = await storage.getProduct(targetOrder.productId);
           if (prod) prodName = prod.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
         }
         if (!credContent) {
-          credContent = `Order #${orderId} delivered successfully.`;
+          credContent = `Order #${orderId} delivered items: Access granted 24/7.`;
         }
 
         const fileName = `order_${orderId}_${prodName}.txt`;
