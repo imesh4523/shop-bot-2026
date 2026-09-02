@@ -3235,9 +3235,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
     let availableQuota = 0;
     if (p.isPreorderEnabled) {
-      const pendingPreorders = await storage.getPendingPreordersByProduct(p.id);
-      const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
-      availableQuota = Math.max(0, (p.preorderQuota || 50) - preordersCount);
+      availableQuota = Math.max(0, p.preorderQuota || 0);
     }
 
     if (!categoryMap.has(p.type)) {
@@ -3374,9 +3372,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
 
   if (stockCount === 0) {
     if (product.isPreorderEnabled) {
-      const pendingPreorders = await storage.getPendingPreordersByProduct(product.id);
-      const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
-      const availableQuota = Math.max(0, (product.preorderQuota || 50) - preordersCount);
+      const availableQuota = Math.max(0, product.preorderQuota || 0);
 
       if (availableQuota > 0) {
         // Render Pre-Order Product Screen
@@ -6035,9 +6031,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
             if (availableStock === 0) {
               if (p.isPreorderEnabled) {
-                const pendingPreorders = await storage.getPendingPreordersByProduct(p.id);
-                const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
-                const availableQuota = Math.max(0, (p.preorderQuota || 50) - preordersCount);
+                const availableQuota = Math.max(0, p.preorderQuota || 0);
                 if (availableQuota > 0) {
                   buttonStyle = 'primary';
                   stockText = `Pre-Order Available: ${availableQuota} Pcs`;
@@ -6413,9 +6407,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const availableCreds = targetProduct ? (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available') : [];
 
         if (targetProduct && availableCreds.length < qty && targetProduct.isPreorderEnabled) {
-          const pendingPreorders = await storage.getPendingPreordersByProduct(targetProduct.id);
-          const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
-          const availableQuota = Math.max(0, (targetProduct.preorderQuota || 50) - preordersCount);
+          const availableQuota = Math.max(0, targetProduct.preorderQuota || 0);
 
           if (qty > availableQuota) {
             await targetBot.sendMessage(chatId, `❌ Maximum pre-order quota available is ${availableQuota} Pcs.`);
@@ -6424,6 +6416,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
           await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
+
+          const newQuota = Math.max(0, (targetProduct.preorderQuota || 0) - qty);
+          await storage.updateProduct(targetProduct.id, { preorderQuota: newQuota });
 
           const newPreorder = await storage.createPreorder({
             telegramUserId: tgUser.id,
