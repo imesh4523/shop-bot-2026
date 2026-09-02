@@ -2992,12 +2992,34 @@ const sendOrEditScreenWithPhoto = async (
 ) => {
   const token = (targetBot as any)?.token;
 
-  if (fs.existsSync(bannerPath)) {
-    const fileBuffer = fs.readFileSync(bannerPath);
-    const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+  if (messageId) {
+    // Attempt 1: Edit message caption in-place (Fastest, cleanest Telegram edit!)
+    try {
+      await targetBot.editMessageCaption(caption, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      });
+      return;
+    } catch (err1: any) {}
 
-    if (messageId && token) {
+    // Attempt 2: Edit message text in-place
+    try {
+      await targetBot.editMessageText(caption, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      });
+      return;
+    } catch (err2: any) {}
+
+    // Attempt 3: Edit message media via multipart
+    if (fs.existsSync(bannerPath) && token) {
       try {
+        const fileBuffer = fs.readFileSync(bannerPath);
+        const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
         const form = new FormData();
         form.append('chat_id', chatId.toString());
         form.append('message_id', messageId.toString());
@@ -3022,15 +3044,14 @@ const sendOrEditScreenWithPhoto = async (
         if (res.data?.ok) {
           return;
         }
-      } catch (err: any) {
-        console.log('[editMessageMedia multipart upload error]:', err.response?.data || err.message);
-      }
-
-      try {
-        await targetBot.deleteMessage(chatId, messageId).catch(() => {});
-      } catch (e2) {}
+      } catch (err3: any) {}
     }
+  }
 
+  // Fallback: Send photo if messageId wasn't editable or message didn't exist
+  if (fs.existsSync(bannerPath)) {
+    const fileBuffer = fs.readFileSync(bannerPath);
+    const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
     try {
       await targetBot.sendPhoto(chatId, fileBuffer, {
         caption,
@@ -3533,13 +3554,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
       const product = await storage.getProduct(order.productId);
       const name = product ? product.name : `Order #${order.id}`;
       const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
-
-      const orderDate = order.createdAt ? new Date(order.createdAt) : new Date();
-      const mm = (orderDate.getMonth() + 1).toString().padStart(2, '0');
-      const dd = orderDate.getDate().toString().padStart(2, '0');
-      const hh = orderDate.getHours().toString().padStart(2, '0');
-      const min = orderDate.getMinutes().toString().padStart(2, '0');
-      const timeStr = `${mm}/${dd} - ${hh}:${min}`;
+      const timeStr = formatSriLankaTime(order.createdAt, 'short');
 
       inline_keyboard.push([
         {
@@ -4407,9 +4422,11 @@ const sendOrderSuccessMessage = async (
 
     const partInfo = totalMessages > 1 ? ` (Part ${msgIdx + 1}/${totalMessages} - Items ${startIdx + 1} to ${endIdx})` : '';
 
+    const slDeliveryTime = formatSriLankaTime(new Date(), 'full');
     const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>${partInfo}\n\n` +
       `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
-      `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n\n` +
+      `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n` +
+      `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Delivery Time: <b>${slDeliveryTime}</b>\n\n` +
       `<b>Your item(s), easy to copy:</b>\n\n` +
       `${formattedChunkItems}\n\n` +
       `Thank you for your purchase! If you have questions, contact support.\n` +
@@ -6239,9 +6256,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }
           } catch (e) {}
 
+          const slTimeStr = formatSriLankaTime(new Date(), 'full');
           const preorderMsg = `<tg-emoji emoji-id="4958610528588008305">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
             `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)} (${qty} Pcs)</b>\n` +
-            `<tg-emoji emoji-id="5256247952564825322">◀️</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n\n` +
+            `<tg-emoji emoji-id="5256247952564825322">◀️</tg-emoji> Pre-Order <b>#${newPreorder.id}</b>\n` +
+            `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Placed Time: <b>${slTimeStr}</b>\n\n` +
             `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji>Total Paid: <b>$${totalUSD} USD</b>\n\n` +
             `<tg-emoji emoji-id="5411590687663608498">⚡️</tg-emoji><b>Priority Queue Guarantee:</b>\n` +
             `Your pre-order has been registered. As soon as the admin adds new stock for this item, your credentials will automatically be sent to you in this chat!\n\n` +
