@@ -5839,13 +5839,36 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const targetOrder = allOrders.find(o => o.id === orderId);
         let credContent = '';
         let prodName = 'items';
+
         if (targetOrder) {
-          const allCreds = await db.select().from(credentials);
-          const cred = allCreds.find(c => c.id === targetOrder.credentialId);
-          if (cred) credContent = cred.content;
           const prod = await storage.getProduct(targetOrder.productId);
           if (prod) prodName = prod.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+          // Find all orders in the same bulk purchase batch (same user, same product, within 15s window)
+          const targetTime = new Date(targetOrder.createdAt).getTime();
+          const batchOrders = allOrders.filter(o =>
+            o.telegramUserId === targetOrder.telegramUserId &&
+            o.productId === targetOrder.productId &&
+            Math.abs(new Date(o.createdAt).getTime() - targetTime) <= 15000
+          );
+
+          const allCreds = await db.select().from(credentials);
+          const credItems: string[] = [];
+
+          for (const ord of batchOrders) {
+            const cred = allCreds.find(c => c.id === ord.credentialId);
+            if (cred && cred.content) {
+              credItems.push(cred.content);
+            }
+          }
+
+          if (credItems.length > 0) {
+            credContent = credItems.length === 1
+              ? credItems[0]
+              : credItems.map((item, i) => `--- Item ${i + 1} of ${credItems.length} ---\n${item}`).join('\n\n');
+          }
         }
+
         if (!credContent) {
           credContent = `Order #${orderId} delivered items: Access granted 24/7.`;
         }
