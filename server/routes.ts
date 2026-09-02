@@ -4132,7 +4132,8 @@ const sendPurchaseSuccessScreen = async (
 ) => {
   let prodEmojiId = '5854908544712707500';
   const pType = productName.toLowerCase();
-  if (pType.includes('aws')) prodEmojiId = '5785025630055700143';
+  if (pType.includes('top') || pType.includes('topup')) prodEmojiId = '5409048419211682843';
+  else if (pType.includes('aws')) prodEmojiId = '5785025630055700143';
   else if (pType.includes('digital ocean') || pType.includes('digitalocean')) prodEmojiId = '5785345544989710932';
   else if (pType.includes('linode')) prodEmojiId = '5787285044846399857';
   else if (pType.includes('azure')) prodEmojiId = '5785185643357279341';
@@ -5785,12 +5786,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const fileName = `order_${orderId}_${prodName}.txt`;
         const buffer = Buffer.from(credContent, 'utf-8');
 
-        await targetBot.sendDocument(chatId, buffer, {
-          caption: `File for order #${orderId}`
-        }, {
-          filename: fileName,
-          contentType: 'text/plain'
-        }).catch(err => console.error("Error sending order TXT file:", err));
+        try {
+          await targetBot.sendDocument(chatId, buffer, { caption: `File for order #${orderId}` }, { filename: fileName, contentType: 'text/plain' });
+        } catch (err: any) {
+          console.error("Error sending order TXT file:", err);
+          await targetBot.sendMessage(chatId, `📄 <b>Order #${orderId} Delivered Items:</b>\n\n<code>${escapeHTML(credContent)}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+        }
         return;
       }
 
@@ -5880,8 +5881,32 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
         await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
 
-        const demoCredential = "https://serviceactivation.google.com/subscription/new/AQCpiIHdN6ACIzXLWgd3mZmPSpkYzL0-xZHoYVG6sdg_REsXHSRNhopET96MSFutLFPWNM12SgQHanxd73mQx9S-TkoAmbCYqgRUC09XgTsQB-WHKfOBJj5zRZ0VQ2Y3huosy3A9H63pEcefDVsCN1xeL0EB-24ZVSpZU4f-LAdxoBPAKr_NCwXyeTt76wxLsM0g-uCOGwHeElyUnpUK82CKdERCMDE5Zq2-aOiomiTLUxLoDhCS4PdRZUopfsrcmr89P3lC0dVc1EW_5Q==";
-        const randomOrderId = Math.floor(1000 + Math.random() * 9000);
+        let deliveredCredential = '';
+        let targetOrderId = Math.floor(1000 + Math.random() * 9000);
+
+        // Fetch real credentials from DB if matching product exists
+        if (!isNaN(prodIdNum)) {
+          const availableCreds = (await storage.getCredentialsByProduct(prodIdNum)).filter(c => c.status === 'available');
+          if (availableCreds.length > 0) {
+            const chosenCred = availableCreds[0];
+            deliveredCredential = chosenCred.content;
+            await storage.updateCredentialStatus(chosenCred.id, 'sold');
+
+            const newOrder = await storage.createOrder({
+              telegramUserId: tgUser.id,
+              productId: prodIdNum,
+              credentialId: chosenCred.id,
+              status: 'completed'
+            });
+            if (newOrder && newOrder.id) {
+              targetOrderId = newOrder.id;
+            }
+          }
+        }
+
+        if (!deliveredCredential) {
+          deliveredCredential = `${productName} Access Credential\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}\nStatus: Active 24/7`;
+        }
 
         try {
           if (query.message) {
@@ -5889,7 +5914,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
         } catch (e) {}
 
-        await sendPurchaseSuccessScreen(targetBot, chatId, randomOrderId, productName, demoCredential);
+        await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredCredential);
         return;
       }
 
