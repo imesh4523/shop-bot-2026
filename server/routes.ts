@@ -8691,18 +8691,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: startInlineMarkup
-            });
-
-            // Always update bottom persistent keyboard on /start
-            await targetBot.sendMessage(chatId, "⚡ <b>Keyboard Updated!</b> Select an option below:", {
-              parse_mode: 'HTML',
               reply_markup: bottomKeyboard
-            }).then(m => {
-              setTimeout(() => {
-                targetBot.deleteMessage(chatId, m.message_id).catch(() => {});
-              }, 2500);
-            }).catch(() => {});
+            });
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
