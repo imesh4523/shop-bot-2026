@@ -3326,20 +3326,23 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
   await sendOrEditScreenWithPhoto(targetBot, chatId, paymentBannerPath, orderCaption, { inline_keyboard }, messageId);
 };
 
-const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
+const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number, page: number = 1) => {
   const tgUser = await storage.getTelegramUser(userId);
   const allOrders = await storage.getOrders();
 
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id) : [];
   userOrders.sort((a, b) => (b.id || 0) - (a.id || 0));
 
-  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b>\n\n` +
-    `Choose an order below to open details and old links/codes.`;
-
   const inline_keyboard: any[] = [];
+  const pageSize = 10;
 
   if (userOrders.length > 0) {
-    for (const order of userOrders) {
+    const totalPages = Math.max(1, Math.ceil(userOrders.length / pageSize));
+    const currentPage = Math.min(Math.max(1, page), totalPages);
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageOrders = userOrders.slice(startIndex, startIndex + pageSize);
+
+    for (const order of pageOrders) {
       const product = await storage.getProduct(order.productId);
       const name = product ? product.name : `Order #${order.id}`;
       const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
@@ -3347,13 +3350,39 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
         {
           text: `${name}`,
           callback_data: `view_order_${order.id}`,
-          style: 'primary',
+          style: 'success',
           icon_custom_emoji_id: productEmoji
         }
       ]);
     }
+
+    if (totalPages > 1) {
+      const navRow: any[] = [];
+      if (currentPage > 1) {
+        navRow.push({
+          text: '◀️ Prev',
+          callback_data: `purchases_page_${currentPage - 1}`,
+          style: 'success',
+          icon_custom_emoji_id: '5409048419211682843'
+        });
+      }
+      navRow.push({
+        text: `${currentPage} / ${totalPages}`,
+        callback_data: 'noop_purchases_page',
+        style: 'primary'
+      });
+      if (currentPage < totalPages) {
+        navRow.push({
+          text: 'Next ▶️',
+          callback_data: `purchases_page_${currentPage + 1}`,
+          style: 'success',
+          icon_custom_emoji_id: '5409048419211682843'
+        });
+      }
+      inline_keyboard.push(navRow);
+    }
   } else {
-    // Preset orders matching screenshot for complete demo experience
+    // Preset demo orders
     const demoOrders = [
       { id: 8, name: 'Gemini Link 18 months' },
       { id: 7, name: 'Gemini Link 18 months' },
@@ -3370,7 +3399,7 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
         {
           text: `${d.name}`,
           callback_data: `view_demo_order_${d.id}`,
-          style: 'primary',
+          style: 'success',
           icon_custom_emoji_id: '5854908544712707500'
         }
       ]);
@@ -3381,6 +3410,9 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   inline_keyboard.push([
     { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
+
+  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b>\n\n` +
+    `Choose an order below to open details and delivered items.`;
 
   const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, ordersBannerPath, ordersCaption, { inline_keyboard }, messageId);
@@ -4504,8 +4536,15 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
 
-      if (data === 'purchase_history' || data === 'my_purchases') {
-        await sendMyPurchasesScreen(targetBot, chatId, userId, msgId);
+      if (data === 'purchase_history' || data === 'my_purchases' || data.startsWith('purchases_page_')) {
+        const pageNum = data.startsWith('purchases_page_') ? parseInt(data.substring(15), 10) || 1 : 1;
+        await sendMyPurchasesScreen(targetBot, chatId, userId, msgId, pageNum);
+        return;
+      }
+      if (data === 'noop_purchases_page') {
+        if (query.id) {
+          await targetBot.answerCallbackQuery(query.id, { text: "ℹ️ My Purchases Page" }).catch(() => {});
+        }
         return;
       }
 
