@@ -3197,7 +3197,21 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     return;
   }
 
-  const productCaption = `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> <b>${product.name}</b>\n\n` +
+  let productEmojiId = product.customEmojiId || (product as any).custom_emoji_id;
+  if (!productEmojiId) {
+    const pType = (product.type || product.name || '').toLowerCase();
+    if (pType.includes('aws')) productEmojiId = '5785025630055700143';
+    else if (pType.includes('digital ocean') || pType.includes('digitalocean')) productEmojiId = '5785345544989710932';
+    else if (pType.includes('linode')) productEmojiId = '5787285044846399857';
+    else if (pType.includes('azure')) productEmojiId = '5785185643357279341';
+    else if (pType.includes('gcp') || pType.includes('google cloud')) productEmojiId = '5785061312643994750';
+    else if (pType.includes('kamatera')) productEmojiId = '5785070770161980265';
+    else if (pType.includes('gemini')) productEmojiId = '5377660214096974712';
+    else if (pType.includes('chatgpt') || pType.includes('grok')) productEmojiId = '5404617696589390973';
+    else productEmojiId = '5854908544712707500';
+  }
+
+  const productCaption = `<tg-emoji emoji-id="${productEmojiId}">📦</tg-emoji> <b>${product.name}</b>\n\n` +
     `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> <b>Price:</b> <b>${priceDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
     `<tg-emoji emoji-id="5253742260054409879">✉️</tg-emoji> <b>Description</b>\n` +
     `${product.description || 'Instant automated delivery 24/7 after purchase. Full activation warranty guaranteed.'}\n\n` +
