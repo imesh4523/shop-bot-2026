@@ -3150,21 +3150,32 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
   const products = await storage.getProducts();
 
   // Group products by category
-  const categoryMap = new Map<string, { stock: number; iconEmojiId?: string }>();
+  const categoryMap = new Map<string, { stock: number; hasPreorder: boolean; maxPreorderQuota: number; iconEmojiId?: string }>();
 
   for (const p of products) {
     if (p.status !== 'available') continue;
     const stock = (await storage.getCredentialsByProduct(p.id)).filter(c => c.status === 'available').length;
-    
-    // Skip out of stock if setting disabled
-    if (!showOutOfStock && stock === 0) continue;
+
+    let availableQuota = 0;
+    if (p.isPreorderEnabled) {
+      const pendingPreorders = await storage.getPendingPreordersByProduct(p.id);
+      const preordersCount = pendingPreorders.reduce((sum, po) => sum + po.quantity, 0);
+      availableQuota = Math.max(0, (p.preorderQuota || 50) - preordersCount);
+    }
 
     if (!categoryMap.has(p.type)) {
-      categoryMap.set(p.type, { stock, iconEmojiId: p.customEmojiId || undefined });
+      categoryMap.set(p.type, {
+        stock,
+        hasPreorder: !!p.isPreorderEnabled,
+        maxPreorderQuota: availableQuota,
+        iconEmojiId: p.customEmojiId || undefined
+      });
     } else {
       const current = categoryMap.get(p.type)!;
       categoryMap.set(p.type, {
         stock: current.stock + stock,
+        hasPreorder: current.hasPreorder || !!p.isPreorderEnabled,
+        maxPreorderQuota: Math.max(current.maxPreorderQuota, availableQuota),
         iconEmojiId: current.iconEmojiId || p.customEmojiId || undefined
       });
     }
@@ -3181,10 +3192,13 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
   ];
 
   for (const preset of presetCategories) {
-    if (!showOutOfStock && preset.stock === 0) continue;
-
     if (!categoryMap.has(preset.name)) {
-      categoryMap.set(preset.name, { stock: preset.stock, iconEmojiId: preset.icon });
+      categoryMap.set(preset.name, {
+        stock: preset.stock,
+        hasPreorder: false,
+        maxPreorderQuota: 0,
+        iconEmojiId: preset.icon
+      });
     }
   }
 
@@ -3204,10 +3218,20 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
       else if (catLower.includes('kamatera')) iconEmojiId = '5785070770161980265';
     }
 
-    const buttonStyle = data.stock > 0 ? 'success' : 'danger';
+    let buttonStyle = 'success';
+    if (data.stock > 0) {
+      buttonStyle = 'success';
+      btnText = category;
+    } else if (data.hasPreorder && data.maxPreorderQuota > 0) {
+      buttonStyle = 'primary';
+      btnText = `${category} (Pre-Order Available: ${data.maxPreorderQuota} Pcs)`;
+    } else {
+      buttonStyle = 'danger';
+      btnText = `${category} (${t(userLang, 'out_of_stock_title')})`;
+    }
 
     const btnObj: any = {
-      text: data.stock > 0 ? btnText : `${btnText} (${t(userLang, 'out_of_stock_title')})`,
+      text: btnText,
       callback_data: `cat_${category}`,
       style: buttonStyle
     };
@@ -5821,8 +5845,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 stockText = `Out of Stock`;
               }
             }
-
-            if (!showOutOfStock && availableStock === 0 && buttonStyle === 'danger') continue;
 
             keyboard.push([{
               text: `${p.name} - ${pPrice} | ${stockText}`,
