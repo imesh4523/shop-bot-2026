@@ -3346,9 +3346,17 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
       const product = await storage.getProduct(order.productId);
       const name = product ? product.name : `Order #${order.id}`;
       const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
+
+      const orderDate = order.createdAt ? new Date(order.createdAt) : new Date();
+      const mm = (orderDate.getMonth() + 1).toString().padStart(2, '0');
+      const dd = orderDate.getDate().toString().padStart(2, '0');
+      const hh = orderDate.getHours().toString().padStart(2, '0');
+      const min = orderDate.getMinutes().toString().padStart(2, '0');
+      const timeStr = `${mm}/${dd} - ${hh}:${min}`;
+
       inline_keyboard.push([
         {
-          text: `${name}`,
+          text: `${name} (${timeStr})`,
           callback_data: `view_order_${order.id}`,
           style: 'success',
           icon_custom_emoji_id: productEmoji
@@ -3356,48 +3364,43 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
       ]);
     }
 
-    if (totalPages > 1) {
-      const navRow: any[] = [];
-      if (currentPage > 1) {
-        navRow.push({
-          text: '◀️ Prev',
-          callback_data: `purchases_page_${currentPage - 1}`,
-          style: 'success',
-          icon_custom_emoji_id: '5409048419211682843'
-        });
-      }
+    const navRow: any[] = [];
+    if (currentPage > 1) {
       navRow.push({
-        text: `${currentPage} / ${totalPages}`,
-        callback_data: 'noop_purchases_page',
-        style: 'primary'
+        text: 'Prev',
+        callback_data: `purchases_page_${currentPage - 1}`,
+        style: 'primary',
+        icon_custom_emoji_id: '5370615926565641880'
       });
-      if (currentPage < totalPages) {
-        navRow.push({
-          text: 'Next ▶️',
-          callback_data: `purchases_page_${currentPage + 1}`,
-          style: 'success',
-          icon_custom_emoji_id: '5409048419211682843'
-        });
-      }
+    }
+    if (currentPage < totalPages) {
+      navRow.push({
+        text: 'Next',
+        callback_data: `purchases_page_${currentPage + 1}`,
+        style: 'primary',
+        icon_custom_emoji_id: '5370628901661842942'
+      });
+    }
+    if (navRow.length > 0) {
       inline_keyboard.push(navRow);
     }
   } else {
-    // Preset demo orders
+    // Preset demo orders with date/time format matching requirement
     const demoOrders = [
-      { id: 8, name: 'Gemini Link 18 months' },
-      { id: 7, name: 'Gemini Link 18 months' },
-      { id: 6, name: 'Gemini Link 18 months' },
-      { id: 5, name: 'Gemini Link 18 months' },
-      { id: 4, name: 'Gemini Link 18 months' },
-      { id: 3, name: 'Gemini Link 18 months' },
-      { id: 2, name: 'Gemini Link 18 months' },
-      { id: 1, name: 'Gemini Link 18 months' }
+      { id: 8, name: 'Gemini Link 18 months', time: '09/02 - 12:04' },
+      { id: 7, name: 'Gemini Link 18 months', time: '09/02 - 11:45' },
+      { id: 6, name: 'Gemini Link 18 months', time: '09/01 - 18:30' },
+      { id: 5, name: 'Gemini Link 18 months', time: '09/01 - 15:20' },
+      { id: 4, name: 'Gemini Link 18 months', time: '08/31 - 20:10' },
+      { id: 3, name: 'Gemini Link 18 months', time: '08/31 - 14:05' },
+      { id: 2, name: 'Gemini Link 18 months', time: '08/30 - 19:40' },
+      { id: 1, name: 'Gemini Link 18 months', time: '08/30 - 10:15' }
     ];
 
     for (const d of demoOrders) {
       inline_keyboard.push([
         {
-          text: `${d.name}`,
+          text: `${d.name} (${d.time})`,
           callback_data: `view_demo_order_${d.id}`,
           style: 'success',
           icon_custom_emoji_id: '5854908544712707500'
@@ -3406,12 +3409,17 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     }
   }
 
-  // Back button
-  inline_keyboard.push([
-    { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
-  ]);
+  // Control buttons matching screenshot
+  inline_keyboard.push(
+    [
+      { text: 'Top up balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5409048419211682843' }
+    ],
+    [
+      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    ]
+  );
 
-  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b>\n\n` +
+  const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My purchases</b> <code>(Page ${page})</code>\n\n` +
     `Choose an order below to open details and delivered items.`;
 
   const ordersBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
