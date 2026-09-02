@@ -6610,11 +6610,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
         const copyBtn = method === 'binance' 
           ? { text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }
-          : { text: 'Copy Address', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' };
+          : { text: 'Copy Wallet Address', copy_text: { text: walletAddress }, icon_custom_emoji_id: '5231102735817918643' };
 
         const keyboard = [
-          [copyBtn],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_item_${payment.id}_${prodId}_${qty}_${method}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [copyBtn],
           [{ text: 'Check payment', callback_data: `confirm_direct_pay_${prodId}_${qty}_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Back to Item', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
@@ -7218,8 +7218,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
 
         const keyboard = [
-          [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
@@ -7355,6 +7355,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const keyboard = [
           [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Copy Wallet Address', copy_text: { text: wallet }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
@@ -7436,6 +7437,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const keyboard = [
           [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+          [{ text: 'Copy Wallet Address', copy_text: { text: wallet }, icon_custom_emoji_id: '5231102735817918643' }],
           [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
           [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
         ] as any[][];
