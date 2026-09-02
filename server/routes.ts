@@ -1683,7 +1683,7 @@ app.post('/api/admin/audit-and-fix', isAuth, async (req, res) => {
   try {
     const allUsers = await storage.getAllTelegramUsers();
     const allOrders = await storage.getOrders();
-    const allCredentials = await storage.getCredentials();
+    const allCredentials = await db.select().from(credentials);
 
     let fixedCount = 0;
     let totalIssuesFound = 0;
@@ -4173,12 +4173,12 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, reviewsCaption, { inline_keyboard }, messageId);
 };
 
-const sendPurchaseSuccessScreen = async (
+const sendOrderSuccessMessage = async (
   targetBot: TelegramBot,
   chatId: number,
   orderId: number | string,
   productName: string,
-  credentialContent: string
+  credentialContent: string | string[]
 ) => {
   let prodEmojiId = '5854908544712707500';
   const pType = productName.toLowerCase();
@@ -4192,59 +4192,69 @@ const sendPurchaseSuccessScreen = async (
   else if (pType.includes('gemini')) prodEmojiId = '5377660214096974712';
   else if (pType.includes('chatgpt') || pType.includes('grok')) prodEmojiId = '5404617696589390973';
 
-  const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>\n\n` +
-    `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
-    `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n\n` +
-    `<b>Your item, easy to copy:</b>\n` +
-    `<code>${escapeHTML(credentialContent)}</code>\n\n` +
-    `Thank you for your purchase! If you have questions, contact support.\n` +
-    `A review would help us if everything went well.`;
+  const itemsArray = Array.isArray(credentialContent) ? credentialContent : [credentialContent];
+  const totalItems = itemsArray.length;
+  const chunkSize = 10;
+  const totalMessages = Math.ceil(totalItems / chunkSize);
 
-  const inline_keyboard = [
-    [
-      {
-        text: 'Download TXT',
-        callback_data: `download_txt_${orderId}`,
-        style: 'primary',
-        icon_custom_emoji_id: '5443127283898405358'
-      }
-    ],
-    [
-      {
-        text: 'Leave a review',
-        callback_data: `leave_review_${orderId}`,
-        style: 'primary',
-        icon_custom_emoji_id: '5193009244940557703'
-      }
-    ],
-    [
-      {
-        text: 'Main menu',
-        callback_data: 'main_menu',
-        style: 'primary',
-        icon_custom_emoji_id: '5416041192905265756'
-      }
-    ]
-  ] as any;
+  for (let msgIdx = 0; msgIdx < totalMessages; msgIdx++) {
+    const startIdx = msgIdx * chunkSize;
+    const endIdx = Math.min(startIdx + chunkSize, totalItems);
+    const chunk = itemsArray.slice(startIdx, endIdx);
 
-  const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+    const chunkContent = chunk.length === 1 && totalItems === 1
+      ? chunk[0]
+      : chunk.map((item, i) => `--- Item ${startIdx + i + 1} of ${totalItems} ---\n${item}`).join('\n\n');
 
-  if (fs.existsSync(bannerPath)) {
-    try {
-      await targetBot.sendPhoto(chatId, bannerPath, {
-        caption,
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard }
-      });
-      return;
-    } catch (e) { }
+    const partInfo = totalMessages > 1 ? ` (Part ${msgIdx + 1}/${totalMessages} - Items ${startIdx + 1} to ${endIdx})` : '';
+
+    const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>${partInfo}\n\n` +
+      `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
+      `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n\n` +
+      `<b>Your item(s), easy to copy:</b>\n` +
+      `<code>${escapeHTML(chunkContent)}</code>\n\n` +
+      `Thank you for your purchase! If you have questions, contact support.\n` +
+      `A review would help us if everything went well.`;
+
+    const isLastMessage = msgIdx === totalMessages - 1;
+
+    const inline_keyboard = isLastMessage ? [
+      [
+        {
+          text: 'Download TXT',
+          callback_data: `download_txt_${orderId}`,
+          style: 'primary',
+          icon_custom_emoji_id: '5443127283898405358'
+        }
+      ],
+      [
+        {
+          text: 'Leave a review',
+          callback_data: `leave_review_${orderId}`,
+          style: 'primary',
+          icon_custom_emoji_id: '5193009244940557703'
+        }
+      ],
+      [
+        {
+          text: 'Main menu',
+          callback_data: 'main_menu',
+          style: 'primary',
+          icon_custom_emoji_id: '5416041192905265756'
+        }
+      ]
+    ] as any : undefined;
+
+    const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+    if (inline_keyboard) {
+      await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard });
+    } else {
+      await targetBot.sendMessage(chatId, caption, { parse_mode: 'HTML' });
+    }
   }
-
-  await targetBot.sendMessage(chatId, caption, {
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard }
-  });
 };
+
+const sendPurchaseSuccessScreen = sendOrderSuccessMessage;
 
 const setupBotProfile = async (targetBot: TelegramBot) => {
   try {
@@ -5961,17 +5971,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           deliveredItems.push(`${productName} #${idx}\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}_${idx}\nStatus: Active 24/7`);
         }
 
-        const deliveredCredential = deliveredItems.length === 1
-          ? deliveredItems[0]
-          : deliveredItems.map((item, i) => `--- Item ${i + 1} of ${qty} ---\n${item}`).join('\n\n');
-
-        try {
-          if (query.message) {
-            await targetBot.deleteMessage(chatId, query.message.message_id);
-          }
-        } catch (e) {}
-
-        await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredCredential);
+        await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredItems);
         return;
       }
 
