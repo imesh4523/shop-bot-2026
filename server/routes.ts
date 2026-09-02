@@ -8910,10 +8910,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           }
 
           // Strict Real Payments Only: Check Binance API Key live verification
-          const binanceApiKeySetting = await storage.getSetting("BINANCE_PAY_API_KEY");
-          const binanceSecretSetting = await storage.getSetting("BINANCE_PAY_SECRET_KEY");
+          const apiKey = (await storage.getSetting("BINANCE_PAY_API_KEY"))?.value || (await storage.getSetting("BINANCE_API_KEY"))?.value;
+          const secretKey = (await storage.getSetting("BINANCE_PAY_SECRET_KEY"))?.value || (await storage.getSetting("BINANCE_SECRET_KEY"))?.value;
 
-          if (!binanceApiKeySetting?.value || !binanceSecretSetting?.value) {
+          if (!apiKey || !secretKey) {
             await sendAutoDeleteError(
               targetBot,
               chatId,
@@ -8921,7 +8921,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Binance API Key Required!</b>\n\n` +
               `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Real Payments System Notice:</b>\n` +
               `Automatic Binance Pay verification requires live Binance API keys.\n` +
-              `Please notify the admin to configure BINANCE_PAY_API_KEY in Admin Settings or contact support with Order ID <code>${escapeHTML(txid)}</code>.</blockquote>`,
+              `Please notify the admin to configure BINANCE_API_KEY in Admin Settings or contact support with Order ID <code>${escapeHTML(txid)}</code>.</blockquote>`,
               7000
             );
             return;
@@ -8931,13 +8931,13 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             const timestamp = Date.now();
             const queryStr = `timestamp=${timestamp}`;
             const signature = crypto
-              .createHmac('sha256', binanceSecretSetting.value)
+              .createHmac('sha256', secretKey)
               .update(queryStr)
               .digest('hex');
 
             const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
               headers: {
-                'X-MBX-APIKEY': binanceApiKeySetting.value,
+                'X-MBX-APIKEY': apiKey,
                 'Content-Type': 'application/json'
               }
             });
