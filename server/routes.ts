@@ -2983,14 +2983,14 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   const userBalUSD = userToDisplay.balance / 100;
   const userValueUSD = Math.max(totalSpentUSD, totalDepositedUSD, userBalUSD);
 
-  let statusText = '<tg-emoji emoji-id="6032693626394382504">👤</tg-emoji> <b>Standard</b> · <i>starter member</i>';
+  let statusText = '<b>Standard</b> · <i>starter member</i>';
 
   if (userValueUSD >= 1000) {
-    statusText = '<tg-emoji emoji-id="6276134137963222688">🔥</tg-emoji> <b>Legend VIP</b> · <i>top tier ($1000+)</i>';
+    statusText = '<b>Legend VIP</b> · <i>top tier ($1000+)</i>';
   } else if (userValueUSD >= 300) {
-    statusText = '<tg-emoji emoji-id="5854908544712707500">👑</tg-emoji> <b>Diamond VIP</b> · <i>high tier ($300+)</i>';
+    statusText = '<b>Diamond VIP</b> · <i>high tier ($300+)</i>';
   } else if (userValueUSD >= 10) {
-    statusText = '<tg-emoji emoji-id="5404617696589390973">🥈</tg-emoji> <b>Bronze VIP</b> · <i>bronze tier ($10+)</i>';
+    statusText = '<b>Bronze VIP</b> · <i>bronze tier ($10+)</i>';
   }
 
   // Get last redeemed promo code
@@ -3009,16 +3009,16 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
-    `🏅 Status: ${statusText}\n` +
+    `<tg-emoji emoji-id="5424746623462823358">🏅</tg-emoji> Status: ${statusText}\n` +
     `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
     `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
     `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>\n<tg-emoji emoji-id="5206715082582533386">🎉</tg-emoji>`;
+    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
-      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
+      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
       [{ text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
       [{ text: 'Referral program', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
       [{ text: 'Promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
@@ -3690,7 +3690,7 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
 
   inline_keyboard.push(
     [
-      { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '6050684909389880647' }
+      { text: 'Top up balance', callback_data: 'add_funds', icon_custom_emoji_id: '5409048419211682843' }
     ],
     [
       { text: 'My purchases', callback_data: 'purchase_history', icon_custom_emoji_id: '5854908544712707500' }
@@ -5758,7 +5758,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if ((tgUser.balance || 0) / 100 < qty * unitPriceUSD) {
           const topUpKeyboard = {
             inline_keyboard: [
-              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
+              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
               [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
@@ -8285,7 +8285,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         if ((tgUser.balance || 0) / 100 < qty * unitPriceUSD) {
           const topUpKeyboard = {
             inline_keyboard: [
-              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '6050684909389880647' }],
+              [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
               [{ text: 'Back', callback_data: 'buy', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
             ] as any
           };
