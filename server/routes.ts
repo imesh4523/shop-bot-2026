@@ -4582,6 +4582,21 @@ const setupBotProfile = async (targetBot: TelegramBot) => {
       }
     }
 
+    // Set Bot Commands Menu (List of slash commands in Telegram menu)
+    try {
+      await targetBot.setMyCommands([
+        { command: 'start', description: 'Open shop' },
+        { command: 'language', description: 'Change language' },
+        { command: 'help', description: 'Help' },
+        { command: 'info', description: 'Information' },
+        { command: 'search', description: 'Search products' },
+        { command: 'promo', description: 'Apply promo code' }
+      ]);
+      console.log('[Bot Commands] setMyCommands registered successfully!');
+    } catch (err: any) {
+      console.error('Failed to set bot commands:', err.message);
+    }
+
     // 2. Set Bot Descriptions
     if (botAboutSetting?.value) {
       await targetBot.setMyShortDescription({ short_description: botAboutSetting.value });
@@ -8416,6 +8431,38 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
+  });
+
+  targetBot.onText(/\/language/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await sendSettingsScreen(targetBot, chatId, userId);
+  });
+
+  targetBot.onText(/\/help/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await sendSupportScreen(targetBot, chatId, userId);
+  });
+
+  targetBot.onText(/\/info/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await sendInformationScreen(targetBot, chatId, userId);
+  });
+
+  targetBot.onText(/\/search/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await storage.updateTelegramUserByChatId(userId, { lastAction: 'awaiting_search_catalog' });
+    await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5312441427764989435">🔍</tg-emoji> <b>Search Catalog</b>\n\nPlease type the name of the product or category you want to find:`, { parse_mode: 'HTML' });
+  });
+
+  targetBot.onText(/\/promo/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await storage.updateTelegramUserByChatId(userId, { lastAction: 'awaiting_promo_code' });
+    await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6113971389935391397">🎁</tg-emoji> <b>Enter Promo Code</b>\n\nPlease send your promo code below:`, { parse_mode: 'HTML' });
   });
 
   targetBot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
