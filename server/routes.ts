@@ -3560,7 +3560,11 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
 const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number, page: number = 1) => {
   const tgUser = await storage.getTelegramUser(userId);
   const allOrders = await storage.getOrders();
-  const userPreorders = tgUser ? await storage.getPreordersByUser(tgUser.id) : [];
+  let userPreorders: any[] = [];
+  try {
+    const allPreorders = await db.select().from(preorders);
+    userPreorders = tgUser ? allPreorders.filter(po => po.telegramUserId === tgUser.id) : [];
+  } catch (e) {}
 
   const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id || String(o.telegramUserId) === tgUser.telegramId || String(o.telegramUserId) === userId) : [];
   userOrders.sort((a, b) => (b.id || 0) - (a.id || 0));
