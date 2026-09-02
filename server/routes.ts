@@ -4820,6 +4820,81 @@ async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: n
   }
 }
 
+async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number, messageIdToEdit?: number) {
+  const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
+  const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
+
+  if (!apiKey || !merchantId) {
+    targetBot.sendMessage(chatId, "⚠️ Cryptomus API keys are not configured by the admin.");
+    return;
+  }
+
+  try {
+    const orderId = 'bep20_' + crypto.randomBytes(8).toString('hex');
+    const host = process.env.NODE_ENV === 'production'
+      ? 'cloudshopplatform.site'
+      : 'localhost:5000';
+
+    const payload = {
+      amount: amount.toString(),
+      currency: 'USD',
+      to_currency: 'USDT',
+      network: 'bsc',
+      order_id: orderId,
+      url_callback: `https://${host}/api/payments/webhook`
+    };
+
+    const sign = crypto.createHash('md5').update(Buffer.from(JSON.stringify(payload)).toString('base64') + apiKey).digest('hex');
+
+    const response = await axios.post('https://api.cryptomus.com/v1/payment', payload, {
+      headers: {
+        'merchant': merchantId,
+        'sign': sign
+      }
+    });
+
+    if (response.data && response.data.result) {
+      const paymentData = response.data.result;
+      const bep20Address = paymentData.address || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+
+      const newPayment = await storage.createPayment({
+        telegramUserId: tgUser.id,
+        amount: Math.round(amount * 100),
+        paymentMethod: 'bep20',
+        status: 'pending',
+        cryptomusUuid: paymentData.uuid
+      });
+
+      await storage.updateTelegramUserByChatId(chatId.toString(), {
+        lastAction: null
+      });
+
+      const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
+        `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+        `<b>Network:</b> BEP20 (Cryptomus) <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+        `<code>${bep20Address}</code>\n\n` +
+        `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
+        `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
+        `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). Cryptomus will automatically credit your balance upon confirmation!</blockquote>`;
+
+      const keyboard = [
+        [{ text: 'Pay on Cryptomus Web', url: paymentData.url, icon_custom_emoji_id: '5373123633415695601' }],
+        [{ text: 'Copy Wallet Address', copy_text: { text: bep20Address }, icon_custom_emoji_id: '5231102735817918643' }],
+        [{ text: 'Check payment', callback_data: `check_payment_${newPayment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+        [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+      ] as any[][];
+
+      const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+      await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, messageIdToEdit, true);
+    } else {
+      throw new Error("Invalid response from Cryptomus API");
+    }
+  } catch (err: any) {
+    console.error('Cryptomus BEP20 creation error:', err.response?.data || err.message);
+    targetBot.sendMessage(chatId, "❌ Failed to create Cryptomus BEP20 invoice. Please try again later.");
+  }
+}
+
 // Anti-Spam Rate Limiter sliding window (user_id -> timestamps of requests in last 60 seconds)
 const userRequestTimestamps = new Map<string, number[]>();
 
@@ -7590,49 +7665,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const amount = parseFloat(val);
         if (isNaN(amount) || amount <= 0) return;
 
-        const wallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
-        if (!wallet || wallet.trim() === '') {
-          if (query?.id) {
-            await targetBot.answerCallbackQuery(query.id, { text: '⚠️ BEP20 Wallet Address is not configured by the admin.', show_alert: true }).catch(() => {});
-          }
-          const notConfiguredMsg = `<tg-emoji emoji-id="5429518319243775957">🛠️</tg-emoji> <b>BEP20 Not Configured</b>\n\n` +
-            `BEP20 USDT wallet address has not been configured by the admin in Admin Settings. Please select another payment method!`;
-          const keyboard = {
-            inline_keyboard: [
-              [{ text: 'Back to Balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
-            ]
-          };
-          const bep20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_bep20_banner.png");
-          await sendOrEditScreenWithPhoto(targetBot, chatId, bep20BannerPath, notConfiguredMsg, keyboard, query.message?.message_id, true);
-          return;
-        }
-        const payment = await storage.createPayment({
-          telegramUserId: tgUser.id,
-          amount: Math.round(amount * 100),
-          paymentMethod: 'bep20',
-          status: 'pending'
-        });
-
-        await storage.updateTelegramUserByChatId(chatId.toString(), {
-          lastAction: `awaiting_bep20_txid_${payment.id}_0`
-        });
-
-        const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${amount.toFixed(0)} USDT</b> \n\n` +
-          `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
-          `<b>Network:</b> BEP20  <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
-          `<code>${wallet}</code>\n\n` +
-          `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amount.toFixed(0)} USDT</b> to the address above.\n\n` +
-          `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only </i><i><b>USDT</b> via </i><i><b>BEP20</b> to this address, otherwise coins will be lost.</i>\n\n` +
-          `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
-
-        const keyboard = [
-          [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${payment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
-          [{ text: 'Copy Wallet Address', copy_text: { text: wallet }, icon_custom_emoji_id: '5231102735817918643' }],
-          [{ text: 'Check payment', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
-          [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
-        ] as any[][];
-
-        await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id, true);
+        await processCryptomusBep20InvoiceCreation(targetBot, chatId, tgUser, amount, query.message?.message_id);
         return;
       }
 
@@ -9818,6 +9851,23 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         }
 
         await processCryptomusInvoiceCreation(targetBot, chatId, tgUser, amount);
+      } else if (tgUser?.lastAction === 'awaiting_bep20_amount') {
+        const amount = parseFloat(normalizedText || "0");
+
+        // Delete prompt and user input
+        try {
+          if (tgUser.lastMessageId) {
+            await targetBot.deleteMessage(chatId, tgUser.lastMessageId);
+          }
+          await targetBot.deleteMessage(chatId, msg.message_id);
+        } catch (e) { }
+
+        if (isNaN(amount) || amount <= 0) {
+          targetBot.sendMessage(chatId, "❌ Invalid amount. Please enter a number.");
+          return;
+        }
+
+        await processCryptomusBep20InvoiceCreation(targetBot, chatId, tgUser, amount);
       } else if (tgUser?.lastAction === 'awaiting_binance_deposit_amount') {
         const amount = parseFloat(normalizedText || "0");
 
