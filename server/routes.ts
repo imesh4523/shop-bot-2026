@@ -3704,6 +3704,8 @@ const sendTransactionsScreen = async (targetBot: TelegramBot, chatId: number, us
       subIcon = `<tg-emoji emoji-id="5280907155107506256">🟡</tg-emoji> <i>${item.description}</i>`;
     } else if (item.description.includes('TRC20')) {
       subIcon = `<tg-emoji emoji-id="5936189134342199863">🔴</tg-emoji> <i>${item.description}</i>`;
+    } else if (item.description.includes('Binance')) {
+      subIcon = `<tg-emoji emoji-id="5936122953191135570">🌐</tg-emoji> <i>${item.description}</i>`;
     }
 
     txCaption += `${typeEmoji} <b>#${item.id}</b> • ${signEmoji}<code>$${item.amountUSD}</code> ${dollarEmoji}\n` +
