@@ -8896,11 +8896,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
             }
           }
-        } catch (err) {
-          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-        }
-        return;
-      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
