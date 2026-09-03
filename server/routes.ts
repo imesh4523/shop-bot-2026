@@ -8898,7 +8898,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         } catch (err: any) {
           await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
         }
-      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
