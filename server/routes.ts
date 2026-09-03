@@ -8020,12 +8020,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         const paymentId = parseInt(data.substring(14));
         const paymentCheck = await storage.getPayment(paymentId);
 
-        if (paymentCheck && paymentCheck.paymentMethod === 'binance') {
-          if (paymentCheck.status === 'completed') {
-            await targetBot.answerCallbackQuery(query.id, { text: "Payment already verified!", show_alert: true }).catch(() => {});
-            return;
-          }
+        if (!paymentCheck) {
+          await targetBot.answerCallbackQuery(query.id, { text: "Payment record not found.", show_alert: true }).catch(() => {});
+          return;
+        }
 
+        if (paymentCheck.status === 'completed') {
+          await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified & balance credited!", show_alert: true }).catch(() => {});
+          return;
+        }
+
+        // 1. Binance Pay Re-Check Handler
+        if (paymentCheck.paymentMethod === 'binance') {
           if (query.id) {
             await targetBot.answerCallbackQuery(query.id, {
               text: "❌ Binance Payment Not Found!\n\nPlease reply with your Binance Order ID in the chat to complete verification.",
@@ -8067,12 +8073,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        if (paymentCheck && paymentCheck.paymentMethod === 'cryptobot') {
-          if (paymentCheck.status === 'completed') {
-            await targetBot.answerCallbackQuery(query.id, { text: "Payment already verified!", show_alert: true }).catch(() => {});
-            return;
-          }
-
+        // 2. @CryptoBot Invoice Re-Check Handler
+        if (paymentCheck.paymentMethod === 'cryptobot') {
           if (!paymentCheck.externalId) {
             await targetBot.answerCallbackQuery(query.id, { text: "Payment not found yet.", show_alert: true }).catch(() => {});
             return;
@@ -8080,7 +8082,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
           const check = await checkCryptoBotInvoiceStatus(paymentCheck.externalId);
           if (check.paid) {
-            // ATOMIC DB UPDATE TO PREVENT DOUBLE CREDITING
             const [updatedPayment] = await db.update(payments)
               .set({ status: 'completed', updatedAt: new Date() })
               .where(and(eq(payments.id, paymentCheck.id), ne(payments.status, 'completed')))
@@ -8092,60 +8093,21 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (updatedPayment.amount / 100);
               await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, "@CryptoBot Invoice", paymentCheck.externalId);
 
-              try {
-                if (query.message) {
-                  const updatedCaption = `<tg-emoji emoji-id="5361543877599724417">🤖</tg-emoji> <b>@CryptoBot Top-up Invoice</b>\n` +
-                    `➖➖➖➖➖➖➖➖➖➖\n` +
-                    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Top-up amount: <b>$${(updatedPayment.amount / 100).toFixed(2)} USD</b>\n` +
-                    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> Status: <tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Successful</b>\n` +
-                    `➖➖➖➖➖➖➖➖➖➖\n` +
-                    `<b>Payment Verified! Balance updated.</b>`;
-                  await targetBot.editMessageCaption(updatedCaption, {
-                    chat_id: chatId,
-                    message_id: query.message.message_id,
-                    parse_mode: 'HTML',
-                    reply_markup: { inline_keyboard: [] }
-                  }).catch(() => {});
-                }
-              } catch (e) {}
-
-              const userDisplayName = tgUser?.firstName || tgUser?.username || "User";
-              io.emit('admin_notification', {
-                type: 'deposit',
-                title: 'New @CryptoBot Deposit',
-                message: `${userDisplayName} deposited $${(updatedPayment.amount / 100).toFixed(2)} via @CryptoBot`,
-                data: { paymentId: updatedPayment.id, userId: tgUser?.telegramId, amount: updatedPayment.amount / 100, txId: paymentCheck.externalId }
-              });
-
-              sendAdminPushNotification(
-                'New @CryptoBot Deposit',
-                `${userDisplayName} deposited $${(updatedPayment.amount / 100).toFixed(2)}`
-              ).catch(console.error);
+              // Update detail screen
+              await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
+              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified! Balance updated.", show_alert: true }).catch(() => {});
+              return;
             } else {
               await targetBot.answerCallbackQuery(query.id, { text: "Payment already verified!", show_alert: true }).catch(() => {});
+              return;
             }
           } else {
-            await targetBot.answerCallbackQuery(query.id, { text: "Payment not found yet.", show_alert: true }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, { text: "Payment not found on @CryptoBot yet.", show_alert: true }).catch(() => {});
+            return;
           }
-          }
-          return;
         }
 
-      if (data.startsWith('check_payment_')) {
-        const paymentId = parseInt(data.substring(14));
-        const paymentCheck = await storage.getPayment(paymentId);
-
-        if (!paymentCheck) {
-          await targetBot.answerCallbackQuery(query.id, { text: "Payment record not found.", show_alert: true }).catch(() => {});
-          return;
-        }
-
-        if (paymentCheck.status === 'completed') {
-          await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified & balance credited!", show_alert: true }).catch(() => {});
-          return;
-        }
-
-        // Active Cryptomus API Status Check regardless of local status (pending, processing, expired)
+        // 3. Cryptomus / BEP20 / TRC20 Payment Re-Check Handler
         if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus') {
           const checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, `bep20_${paymentCheck.id}`);
           if (checkRes && checkRes.paid) {
@@ -8197,6 +8159,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not found on the blockchain yet. Please complete transfer and try again in a few moments.", show_alert: true }).catch(() => {});
           return;
         }
+
+        // Generic Fallback Alert if method unrecognized
+        await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not verified yet.", show_alert: true }).catch(() => {});
+        return;
+      }
 
         // Send "Checking payment..." message in chat
         let checkingMsg: TelegramBot.Message | undefined;
