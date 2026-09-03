@@ -6667,6 +6667,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             status: 'pending_fulfillment'
           });
 
+          sendAdminPushNotification(
+            `📦 New Pre-Order #${newPreorder.id}`,
+            `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} pre-ordered ${qty}x ${productName} ($${totalUSD})`,
+            '/preorders'
+          ).catch(console.error);
+
           const slTimeStr = formatSriLankaTime(new Date(), 'full');
           const preorderMsg = `<tg-emoji emoji-id="4958610528588008305">✅</tg-emoji> <b>Pre-Order Placed Successfully!</b>\n\n` +
             `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Product: <b>${escapeHTML(productName)} (${qty} Pcs)</b>\n` +
@@ -6720,6 +6726,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           const idx = deliveredItems.length + 1;
           deliveredItems.push(`${productName} #${idx}\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}_${idx}\nStatus: Active 24/7`);
         }
+
+        sendAdminPushNotification(
+          `🛒 New Order Completed (#${targetOrderId})`,
+          `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} purchased ${qty}x ${productName} ($${totalUSD})`,
+          '/orders'
+        ).catch(console.error);
 
         await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredItems);
         return;

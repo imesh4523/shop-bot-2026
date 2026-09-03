@@ -90,10 +90,14 @@ export async function initPushNotifications() {
   return { publicKey };
 }
 
-export async function sendAdminPushNotification(title: string, body: string, url?: string) {
+export async function sendAdminPushNotification(titleOrOpts: string | { title: string; body: string; url?: string }, bodyStr?: string, urlStr?: string) {
   try {
+    let title = typeof titleOrOpts === 'string' ? titleOrOpts : titleOrOpts.title;
+    let body = typeof titleOrOpts === 'string' ? (bodyStr || '') : titleOrOpts.body;
+    let url = typeof titleOrOpts === 'string' ? urlStr : titleOrOpts.url;
+
     const subscriptions = await storage.getPushSubscriptions();
-    console.log(`[PUSH] Sending notification to ${subscriptions.length} subscribers`);
+    console.log(`[PUSH] Sending push notification to ${subscriptions.length} subscribers: ${title} - ${body}`);
     
     const payload = JSON.stringify({
       title,
@@ -105,7 +109,6 @@ export async function sendAdminPushNotification(title: string, body: string, url
       webpush.sendNotification(sub.subscription, payload)
         .catch((err: any) => {
           if (err.statusCode === 410 || err.statusCode === 404) {
-            // Subscription expired or removed
             console.log(`[PUSH] Removing invalid subscription (Status: ${err.statusCode})`);
           } else {
             console.error('[PUSH] Error sending to subscriber:', err.endpoint, err.message);
