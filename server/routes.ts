@@ -4863,24 +4863,32 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
     return;
   }
 
-  let statusText = '<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending';
+  let statusText = '<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending Payment';
   if (payment.status === 'completed') statusText = '<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> Paid & Completed';
-  else if (payment.status === 'processing') statusText = '<tg-emoji emoji-id="5386367538735104399">🔄</tg-emoji> Processing / Verifying';
+  else if (payment.status === 'processing') statusText = '<tg-emoji emoji-id="5386367538735104399">🔄</tg-emoji> Verifying Status';
   else if (payment.status === 'expired') statusText = '<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Expired';
 
-  const dateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
+  const createdDateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
+  const updatedDateStr = (payment.status === 'completed' && payment.updatedAt) ? new Date(payment.updatedAt).toLocaleString() : null;
   const methodStr = (payment.paymentMethod || 'deposit').toUpperCase();
-  const refId = payment.cryptomusUuid || payment.txid || `#${payment.id}`;
+  const addressStr = payment.txid || 'N/A';
+  const refId = payment.cryptomusUuid || `#${payment.id}`;
 
-  const caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+  let caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
     `<blockquote>` +
-    `<b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
-    `<b>Payment Method:</b> ${methodStr}\n` +
-    `<b>Amount:</b> $${(payment.amount / 100).toFixed(2)} USD\n` +
-    `<b>Status:</b> ${statusText}\n` +
-    `<b>TxID / Reference:</b> <code>${refId}</code>\n` +
-    `<b>Date & Time:</b> ${dateStr}\n` +
-    `</blockquote>\n\n` +
+    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
+    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Payment Method:</b> <b>${methodStr}</b>\n` +
+    `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
+    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Status:</b> ${statusText}\n` +
+    `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> <b>Generated Wallet:</b> <code>${addressStr}</code>\n` +
+    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Cryptomus Ref / UUID:</b> <code>${refId}</code>\n` +
+    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Invoice Created:</b> ${createdDateStr}\n`;
+
+  if (updatedDateStr) {
+    caption += `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
+  }
+
+  caption += `</blockquote>\n\n` +
     `<i>Tap "Re-check Payment Status" below to verify payment on blockchain/Cryptomus!</i>`;
 
   const inline_keyboard: any[][] = [];
@@ -4891,9 +4899,9 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
     ]);
   }
 
-  if (refId && refId !== 'N/A') {
+  if (addressStr && addressStr !== 'N/A') {
     inline_keyboard.push([
-      { text: 'Copy TxID / Ref', copy_text: { text: refId }, icon_custom_emoji_id: '5231102735817918643' }
+      { text: 'Copy Wallet Address', copy_text: { text: addressStr }, icon_custom_emoji_id: '5231102735817918643' }
     ]);
   }
 
@@ -8151,13 +8159,22 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus') {
-          if (paymentCheck.status === 'completed') {
-            await targetBot.answerCallbackQuery(query.id, { text: "✅ This payment has been already paid!", show_alert: true }).catch(() => {});
-            return;
-          }
+      if (data.startsWith('check_payment_')) {
+        const paymentId = parseInt(data.substring(14));
+        const paymentCheck = await storage.getPayment(paymentId);
 
-          // Active Cryptomus API Status Check regardless of local status
+        if (!paymentCheck) {
+          await targetBot.answerCallbackQuery(query.id, { text: "Payment record not found.", show_alert: true }).catch(() => {});
+          return;
+        }
+
+        if (paymentCheck.status === 'completed') {
+          await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified & balance credited!", show_alert: true }).catch(() => {});
+          return;
+        }
+
+        // Active Cryptomus API Status Check regardless of local status (pending, processing, expired)
+        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus') {
           const checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, `bep20_${paymentCheck.id}`);
           if (checkRes && checkRes.paid) {
             // Atomic DB update to credit balance safely
@@ -8180,27 +8197,28 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             if (result.success && result.payment) {
               const updatedPayment = result.payment;
               const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
-              await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, `${paymentCheck.paymentMethod.toUpperCase()} (Cryptomus)`, paymentCheck.cryptomusUuid || paymentCheck.txid);
+              await sendDepositSuccessNotification(
+                targetBot,
+                chatId,
+                updatedPayment.amount / 100,
+                newBalUSD,
+                `${paymentCheck.paymentMethod.toUpperCase()} (Cryptomus)`,
+                paymentCheck.cryptomusUuid || paymentCheck.txid
+              );
 
-              if (query.message) {
-                const paidCaption = `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Payment Verified Successfully!</b>\n\n` +
-                  `<b>Amount Paid:</b> $${(updatedPayment.amount / 100).toFixed(2)} USD\n` +
-                  `<b>Status:</b> Completed\n\n` +
-                  `Your balance has been updated!`;
-                await targetBot.editMessageCaption(paidCaption, {
-                  chat_id: chatId,
-                  message_id: query.message.message_id,
-                  parse_mode: 'HTML',
-                  reply_markup: { inline_keyboard: [] }
-                }).catch(() => {});
-              }
+              // Update the Transaction Details screen if user was viewing details
+              await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
+
               await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified! Balance updated.", show_alert: true }).catch(() => {});
+              return;
+            } else if (result.alreadyCompleted) {
+              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
               return;
             }
           }
 
           if (paymentCheck.status === 'expired') {
-            await targetBot.answerCallbackQuery(query.id, { text: "❌ Payment not found on Cryptomus. Invoice has expired.", show_alert: true }).catch(() => {});
+            await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not found on Cryptomus / blockchain. (Invoice expired)", show_alert: true }).catch(() => {});
             return;
           }
 
