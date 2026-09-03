@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const [supportContact, setSupportContact] = useState("");
   const [cryptomusApiKey, setCryptomusApiKey] = useState("");
   const [cryptomusMerchantId, setCryptomusMerchantId] = useState("");
+  const [appUrl, setAppUrl] = useState("https://monkfish-app-isiw9.ondigitalocean.app");
   const [cryptoBotToken, setCryptoBotToken] = useState("");
   const [cryptoBotEnabled, setCryptoBotEnabled] = useState(true);
   const [cryptoBotTestnet, setCryptoBotTestnet] = useState(false);
@@ -91,6 +92,10 @@ export default function SettingsPage() {
 
   const { data: merchantSetting, isLoading: isMerchantLoading } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/CRYPTOMUS_MERCHANT_ID"],
+  });
+
+  const { data: appUrlSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/APP_URL"],
   });
 
   const { data: binanceSetting, isLoading: isBinanceLoading } = useQuery<{ key: string, value: string }>({
@@ -317,6 +322,10 @@ export default function SettingsPage() {
   }, [merchantSetting]);
 
   useEffect(() => {
+    if (appUrlSetting?.value !== undefined) setAppUrl(appUrlSetting.value);
+  }, [appUrlSetting]);
+
+  useEffect(() => {
     if (binanceSetting?.value !== undefined) setBinancePayId(binanceSetting.value);
   }, [binanceSetting]);
 
@@ -483,6 +492,23 @@ export default function SettingsPage() {
       toast({
         title: "Cryptomus Merchant ID Updated",
         description: "Merchant ID has been saved.",
+      });
+    }
+  });
+
+  const appUrlMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "APP_URL",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/APP_URL"] });
+      toast({
+        title: "App Domain URL Updated",
+        description: "App URL and Webhook callback endpoint saved successfully.",
       });
     }
   });
@@ -1558,6 +1584,26 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <p className="text-[10px] text-white/40">Get your API key from Cryptomus dashboard. Keep it secure!</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">App Domain / Webhook Base URL</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="https://monkfish-app-isiw9.ondigitalocean.app"
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={appUrl}
+                      onChange={(e) => setAppUrl(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => appUrlMutation.mutate(appUrl)}
+                      disabled={appUrlMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Cryptomus webhooks will be sent to <code>{(appUrl || "https://monkfish-app-isiw9.ondigitalocean.app").replace(/\/+$/, '')}/api/payments/webhook</code></p>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5">

@@ -4773,14 +4773,14 @@ async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: n
       amount: amount.toString(),
       currency: 'USD',
       order_id: orderId,
-      url_callback: `https://${host}/api/payments/webhook`
+      url_callback: callbackUrl
     })).toString('base64') + apiKey).digest('hex');
 
     const response = await axios.post('https://api.cryptomus.com/v1/payment', {
       amount: amount.toString(),
       currency: 'USD',
       order_id: orderId,
-      url_callback: `https://${host}/api/payments/webhook`
+      url_callback: callbackUrl
     }, {
       headers: {
         'merchant': merchantId,
@@ -4842,9 +4842,8 @@ async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chat
 
   try {
     const orderId = 'bep20_' + crypto.randomBytes(8).toString('hex');
-    const host = process.env.NODE_ENV === 'production'
-      ? 'cloudshopplatform.site'
-      : 'localhost:5000';
+    const baseUrl = await getAppBaseUrl();
+    const callbackUrl = `${baseUrl}/api/payments/webhook`;
 
     const payload = {
       amount: amount.toString(),
@@ -4852,7 +4851,7 @@ async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chat
       to_currency: 'USDT',
       network: 'bsc',
       order_id: orderId,
-      url_callback: `https://${host}/api/payments/webhook`
+      url_callback: callbackUrl
     };
 
     const sign = crypto.createHash('md5').update(Buffer.from(JSON.stringify(payload)).toString('base64') + apiKey).digest('hex');
@@ -4990,9 +4989,8 @@ async function processCryptomusTrc20InvoiceCreation(targetBot: TelegramBot, chat
 
   try {
     const orderId = 'trc20_' + crypto.randomBytes(8).toString('hex');
-    const host = process.env.NODE_ENV === 'production'
-      ? 'cloudshopplatform.site'
-      : 'localhost:5000';
+    const baseUrl = await getAppBaseUrl();
+    const callbackUrl = `${baseUrl}/api/payments/webhook`;
 
     const payload = {
       amount: amount.toString(),
@@ -5000,7 +4998,7 @@ async function processCryptomusTrc20InvoiceCreation(targetBot: TelegramBot, chat
       to_currency: 'USDT',
       network: 'tron',
       order_id: orderId,
-      url_callback: `https://${host}/api/payments/webhook`
+      url_callback: callbackUrl
     };
 
     const sign = crypto.createHash('md5').update(Buffer.from(JSON.stringify(payload)).toString('base64') + apiKey).digest('hex');
