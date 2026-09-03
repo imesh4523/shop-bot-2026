@@ -8891,16 +8891,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                   }, 15000);
                 }
               }
-            } catch (err: any) {
-              await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-              if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
-            }
-          }
-        } catch (err) {
-          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-        }
-        return;
-      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
