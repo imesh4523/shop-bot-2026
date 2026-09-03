@@ -4905,6 +4905,15 @@ async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chat
 
       const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
       await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, messageIdToEdit, true);
+    } else {
+      throw new Error("Invalid response from Cryptomus API");
+    }
+  } catch (err: any) {
+    console.error('Cryptomus BEP20 creation error:', err.response?.data || err.message);
+    targetBot.sendMessage(chatId, "❌ Failed to create Cryptomus BEP20 invoice. Please try again later.");
+  }
+}
+
 async function checkCryptomusInvoiceStatus(uuid?: string, orderId?: string) {
   const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
   const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
