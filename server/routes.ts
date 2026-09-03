@@ -8897,14 +8897,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
               await targetBot.sendMessage(chatId, `❌ Error verifying Aptos payment: ${err.message || err}`);
             }
-          }
-        } catch (err) {
-          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-          if (checkingMsg) await targetBot.deleteMessage(chatId, (checkingMsg as any).message_id).catch(() => { });
-          await targetBot.sendMessage(chatId, "❌ Error connecting to exchange API. Please contact support.");
-        }
-        return;
-      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
