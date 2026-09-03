@@ -4658,6 +4658,7 @@ const setupBotProfile = async (targetBot: TelegramBot) => {
       await targetBot.setMyCommands([
         { command: 'start', description: 'Open shop' },
         { command: 'language', description: 'Change language' },
+        { command: 'tracktransaction', description: 'Track payment transactions' },
         { command: 'help', description: 'Help' },
         { command: 'info', description: 'Information' },
         { command: 'search', description: 'Search products' },
@@ -4792,6 +4793,117 @@ const setupBotHandlers = (targetBot: TelegramBot) => {
 
     return lastAutoDetectedAppUrl || 'https://monkfish-app-isiw9.ondigitalocean.app';
   }
+
+async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, tgUser: any, page: number = 1, messageIdToEdit?: number) {
+  const userPayments = await storage.getPaymentsForUser(tgUser.id);
+
+  if (!userPayments || userPayments.length === 0) {
+    const emptyMsg = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Track Payment Transactions</b>\n\n` +
+      `You don't have any deposit or payment requests yet.\n\n` +
+      `Tap <b>Add Balance</b> or <b>Catalog</b> to make your first transaction!`;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: 'Add Balance', callback_data: 'add_funds', icon_custom_emoji_id: '5373123633415695601' }],
+        [{ text: 'Catalog', callback_data: 'main_menu', icon_custom_emoji_id: '5416041192905265756' }]
+      ]
+    };
+    const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, txBannerPath, emptyMsg, keyboard, messageIdToEdit, true);
+    return;
+  }
+
+  const pageSize = 5;
+  const totalPages = Math.ceil(userPayments.length / pageSize);
+  const currentPage = Math.max(1, Math.min(page, totalPages));
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const pagePayments = userPayments.slice(startIdx, startIdx + pageSize);
+
+  const caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Track Payment Transactions</b> (Page ${currentPage}/${totalPages})\n\n` +
+    `Below is the list of all your top-up and deposit requests.\n` +
+    `Tap on any transaction to view details or re-check payment:`;
+
+  const inline_keyboard: any[][] = [];
+
+  pagePayments.forEach(p => {
+    let statusEmoji = '⏳';
+    if (p.status === 'completed') statusEmoji = '✅';
+    else if (p.status === 'processing') statusEmoji = '🔄';
+    else if (p.status === 'expired') statusEmoji = '❌';
+
+    const method = (p.paymentMethod || 'deposit').toUpperCase();
+    const amountStr = `$${(p.amount / 100).toFixed(2)}`;
+
+    inline_keyboard.push([
+      { text: `${statusEmoji} #${p.id} • ${method} (${amountStr})`, callback_data: `tx_det_${p.id}` }
+    ]);
+  });
+
+  const navRow: any[] = [];
+  if (currentPage > 1) {
+    navRow.push({ text: '◀️ Prev', callback_data: `track_tx_page_${currentPage - 1}` });
+  }
+  if (currentPage < totalPages) {
+    navRow.push({ text: 'Next ▶️', callback_data: `track_tx_page_${currentPage + 1}` });
+  }
+  if (navRow.length > 0) {
+    inline_keyboard.push(navRow);
+  }
+
+  inline_keyboard.push([{ text: 'Main Menu', callback_data: 'main_menu', icon_custom_emoji_id: '5416041192905265756' }]);
+
+  const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, txBannerPath, caption, { inline_keyboard }, messageIdToEdit, true);
+}
+
+async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number, paymentId: number, messageIdToEdit?: number) {
+  const payment = await storage.getPayment(paymentId);
+  if (!payment) {
+    await targetBot.sendMessage(chatId, "❌ Transaction record not found.");
+    return;
+  }
+
+  let statusText = '⏳ Pending';
+  if (payment.status === 'completed') statusText = '✅ Paid & Completed';
+  else if (payment.status === 'processing') statusText = '🔄 Processing / Verifying';
+  else if (payment.status === 'expired') statusText = '❌ Expired';
+
+  const dateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
+  const methodStr = (payment.paymentMethod || 'deposit').toUpperCase();
+  const refId = payment.cryptomusUuid || payment.txid || `#${payment.id}`;
+
+  const caption = `<tg-emoji emoji-id="5373123633415695601">📜</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+    `<blockquote>` +
+    `<b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
+    `<b>Payment Method:</b> ${methodStr}\n` +
+    `<b>Amount:</b> $${(payment.amount / 100).toFixed(2)} USD\n` +
+    `<b>Status:</b> ${statusText}\n` +
+    `<b>TxID / Reference:</b> <code>${refId}</code>\n` +
+    `<b>Date & Time:</b> ${dateStr}\n` +
+    `</blockquote>\n\n` +
+    `<i>Tap "Re-check Payment Status" below to verify payment on blockchain/Cryptomus!</i>`;
+
+  const inline_keyboard: any[][] = [];
+
+  if (payment.status !== 'completed') {
+    inline_keyboard.push([
+      { text: '🔄 Re-check Payment Status', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }
+    ]);
+  }
+
+  if (refId && refId !== 'N/A') {
+    inline_keyboard.push([
+      { text: 'Copy TxID / Ref', copy_text: { text: refId }, icon_custom_emoji_id: '5231102735817918643' }
+    ]);
+  }
+
+  inline_keyboard.push([
+    { text: '◀️ Back to Transactions', callback_data: 'track_tx_page_1', icon_custom_emoji_id: '5976535107933050770' }
+  ]);
+
+  const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, txBannerPath, caption, { inline_keyboard }, messageIdToEdit, true);
+}
 
 async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number) {
   const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
@@ -5488,6 +5600,18 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           ] as any
         };
         await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup, msgId);
+        return;
+      }
+
+      if (data.startsWith('track_tx_page_')) {
+        const pageNum = parseInt(data.substring(14)) || 1;
+        await sendTrackTransactionList(targetBot, chatId, tgUser, pageNum, query.message?.message_id);
+        return;
+      }
+
+      if (data.startsWith('tx_det_')) {
+        const paymentId = parseInt(data.substring(7));
+        await sendTrackTransactionDetail(targetBot, chatId, paymentId, query.message?.message_id);
         return;
       }
 
@@ -8856,6 +8980,17 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
     const userId = msg.from?.id.toString() || chatId.toString();
     await storage.updateTelegramUserByChatId(userId, { lastAction: 'awaiting_promo_code' });
     await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6113971389935391397">🎁</tg-emoji> <b>Enter Promo Code</b>\n\nPlease send your promo code below:`, { parse_mode: 'HTML' });
+  });
+
+  targetBot.onText(/\/tracktransaction/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    const tgUser = await storage.getTelegramUserByChatId(userId);
+    if (!tgUser) {
+      await targetBot.sendMessage(chatId, "⚠️ User profile not found. Please tap /start first.");
+      return;
+    }
+    await sendTrackTransactionList(targetBot, chatId, tgUser, 1);
   });
 
   targetBot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
