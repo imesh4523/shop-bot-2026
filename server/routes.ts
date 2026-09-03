@@ -4826,25 +4826,25 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
   const inline_keyboard: any[][] = [];
 
   pagePayments.forEach(p => {
-    let statusEmoji = '⏳';
-    if (p.status === 'completed') statusEmoji = '✅';
-    else if (p.status === 'processing') statusEmoji = '🔄';
-    else if (p.status === 'expired') statusEmoji = '❌';
+    let customEmojiId = '6010111371251815589'; // pending
+    if (p.status === 'completed') customEmojiId = '6276090299232031662';
+    else if (p.status === 'processing') customEmojiId = '5386367538735104399';
+    else if (p.status === 'expired') customEmojiId = '6298544405435387645';
 
     const method = (p.paymentMethod || 'deposit').toUpperCase();
     const amountStr = `$${(p.amount / 100).toFixed(2)}`;
 
     inline_keyboard.push([
-      { text: `${statusEmoji} #${p.id} • ${method} (${amountStr})`, callback_data: `tx_det_${p.id}` }
+      { text: `#${p.id} • ${method} (${amountStr})`, callback_data: `tx_det_${p.id}`, icon_custom_emoji_id: customEmojiId }
     ]);
   });
 
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push({ text: '◀️ Prev', callback_data: `track_tx_page_${currentPage - 1}` });
+    navRow.push({ text: 'Prev', callback_data: `track_tx_page_${currentPage - 1}`, icon_custom_emoji_id: '5976535107933050770' });
   }
   if (currentPage < totalPages) {
-    navRow.push({ text: 'Next ▶️', callback_data: `track_tx_page_${currentPage + 1}` });
+    navRow.push({ text: 'Next', callback_data: `track_tx_page_${currentPage + 1}`, icon_custom_emoji_id: '5976535107933050770' });
   }
   if (navRow.length > 0) {
     inline_keyboard.push(navRow);
@@ -4859,20 +4859,20 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
 async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number, paymentId: number, messageIdToEdit?: number) {
   const payment = await storage.getPayment(paymentId);
   if (!payment) {
-    await targetBot.sendMessage(chatId, "❌ Transaction record not found.");
+    await targetBot.sendMessage(chatId, "<tg-emoji emoji-id=\"6298544405435387645\">❌</tg-emoji> Transaction record not found.");
     return;
   }
 
-  let statusText = '⏳ Pending';
-  if (payment.status === 'completed') statusText = '✅ Paid & Completed';
-  else if (payment.status === 'processing') statusText = '🔄 Processing / Verifying';
-  else if (payment.status === 'expired') statusText = '❌ Expired';
+  let statusText = '<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending';
+  if (payment.status === 'completed') statusText = '<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> Paid & Completed';
+  else if (payment.status === 'processing') statusText = '<tg-emoji emoji-id="5386367538735104399">🔄</tg-emoji> Processing / Verifying';
+  else if (payment.status === 'expired') statusText = '<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Expired';
 
   const dateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
   const methodStr = (payment.paymentMethod || 'deposit').toUpperCase();
   const refId = payment.cryptomusUuid || payment.txid || `#${payment.id}`;
 
-  const caption = `<tg-emoji emoji-id="5373123633415695601">📜</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+  const caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
     `<blockquote>` +
     `<b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
     `<b>Payment Method:</b> ${methodStr}\n` +
@@ -4887,7 +4887,7 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
 
   if (payment.status !== 'completed') {
     inline_keyboard.push([
-      { text: '🔄 Re-check Payment Status', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }
+      { text: 'Re-check Payment Status', callback_data: `check_payment_${payment.id}`, icon_custom_emoji_id: '5386367538735104399' }
     ]);
   }
 
@@ -4898,7 +4898,7 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
   }
 
   inline_keyboard.push([
-    { text: '◀️ Back to Transactions', callback_data: 'track_tx_page_1', icon_custom_emoji_id: '5976535107933050770' }
+    { text: 'Back to Transactions', callback_data: 'track_tx_page_1', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const txBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_transactions_banner.png");
@@ -8151,13 +8151,13 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20') {
+        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus') {
           if (paymentCheck.status === 'completed') {
             await targetBot.answerCallbackQuery(query.id, { text: "✅ This payment has been already paid!", show_alert: true }).catch(() => {});
             return;
           }
 
-          // Active Cryptomus API Status Check
+          // Active Cryptomus API Status Check regardless of local status
           const checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, `bep20_${paymentCheck.id}`);
           if (checkRes && checkRes.paid) {
             // Atomic DB update to credit balance safely
@@ -8199,8 +8199,11 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             }
           }
 
-          // Reset status to pending so it can be re-checked or processed
-          await storage.updatePayment(paymentCheck.id, { status: 'pending' });
+          if (paymentCheck.status === 'expired') {
+            await targetBot.answerCallbackQuery(query.id, { text: "❌ Payment not found on Cryptomus. Invoice has expired.", show_alert: true }).catch(() => {});
+            return;
+          }
+
           await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not found on the blockchain yet. Please complete transfer and try again in a few moments.", show_alert: true }).catch(() => {});
           return;
         }
