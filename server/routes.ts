@@ -476,6 +476,21 @@ export async function registerRoutes(
     tableName: "session",
   });
 
+  app.use((req, _res, next) => {
+    try {
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      if (host && typeof host === 'string' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        const detectedUrl = `${proto}://${host}`.replace(/\/+$/, '');
+        if (detectedUrl !== lastAutoDetectedAppUrl) {
+          lastAutoDetectedAppUrl = detectedUrl;
+          console.log(`[Auto-Detected App Domain] Active domain updated to: ${lastAutoDetectedAppUrl}`);
+        }
+      }
+    } catch (e) {}
+    next();
+  });
+
   app.use("/api", (_req, res, next) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
@@ -4746,9 +4761,38 @@ const setupBotHandlers = (targetBot: TelegramBot) => {
     }
   });
 
-  // Handle interactive features for both bots if they are groups/channels
-  // But commands and user profiles are handled by the main bot (bot variable)
-  
+  // Global auto-detected App URL from incoming HTTP traffic
+  let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
+
+  async function getAppBaseUrl(req?: any): Promise<string> {
+    const customUrl = (await storage.getSetting('APP_URL'))?.value;
+    if (customUrl && customUrl.trim()) {
+      let url = customUrl.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      return url.replace(/\/+$/, '');
+    }
+
+    if (req && (req.headers || req.get)) {
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      if (host && typeof host === 'string' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        return `${proto}://${host}`.replace(/\/+$/, '');
+      }
+    }
+
+    if (process.env.APP_URL && process.env.APP_URL.trim()) {
+      let url = process.env.APP_URL.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      return url.replace(/\/+$/, '');
+    }
+
+    return lastAutoDetectedAppUrl || 'https://monkfish-app-isiw9.ondigitalocean.app';
+  }
+
 async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number) {
   const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
   const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
