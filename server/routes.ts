@@ -8887,6 +8887,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                 if (sentMsg) {
                   await storage.updateTelegramUser(tgUser.id, { lastErrorMessageId: sentMsg.message_id, lastAction: `awaiting_aptos_txid_${payment.id}_0` });
                   setTimeout(() => {
+                    targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
+                  }, 15000);
                 }
               }
             } catch (err: any) {
