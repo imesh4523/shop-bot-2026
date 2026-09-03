@@ -6971,9 +6971,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             lastAction: `awaiting_binance_txid_${prodId}_${qty}_${paymentId}`
           });
 
+          const examplePhotoPath = path.join(process.cwd(), "public", "binance_order_id_example.png");
           const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
-            `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
-            `<i>Example: <code>28491048591</code></i>`;
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
+            `Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment.\n\n` +
+            `See the example image above showing where your <b>Order ID</b> is located!</blockquote>\n\n` +
+            `<i>Example Order ID: <code>44531190073597952</code></i>`;
 
           const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
@@ -6983,16 +6986,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             ]
           };
 
-          if (query.message) {
-            try {
-              await targetBot.editMessageText(promptMsg, {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'HTML',
-                reply_markup: keyboard
-              });
-            } catch (e) {}
-          }
+          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, promptMsg, keyboard, query.message?.message_id);
 
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
@@ -7830,9 +7824,12 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             lastAction: `awaiting_binance_txid_0_0_${paymentCheck.id}`
           });
 
+          const examplePhotoPath = path.join(process.cwd(), "public", "binance_order_id_example.png");
           const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
-            `<blockquote>Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment:</blockquote>\n\n` +
-            `<i>Example: <code>28491048591</code></i>`;
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
+            `Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment.\n\n` +
+            `See the example image above showing where your <b>Order ID</b> is located!</blockquote>\n\n` +
+            `<i>Example Order ID: <code>44531190073597952</code></i>`;
 
           const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
           const keyboard = {
@@ -7842,16 +7839,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             ]
           };
 
-          if (query.message) {
-            try {
-              await targetBot.editMessageText(promptMsg, {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'HTML',
-                reply_markup: keyboard
-              });
-            } catch (e) {}
-          }
+          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, promptMsg, keyboard, query.message?.message_id);
 
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
