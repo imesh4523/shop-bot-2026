@@ -6971,22 +6971,27 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             lastAction: `awaiting_binance_txid_${prodId}_${qty}_${paymentId}`
           });
 
+          const amountNum = ((payment?.amount || 0) / 100) || 5;
+          const payIdKey = 'BINANCE_PAY_ID';
+          const payId = (await storage.getSetting(payIdKey))?.value || "284910485";
+
+          const responseMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> You need to pay <b>${amountNum.toFixed(0)} USDT</b> \n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>\n\n` +
+            `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amountNum.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amountNum.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
+
+          const keyboard = [
+            [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
+            [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${paymentId}`, icon_custom_emoji_id: '5309771942381785364' }],
+            [{ text: 'Check payment', callback_data: `check_payment_${paymentId}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+          ] as any[][];
+
           const examplePhotoPath = path.join(process.cwd(), "public", "binance_order_id_example.png");
-          const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
-            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
-            `Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment.\n\n` +
-            `See the example image above showing where your <b>Order ID</b> is located!</blockquote>\n\n` +
-            `<i>Example Order ID: <code>44531190073597952</code></i>`;
-
-          const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
-          const keyboard = {
-            inline_keyboard: [
-              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }],
-              [{ text: 'Cancel / Back', callback_data: `prod_${prodId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
-            ]
-          };
-
-          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, promptMsg, keyboard, query.message?.message_id);
+          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
 
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
@@ -7824,22 +7829,27 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             lastAction: `awaiting_binance_txid_0_0_${paymentCheck.id}`
           });
 
+          const amountNum = ((paymentCheck.amount || 0) / 100) || 5;
+          const payIdKey = 'BINANCE_PAY_ID';
+          const payId = (await storage.getSetting(payIdKey))?.value || "284910485";
+
+          const responseMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> You need to pay <b>${amountNum.toFixed(0)} USDT</b> \n\n` +
+            `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+            `<b>Method:</b> Binance Pay / Pay ID  <tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji>\n\n` +
+            `<b>Pay ID:</b> <code>${payId}</code>\n\n` +
+            `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>${amountNum.toFixed(0)} USDT</b> to the Pay ID above.\n\n` +
+            `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>Binance Pay</b> to this Pay ID, otherwise coins will be lost.</i>\n\n` +
+            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${amountNum.toFixed(0)} USDT</b>). If you pay less than the requested amount, your deposit will <b>NOT</b> be completed automatically!</blockquote>`;
+
+          const keyboard = [
+            [{ text: 'Copy Binance ID', copy_text: { text: payId }, icon_custom_emoji_id: '5231102735817918643' }],
+            [{ text: 'Generate QR Code', callback_data: `gen_qr_binance_${paymentCheck.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+            [{ text: 'Check payment', callback_data: `check_payment_${paymentCheck.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+            [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+          ] as any[][];
+
           const examplePhotoPath = path.join(process.cwd(), "public", "binance_order_id_example.png");
-          const promptMsg = `<tg-emoji emoji-id="5281029063459234079">🔸</tg-emoji> <b>Verify Binance Pay Transaction</b>\n\n` +
-            `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Instructions:</b>\n` +
-            `Please reply with your <b>Binance Order ID / Transaction ID</b> in the chat below to verify your payment.\n\n` +
-            `See the example image above showing where your <b>Order ID</b> is located!</blockquote>\n\n` +
-            `<i>Example Order ID: <code>44531190073597952</code></i>`;
-
-          const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
-          const keyboard = {
-            inline_keyboard: [
-              [{ text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }],
-              [{ text: 'Cancel / Back', callback_data: 'add_funds', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
-            ]
-          };
-
-          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, promptMsg, keyboard, query.message?.message_id);
+          await sendOrEditScreenWithPhoto(targetBot, chatId, examplePhotoPath, responseMsg, { inline_keyboard: keyboard }, query.message?.message_id);
 
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Reply to this message with your Binance Order ID:</b>`, {
             parse_mode: 'HTML',
