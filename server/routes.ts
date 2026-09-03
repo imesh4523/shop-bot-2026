@@ -4759,10 +4759,8 @@ async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: n
   }
 
   try {
-    const orderId = crypto.randomBytes(12).toString('hex');
-    const host = process.env.NODE_ENV === 'production'
-      ? 'cloudshopplatform.site'
-      : 'localhost:5000';
+    const baseUrl = await getAppBaseUrl();
+    const callbackUrl = `${baseUrl}/api/payments/webhook`;
 
     const existingPending = await storage.getPendingPaymentByAmount(tgUser.id, Math.round(amount * 100));
     if (existingPending) {
