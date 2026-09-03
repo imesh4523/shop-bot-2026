@@ -8889,12 +8889,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                   setTimeout(() => {
                     targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
                   }, 15000);
-                }
               }
             }
           }
-        }
-      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
