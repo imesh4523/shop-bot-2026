@@ -8127,35 +8127,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           } else {
             await targetBot.answerCallbackQuery(query.id, { text: "Payment not found yet.", show_alert: true }).catch(() => {});
           }
-          return;
-        }
-
-        // Atomically lock and transition payment status to processing for TRC20 / Aptos / Binance / Cryptomus
-        const payment = await db.transaction(async (tx) => {
-          const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for('update');
-          if (!p) return null;
-          if (p.status !== 'pending') return p;
-
-          const [updated] = await tx.update(payments)
-            .set({ status: 'processing', updatedAt: new Date() })
-            .where(eq(payments.id, paymentId))
-            .returning();
-          return updated;
-        });
-
-        if (!payment || payment.status !== 'processing') {
-          const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Payment request is already being processed, expired, or completed.</b>`, { parse_mode: 'HTML' });
-          setTimeout(() => {
-            targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
-          }, 15000);
-          return;
-        }
-
-        // Expiration Check: 1 Hour
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (payment.createdAt && new Date(payment.createdAt) < oneHourAgo) {
-          await storage.updatePayment(payment.id, { status: 'expired' });
-          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>This payment request has expired (1 hour limit). Please create a new one.</b>`, { parse_mode: 'HTML' });
+          }
           return;
         }
 
