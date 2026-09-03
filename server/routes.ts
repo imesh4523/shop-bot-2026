@@ -8890,11 +8890,14 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                     targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
                   }, 15000);
                 }
-              }
             } catch (err: any) {
+              await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
             }
           }
+        } catch (err: any) {
+          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
         }
+      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
