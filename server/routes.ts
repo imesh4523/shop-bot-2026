@@ -8842,28 +8842,19 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
                         if (txResult.success) {
                           matched = true;
-                                 if (!matched) {
-                await storage.updatePayment(payment.id, { status: 'pending' });
-                if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
+                          if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
 
-                const failMsg = `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Your payment is still pending please pay.</b>\n\nIf you have already paid, please copy and send your <b>Transaction Hash / ID (TXID)</b> directly in the chat for automatic verification.`;
-                const sentMsg = await targetBot.sendMessage(chatId, failMsg, { parse_mode: 'HTML' });
-                if (sentMsg) {
-                  await storage.updateTelegramUser(tgUser.id, { lastErrorMessageId: sentMsg.message_id, lastAction: `awaiting_aptos_txid_${payment.id}_0` });
-                  setTimeout(() => {
-                    targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
-                  }, 15000);
-                }
-              }
-            } catch (err: any) {
-              await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-            }
-          }
-        } catch (err) {
-          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
-        }
-      }
-    } catch (err) {    type: 'deposit',
+                          await targetBot.sendMessage(chatId, 
+                            `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Aptos Payment Verified successfully!</b>\n\n` +
+                            `<tg-emoji emoji-id="5388622778817589921">💰</tg-emoji> Credited: <b>$${actualAmount.toFixed(2)}</b> has been added to your balance.\n` +
+                            `<tg-emoji emoji-id="6276090299232031662">🆔</tg-emoji> Account ID: <code>${tgUser.telegramId}</code>\n\n` +
+                            `Thank you for your purchase! <tg-emoji emoji-id="5231102735817918643">🤍</tg-emoji>`,
+                            { parse_mode: 'HTML' }
+                          );
+
+                          const userDisplayName = tgUser.firstName || tgUser.username || "User";
+                          io.emit('admin_notification', {
+                            type: 'deposit',
                             title: 'New Aptos Deposit',
                             message: `${userDisplayName} deposited $${actualAmount.toFixed(2)} via Aptos`,
                             data: {
@@ -8899,10 +8890,23 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
                     targetBot.deleteMessage(chatId, sentMsg.message_id).catch(() => { });
                   }, 15000);
                 }
+              }
+            } catch (err: any) {
+              await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
+              if (checkingMsg) await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => { });
+            }
+          }
+        } catch (err) {
+          await storage.updatePayment(payment.id, { status: 'pending' }).catch(() => {});
+        }
+        return;
+      }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
   });
+
+
 
   targetBot.onText(/\/language/, async (msg) => {
     const chatId = msg.chat.id;
