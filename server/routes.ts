@@ -5126,7 +5126,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         return;
       }
       processedCallbacks.add(callbackId);
-      setTimeout(() => processedCallbacks.delete(callbackId), 10000);
+      setTimeout(() => processedCallbacks.delete(callbackId), 60000);
 
       const chatId = query.message?.chat.id;
       if (!chatId || !data || !userId) {
@@ -8933,7 +8933,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       const key = `${chatId}:${msgId}`;
       if (processedMessages.has(key)) return true;
       processedMessages.add(key);
-      setTimeout(() => processedMessages.delete(key), 30000); // 30s cache
+      setTimeout(() => processedMessages.delete(key), 60000); // 60s cache
       return false;
     };
 
@@ -9942,6 +9942,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       } else if (tgUser?.lastAction === 'awaiting_cryptomus_amount') {
         const amount = parseFloat(normalizedText || "0");
 
+        // Clear state immediately to prevent duplicate submissions
+        await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+
         // Delete prompt and user input
         try {
           if (tgUser.lastMessageId) {
@@ -9958,6 +9961,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         await processCryptomusInvoiceCreation(targetBot, chatId, tgUser, amount);
       } else if (tgUser?.lastAction === 'awaiting_bep20_amount') {
         const amount = parseFloat(normalizedText || "0");
+
+        // Clear state immediately to prevent duplicate submissions
+        await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
 
         // Delete prompt and user input
         try {
@@ -9976,6 +9982,9 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       } else if (tgUser?.lastAction === 'awaiting_binance_deposit_amount') {
         const amount = parseFloat(normalizedText || "0");
 
+        // Clear state immediately to prevent duplicate submissions
+        await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+
         // Delete prompt and user input
         try {
           if (tgUser.lastMessageId) {
@@ -9991,8 +10000,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         const payIdKey = 'BINANCE_PAY_ID';
         const payId = (await storage.getSetting(payIdKey))?.value || "284910485";
-
-        await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
 
         const payment = await storage.createPayment({
           telegramUserId: tgUser.id,
@@ -10024,6 +10031,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
         await sendOrEditScreenWithPhoto(targetBot, chatId, binanceBannerPath, responseMsg, { inline_keyboard: keyboard });
       } else if (tgUser?.lastAction === 'awaiting_trc20_amount') {
         const amount = parseFloat(normalizedText || "0");
+
+        // Clear state immediately to prevent duplicate submissions
+        await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+
         try {
           if (tgUser.lastMessageId) {
             await targetBot.deleteMessage(chatId, tgUser.lastMessageId);
