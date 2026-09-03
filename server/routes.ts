@@ -8893,7 +8893,6 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               }
             } catch (err: any) {
             }
-          }
     } catch (err) {
       console.error("Global Callback Listener Error:", err);
     }
