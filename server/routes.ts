@@ -4905,13 +4905,40 @@ async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chat
 
       const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
       await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, messageIdToEdit, true);
-    } else {
-      throw new Error("Invalid response from Cryptomus API");
+async function checkCryptomusInvoiceStatus(uuid?: string, orderId?: string) {
+  const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
+  const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
+  if (!apiKey || !merchantId) return null;
+
+  try {
+    const payload: any = {};
+    if (uuid) payload.uuid = uuid;
+    if (orderId) payload.order_id = orderId;
+    if (!uuid && !orderId) return null;
+
+    const serialized = JSON.stringify(payload);
+    const sign = crypto
+      .createHash('md5')
+      .update(Buffer.from(serialized).toString('base64') + apiKey)
+      .digest('hex');
+
+    const response = await axios.post('https://api.cryptomus.com/v1/payment/info', payload, {
+      headers: {
+        'merchant': merchantId,
+        'sign': sign
+      }
+    });
+
+    if (response.data && response.data.result) {
+      const res = response.data.result;
+      const status = res.status;
+      const isPaid = status === 'paid' || status === 'paid_over';
+      return { paid: isPaid, result: res, status };
     }
   } catch (err: any) {
-    console.error('Cryptomus BEP20 creation error:', err.response?.data || err.message);
-    targetBot.sendMessage(chatId, "❌ Failed to create Cryptomus BEP20 invoice. Please try again later.");
+    console.error('[Cryptomus Check Info Error]:', err.response?.data || err.message);
   }
+  return null;
 }
 
 async function processCryptomusTrc20InvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number, messageIdToEdit?: number) {
@@ -7951,33 +7978,56 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'aptos') {
+        if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20') {
           if (paymentCheck.status === 'completed') {
             await targetBot.answerCallbackQuery(query.id, { text: "✅ This payment has been already paid!", show_alert: true }).catch(() => {});
-            if (query.message) {
-              const paidMsg = `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>This payment has been already paid!</b>\n\n` +
-                `<b>Amount Paid:</b> $${(paymentCheck.amount / 100).toFixed(2)} USD\n` +
-                `<b>Status:</b> Completed`;
-              if (query.message.photo) {
-                await targetBot.editMessageCaption(paidMsg, {
-                  chat_id: chatId,
-                  message_id: query.message.message_id,
-                  parse_mode: 'HTML',
-                  reply_markup: { inline_keyboard: [] }
-                }).catch(() => {});
-              } else {
-                await targetBot.editMessageText(paidMsg, {
+            return;
+          }
+
+          // Active Cryptomus API Status Check
+          const checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, `bep20_${paymentCheck.id}`);
+          if (checkRes && checkRes.paid) {
+            // Atomic DB update to credit balance safely
+            const result = await db.transaction(async (tx) => {
+              const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
+              if (!payment || payment.status === 'completed') {
+                return { success: false, alreadyCompleted: true };
+              }
+
+              await tx.update(telegramUsers).set({
+                balance: sql`balance + ${payment.amount}`
+              }).where(eq(telegramUsers.id, payment.telegramUserId));
+
+              await tx.update(payments).set({ status: 'completed', updatedAt: new Date() }).where(eq(payments.id, payment.id));
+
+              const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
+              return { success: true, payment, user: updatedUser };
+            });
+
+            if (result.success && result.payment) {
+              const updatedPayment = result.payment;
+              const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
+              await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, `${paymentCheck.paymentMethod.toUpperCase()} (Cryptomus)`, paymentCheck.cryptomusUuid || paymentCheck.txid);
+
+              if (query.message) {
+                const paidCaption = `<tg-emoji emoji-id="5404617696589390973">✅</tg-emoji> <b>Payment Verified Successfully!</b>\n\n` +
+                  `<b>Amount Paid:</b> $${(updatedPayment.amount / 100).toFixed(2)} USD\n` +
+                  `<b>Status:</b> Completed\n\n` +
+                  `Your balance has been updated!`;
+                await targetBot.editMessageCaption(paidCaption, {
                   chat_id: chatId,
                   message_id: query.message.message_id,
                   parse_mode: 'HTML',
                   reply_markup: { inline_keyboard: [] }
                 }).catch(() => {});
               }
+              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified! Balance updated.", show_alert: true }).catch(() => {});
+              return;
             }
-            return;
           }
 
-          // Check if Cryptomus / blockchain payment was completed
+          // Reset status to pending so it can be re-checked or processed
+          await storage.updatePayment(paymentCheck.id, { status: 'pending' });
           await targetBot.answerCallbackQuery(query.id, { text: "⏳ Payment not found on the blockchain yet. Please complete transfer and try again in a few moments.", show_alert: true }).catch(() => {});
           return;
         }
@@ -10568,27 +10618,34 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         return res.status(400).json({ message: "Missing sign parameter" });
       }
 
-      const serialized = JSON.stringify(data);
-      const computedSign = crypto
-        .createHash('md5')
-        .update(Buffer.from(serialized).toString('base64') + apiKey)
-        .digest('hex');
+      const rawStr = JSON.stringify(data);
+      const escapedStr = rawStr.replace(/\//g, '\\/');
 
-      if (computedSign !== sign) {
-        console.warn("[Cryptomus Webhook] Signature verification failed.", { computedSign, sign });
+      const sign1 = crypto.createHash('md5').update(Buffer.from(rawStr).toString('base64') + apiKey).digest('hex');
+      const sign2 = crypto.createHash('md5').update(Buffer.from(escapedStr).toString('base64') + apiKey).digest('hex');
+
+      if (sign1 !== sign && sign2 !== sign) {
+        console.warn("[Cryptomus Webhook] Signature verification mismatch.", { sign1, sign2, sign });
         return res.status(400).json({ message: "Invalid signature" });
       }
 
-      const { uuid, status } = data;
-      if (!uuid) {
-        return res.status(400).json({ message: "Missing uuid" });
-      }
-
-      console.log(`[Cryptomus Webhook] Received notification for UUID: ${uuid}, Status: ${status}`);
+      const { uuid, status, order_id } = data;
+      console.log(`[Cryptomus Webhook] Received notification for UUID: ${uuid}, OrderID: ${order_id}, Status: ${status}`);
 
       if (status === 'paid' || status === 'paid_over') {
         const result = await db.transaction(async (tx) => {
-          const [payment] = await tx.select().from(payments).where(eq(payments.cryptomusUuid, uuid)).for('update');
+          let [payment] = uuid ? await tx.select().from(payments).where(eq(payments.cryptomusUuid, uuid)).for('update') : [null];
+
+          if (!payment && order_id) {
+            const match = order_id.match(/\d+/);
+            if (match) {
+              const pId = parseInt(match[0], 10);
+              if (!isNaN(pId)) {
+                [payment] = await tx.select().from(payments).where(eq(payments.id, pId)).for('update');
+              }
+            }
+          }
+
           if (!payment) {
             return { success: false, error: "Payment not found" };
           }
@@ -10597,11 +10654,6 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             return { success: true, alreadyCompleted: true };
           }
 
-          if (payment.status !== 'pending' && payment.status !== 'processing') {
-            return { success: false, error: `Invalid payment status: ${payment.status}` };
-          }
-
-          await tx.update(payments).set({ status: 'processing', updatedAt: new Date() }).where(eq(payments.id, payment.id));
 
           const [user] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId)).for('update');
           if (!user) {
