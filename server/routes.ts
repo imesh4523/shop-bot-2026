@@ -461,7 +461,6 @@ export async function registerRoutes(
   app: Express,
   io: SocketServer
 ): Promise<HttpServer> {
-  console.log('[REGISTER ROUTES DEBUG] Entering registerRoutes...');
   let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
 
   // Initialize Telegram client service (MTProto)
@@ -537,7 +536,6 @@ export async function registerRoutes(
       console.log(`Admin reset: [${adminEmail}]`);
     }
   }
-  console.log('[REGISTER ROUTES DEBUG] Checkpoint 2: Admin reset complete');
 
   try {
     await db.execute(sql`
@@ -2860,7 +2858,6 @@ const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
     }
   });
 };
-console.log('[REGISTER ROUTES DEBUG] Checkpoint 2.5: Before initBot definition');
 
 async function initBot() {
   console.log('[INIT BOT] Starting initBot execution...');
@@ -4744,7 +4741,6 @@ async function setupBotProfile(targetBot: TelegramBot) {
   }
 };
 
-console.log('[REGISTER ROUTES DEBUG] Checkpoint 2.7: Before setupBotHandlers definition');
 function setupBotHandlers(targetBot: TelegramBot) {
   // Polling error handling
   targetBot.on('polling_error', (error: any) => {
