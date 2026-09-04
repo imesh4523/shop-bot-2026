@@ -4798,7 +4798,7 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
   const userPayments = await storage.getPaymentsForUser(tgUser.id);
 
   if (!userPayments || userPayments.length === 0) {
-    const emptyMsg = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Track Payment Transactions</b>\n\n` +
+    const emptyMsg = `<tg-emoji emoji-id="5312441427764989435">💱</tg-emoji><b>Track Payment Transactions</b>\n\n` +
       `You don't have any deposit or payment requests yet.\n\n` +
       `Tap <b>Add Balance</b> or <b>Catalog</b> to make your first transaction!`;
     const keyboard = {
@@ -4819,17 +4819,17 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
   const startIdx = (currentPage - 1) * pageSize;
   const pagePayments = userPayments.slice(startIdx, startIdx + pageSize);
 
-  const caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Track Payment Transactions</b> (Page ${currentPage}/${totalPages})\n\n` +
-    `Below is the list of all your top-up and deposit requests.\n` +
-    `Tap on any transaction to view details or re-check payment:`;
+  const caption = `<tg-emoji emoji-id="5312441427764989435">💱</tg-emoji><b>Track Payment Transactions</b> (Page ${currentPage}/${totalPages})\n\n` +
+    `<tg-emoji emoji-id="5197371802136892976">⛏️</tg-emoji> Below is the list of all your top-up and deposit requests.\n` +
+    `Tap on any transaction to view details or re-check payment: <tg-emoji emoji-id="5197371802136892976">⛏️</tg-emoji>`;
 
   const inline_keyboard: any[][] = [];
 
   pagePayments.forEach(p => {
-    let customEmojiId = '6010111371251815589'; // pending
-    if (p.status === 'completed') customEmojiId = '6276090299232031662';
+    let customEmojiId = '5386367538735104399'; // pending / checking
+    if (p.status === 'completed') customEmojiId = '5850383023572259486';
     else if (p.status === 'processing') customEmojiId = '5386367538735104399';
-    else if (p.status === 'expired') customEmojiId = '6298544405435387645';
+    else if (p.status === 'expired' || p.status === 'cancelled' || p.status === 'failed') customEmojiId = '5850627871067870443';
 
     const method = (p.paymentMethod || 'deposit').toUpperCase();
     const amountStr = `$${(p.amount / 100).toFixed(2)}`;
@@ -4859,14 +4859,14 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
 async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number, paymentId: number, messageIdToEdit?: number) {
   const payment = await storage.getPayment(paymentId);
   if (!payment) {
-    await targetBot.sendMessage(chatId, "<tg-emoji emoji-id=\"6298544405435387645\">❌</tg-emoji> Transaction record not found.");
+    await targetBot.sendMessage(chatId, "<tg-emoji emoji-id=\"5850627871067870443\">❌</tg-emoji> Transaction record not found.");
     return;
   }
 
-  let statusText = '<tg-emoji emoji-id="6010111371251815589">⏳</tg-emoji> Pending Payment';
-  if (payment.status === 'completed') statusText = '<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> Paid & Completed';
+  let statusText = '<tg-emoji emoji-id="5386367538735104399">🔄</tg-emoji> Pending Payment';
+  if (payment.status === 'completed') statusText = '<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji> Paid & Completed';
   else if (payment.status === 'processing') statusText = '<tg-emoji emoji-id="5386367538735104399">🔄</tg-emoji> Verifying Status';
-  else if (payment.status === 'expired') statusText = '<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> Expired';
+  else if (payment.status === 'expired' || payment.status === 'cancelled' || payment.status === 'failed') statusText = '<tg-emoji emoji-id="5850627871067870443">❌</tg-emoji> Expired';
 
   const createdDateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
   const updatedDateStr = (payment.status === 'completed' && payment.updatedAt) ? new Date(payment.updatedAt).toLocaleString() : null;
@@ -4874,22 +4874,22 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
   const addressStr = payment.txid || 'N/A';
   const refId = payment.cryptomusUuid || `#${payment.id}`;
 
-  let caption = `<tg-emoji emoji-id="5373123633415695601">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
-    `<blockquote>` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Payment Method:</b> <b>${methodStr}</b>\n` +
-    `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Status:</b> ${statusText}\n` +
-    `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> <b>Generated Wallet:</b> <code>${addressStr}</code>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Cryptomus Ref / UUID:</b> <code>${refId}</code>\n` +
-    `<tg-emoji emoji-id="5370919202796348364">▪️</tg-emoji> <b>Invoice Created:</b> ${createdDateStr}\n`;
+  let caption = `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+    `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji><b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
+    `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji> <b>Payment Method:</b> <b>${methodStr}</b>\n` +
+    `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
+    `<tg-emoji emoji-id="5201691993775818138">🛫</tg-emoji> <b>Status:</b> ${statusText}\n\n` +
+    `<tg-emoji emoji-id="5199552030615558774">🪙</tg-emoji><b>Generated Wallet:</b> \n` +
+    `<blockquote><code>${addressStr}</code></blockquote>\n` +
+    `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Cryptomus Ref / UUID:</b> <code>${refId}</code>\n\n` +
+    `<tg-emoji emoji-id="5257965810634202885">📁</tg-emoji><b>Invoice Created:</b> ${createdDateStr}\n`;
 
   if (updatedDateStr) {
-    caption += `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
+    caption += `<tg-emoji emoji-id="5260416304224936047">✅</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
   }
 
-  caption += `</blockquote>\n\n` +
-    `<i>Tap "Re-check Payment Status" below to verify payment on blockchain/Cryptomus!</i>`;
+  caption += `\n\n<blockquote><b><i>Tap "Re-check Payment Status" below to verify payment on blockchain! </i></b></blockquote>\n` +
+    `<tg-emoji emoji-id="4956619819836244992">🥂</tg-emoji>`;
 
   const inline_keyboard: any[][] = [];
 
