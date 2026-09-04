@@ -9704,7 +9704,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           await targetBot.deleteMessage(chatId, msg.message_id);
         } catch (e) { }
 
-        if (!txId) {
+        if (!txId || txId.length < 5) {
           const failMsg = await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>Please enter a valid Transaction Hash (TXID).</b>`, { parse_mode: 'HTML' });
           setTimeout(() => {
             targetBot.deleteMessage(chatId, failMsg.message_id).catch(() => {});
@@ -9712,22 +9712,86 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const payment = await db.transaction(async (tx) => {
-          const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for('update');
-          if (!p) return null;
-          if (p.status !== 'pending') return p;
+        const existingPayment = await storage.getPayment(paymentId);
+        if (!existingPayment || existingPayment.status === 'completed') {
+          await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5850383023572259486">✅</tg-emoji> <b>Payment is already verified & completed!</b>`, { parse_mode: 'HTML' });
+          return;
+        }
 
-          const [updated] = await tx.update(payments)
-            .set({ status: 'completed', updatedAt: new Date() })
-            .where(eq(payments.id, paymentId))
-            .returning();
-          return updated;
-        });
+        const checkingMsg = await targetBot.sendMessage(chatId, `⏳ <b>Verifying BEP20 deposit TXID via Binance...</b> Please wait a moment.`, { parse_mode: 'HTML' });
 
-        if (payment && tgUser) {
-          const newBalCents = tgUser.balance + payment.amount;
-          await db.update(telegramUsers).set({ balance: newBalCents, lastAction: null }).where(eq(telegramUsers.id, tgUser.id));
-          await sendDepositSuccessNotification(targetBot, chatId.toString(), payment.amount, 'USDT (BEP-20)');
+        // 1. Verify via Binance API
+        let verifiedRes = await checkBinanceDepositStatus(txId, existingPayment.expectedCryptoAmount);
+        
+        // 2. Fallback check Cryptomus API if not found on Binance API directly
+        if (!verifiedRes || !verifiedRes.verified) {
+          const cryptoCheck = await checkCryptomusInvoiceStatus(existingPayment.cryptomusUuid, `bep20_${existingPayment.id}`);
+          if (cryptoCheck && cryptoCheck.paid) {
+            verifiedRes = { verified: true, deposit: cryptoCheck.result, txid: txId };
+          }
+        }
+
+        try {
+          await targetBot.deleteMessage(chatId, checkingMsg.message_id).catch(() => {});
+        } catch (e) { }
+
+        if (verifiedRes && verifiedRes.verified) {
+          // ATOMIC TRANSACTION: Lock row, check status, check txid uniqueness, update balance inside transaction
+          const result = await db.transaction(async (tx) => {
+            const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for('update');
+            if (!p || p.status === 'completed') {
+              return { success: false, alreadyCompleted: true };
+            }
+
+            const cleanTx = txId.trim().toLowerCase();
+            const existingUsedTx = await tx.select().from(payments)
+              .where(and(
+                sql`LOWER(${payments.txid}) = ${cleanTx} OR LOWER(${payments.externalId}) = ${cleanTx}`,
+                eq(payments.status, 'completed'),
+                ne(payments.id, paymentId)
+              )).for('update');
+
+            if (existingUsedTx.length > 0) {
+              return { success: false, txidUsed: true };
+            }
+
+            await tx.update(telegramUsers).set({
+              balance: sql`balance + ${p.amount}`,
+              lastAction: null
+            }).where(eq(telegramUsers.id, p.telegramUserId));
+
+            await tx.update(payments).set({
+              status: 'completed',
+              txid: txId,
+              updatedAt: new Date()
+            }).where(eq(payments.id, p.id));
+
+            const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, p.telegramUserId));
+            return { success: true, payment: p, user: updatedUser };
+          });
+
+          if (result.success && result.payment) {
+            const updatedPayment = result.payment;
+            const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
+            await sendDepositSuccessNotification(
+              targetBot,
+              chatId.toString(),
+              updatedPayment.amount / 100,
+              newBalUSD,
+              'USDT (BEP-20)',
+              txId
+            );
+            await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id);
+          } else if (result.txidUsed) {
+            await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+            await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5850627871067870443">❌</tg-emoji> <b>Verification Failed:</b> This Transaction Hash (TXID) has already been used for another completed payment!`, { parse_mode: 'HTML' });
+          } else if (result.alreadyCompleted) {
+            await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
+            await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5850383023572259486">✅</tg-emoji> <b>Payment is already verified!</b>`, { parse_mode: 'HTML' });
+          }
+        } else {
+          await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="5850627871067870443">❌</tg-emoji> <b>Deposit not verified on Binance / Blockchain yet.</b>\n\nPlease ensure you transferred the exact amount (<code>${existingPayment.expectedCryptoAmount || (existingPayment.amount / 100).toFixed(2)} USDT</code>) to the BEP20 address and try again in 1-2 minutes.`, { parse_mode: 'HTML' });
         }
       } else if (tgUser?.lastAction === 'awaiting_aptos_amount') {
         try {
