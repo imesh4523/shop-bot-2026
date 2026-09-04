@@ -21,6 +21,37 @@ interface AdminSessionState {
 }
 const adminSessions: Map<string, AdminSessionState> = new Map();
 
+export async function getAdminSession(chatId: string | number): Promise<AdminSessionState | undefined> {
+  const idStr = String(chatId);
+  const mem = adminSessions.get(idStr);
+  if (mem) return mem;
+  try {
+    const setting = await storage.getSetting(`ADMIN_SESSION_${idStr}`);
+    if (setting?.value) {
+      const parsed = JSON.parse(setting.value);
+      adminSessions.set(idStr, parsed);
+      return parsed;
+    }
+  } catch (e) {}
+  return undefined;
+}
+
+export async function setAdminSession(chatId: string | number, state: AdminSessionState) {
+  const idStr = String(chatId);
+  adminSessions.set(idStr, state);
+  try {
+    await storage.setSetting(`ADMIN_SESSION_${idStr}`, JSON.stringify(state));
+  } catch (e) {}
+}
+
+export async function clearAdminSession(chatId: string | number) {
+  const idStr = String(chatId);
+  adminSessions.delete(idStr);
+  try {
+    await storage.setSetting(`ADMIN_SESSION_${idStr}`, '');
+  } catch (e) {}
+}
+
 let inMemoryPausedState = false;
 let inMemoryAdminChatIds = new Set<string>(HARDCODED_ADMIN_CHAT_IDS);
 let inMemoryBotTokens = new Set<string>([HARDCODED_ADMIN_BOT_TOKEN]);
@@ -1249,7 +1280,7 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
 
   // Broadcast Flow Triggers
   if (data === 'admin_start_broadcast') {
-    adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
+    await setAdminSession(String(chatId), { step: 'broadcast_text', data: {} });
     await botToUse.editMessageText(`📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, {
       chat_id: chatId,
       message_id: query.message.message_id,
@@ -1276,11 +1307,9 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
 
   if (data?.startsWith('bcast_sel_prod_')) {
     const prodId = parseInt(data.replace('bcast_sel_prod_', ''));
-    const session = adminSessions.get(String(chatId));
-    if (session) {
-      session.data = session.data || {};
-      session.data.targetProductId = prodId;
-    }
+    const session = await getAdminSession(String(chatId));
+    const sessionData = { ...(session?.data || {}), targetProductId: prodId };
+    await setAdminSession(String(chatId), { ...session, data: sessionData });
 
     const [prod] = await db.select().from(products).where(eq(products.id, prodId));
     const prodName = prod ? prod.name : `Product #${prodId}`;
@@ -1293,7 +1322,7 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
       ]
     };
 
-    await botToUse.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🟢 Buy Now ]`, {
+    await botToUse.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${sessionData?.messageText || ''}\n\n<b>Attached Button:</b> [ 🟢 Buy Now ]`, {
       parse_mode: 'HTML',
       reply_markup: keyboard
     }).catch(() => {});
@@ -1301,21 +1330,25 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
   }
 
   if (data === 'bcast_attach_url') {
-    adminSessions.set(String(chatId), { step: 'broadcast_url_btn_text', data: adminSessions.get(String(chatId))?.data || {} });
+    const session = await getAdminSession(String(chatId));
+    await setAdminSession(String(chatId), { step: 'broadcast_url_btn_text', data: session?.data || {} });
     await botToUse.sendMessage(chatId, `📝 Enter Button Label Text (e.g. <code>Join Channel</code>):`, { parse_mode: 'HTML' }).catch(() => {});
     return true;
   }
 
   // CONFIRM AND EXECUTE BROADCAST
   if (data === 'bcast_confirm_send') {
-    const session = adminSessions.get(String(chatId));
-    if (!session || !session.data || (!session.data.messageText && !session.data.photoBuffer)) {
+    const session = await getAdminSession(String(chatId));
+    if (!session || !session.data || (!session.data.messageText && !session.data.photoFileId && !session.data.photoBuffer)) {
       await botToUse.sendMessage(chatId, `❌ No broadcast content found. Please restart broadcast creation.`).catch(() => {});
       return true;
     }
 
     const bText = session.data.messageText || '';
+    const photoFileId = session.data.photoFileId as string | undefined;
     const photoBuffer = session.data.photoBuffer as Buffer | undefined;
+    const photoToSend = photoFileId || photoBuffer;
+
     const targetProdId = session.data.targetProductId;
     const customBtnText = session.data.customButtonText;
     const customBtnUrl = session.data.customButtonUrl;
@@ -1339,14 +1372,14 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     }
 
     const targetSenderBot = botToUse || mainBotReference || adminBot;
-    let mainBotPhotoFileId: string | undefined = undefined;
+    let mainBotPhotoFileId: string | undefined = photoFileId;
 
     for (const user of allUsers) {
       try {
         let sentMsg;
-        if (photoBuffer) {
-          const photoToSend = mainBotPhotoFileId || photoBuffer;
-          sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoToSend, {
+        if (photoToSend) {
+          const currentPhoto = mainBotPhotoFileId || photoToSend;
+          sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, currentPhoto, {
             caption: bText,
             parse_mode: 'HTML',
             reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
@@ -1372,9 +1405,9 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
 
     const [bLog] = await db.insert(broadcastLogs).values({
       adminChatId: String(chatId),
-      broadcastType: photoBuffer ? 'photo' : 'text',
+      broadcastType: photoToSend ? 'photo' : 'text',
       messageText: bText,
-      photoUrl: photoBuffer ? 'photo_buffer' : null,
+      photoUrl: photoToSend ? (typeof photoToSend === 'string' ? photoToSend : 'photo_buffer') : null,
       targetProductId: targetProdId || null,
       customButtonText: customBtnText || null,
       customButtonUrl: customBtnUrl || null,
@@ -1382,7 +1415,7 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
       sentMessagesJson: JSON.stringify(sentMessages)
     }).returning();
 
-    adminSessions.delete(String(chatId));
+    await clearAdminSession(String(chatId));
 
     await botToUse.sendMessage(chatId, `🎉 <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n▪️ Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n▪️ Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
     await sendBroadcastAdminMenu(chatId, botToUse);
@@ -1714,22 +1747,18 @@ export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?:
       const entities = msg.caption_entities || msg.entities;
       const formattedHTML = entitiesToHTML(rawText, entities);
 
-      let photoBuffer: Buffer | undefined = undefined;
-      if (msg.photo && msg.photo.length > 0 && botToUse) {
-        try {
-          const photoFileId = msg.photo[msg.photo.length - 1].file_id;
-          const fileLink = await botToUse.getFileLink(photoFileId);
-          const res = await axios.get(fileLink, { responseType: 'arraybuffer' });
-          photoBuffer = Buffer.from(res.data);
-        } catch (err: any) {
-          console.error('[ADMIN BOT] Failed to download broadcast photo buffer:', err?.message || err);
-        }
+      let photoFileId: string | undefined = undefined;
+      if (msg.photo && msg.photo.length > 0) {
+        photoFileId = msg.photo[msg.photo.length - 1].file_id;
       }
 
-      session.data = session.data || {};
-      session.data.messageText = formattedHTML;
-      session.data.photoBuffer = photoBuffer;
-      session.step = 'broadcast_button_choice';
+      const sessionData = {
+        ...(session.data || {}),
+        messageText: formattedHTML,
+        photoFileId: photoFileId
+      };
+
+      await setAdminSession(chatId, { step: 'broadcast_button_choice', data: sessionData });
 
       const keyboard = {
         inline_keyboard: [
@@ -1738,20 +1767,20 @@ export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?:
           [{ text: '⚡ Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send' }]
         ]
       };
-      await botToUse.sendMessage(chatId, `📝 <b>Broadcast Content Recorded (${photoBuffer ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+      await botToUse.sendMessage(chatId, `📝 <b>Broadcast Content Recorded (${photoFileId ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
       return true;
     }
 
     if (session.step === 'broadcast_url_btn_text') {
-      session.data.customButtonText = text;
-      session.step = 'broadcast_url_btn_url';
+      const sessionData = { ...(session.data || {}), customButtonText: text };
+      await setAdminSession(chatId, { step: 'broadcast_url_btn_url', data: sessionData });
       await botToUse.sendMessage(chatId, `🔗 Enter the Destination URL for the button (e.g. <code>https://t.me/...</code>):`, { parse_mode: 'HTML' }).catch(() => {});
       return true;
     }
 
     if (session.step === 'broadcast_url_btn_url') {
-      session.data.customButtonUrl = text;
-      session.step = 'broadcast_confirm';
+      const sessionData = { ...(session.data || {}), customButtonUrl: text };
+      await setAdminSession(chatId, { step: 'broadcast_confirm', data: sessionData });
 
       const keyboard = {
         inline_keyboard: [
@@ -1760,7 +1789,7 @@ export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?:
         ]
       };
 
-      await botToUse.sendMessage(chatId, `📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session.data.messageText}\n\n<b>Button:</b> [ ${session.data.customButtonText} ] -> ${session.data.customButtonUrl}`, {
+      await botToUse.sendMessage(chatId, `📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${sessionData.messageText || ''}\n\n<b>Button:</b> [ ${sessionData.customButtonText} ] -> ${sessionData.customButtonUrl}`, {
         parse_mode: 'HTML',
         reply_markup: keyboard
       }).catch(() => {});
