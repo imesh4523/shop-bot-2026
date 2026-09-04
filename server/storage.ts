@@ -624,13 +624,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async expireOldPayments(): Promise<void> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     await db.update(payments)
       .set({ status: 'expired', updatedAt: new Date() })
       .where(
         and(
           eq(payments.status, 'pending'),
-          sql`${payments.createdAt} < ${oneHourAgo}`
+          sql`${payments.createdAt} < NOW() - INTERVAL '1 hour'`
         )
       );
   }

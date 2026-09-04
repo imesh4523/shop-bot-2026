@@ -4813,7 +4813,7 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
     return;
   }
 
-  const pageSize = 5;
+  const pageSize = 10;
   const totalPages = Math.ceil(userPayments.length / pageSize);
   const currentPage = Math.max(1, Math.min(page, totalPages));
 
@@ -4842,10 +4842,10 @@ async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, 
 
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push({ text: 'Prev', callback_data: `track_tx_page_${currentPage - 1}`, icon_custom_emoji_id: '5976535107933050770' });
+    navRow.push({ text: 'Prev', callback_data: `track_tx_page_${currentPage - 1}`, style: 'primary', icon_custom_emoji_id: '5370615926565641880' });
   }
   if (currentPage < totalPages) {
-    navRow.push({ text: 'Next', callback_data: `track_tx_page_${currentPage + 1}`, icon_custom_emoji_id: '5976535107933050770' });
+    navRow.push({ text: 'Next', callback_data: `track_tx_page_${currentPage + 1}`, style: 'primary', icon_custom_emoji_id: '5370628901661842942' });
   }
   if (navRow.length > 0) {
     inline_keyboard.push(navRow);
@@ -9941,8 +9941,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (payment.createdAt && new Date(payment.createdAt) < oneHourAgo) {
+        if (payment.createdAt && (Date.now() - new Date(payment.createdAt).getTime()) > 3600000) {
           await storage.updatePayment(payment.id, { status: 'expired' });
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>This payment request has expired. Please create a new one.</b>`, { parse_mode: 'HTML' });
           return;
@@ -10130,8 +10129,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
           return;
         }
 
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (payment.createdAt && new Date(payment.createdAt) < oneHourAgo) {
+        if (payment.createdAt && (Date.now() - new Date(payment.createdAt).getTime()) > 3600000) {
           await storage.updatePayment(payment.id, { status: 'expired' });
           await targetBot.sendMessage(chatId, `<tg-emoji emoji-id="6298544405435387645">❌</tg-emoji> <b>This payment request has expired. Please create a new one.</b>`, { parse_mode: 'HTML' });
           return;
