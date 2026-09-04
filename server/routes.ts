@@ -4738,7 +4738,7 @@ async function setupBotProfile(targetBot: TelegramBot) {
   }
 };
 
-const setupBotHandlers = (targetBot: TelegramBot) => {
+function setupBotHandlers(targetBot: TelegramBot) {
   // Polling error handling
   targetBot.on('polling_error', (error: any) => {
     if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
