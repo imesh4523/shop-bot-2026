@@ -4872,25 +4872,50 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
   const createdDateStr = payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A';
   const updatedDateStr = (payment.status === 'completed' && payment.updatedAt) ? new Date(payment.updatedAt).toLocaleString() : null;
   const methodStr = (payment.paymentMethod || 'deposit').toUpperCase();
-  const addressStr = payment.txid || 'N/A';
-  const refId = payment.cryptomusUuid || `#${payment.id}`;
+  const isBinancePay = payment.paymentMethod === 'binance';
 
-  let caption = `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
-    `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji><b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
-    `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji> <b>Payment Method:</b> <b>${methodStr}</b>\n` +
-    `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
-    `<tg-emoji emoji-id="5201691993775818138">🛫</tg-emoji> <b>Status:</b> ${statusText}\n\n` +
-    `<tg-emoji emoji-id="5199552030615558774">🪙</tg-emoji><b>Generated Wallet:</b> \n` +
-    `<blockquote><code>${addressStr}</code></blockquote>\n` +
-    `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Cryptomus Ref / UUID:</b> <code>${refId}</code>\n\n` +
-    `<tg-emoji emoji-id="5257965810634202885">📁</tg-emoji><b>Invoice Created:</b> ${createdDateStr}\n`;
+  let caption = "";
 
-  if (updatedDateStr) {
-    caption += `<tg-emoji emoji-id="5260416304224936047">✅</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
+  if (isBinancePay) {
+    const binancePayId = payment.txid && payment.txid !== 'N/A' ? payment.txid : ((await storage.getSetting('BINANCE_PAY_ID'))?.value || "892286262");
+    caption = `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+      `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji><b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
+      `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji> <b>Payment Method:</b> <b>BINANCE</b>\n` +
+      `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
+      `<tg-emoji emoji-id="5201691993775818138">🛫</tg-emoji> <b>Status:</b> ${statusText}\n\n` +
+      `<tg-emoji emoji-id="5199552030615558774">🪙</tg-emoji><b>Generated Wallet:</b> \n` +
+      `${binancePayId} <tg-emoji emoji-id="5936122953191135570">🌐</tg-emoji>\n` +
+      `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Binance</b> <b> Ref / UUID:</b> <code>#${payment.id}</code>\n\n` +
+      `<tg-emoji emoji-id="5257965810634202885">📁</tg-emoji><b>Invoice Created :</b> \n` +
+      `${createdDateStr}\n`;
+
+    if (updatedDateStr) {
+      caption += `<tg-emoji emoji-id="5260416304224936047">✅</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
+    }
+
+    caption += `\n\n<b><i>Tap "Re-check Payment Status" below to verify payment on blockchain! </i></b>\n` +
+      `<tg-emoji emoji-id="4956619819836244992">🥂</tg-emoji>`;
+  } else {
+    const addressStr = payment.txid || 'N/A';
+    const refId = payment.cryptomusUuid || `#${payment.id}`;
+
+    caption = `<tg-emoji emoji-id="5203993413346680064">📊</tg-emoji> <b>Transaction Details (#${payment.id})</b>\n\n` +
+      `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji><b>Transaction ID:</b> <code>#${payment.id}</code>\n` +
+      `<tg-emoji emoji-id="5850383023572259486">🇦🇪</tg-emoji> <b>Payment Method:</b> <b>${methodStr}</b>\n` +
+      `<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> <b>Amount:</b> <b>$${(payment.amount / 100).toFixed(2)} USD</b>\n` +
+      `<tg-emoji emoji-id="5201691993775818138">🛫</tg-emoji> <b>Status:</b> ${statusText}\n\n` +
+      `<tg-emoji emoji-id="5199552030615558774">🪙</tg-emoji><b>Generated Wallet:</b> \n` +
+      `<blockquote><code>${addressStr}</code></blockquote>\n` +
+      `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Cryptomus Ref / UUID:</b> <code>${refId}</code>\n\n` +
+      `<tg-emoji emoji-id="5257965810634202885">📁</tg-emoji><b>Invoice Created:</b> ${createdDateStr}\n`;
+
+    if (updatedDateStr) {
+      caption += `<tg-emoji emoji-id="5260416304224936047">✅</tg-emoji> <b>Payment Verified At:</b> ${updatedDateStr}\n`;
+    }
+
+    caption += `\n\n<b><i>Tap "Re-check Payment Status" below to verify payment on blockchain! </i></b>\n` +
+      `<tg-emoji emoji-id="4956619819836244992">🥂</tg-emoji>`;
   }
-
-  caption += `\n\n<blockquote><b><i>Tap "Re-check Payment Status" below to verify payment on blockchain! </i></b></blockquote>\n` +
-    `<tg-emoji emoji-id="4956619819836244992">🥂</tg-emoji>`;
 
   const inline_keyboard: any[][] = [];
 
@@ -4900,9 +4925,14 @@ async function sendTrackTransactionDetail(targetBot: TelegramBot, chatId: number
     ]);
   }
 
-  if (addressStr && addressStr !== 'N/A') {
+  if (isBinancePay) {
+    const binancePayId = payment.txid && payment.txid !== 'N/A' ? payment.txid : ((await storage.getSetting('BINANCE_PAY_ID'))?.value || "892286262");
     inline_keyboard.push([
-      { text: 'Copy Wallet Address', copy_text: { text: addressStr }, icon_custom_emoji_id: '5231102735817918643' }
+      { text: 'Copy Binance ID', copy_text: { text: binancePayId }, icon_custom_emoji_id: '5231102735817918643' }
+    ]);
+  } else if (payment.txid && payment.txid !== 'N/A') {
+    inline_keyboard.push([
+      { text: 'Copy Wallet Address', copy_text: { text: payment.txid }, icon_custom_emoji_id: '5231102735817918643' }
     ]);
   }
 
