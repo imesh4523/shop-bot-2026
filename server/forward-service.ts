@@ -335,8 +335,8 @@ export async function reinitForwardBot(token: string) {
     log("Forward bot token is identical to main bot token. Disabling polling to prevent conflict.", "telegram-forward");
     forwardBot = new TelegramBot(token, { polling: false });
   } else {
-    log("Starting forward bot polling (different token)...", "telegram-forward");
-    forwardBot = new TelegramBot(token, { polling: true });
+    log("Initializing forward bot (polling disabled to prevent conflict)...", "telegram-forward");
+    forwardBot = new TelegramBot(token, { polling: false });
 
     forwardBot.on("polling_error", (err: any) => {
       if (err.code === "ETELEGRAM" && err.message.includes("409 Conflict")) {

@@ -2936,7 +2936,6 @@ const initBot = async () => {
       (bot as any).token = token;
       (bot as any).isMainBot = true;
       await bot.deleteWebHook().catch(() => {});
-      await bot.startPolling();
       bot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[MAIN BOT] 409 Conflict: another instance is polling.');
@@ -2949,6 +2948,7 @@ const initBot = async () => {
       });
       patchBotMethods(bot);
       setupBotHandlers(bot);
+      await bot.startPolling();
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
       setMainBotReferenceForAdmin(bot);
       console.log('Main bot initialized successfully with deleted webhook & fresh polling');
@@ -2963,7 +2963,6 @@ const initBot = async () => {
       (broadcastBot as any).token = broadcastToken;
       (broadcastBot as any).isMainBot = false;
       await broadcastBot.deleteWebHook().catch(() => {});
-      await broadcastBot.startPolling();
       broadcastBot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[BROADCAST BOT] 409 Conflict: another instance is polling.');
@@ -2976,6 +2975,7 @@ const initBot = async () => {
       });
       patchBotMethods(broadcastBot);
       setupBotHandlers(broadcastBot);
+      await broadcastBot.startPolling();
       console.log('Broadcast bot initialized successfully');
     } else if (broadcastBot) {
       await broadcastBot.stopPolling().catch(() => {});
@@ -5429,7 +5429,7 @@ async function processCryptomusTrc20InvoiceCreation(targetBot: TelegramBot, chat
 // Anti-Spam Rate Limiter sliding window (user_id -> timestamps of requests in last 60 seconds)
 const userRequestTimestamps = new Map<string, number[]>();
 
-async function processAntiSpamCheck(userId: string, chatId: number, queryId?: string): Promise<boolean> {
+async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chatId: number, queryId?: string): Promise<boolean> {
   try {
     const tgUser = await storage.getTelegramUser(userId);
     if (!tgUser) return false;
@@ -5559,10 +5559,20 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       console.log(`[Bot Callback] Checking if main bot: isMainBot=${isMainBot}`);
       if (!isMainBot) return;
 
-      const isBlocked = await processAntiSpamCheck(userId, chatId, query.id);
+      const isBlocked = await processAntiSpamCheck(targetBot, userId, chatId, query.id);
       if (isBlocked) return;
 
-      const tgUser = await storage.getTelegramUser(userId);
+      let tgUser = await storage.getTelegramUser(userId);
+      if (!tgUser && query.from) {
+        tgUser = await storage.createTelegramUser({
+          telegramId: userId,
+          username: query.from.username,
+          firstName: query.from.first_name,
+          lastName: query.from.last_name,
+          balance: 0,
+          lastAction: null
+        });
+      }
       if (!tgUser) return;
 
       // Start fast countdown on any button interaction
