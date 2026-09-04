@@ -503,6 +503,41 @@ export async function registerRoutes(
 
   app.use("/api/v1", apiV1Router);
 
+  // Dynamic PWA Manifest Route to preserve specific start_url (e.g., /imeshadmindashbord)
+  app.get("/manifest.json", (req, res) => {
+    let startUrl = (req.query.start_url as string) || "/";
+    // Security sanitization: Ensure startUrl starts with "/" and has no external protocol
+    if (!startUrl.startsWith("/") || startUrl.startsWith("//") || startUrl.includes("://")) {
+      startUrl = "/";
+    }
+
+    const manifest = {
+      name: "Shopeefy",
+      short_name: "Shopeefy",
+      description: "Shopeefy Store & Admin App",
+      start_url: startUrl,
+      display: "standalone",
+      background_color: "#000000",
+      theme_color: "#000000",
+      icons: [
+        {
+          src: "/logo.png",
+          sizes: "192x192",
+          type: "image/png"
+        },
+        {
+          src: "/logo.png",
+          sizes: "512x512",
+          type: "image/png"
+        }
+      ]
+    };
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.json(manifest);
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
