@@ -3042,6 +3042,8 @@ const sendAutoDeleteError = async (
   }
 };
 
+const bannerFileIdCache: Record<string, string> = {};
+
 const sendOrEditScreenWithPhoto = async (
   targetBot: TelegramBot,
   chatId: number,
@@ -3054,36 +3056,53 @@ const sendOrEditScreenWithPhoto = async (
   const token = (targetBot as any)?.token;
 
   if (messageId) {
-    // Attempt 1: ALWAYS try editMessageMedia first if banner file exists (so QR code photos are ALWAYS replaced smoothly!)
-    if (fs.existsSync(bannerPath) && token) {
+    // If forceMediaEdit is true (e.g., QR code photo change), try editMessageMedia
+    if (forceMediaEdit && fs.existsSync(bannerPath) && token) {
       try {
-        const fileBuffer = fs.readFileSync(bannerPath);
-        const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
-        const form = new FormData();
-        form.append('chat_id', chatId.toString());
-        form.append('message_id', messageId.toString());
-        form.append('media', JSON.stringify({
+        const cachedFileId = bannerFileIdCache[bannerPath];
+        const mediaPayload: any = {
           type: 'photo',
-          media: 'attach://banner_file',
           caption: caption,
           parse_mode: 'HTML'
-        }));
-        if (replyMarkup) {
-          form.append('reply_markup', JSON.stringify(replyMarkup));
-        }
-        form.append('banner_file', fileBuffer, {
-          filename: dynamicFilename,
-          contentType: 'image/png'
-        });
+        };
 
-        const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
-          headers: form.getHeaders()
-        });
-        if (res.data?.ok) return;
+        if (cachedFileId) {
+          mediaPayload.media = cachedFileId;
+          const res = await targetBot.editMessageMedia(mediaPayload, {
+            chat_id: chatId,
+            message_id: messageId,
+            reply_markup: replyMarkup
+          } as any);
+          if (res) return;
+        } else {
+          const fileBuffer = fs.readFileSync(bannerPath);
+          const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
+          const form = new FormData();
+          form.append('chat_id', chatId.toString());
+          form.append('message_id', messageId.toString());
+          mediaPayload.media = 'attach://banner_file';
+          form.append('media', JSON.stringify(mediaPayload));
+          if (replyMarkup) {
+            form.append('reply_markup', JSON.stringify(replyMarkup));
+          }
+          form.append('banner_file', fileBuffer, {
+            filename: dynamicFilename,
+            contentType: 'image/png'
+          });
+
+          const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
+            headers: form.getHeaders()
+          });
+          if (res.data?.ok) {
+            const newFileId = res.data?.result?.photo?.[0]?.file_id;
+            if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
+            return;
+          }
+        }
       } catch (errMedia: any) {}
     }
 
-    // Attempt 1: Edit message caption in-place
+    // Fast Path 1: Edit message caption in-place (Lightning fast ~20-30ms)
     try {
       await targetBot.editMessageCaption(caption, {
         chat_id: chatId,
@@ -3094,7 +3113,7 @@ const sendOrEditScreenWithPhoto = async (
       return;
     } catch (err1: any) {}
 
-    // Attempt 2: Edit message text in-place
+    // Fast Path 2: Edit message text in-place (if message was a text message)
     try {
       await targetBot.editMessageText(caption, {
         chat_id: chatId,
@@ -3105,7 +3124,7 @@ const sendOrEditScreenWithPhoto = async (
       return;
     } catch (err2: any) {}
 
-    // Attempt 3: Edit message media via multipart
+    // Fallback Media Edit if forceMediaEdit was false but caption edit failed
     if (fs.existsSync(bannerPath) && token) {
       try {
         const fileBuffer = fs.readFileSync(bannerPath);
@@ -3130,8 +3149,9 @@ const sendOrEditScreenWithPhoto = async (
         const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
           headers: form.getHeaders()
         });
-
         if (res.data?.ok) {
+          const newFileId = res.data?.result?.photo?.[0]?.file_id;
+          if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
           return;
         }
       } catch (err3: any) {}
@@ -3139,11 +3159,24 @@ const sendOrEditScreenWithPhoto = async (
   }
 
   // Fallback: Send photo if messageId wasn't editable or message didn't exist
+  if (bannerFileIdCache[bannerPath]) {
+    try {
+      await targetBot.sendPhoto(chatId, bannerFileIdCache[bannerPath], {
+        caption,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      });
+      return;
+    } catch (errCached: any) {
+      delete bannerFileIdCache[bannerPath];
+    }
+  }
+
   if (fs.existsSync(bannerPath)) {
     const fileBuffer = fs.readFileSync(bannerPath);
     const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
     try {
-      await targetBot.sendPhoto(chatId, fileBuffer, {
+      const sent = await targetBot.sendPhoto(chatId, fileBuffer, {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
@@ -3151,6 +3184,9 @@ const sendOrEditScreenWithPhoto = async (
         filename: dynamicFilename,
         contentType: 'image/png'
       });
+      if (sent && (sent as any).photo && (sent as any).photo.length > 0) {
+        bannerFileIdCache[bannerPath] = (sent as any).photo[0].file_id;
+      }
       return;
     } catch (err: any) {
       console.error("Failed to sendPhoto:", err.message);
