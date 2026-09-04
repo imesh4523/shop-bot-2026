@@ -5149,7 +5149,8 @@ async function checkCryptomusInvoiceStatus(uuid?: string, orderId?: string) {
 }
 
 function generateUniqueCryptoAmount(baseAmountUSD: number): string {
-  const offset = Math.floor(Math.random() * 90 + 10);
+  // Random 4-decimal micro offset (e.g., 5.0074, 5.0045, 5.0019, 5.0083)
+  const offset = Math.floor(Math.random() * 98 + 1); // 1 to 98 -> 0.0001 to 0.0098
   return (baseAmountUSD + (offset / 10000)).toFixed(4);
 }
 
