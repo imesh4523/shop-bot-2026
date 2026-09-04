@@ -461,6 +461,8 @@ export async function registerRoutes(
   app: Express,
   io: SocketServer
 ): Promise<HttpServer> {
+  let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
+
   // Initialize Telegram client service (MTProto)
   initTelegramClientService(io);
 
@@ -4818,8 +4820,6 @@ function setupBotHandlers(targetBot: TelegramBot) {
   });
 
   // Global auto-detected App URL from incoming HTTP traffic
-  let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
-
   async function getAppBaseUrl(req?: any): Promise<string> {
     const customUrl = (await storage.getSetting('APP_URL'))?.value;
     if (customUrl && customUrl.trim()) {
