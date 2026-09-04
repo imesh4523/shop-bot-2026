@@ -2954,7 +2954,7 @@ async function initBot() {
       });
       patchBotMethods(bot);
       setupBotHandlers(bot);
-      await bot.startPolling();
+      bot.startPolling().catch(err => console.error('[MAIN BOT] startPolling error:', err));
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
       setMainBotReferenceForAdmin(bot);
       console.log('Main bot initialized successfully with deleted webhook & fresh polling');
@@ -2981,7 +2981,7 @@ async function initBot() {
       });
       patchBotMethods(broadcastBot);
       setupBotHandlers(broadcastBot);
-      await broadcastBot.startPolling();
+      broadcastBot.startPolling().catch(err => console.error('[BROADCAST BOT] startPolling error:', err));
       console.log('Broadcast bot initialized successfully');
     } else if (broadcastBot) {
       await broadcastBot.stopPolling().catch(() => {});
