@@ -66,6 +66,20 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 
 
+function RootRouteHandler() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  if (user) {
+    return <Redirect to="/imeshadmindashbord" />;
+  }
+
+  return <ApiDocsPage />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -171,9 +185,9 @@ function Router() {
         <ProtectedRoute component={ForwardPage} />
       </Route>
 
-      {/* Root Path redirects to public API docs */}
+      {/* Root Path redirects authenticated admin to /imeshadmindashbord, else /docs */}
       <Route path="/">
-        <ApiDocsPage />
+        <RootRouteHandler />
       </Route>
 
       {/* Fallback to 404 */}
