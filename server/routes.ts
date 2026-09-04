@@ -4674,7 +4674,7 @@ const sendOrderSuccessMessage = async (
 
 const sendPurchaseSuccessScreen = sendOrderSuccessMessage;
 
-const setupBotProfile = async (targetBot: TelegramBot) => {
+async function setupBotProfile(targetBot: TelegramBot) {
   try {
     const miniAppUrlSetting = await storage.getSetting("MINI_APP_URL");
     const botAboutSetting = await storage.getSetting("BOT_ABOUT_TEXT");
@@ -4683,22 +4683,31 @@ const setupBotProfile = async (targetBot: TelegramBot) => {
     const miniAppUrl = miniAppUrlSetting?.value;
 
     // Set Menu Button to point to Mini App (required for Telegram to track and display "X monthly users" badge)
-    if (miniAppUrl) {
-      try {
-        await targetBot.setChatMenuButton({
-          menu_button: {
-            type: 'web_app',
-            text: 'Shop',
-            web_app: { url: miniAppUrl }
-          }
-        });
-        console.log('Bot Menu Button set to:', miniAppUrl);
-      } catch (err: any) {
-        console.error('Failed to set chat menu button:', err.message);
-      }
+    if (miniAppUrl && miniAppUrl.trim() !== "") {
+      await targetBot.setChatMenuButton({
+        menu_button: {
+          type: 'web_app',
+          text: '🛒 Store',
+          web_app: { url: miniAppUrl.trim() }
+        }
+      } as any).catch((err) => {
+        console.error('Failed to set chat menu button:', err?.message || err);
+      });
     }
 
-    // Set Bot Commands Menu (List of slash commands in Telegram menu)
+    if (botAboutSetting?.value && botAboutSetting.value.trim() !== "") {
+      await targetBot.setMyShortDescription({
+        short_description: botAboutSetting.value.trim()
+      }).catch(() => {});
+    }
+
+    if (botDescSetting?.value && botDescSetting.value.trim() !== "") {
+      await targetBot.setMyDescription({
+        description: botDescSetting.value.trim()
+      }).catch(() => {});
+    }
+
+    // Set bot commands
     try {
       await targetBot.setMyCommands([
         { command: 'start', description: 'Open shop' },

@@ -105,7 +105,7 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/BEP20_WALLET_ADDRESS"],
   });
 
-  const { data: trc20WalletSetting } = useQuery<{ key: string, value: string }>({
+  const { data: trc20WalletSetting, isLoading: isTrc20WalletLoading } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"],
   });
 
