@@ -2858,13 +2858,14 @@ const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
 };
 
 const initBot = async () => {
+  console.log('[INIT BOT] Starting initBot execution...');
   try {
     const token = await getBotToken();
     const broadcastTokenSetting = await storage.getSetting("BROADCAST_BOT_TOKEN");
     const broadcastToken = broadcastTokenSetting?.value;
     const inspectorToken = await getInspectorBotToken();
 
-    console.log('Initializing Telegram bots...');
+    console.log('[INIT BOT] Main Bot Token:', token ? token.substring(0, 15) + '...' : 'NONE');
 
     try {
       await db.execute(sql`
@@ -10361,7 +10362,8 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
     }
   });
 };
-initBot().catch(err => console.error("Initial bot setup failed:", err));
+console.log('[REGISTER ROUTES] Calling initBot()...');
+await initBot().catch(err => console.error("Initial bot setup failed:", err));
 initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));
 
 // Start Backup Scheduler
