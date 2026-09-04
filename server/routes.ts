@@ -2726,6 +2726,7 @@ const patchBotMethods = (targetBot: TelegramBot) => {
           if (Array.isArray(row)) {
             for (const btn of row) {
               delete btn.style;
+              delete btn.icon_custom_emoji_id;
             }
           }
         }
@@ -2744,55 +2745,43 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   };
 
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
+    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendMessage(chatId, text, options);
+      return await originalSendMessage(chatId, text, cleanOpts);
     } catch (err: any) {
-      if (isButtonStyleInvalid(err)) {
-        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendMessage to ${chatId}`);
-        const cleanOpts = stripButtonStyles(options);
-        return await originalSendMessage(chatId, text, cleanOpts);
-      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
         const cleanText = stripEmojis(text);
-        return await originalSendMessage(chatId, cleanText, options);
+        return await originalSendMessage(chatId, cleanText, cleanOpts);
       }
       throw err;
     }
   } as any;
 
   targetBot.editMessageText = async function(text: string, options?: any) {
+    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalEditMessageText(text, options);
+      return await originalEditMessageText(text, cleanOpts);
     } catch (err: any) {
-      if (isButtonStyleInvalid(err)) {
-        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying editMessageText`);
-        const cleanOpts = stripButtonStyles(options);
-        return await originalEditMessageText(text, cleanOpts);
-      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
         const cleanText = stripEmojis(text);
-        return await originalEditMessageText(cleanText, options);
+        return await originalEditMessageText(cleanText, cleanOpts);
       }
       throw err;
     }
   } as any;
 
   targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any, fileOptions?: any) {
+    const cleanOpts = stripButtonStyles(options);
     const fileOpts = fileOptions || (Buffer.isBuffer(photo) ? { filename: 'photo.jpg', contentType: 'image/jpeg' } : undefined);
     try {
-      return await originalSendPhoto(chatId, photo, options, fileOpts);
+      return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
     } catch (err: any) {
-      if (isButtonStyleInvalid(err)) {
-        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendPhoto to ${chatId}`);
-        const cleanOpts = stripButtonStyles(options);
-        return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
-      }
-      const caption = options?.caption;
+      const caption = cleanOpts?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
-        const retryOpts = { ...options, caption: stripEmojis(caption) };
+        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
         return await originalSendPhoto(chatId, photo, retryOpts, fileOpts);
       }
       throw err;
@@ -2800,17 +2789,14 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   } as any;
 
   targetBot.sendVideo = async function(chatId: any, video: any, options?: any) {
+    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendVideo(chatId, video, options);
+      return await originalSendVideo(chatId, video, cleanOpts);
     } catch (err: any) {
-      if (isButtonStyleInvalid(err)) {
-        const cleanOpts = stripButtonStyles(options);
-        return await originalSendVideo(chatId, video, cleanOpts);
-      }
-      const caption = options?.caption;
+      const caption = cleanOpts?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
-        const retryOpts = { ...options, caption: stripEmojis(caption) };
+        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
         return await originalSendVideo(chatId, video, retryOpts);
       }
       throw err;
@@ -2818,17 +2804,14 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   } as any;
 
   targetBot.sendDocument = async function(chatId: any, doc: any, options?: any, fileOptions?: any) {
+    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendDocument(chatId, doc, options, fileOptions);
+      return await originalSendDocument(chatId, doc, cleanOpts, fileOptions);
     } catch (err: any) {
-      if (isButtonStyleInvalid(err)) {
-        const cleanOpts = stripButtonStyles(options);
-        return await originalSendDocument(chatId, doc, cleanOpts, fileOptions);
-      }
-      const caption = options?.caption;
+      const caption = cleanOpts?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
-        const retryOpts = { ...options, caption: stripEmojis(caption) };
+        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
         return await originalSendDocument(chatId, doc, retryOpts, fileOptions);
       }
       throw err;
@@ -3287,15 +3270,15 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const profileInlineKeyboard = {
     inline_keyboard: [
-      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-      [{ text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
-      [{ text: 'Referral program', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
-      [{ text: 'Promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
-      [{ text: 'Transactions', callback_data: 'transactions', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }],
-      [{ text: 'Price currency', callback_data: 'change_currency', style: 'primary', icon_custom_emoji_id: '5429518319243775957' }],
-      [{ text: 'Язык / Language', callback_data: 'change_language', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
-      [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
-    ] as any
+      [{ text: '💵 Top up balance', callback_data: 'add_funds' }],
+      [{ text: '📦 My purchases', callback_data: 'purchase_history' }],
+      [{ text: '👤 Referral program', callback_data: 'referral_program' }],
+      [{ text: '🎟 Promo code', callback_data: 'enter_promocode' }],
+      [{ text: '🔄 Transactions', callback_data: 'transactions' }],
+      [{ text: '💱 Price currency', callback_data: 'change_currency' }],
+      [{ text: '🌐 Язык / Language', callback_data: 'change_language' }],
+      [{ text: '◀️ Back', callback_data: 'main_menu' }]
+    ]
   };
 
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
@@ -3378,20 +3361,16 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
     const btnObj: any = {
       text: btnText,
-      callback_data: `cat_${category}`,
-      style: buttonStyle
+      callback_data: `cat_${category}`
     };
-    if (iconEmojiId) {
-      btnObj.icon_custom_emoji_id = iconEmojiId;
-    }
     inline_keyboard.push([btnObj]);
   }
 
   inline_keyboard.push([
-    { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5231012545799666522' }
+    { text: '🔍 Search catalog', callback_data: 'search_catalog' }
   ]);
   inline_keyboard.push([
-    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    { text: '◀️ Back', callback_data: 'profile' }
   ]);
 
   const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${t(userLang, 'catalog_title')}</b>\n\n${t(userLang, 'choose_category')}`;
@@ -3639,16 +3618,16 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     `Choose payment method:`;
 
   const inline_keyboard = [
-    [{ text: 'Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
-    [{ text: 'CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5361914370068613491' }],
-    [{ text: 'Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5281029063459234079' }],
+    [{ text: '🎟 Enter promo code', callback_data: 'enter_promocode' }],
+    [{ text: '🤖 CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}` }],
+    [{ text: '🟡 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}` }],
     [
-      { text: 'USDT • BEP20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5280907155107506256' },
-      { text: 'USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5936189134342199863' }
+      { text: '🌐 USDT • BEP20', callback_data: `pay_bep20_${productId}_${qty}` },
+      { text: '⚡ USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}` }
     ],
-    [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-    [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
-  ] as any;
+    [{ text: '💵 Pay from balance', callback_data: `pay_bal_${productId}_${qty}` }],
+    [{ text: '◀️ Cancel / Back', callback_data: `prod_${productId}` }]
+  ];
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, paymentBannerPath, orderCaption, { inline_keyboard }, messageId);
@@ -3773,12 +3752,8 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   }
 
   inline_keyboard.push(
-    [
-      { text: 'Top up balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5409048419211682843' }
-    ],
-    [
-      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
-    ]
+    [{ text: '💵 Top up balance', callback_data: 'add_funds' }],
+    [{ text: '◀️ Back', callback_data: 'profile' }]
   );
 
   const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My Purchases</b> <code>(Page ${page})</code>\n\n` +
@@ -3824,39 +3799,11 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}`;
 
   const inline_keyboard = [
-    [
-      {
-        text: 'Share link',
-        url: shareUrl,
-        style: 'primary',
-        icon_custom_emoji_id: '5271604874419647061'
-      }
-    ],
-    [
-      {
-        text: 'Convert to shop balance',
-        callback_data: 'convert_ref_to_bal',
-        style: 'success',
-        icon_custom_emoji_id: '5409048419211682843'
-      }
-    ],
-    [
-      {
-        text: 'Withdraw USDT BEP-20',
-        callback_data: 'withdraw_referral',
-        style: 'primary',
-        icon_custom_emoji_id: '5404617696589390973'
-      }
-    ],
-    [
-      {
-        text: 'Back',
-        callback_data: 'profile',
-        style: 'primary',
-        icon_custom_emoji_id: '5976535107933050770'
-      }
-    ]
-  ] as any;
+    [{ text: '🔗 Share link', url: shareUrl }],
+    [{ text: '🔄 Convert to shop balance', callback_data: 'convert_ref_to_bal' }],
+    [{ text: '💸 Withdraw USDT BEP-20', callback_data: 'withdraw_referral' }],
+    [{ text: '◀️ Back', callback_data: 'profile' }]
+  ];
 
   const refBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_referral_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, refBannerPath, refCaption, { inline_keyboard }, messageId);
@@ -3883,28 +3830,21 @@ const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId
   const inline_keyboard: any[] = [];
   const currencyKeys = Object.keys(SUPPORTED_CURRENCIES);
 
-  // Rows of 3 buttons without standard unicode emojis in text
   for (let i = 0; i < currencyKeys.length; i += 3) {
     const row = currencyKeys.slice(i, i + 3).map(code => {
       const info = SUPPORTED_CURRENCIES[code];
       const isSelected = currCurrency === code;
+      const prefix = isSelected ? '✅ ' : '';
       return {
-        text: `${code} (${info.symbol})`,
-        callback_data: `set_curr_${code}`,
-        style: isSelected ? 'success' : 'primary',
-        icon_custom_emoji_id: isSelected ? '5409048419211682843' : info.customEmojiId
+        text: `${prefix}${code} (${info.symbol})`,
+        callback_data: `set_curr_${code}`
       };
     });
     inline_keyboard.push(row);
   }
 
   inline_keyboard.push([
-    {
-      text: 'Back',
-      callback_data: 'profile',
-      style: 'primary',
-      icon_custom_emoji_id: '5976535107933050770'
-    }
+    { text: '◀️ Back', callback_data: 'profile' }
   ]);
 
   const currencyBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_currency_banner.png");
@@ -3922,46 +3862,34 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
   const inline_keyboard: any[] = [
     [
       {
-        text: 'English',
-        callback_data: 'set_lang_en',
-        style: currLang === 'en' ? 'success' : 'primary',
-        icon_custom_emoji_id: currLang === 'en' ? '5409048419211682843' : '5404617696589390973'
+        text: `${currLang === 'en' ? '✅ ' : ''}🇺🇸 English`,
+        callback_data: 'set_lang_en'
       },
       {
-        text: 'Русский',
-        callback_data: 'set_lang_ru',
-        style: currLang === 'ru' ? 'success' : 'primary',
-        icon_custom_emoji_id: currLang === 'ru' ? '5409048419211682843' : '5231449120635370684'
+        text: `${currLang === 'ru' ? '✅ ' : ''}🇷🇺 Русский`,
+        callback_data: 'set_lang_ru'
       }
     ],
     [
       {
-        text: 'हिंदी',
-        callback_data: 'set_lang_hi',
-        style: currLang === 'hi' ? 'success' : 'primary',
-        icon_custom_emoji_id: currLang === 'hi' ? '5409048419211682843' : '6113971389935391397'
+        text: `${currLang === 'hi' ? '✅ ' : ''}🇮🇳 हिंदी`,
+        callback_data: 'set_lang_hi'
       },
       {
-        text: '中文',
-        callback_data: 'set_lang_zh',
-        style: currLang === 'zh' ? 'success' : 'primary',
-        icon_custom_emoji_id: currLang === 'zh' ? '5409048419211682843' : '5854908544712707500'
+        text: `${currLang === 'zh' ? '✅ ' : ''}🇨🇳 中文`,
+        callback_data: 'set_lang_zh'
       }
     ],
     [
       {
-        text: 'Tiếng Việt',
-        callback_data: 'set_lang_vi',
-        style: currLang === 'vi' ? 'success' : 'primary',
-        icon_custom_emoji_id: currLang === 'vi' ? '5409048419211682843' : '5429518319243775957'
+        text: `${currLang === 'vi' ? '✅ ' : ''}🇻🇳 Tiếng Việt`,
+        callback_data: 'set_lang_vi'
       }
     ],
     [
       {
-        text: t(currLang, 'btn_back'),
-        callback_data: 'profile',
-        style: 'primary',
-        icon_custom_emoji_id: '5976535107933050770'
+        text: '◀️ Back',
+        callback_data: 'profile'
       }
     ]
   ];
