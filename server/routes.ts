@@ -8524,6 +8524,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             await targetBot.sendPhoto(chatId, bannerPath, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
+              reply_markup: startInlineMarkup
+            });
+            await targetBot.sendMessage(chatId, '<tg-emoji emoji-id="5938185976307258461">👇</tg-emoji> <b>Quick Menu</b>', {
+              parse_mode: 'HTML',
               reply_markup: bottomKeyboard
             });
             return;
