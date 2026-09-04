@@ -330,8 +330,8 @@ export default function ApiDocsPage() {
       <div className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg shadow-purple-500/30 border border-purple-500/40 bg-slate-950 flex items-center justify-center transition-transform hover:scale-105">
+              <img src="/api-logo.png" alt="Developer API Logo" className="h-full w-full object-cover" />
             </div>
             <div>
               <div className="flex items-center gap-2">
