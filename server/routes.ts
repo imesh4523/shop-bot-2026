@@ -2860,8 +2860,9 @@ const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
     }
   });
 };
+console.log('[REGISTER ROUTES DEBUG] Checkpoint 2.5: Before initBot definition');
 
-const initBot = async () => {
+async function initBot() {
   console.log('[INIT BOT] Starting initBot execution...');
   try {
     const token = await getBotToken();
@@ -3021,6 +3022,9 @@ const initBot = async () => {
     console.error('Telegram bot init failed:', err);
   }
 };
+
+console.log('[REGISTER ROUTES] Triggering initBot execution NOW...');
+initBot().catch(err => console.error("Initial bot setup failed:", err));
 const bannerFileIdCache: Record<string, string> = {};
 
 const getPersistentBottomKeyboard = () => ({
@@ -4742,6 +4746,7 @@ async function setupBotProfile(targetBot: TelegramBot) {
   }
 };
 
+console.log('[REGISTER ROUTES DEBUG] Checkpoint 2.7: Before setupBotHandlers definition');
 function setupBotHandlers(targetBot: TelegramBot) {
   // Polling error handling
   targetBot.on('polling_error', (error: any) => {
