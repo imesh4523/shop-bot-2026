@@ -3058,6 +3058,7 @@ const sendAutoDeleteError = async (
   } catch (err) {
     console.error("sendAutoDeleteError failed:", err);
   }
+};
 const sendOrEditScreenWithPhoto = async (
   targetBot: TelegramBot,
   chatId: number,
@@ -10367,10 +10368,6 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
   });
 };
 
-console.log('[REGISTER ROUTES DEBUG] Checkpoint 3: Calling initBot()...');
-initBot().catch(err => console.error("Initial bot setup failed:", err));
-initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));
-
 // Start Backup Scheduler
 BackupService.startBackupScheduler().catch(err => console.error("Backup scheduler failed to start:", err));
 
@@ -10890,5 +10887,4 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));
 
   return httpServer;
-}
 }
