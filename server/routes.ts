@@ -503,19 +503,13 @@ export async function registerRoutes(
 
   app.use("/api/v1", apiV1Router);
 
-  // Dynamic PWA Manifest Route to preserve specific start_url (e.g., /imeshadmindashbord)
-  app.get("/manifest.json", (req, res) => {
-    let startUrl = (req.query.start_url as string) || "/";
-    // Security sanitization: Ensure startUrl starts with "/" and has no external protocol
-    if (!startUrl.startsWith("/") || startUrl.startsWith("//") || startUrl.includes("://")) {
-      startUrl = "/";
-    }
-
+  // Static Secure PWA Manifest Route (Always uses '/' as start_url to prevent admin URL leaks)
+  app.get("/manifest.json", (_req, res) => {
     const manifest = {
       name: "Shopeefy",
       short_name: "Shopeefy",
-      description: "Shopeefy Store & Admin App",
-      start_url: startUrl,
+      description: "Shopeefy App",
+      start_url: "/",
       display: "standalone",
       background_color: "#000000",
       theme_color: "#000000",
@@ -534,7 +528,6 @@ export async function registerRoutes(
     };
 
     res.setHeader("Content-Type", "application/json");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.json(manifest);
   });
 

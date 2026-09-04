@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -65,17 +64,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-function RootRouteHandler() {
-  if (typeof window !== "undefined") {
-    const lastPath = localStorage.getItem("pwa_last_path");
-    if (lastPath && (lastPath.startsWith("/imeshadmindashbord") || lastPath.startsWith("/shop"))) {
-      return <Redirect to={lastPath} />;
-    }
-  }
 
-  // Default root path '/' loads the Storefront Web Shop (MiniAppShop)
-  return <MiniAppShop />;
-}
 
 function Router() {
   return (
@@ -184,7 +173,7 @@ function Router() {
 
       {/* Root Path redirects to public API docs */}
       <Route path="/">
-        <RootRouteHandler />
+        <ApiDocsPage />
       </Route>
 
       {/* Fallback to 404 */}
@@ -196,27 +185,6 @@ function Router() {
 import { ThemeProvider } from "@/components/theme-provider";
 
 function App() {
-  useEffect(() => {
-    const updateManifestAndPath = () => {
-      const currentPath = window.location.pathname + window.location.search;
-      
-      // If user is accessing an admin dashboard route or shop route, remember it in localStorage
-      if (currentPath.startsWith("/imeshadmindashbord") || currentPath.startsWith("/shop")) {
-        localStorage.setItem("pwa_last_path", currentPath);
-      }
-
-      // Update PWA manifest link dynamically so PWA install action binds start_url to current URL
-      const link = document.getElementById('manifest-link') || document.querySelector('link[rel="manifest"]');
-      if (link && currentPath) {
-        link.setAttribute('href', `/manifest.json?start_url=${encodeURIComponent(currentPath)}`);
-      }
-    };
-
-    updateManifestAndPath();
-    window.addEventListener('popstate', updateManifestAndPath);
-    return () => window.removeEventListener('popstate', updateManifestAndPath);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="shopeefy-theme">
