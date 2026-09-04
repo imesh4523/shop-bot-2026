@@ -3064,7 +3064,11 @@ async function initBot() {
       bot.deleteWebHook().catch(() => {});
       bot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
-          console.warn('[MAIN BOT] 409 Conflict: another instance is polling.');
+          console.warn('[MAIN BOT] 409 Conflict: another instance is polling. Retrying polling in 10s...');
+          bot?.stopPolling().catch(() => {});
+          setTimeout(() => {
+            bot?.startPolling().catch(() => {});
+          }, 10000);
         } else {
           console.error('[MAIN BOT] Polling error:', err?.message || err);
         }
@@ -3091,7 +3095,11 @@ async function initBot() {
       await broadcastBot.deleteWebHook().catch(() => {});
       broadcastBot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
-          console.warn('[BROADCAST BOT] 409 Conflict: another instance is polling.');
+          console.warn('[BROADCAST BOT] 409 Conflict: another instance is polling. Retrying polling in 10s...');
+          broadcastBot?.stopPolling().catch(() => {});
+          setTimeout(() => {
+            broadcastBot?.startPolling().catch(() => {});
+          }, 10000);
         } else {
           console.error('[BROADCAST BOT] Polling error:', err?.message || err);
         }
@@ -3120,7 +3128,11 @@ async function initBot() {
       await inspectorBot.startPolling();
       inspectorBot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
-          console.warn('[INSPECTOR BOT] 409 Conflict: another instance is polling.');
+          console.warn('[INSPECTOR BOT] 409 Conflict: another instance is polling. Retrying polling in 10s...');
+          inspectorBot?.stopPolling().catch(() => {});
+          setTimeout(() => {
+            inspectorBot?.startPolling().catch(() => {});
+          }, 10000);
         } else {
           console.error('[INSPECTOR BOT] Polling error:', err?.message || err);
         }
