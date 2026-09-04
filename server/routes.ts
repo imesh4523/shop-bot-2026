@@ -8260,117 +8260,125 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         // 3. Cryptomus / BEP20 / TRC20 / Aptos Payment Re-Check Handler
         if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus' || paymentCheck.paymentMethod === 'aptos') {
-          // First check Binance API if expectedCryptoAmount is present or binance_api mode is enabled
-          const binanceCheck = await checkBinanceDepositStatus(paymentCheck.txid, paymentCheck.expectedCryptoAmount);
-          if (binanceCheck && binanceCheck.verified) {
-            const result = await db.transaction(async (tx) => {
-              const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
-              if (!payment || payment.status === 'completed') {
-                return { success: false, alreadyCompleted: true };
+          const isDirectBinanceMode = !paymentCheck.cryptomusUuid && (paymentCheck.expectedCryptoAmount || (await storage.getSetting('PAYMENT_GATEWAY_MODE'))?.value === 'binance_api');
+
+          if (isDirectBinanceMode) {
+            // Check Binance API for Direct Wallet Mode
+            const binanceCheck = await checkBinanceDepositStatus(paymentCheck.txid, paymentCheck.expectedCryptoAmount);
+            if (binanceCheck && binanceCheck.verified) {
+              const result = await db.transaction(async (tx) => {
+                const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
+                if (!payment || payment.status === 'completed') {
+                  return { success: false, alreadyCompleted: true };
+                }
+
+                await tx.update(telegramUsers).set({
+                  balance: sql`balance + ${payment.amount}`
+                }).where(eq(telegramUsers.id, payment.telegramUserId));
+
+                await tx.update(payments).set({ status: 'completed', txid: binanceCheck.txid || payment.txid, updatedAt: new Date() }).where(eq(payments.id, payment.id));
+
+                const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
+                return { success: true, payment, user: updatedUser };
+              });
+
+              if (result.success && result.payment) {
+                const updatedPayment = result.payment;
+                const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
+                await sendDepositSuccessNotification(
+                  targetBot,
+                  chatId,
+                  updatedPayment.amount / 100,
+                  newBalUSD,
+                  `${paymentCheck.paymentMethod.toUpperCase()} (Binance Direct)`,
+                  binanceCheck.txid || paymentCheck.txid
+                );
+
+                await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
+                await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified via Binance API! Balance updated.", show_alert: true }).catch(() => {});
+                return;
+              } else if (result.alreadyCompleted) {
+                await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
+                return;
               }
+            }
 
-              await tx.update(telegramUsers).set({
-                balance: sql`balance + ${payment.amount}`
-              }).where(eq(telegramUsers.id, payment.telegramUserId));
-
-              await tx.update(payments).set({ status: 'completed', txid: binanceCheck.txid || payment.txid, updatedAt: new Date() }).where(eq(payments.id, payment.id));
-
-              const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
-              return { success: true, payment, user: updatedUser };
+            // Direct Wallet mode not found yet -> Prompt user for TXID reply
+            await storage.updateTelegramUserByChatId(chatId.toString(), {
+              lastAction: `awaiting_${paymentCheck.paymentMethod}_txid_${paymentCheck.id}_0`
             });
 
-            if (result.success && result.payment) {
-              const updatedPayment = result.payment;
-              const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
-              await sendDepositSuccessNotification(
-                targetBot,
-                chatId,
-                updatedPayment.amount / 100,
-                newBalUSD,
-                `${paymentCheck.paymentMethod.toUpperCase()} (Binance Direct)`,
-                binanceCheck.txid || paymentCheck.txid
-              );
+            await targetBot.answerCallbackQuery(query.id, {
+              text: "⏳ Deposit not detected on Binance yet.\n\nIf you transferred funds, please reply with your Transaction Hash (TXID) below!",
+              show_alert: true
+            }).catch(() => {});
 
-              await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
-              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified via Binance API! Balance updated.", show_alert: true }).catch(() => {});
-              return;
-            } else if (result.alreadyCompleted) {
-              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
-              return;
-            }
-          }
-
-          let checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, paymentCheck.cryptomusUuid ? undefined : `${paymentCheck.paymentMethod}_${paymentCheck.id}`);
-          if (!checkRes || !checkRes.paid) {
-            const prefixes = ['bep20_', 'trc20_', 'payment_', 'aptos_'];
-            for (const pref of prefixes) {
-              const altRes = await checkCryptomusInvoiceStatus(undefined, `${pref}${paymentCheck.id}`);
-              if (altRes && altRes.paid) {
-                checkRes = altRes;
-                break;
+            await targetBot.sendMessage(
+              chatId,
+              `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Re-check Payment (TXID Verification):</b>\n\n` +
+              `If you have completed the transfer for this invoice, please copy and reply with your <b>Transaction Hash / ID (TXID)</b> below for instant automatic credit!`,
+              { parse_mode: 'HTML' }
+            ).catch(() => {});
+            return;
+          } else {
+            // Cryptomus API Mode (Dynamic Invoice)
+            let checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, paymentCheck.cryptomusUuid ? undefined : `${paymentCheck.paymentMethod}_${paymentCheck.id}`);
+            if (!checkRes || !checkRes.paid) {
+              const prefixes = ['bep20_', 'trc20_', 'payment_', 'aptos_'];
+              for (const pref of prefixes) {
+                const altRes = await checkCryptomusInvoiceStatus(undefined, `${pref}${paymentCheck.id}`);
+                if (altRes && altRes.paid) {
+                  checkRes = altRes;
+                  break;
+                }
               }
             }
-          }
 
-          if (checkRes && checkRes.paid) {
-            // Atomic DB update to credit balance safely
-            const result = await db.transaction(async (tx) => {
-              const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
-              if (!payment || payment.status === 'completed') {
-                return { success: false, alreadyCompleted: true };
+            if (checkRes && checkRes.paid) {
+              const result = await db.transaction(async (tx) => {
+                const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
+                if (!payment || payment.status === 'completed') {
+                  return { success: false, alreadyCompleted: true };
+                }
+
+                await tx.update(telegramUsers).set({
+                  balance: sql`balance + ${payment.amount}`
+                }).where(eq(telegramUsers.id, payment.telegramUserId));
+
+                await tx.update(payments).set({ status: 'completed', updatedAt: new Date() }).where(eq(payments.id, payment.id));
+
+                const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
+                return { success: true, payment, user: updatedUser };
+              });
+
+              if (result.success && result.payment) {
+                const updatedPayment = result.payment;
+                const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
+                await sendDepositSuccessNotification(
+                  targetBot,
+                  chatId,
+                  updatedPayment.amount / 100,
+                  newBalUSD,
+                  `${paymentCheck.paymentMethod.toUpperCase()} (Cryptomus)`,
+                  paymentCheck.cryptomusUuid || paymentCheck.txid
+                );
+
+                await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
+                await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified! Balance updated.", show_alert: true }).catch(() => {});
+                return;
+              } else if (result.alreadyCompleted) {
+                await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
+                return;
               }
-
-              await tx.update(telegramUsers).set({
-                balance: sql`balance + ${payment.amount}`
-              }).where(eq(telegramUsers.id, payment.telegramUserId));
-
-              await tx.update(payments).set({ status: 'completed', updatedAt: new Date() }).where(eq(payments.id, payment.id));
-
-              const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
-              return { success: true, payment, user: updatedUser };
-            });
-
-            if (result.success && result.payment) {
-              const updatedPayment = result.payment;
-              const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
-              await sendDepositSuccessNotification(
-                targetBot,
-                chatId,
-                updatedPayment.amount / 100,
-                newBalUSD,
-                `${paymentCheck.paymentMethod.toUpperCase()} (Cryptomus)`,
-                paymentCheck.cryptomusUuid || paymentCheck.txid
-              );
-
-              // Update the Transaction Details screen if user was viewing details
-              await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
-
-              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified! Balance updated.", show_alert: true }).catch(() => {});
-              return;
-            } else if (result.alreadyCompleted) {
-              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
-              return;
             }
+
+            // Cryptomus API mode: Payment not paid yet -> Show clean alert popup without TXID prompt!
+            await targetBot.answerCallbackQuery(query.id, {
+              text: "⏳ Cryptomus Invoice Pending\n\nPayment has not been confirmed on Cryptomus yet. Once paid, Cryptomus automatically updates your balance!",
+              show_alert: true
+            }).catch(() => {});
+            return;
           }
-
-          // If not verified via Cryptomus API, update user action and prompt them for TXID so they can manually verify!
-          await storage.updateTelegramUserByChatId(chatId.toString(), {
-            lastAction: `awaiting_${paymentCheck.paymentMethod}_txid_${paymentCheck.id}_0`
-          });
-
-          await targetBot.answerCallbackQuery(query.id, {
-            text: "⏳ Payment not found on Cryptomus / blockchain yet.\n\nIf you have already paid, please send your Transaction Hash / ID (TXID) in the chat!",
-            show_alert: true
-          }).catch(() => {});
-
-          await targetBot.sendMessage(
-            chatId,
-            `<tg-emoji emoji-id="5443127283898405358">📥</tg-emoji> <b>Re-check Payment (TXID Verification):</b>\n\n` +
-            `If you have completed the transfer for this invoice, please copy and reply with your <b>Transaction Hash / ID (TXID)</b> below for instant automatic credit!`,
-            { parse_mode: 'HTML' }
-          ).catch(() => {});
-
-          return;
         }
       }
     } catch (err) {
