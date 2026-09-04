@@ -658,8 +658,11 @@ export async function initAdminBotController() {
 
     adminBot.on('polling_error', (err: any) => {
       if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
-        console.warn('[ADMIN BOT] 409 Conflict: another instance is polling. Stopping polling.');
+        console.warn('[ADMIN BOT] 409 Conflict: another instance is polling. Retrying polling in 10s...');
         adminBot?.stopPolling().catch(() => {});
+        setTimeout(() => {
+          adminBot?.startPolling().catch(() => {});
+        }, 10000);
       } else {
         console.warn('[ADMIN BOT] Polling error:', err?.message || err);
       }
@@ -669,10 +672,16 @@ export async function initAdminBotController() {
     });
 
     // Handle commands
-    adminBot.onText(/\/(start|admin|menu|status|help)/, async (msg) => {
+    adminBot.onText(/\/(start|admin|menu|status|help|broadcast|massbroadcast)/, async (msg) => {
       const chatId = msg.chat.id;
       if (!(await isAuthorizedAdmin(chatId))) {
         await adminBot?.sendMessage(chatId, '❌ Access Denied. You are not an authorized admin.').catch(() => {});
+        return;
+      }
+      const text = (msg.text || '').trim();
+      if (text.startsWith('/broadcast') || text.startsWith('/massbroadcast')) {
+        adminSessions.delete(String(chatId));
+        await sendBroadcastAdminMenu(chatId);
         return;
       }
       adminSessions.delete(String(chatId));
@@ -696,7 +705,7 @@ export async function initAdminBotController() {
         await sendCustomersAdminMenu(chatId);
         return;
       }
-      if (text.includes('Mass Broadcast')) {
+      if (text.includes('Mass Broadcast') || text.toLowerCase().includes('broadcast') || text.includes('📢 Broadcast') || text.includes('📢 Mass Broadcast')) {
         adminSessions.delete(chatId);
         await sendBroadcastAdminMenu(chatId);
         return;
