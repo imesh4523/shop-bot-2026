@@ -328,7 +328,7 @@ export async function reinitForwardBot(token: string) {
   }
 
   const mainTokenSetting = await storage.getSetting("TELEGRAM_BOT_TOKEN");
-  const mainToken = mainTokenSetting?.value;
+  const mainToken = mainTokenSetting?.value || process.env.TELEGRAM_BOT_TOKEN;
   const isSameToken = token === mainToken;
 
   if (isSameToken) {
@@ -340,7 +340,8 @@ export async function reinitForwardBot(token: string) {
 
     forwardBot.on("polling_error", (err: any) => {
       if (err.code === "ETELEGRAM" && err.message.includes("409 Conflict")) {
-        console.warn("[FORWARD BOT Polling Error] 409 Conflict: another instance is polling.");
+        console.warn("[FORWARD BOT Polling Error] 409 Conflict: another instance is polling. Stopping polling.");
+        forwardBot?.stopPolling().catch(() => {});
       } else {
         console.error("[FORWARD BOT] Polling error:", err.message);
       }

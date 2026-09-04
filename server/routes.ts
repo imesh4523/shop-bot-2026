@@ -8677,6 +8677,7 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       try {
         const chatId = msg.chat.id;
         const userId = msg.from?.id.toString();
+        console.log(`[BOT UPDATE RECEIVED] ChatId: ${chatId}, User: ${msg.from?.username || msg.from?.first_name} (${userId}), Text: "${msg.text}"`);
         if (!userId) return;
         if (isDuplicateMessage(msg.message_id, chatId)) return;
 

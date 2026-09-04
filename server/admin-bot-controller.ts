@@ -645,16 +645,24 @@ export async function initAdminBotController() {
 
   const activeTokens = await getAuthorizedBotTokens();
   const targetToken = activeTokens[0] || HARDCODED_ADMIN_BOT_TOKEN;
+  const mainTokenSetting = await storage.getSetting("TELEGRAM_BOT_TOKEN");
+  const mainToken = mainTokenSetting?.value || process.env.TELEGRAM_BOT_TOKEN;
+  const isSameAsMain = targetToken === mainToken;
 
   try {
     console.log(`[ADMIN BOT] Initializing Multi-Server Admin Controller (${getServerName()})...`);
     await registerServerHeartbeat();
-    adminBot = new TelegramBot(targetToken, { polling: true });
+    adminBot = new TelegramBot(targetToken, { polling: !isSameAsMain });
     adminBot.removeAllListeners();
     patchBotMethods(adminBot);
 
     adminBot.on('polling_error', (err: any) => {
-      console.warn('[ADMIN BOT] Polling error:', err?.message || err);
+      if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
+        console.warn('[ADMIN BOT] 409 Conflict: another instance is polling. Stopping polling.');
+        adminBot?.stopPolling().catch(() => {});
+      } else {
+        console.warn('[ADMIN BOT] Polling error:', err?.message || err);
+      }
     });
     adminBot.on('error', (err: any) => {
       console.warn('[ADMIN BOT] General error:', err?.message || err);
