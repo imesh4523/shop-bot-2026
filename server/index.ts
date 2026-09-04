@@ -73,6 +73,32 @@ app.use((req, res, next) => {
 
 async function startServer() {
   try {
+    const port = parseInt(process.env.PORT || "5000", 10);
+    console.log(`[SERVER] Attempting to listen on port ${port}...`);
+
+    httpServer.on("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        console.warn(`⚠️ [SERVER PORT WARNING] Port ${port} is occupied. Retrying connection in 1.5s...`);
+        setTimeout(() => {
+          httpServer.close();
+          httpServer.listen({ port, host: "0.0.0.0" });
+        }, 1500);
+      } else {
+        console.error("❌ Server HTTP error:", err?.message || err);
+      }
+    });
+
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+      },
+      () => {
+        log(`Server started: Port ${port}`);
+        console.log(`✅ Server successfully listening on http://0.0.0.0:${port}`);
+      },
+    );
+
     console.log("[SERVER] Registering routes...");
     await registerRoutes(httpServer, app, io);
     
@@ -100,39 +126,17 @@ async function startServer() {
       }
     });
 
-    const port = parseInt(process.env.PORT || "5000", 10);
-    console.log(`[SERVER] Attempting to listen on port ${port}...`);
-
-    httpServer.on("error", (err: any) => {
-      if (err.code === "EADDRINUSE") {
-        console.warn(`⚠️ [SERVER PORT WARNING] Port ${port} is occupied. Retrying connection in 1.5s...`);
-        setTimeout(() => {
-          httpServer.close();
-          httpServer.listen({ port, host: "0.0.0.0" });
-        }, 1500);
-      } else {
-        console.error("❌ Server HTTP error:", err?.message || err);
-      }
-    });
-
-    httpServer.listen(
-      {
-        port,
-        host: "0.0.0.0",
-      },
-      () => {
-        log(`Server started: Port ${port}`);
-        console.log(`✅ Server successfully listening on http://0.0.0.0:${port}`);
-      },
-    );
-
     if (process.env.NODE_ENV === "production") {
       console.log("[SERVER] Serving static assets...");
       serveStatic(app);
     } else {
       console.log("[SERVER] Setting up Vite dev server...");
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
+      import("./vite").then(async ({ setupVite }) => {
+        await setupVite(httpServer, app);
+        console.log("✅ Vite dev server setup complete!");
+      }).catch(err => {
+        console.error("Vite setup error:", err);
+      });
     }
   } catch (error) {
     log(`Failed to start server: ${error}`);

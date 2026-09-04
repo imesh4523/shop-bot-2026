@@ -2933,6 +2933,8 @@ const initBot = async () => {
         await bot.stopPolling().catch(() => {});
       }
       bot = new TelegramBot(token, { polling: false });
+      (bot as any).token = token;
+      (bot as any).isMainBot = true;
       await bot.deleteWebHook().catch(() => {});
       await bot.startPolling();
       bot.on('polling_error', (err: any) => {
@@ -2958,6 +2960,8 @@ const initBot = async () => {
         await broadcastBot.stopPolling().catch(() => {});
       }
       broadcastBot = new TelegramBot(broadcastToken, { polling: false });
+      (broadcastBot as any).token = broadcastToken;
+      (broadcastBot as any).isMainBot = false;
       await broadcastBot.deleteWebHook().catch(() => {});
       await broadcastBot.startPolling();
       broadcastBot.on('polling_error', (err: any) => {
@@ -2984,6 +2988,8 @@ const initBot = async () => {
         await inspectorBot.stopPolling().catch(() => {});
       }
       inspectorBot = new TelegramBot(inspectorToken, { polling: false });
+      (inspectorBot as any).token = inspectorToken;
+      (inspectorBot as any).isMainBot = false;
       await inspectorBot.deleteWebHook().catch(() => {});
       await inspectorBot.startPolling();
       inspectorBot.on('polling_error', (err: any) => {
@@ -5540,8 +5546,8 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
       }
 
       // Only handle actions on the main bot
-      const isMainBot = targetBot.token === bot?.token;
-      console.log(`[Bot Callback] Checking if main bot: targetBot.token === bot.token is ${isMainBot}. targetBot token hash=${targetBot.token ? targetBot.token.substring(0, 12) : 'none'}, bot token hash=${bot?.token ? bot.token.substring(0, 12) : 'none'}`);
+      const isMainBot = (targetBot as any).isMainBot || targetBot === bot || ((targetBot as any).token && (targetBot as any).token === (bot as any)?.token) || (targetBot !== broadcastBot && targetBot !== inspectorBot);
+      console.log(`[Bot Callback] Checking if main bot: isMainBot=${isMainBot}`);
       if (!isMainBot) return;
 
       const isBlocked = await processAntiSpamCheck(userId, chatId, query.id);
