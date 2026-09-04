@@ -24,7 +24,7 @@ import FormData from "form-data";
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
 import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
 import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
-import { initAdminBotController, setMainBotReferenceForAdmin } from "./admin-bot-controller";
+import { initAdminBotController, setMainBotReferenceForAdmin, isAuthorizedAdmin, sendBroadcastAdminMenu, sendAdminMenu, handleAdminCallbackQuery } from "./admin-bot-controller";
 import { 
   processTelegramInspectorTrace, 
   getTraceHistory, 
@@ -5685,6 +5685,12 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       const isMainBot = (targetBot as any).isMainBot || targetBot === bot || ((targetBot as any).token && (targetBot as any).token === (bot as any)?.token) || (targetBot !== broadcastBot && targetBot !== inspectorBot);
       console.log(`[Bot Callback] Checking if main bot: isMainBot=${isMainBot}`);
       if (!isMainBot) return;
+
+      // Delegate admin callbacks to admin controller
+      if (await isAuthorizedAdmin(userId)) {
+        const handledByAdmin = await handleAdminCallbackQuery(query, targetBot);
+        if (handledByAdmin) return;
+      }
 
       const isBlocked = await processAntiSpamCheck(targetBot, userId, chatId, query.id);
       if (isBlocked) return;

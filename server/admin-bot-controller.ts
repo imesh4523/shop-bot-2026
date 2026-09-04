@@ -327,8 +327,13 @@ export function getAdminReplyKeyboard() {
   };
 }
 
-export async function sendAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export function getActiveAdminBot(overrideBot?: TelegramBot): TelegramBot | null {
+  return overrideBot || adminBot || mainBotReference;
+}
+
+export async function sendAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
 
   const isPaused = await isShopBotPaused();
   const statusLabel = isPaused ? 'Status: PAUSED (Maintenance Mode)' : 'Status: ACTIVE (Live)';
@@ -354,12 +359,12 @@ export async function sendAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, text, {
+  await botToUse.sendMessage(chatId, text, {
     parse_mode: 'HTML',
     reply_markup: getAdminReplyKeyboard()
   }).catch(err => console.error('[ADMIN BOT] sendAdminMenu error:', err?.message || err));
 
-  await adminBot.sendMessage(chatId, `👇 <b>Control Dashboard Quick Actions:</b>`, {
+  await botToUse.sendMessage(chatId, `👇 <b>Control Dashboard Quick Actions:</b>`, {
     parse_mode: 'HTML',
     reply_markup: keyboard
   }).catch(err => console.error('[ADMIN BOT] sendAdminMenu quick actions error:', err?.message || err));
@@ -368,8 +373,9 @@ export async function sendAdminMenu(chatId: string | number) {
 // ----------------------------------------------------
 // 1. PRODUCTS & STOCK MANAGEMENT SUB-MENU
 // ----------------------------------------------------
-export async function sendProductsAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export async function sendProductsAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
   const allProducts = await db.select().from(products);
 
   let msg = `📦 <b>PRODUCTS & STOCK MANAGEMENT</b>\n` +
@@ -398,14 +404,15 @@ export async function sendProductsAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendProductsAdminMenu error:', err?.message || err));
+  await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendProductsAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
 // 2. CUSTOMER ACCOUNTS SUB-MENU
 // ----------------------------------------------------
-export async function sendCustomersAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export async function sendCustomersAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
   const usersCount = (await db.select().from(telegramUsers)).length;
 
   const msg = `👥 <b>CUSTOMER ACCOUNTS MANAGEMENT</b>\n` +
@@ -423,14 +430,15 @@ export async function sendCustomersAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendCustomersAdminMenu error:', err?.message || err));
+  await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendCustomersAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
 // 3. PROMO CODES SUB-MENU
 // ----------------------------------------------------
-export async function sendPromoCodesAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export async function sendPromoCodesAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
   const codes = await db.select().from(promoCodes);
 
   let msg = `🎟️ <b>PROMO CODES & DISCOUNTS</b>\n` +
@@ -453,14 +461,15 @@ export async function sendPromoCodesAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendPromoCodesAdminMenu error:', err?.message || err));
+  await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendPromoCodesAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
 // 4. SETTINGS & GATEWAYS SUB-MENU
 // ----------------------------------------------------
-export async function sendSettingsAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export async function sendSettingsAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
 
   const bep20On = (await storage.getSetting('PAYMENT_BEP20_ENABLED'))?.value !== 'false';
   const trc20On = (await storage.getSetting('PAYMENT_TRC20_ENABLED'))?.value !== 'false';
@@ -484,14 +493,15 @@ export async function sendSettingsAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendSettingsAdminMenu error:', err?.message || err));
+  await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendSettingsAdminMenu error:', err?.message || err));
 }
 
 // ----------------------------------------------------
 // 5. RICH MASS BROADCAST SUB-MENU & ENGINE
 // ----------------------------------------------------
-export async function sendBroadcastAdminMenu(chatId: string | number) {
-  if (!adminBot) return;
+export async function sendBroadcastAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return;
 
   const pastLogs = await db.select().from(broadcastLogs).orderBy(desc(broadcastLogs.createdAt)).limit(5);
 
@@ -516,7 +526,7 @@ export async function sendBroadcastAdminMenu(chatId: string | number) {
     ]
   };
 
-  await adminBot.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendBroadcastAdminMenu error:', err?.message || err));
+  await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendBroadcastAdminMenu error:', err?.message || err));
 }
 
 export async function generate24hDailyStatementText(targetServer?: string): Promise<string> {
@@ -997,11 +1007,9 @@ export async function initAdminBotController() {
       }
     });
 
-    // Handle Callback Queries (Buttons)
     const handledAdminCallbackQueryIds = new Set<string>();
 
     adminBot.on('callback_query', async (query) => {
-      if (!query.message) return;
       if (query.id && handledAdminCallbackQueryIds.has(query.id)) return;
       if (query.id) {
         handledAdminCallbackQueryIds.add(query.id);
@@ -1010,341 +1018,7 @@ export async function initAdminBotController() {
           if (firstKey) handledAdminCallbackQueryIds.delete(firstKey);
         }
       }
-
-      const chatId = query.message.chat.id;
-      const data = query.data;
-
-      if (!(await isAuthorizedAdmin(chatId))) {
-        await adminBot?.answerCallbackQuery(query.id, { text: 'Access Denied', show_alert: true }).catch(() => {});
-        return;
-      }
-
-      await adminBot?.answerCallbackQuery(query.id).catch(() => {});
-
-      if (data === 'admin_main_menu') {
-        adminSessions.delete(String(chatId));
-        await sendAdminMenu(chatId);
-        return;
-      }
-      if (data === 'menu_products') {
-        await sendProductsAdminMenu(chatId);
-        return;
-      }
-      if (data === 'menu_customers') {
-        await sendCustomersAdminMenu(chatId);
-        return;
-      }
-      if (data === 'menu_promocodes') {
-        await sendPromoCodesAdminMenu(chatId);
-        return;
-      }
-      if (data === 'menu_settings') {
-        await sendSettingsAdminMenu(chatId);
-        return;
-      }
-      if (data === 'menu_broadcast') {
-        await sendBroadcastAdminMenu(chatId);
-        return;
-      }
-
-      if (data === 'get_statement') {
-        const target = selectedServerMap.get(String(chatId)) || getServerName();
-        const text = await generate24hDailyStatementText(target);
-        await adminBot?.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      if (data === 'toggle_status') {
-        const currentlyPaused = await isShopBotPaused();
-        const nextState = !currentlyPaused;
-        await setShopBotPaused(nextState);
-        const newLabel = nextState ? '🔴 PAUSED (Maintenance Mode)' : '🟢 ACTIVE (Live)';
-        await adminBot?.sendMessage(chatId, `🔄 <b>[${getServerName()}] Status changed:</b> ${newLabel}`, { parse_mode: 'HTML' }).catch(() => {});
-        await sendAdminMenu(chatId);
-        return;
-      }
-
-      if (data?.startsWith('prod_')) {
-        const prodId = parseInt(data.replace('prod_', ''));
-        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
-        if (prod) {
-          const priceUSD = (prod.price / 100).toFixed(2);
-          const emojiTag = prod.customEmojiId ? `<tg-emoji emoji-id="${prod.customEmojiId}">📦</tg-emoji>` : `📦`;
-          const text = `${emojiTag} <b>${escapeHTML(prod.name)}</b>\n\n` +
-            `<b>Price:</b> $${priceUSD} USD\n` +
-            `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
-            `<b>Description:</b>\n${escapeHTML(prod.description) || 'Instant 24/7 delivery guaranteed.'}`;
-
-          await adminBot?.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
-        }
-        return;
-      }
-
-      // Add Product Trigger
-      if (data === 'admin_add_product') {
-        adminSessions.set(String(chatId), { step: 'add_prod_name', data: {} });
-        await adminBot?.sendMessage(chatId, `📦 <b>Adding New Product</b>\n\nPlease enter the <b>Product Name</b>:`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // Add Stock Trigger
-      if (data === 'admin_add_stock') {
-        const allProds = await db.select().from(products);
-        if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `❌ No products available. Please create a product first.`).catch(() => {});
-          return;
-        }
-        const buttons = allProds.map(p => ([{
-          text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
-          callback_data: `sel_prod_stock_${p.id}`
-        }]));
-        await adminBot?.sendMessage(chatId, `📦 <b>Select a product to add Stock Accounts / Keys:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
-        return;
-      }
-
-      if (data?.startsWith('sel_prod_stock_')) {
-        const prodId = parseInt(data.replace('sel_prod_stock_', ''));
-        adminSessions.set(String(chatId), { step: 'add_stock_keys', data: { productId: prodId } });
-        await adminBot?.sendMessage(chatId, `🔑 <b>Paste Accounts / Digital Keys line-by-line:</b>\n\nEach line will be added as 1 available stock account item.`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // Edit Product Custom Emoji Trigger
-      if (data === 'admin_edit_emoji') {
-        const allProds = await db.select().from(products);
-        if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `❌ No products available. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
-          return;
-        }
-        const buttons = allProds.map(p => ([{
-          text: `✨ ${p.name} ($${(p.price / 100).toFixed(2)})`,
-          callback_data: `sel_prod_emoji_${p.id}`
-        }]));
-        await adminBot?.sendMessage(chatId, `✨ <b>Select a Product to set/update its Telegram Premium Custom Emoji:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
-        return;
-      }
-
-      if (data?.startsWith('sel_prod_emoji_')) {
-        const prodId = parseInt(data.replace('sel_prod_emoji_', ''));
-        adminSessions.set(String(chatId), { step: 'update_prod_emoji', data: { productId: prodId } });
-        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
-        await adminBot?.sendMessage(chatId, `✨ <b>Send / Paste Premium Custom Emoji for "${escapeHTML(prod?.name || 'Product')}":</b>\n\nSend ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and update the product in real-time!`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // Credit balance trigger
-      if (data === 'admin_credit_balance') {
-        adminSessions.set(String(chatId), { step: 'credit_user_search' });
-        await adminBot?.sendMessage(chatId, `🔍 Send the Customer's <b>Telegram Chat ID</b> or <b>Username</b> (e.g. <code>7507799896</code> or <code>@username</code>):`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // Create promo code trigger
-      if (data === 'admin_create_promo') {
-        adminSessions.set(String(chatId), { step: 'promo_code_name' });
-        await adminBot?.sendMessage(chatId, `🎟️ Enter New <b>Promo Code</b> (e.g. <code>BONUS5</code>):`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // Gateway Toggles
-      if (data?.startsWith('toggle_gateway_')) {
-        const gw = data.replace('toggle_gateway_', '').toUpperCase();
-        const key = `PAYMENT_${gw}_ENABLED`;
-        const curr = (await storage.getSetting(key))?.value !== 'false';
-        await storage.setSetting(key, curr ? 'false' : 'true');
-        await adminBot?.sendMessage(chatId, `🔄 <b>Gateway ${gw} status updated:</b> ${!curr ? '🟢 Enabled' : '🔴 Disabled'}`, { parse_mode: 'HTML' }).catch(() => {});
-        await sendSettingsAdminMenu(chatId);
-        return;
-      }
-
-      // Broadcast Flow Triggers
-      if (data === 'admin_start_broadcast') {
-        adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
-        await adminBot?.editMessageText(`📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML'
-        }).catch(async () => {
-          await adminBot?.sendMessage(chatId, `📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
-        });
-        return;
-      }
-
-      if (data === 'bcast_attach_product') {
-        const allProds = await db.select().from(products);
-        if (allProds.length === 0) {
-          await adminBot?.sendMessage(chatId, `❌ No products found in store. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
-          return;
-        }
-        const buttons = allProds.map(p => ([{
-          text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
-          callback_data: `bcast_sel_prod_${p.id}`
-        }]));
-        await adminBot?.sendMessage(chatId, `🛒 <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
-        return;
-      }
-
-      if (data?.startsWith('bcast_sel_prod_')) {
-        const prodId = parseInt(data.replace('bcast_sel_prod_', ''));
-        const session = adminSessions.get(String(chatId));
-        if (session) {
-          session.data = session.data || {};
-          session.data.targetProductId = prodId;
-        }
-
-        const [prod] = await db.select().from(products).where(eq(products.id, prodId));
-        const prodName = prod ? prod.name : `Product #${prodId}`;
-        const priceUSD = prod ? (prod.price / 100).toFixed(2) : '0.00';
-
-        const keyboard = {
-          inline_keyboard: [
-            [{ text: '⚡ CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send' }],
-            [{ text: '❌ Cancel Broadcast', callback_data: 'admin_main_menu' }]
-          ]
-        };
-
-        await adminBot?.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🟢 Buy Now ]`, {
-          parse_mode: 'HTML',
-          reply_markup: keyboard
-        }).catch(() => {});
-        return;
-      }
-
-      if (data === 'bcast_attach_url') {
-        adminSessions.set(String(chatId), { step: 'broadcast_url_btn_text', data: adminSessions.get(String(chatId))?.data || {} });
-        await adminBot?.sendMessage(chatId, `📝 Enter Button Label Text (e.g. <code>Join Channel</code>):`, { parse_mode: 'HTML' }).catch(() => {});
-        return;
-      }
-
-      // CONFIRM AND EXECUTE BROADCAST
-      if (data === 'bcast_confirm_send') {
-        const session = adminSessions.get(String(chatId));
-        if (!session || !session.data || (!session.data.messageText && !session.data.photoBuffer)) {
-          await adminBot?.sendMessage(chatId, `❌ No broadcast content found. Please restart broadcast creation.`).catch(() => {});
-          return;
-        }
-
-        const bText = session.data.messageText || '';
-        const photoBuffer = session.data.photoBuffer as Buffer | undefined;
-        const targetProdId = session.data.targetProductId;
-        const customBtnText = session.data.customButtonText;
-        const customBtnUrl = session.data.customButtonUrl;
-
-        await adminBot?.sendMessage(chatId, `⏳ <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
-
-        const allUsers = await db.select().from(telegramUsers);
-        const sentMessages: { chatId: string; messageId: number }[] = [];
-        let successCount = 0;
-
-        // Build 100% valid Telegram Bot API inline keyboard for broadcast
-        const inlineKeyboard: any[][] = [];
-        if (targetProdId) {
-          inlineKeyboard.push([{
-            text: 'Buy Now',
-            callback_data: `prod_${targetProdId}`,
-            style: 'success',
-            icon_custom_emoji_id: '5361781191722699867'
-          }]);
-        } else if (customBtnText && customBtnUrl) {
-          inlineKeyboard.push([{ text: customBtnText, url: customBtnUrl }]);
-        }
-
-        const targetSenderBot = mainBotReference || adminBot;
-        let mainBotPhotoFileId: string | undefined = undefined;
-
-        for (const user of allUsers) {
-          try {
-            let sentMsg;
-            if (photoBuffer) {
-              const photoToSend = mainBotPhotoFileId || photoBuffer;
-              sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoToSend, {
-                caption: bText,
-                parse_mode: 'HTML',
-                reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
-              });
-              if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0 && !mainBotPhotoFileId) {
-                mainBotPhotoFileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
-              }
-            } else {
-              sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
-                parse_mode: 'HTML',
-                reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
-              });
-            }
-
-            if (sentMsg) {
-              sentMessages.push({ chatId: String(user.telegramId), messageId: sentMsg.message_id });
-              successCount++;
-            }
-          } catch (err: any) {
-            console.error(`[BROADCAST] Error sending to user ${user.telegramId}:`, err?.message || err);
-          }
-        }
-
-        // Log broadcast for recall/deletion capability
-        const [bLog] = await db.insert(broadcastLogs).values({
-          adminChatId: String(chatId),
-          broadcastType: photoBuffer ? 'photo' : 'text',
-          messageText: bText,
-          photoUrl: photoBuffer ? 'photo_buffer' : null,
-          targetProductId: targetProdId || null,
-          customButtonText: customBtnText || null,
-          customButtonUrl: customBtnUrl || null,
-          recipientCount: successCount,
-          sentMessagesJson: JSON.stringify(sentMessages)
-        }).returning();
-
-        adminSessions.delete(String(chatId));
-
-        await adminBot?.sendMessage(chatId, `🎉 <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n▪️ Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n▪️ Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
-        await sendBroadcastAdminMenu(chatId);
-        return;
-      }
-
-      // RECALL / DELETE SENT BROADCAST
-      if (data === 'admin_recall_broadcast') {
-        const pastLogs = await db.select().from(broadcastLogs).orderBy(desc(broadcastLogs.createdAt)).limit(10);
-        if (pastLogs.length === 0) {
-          await adminBot?.sendMessage(chatId, `❌ No active broadcast campaigns found to recall.`).catch(() => {});
-          return;
-        }
-        const buttons = pastLogs.map(l => ([{
-          text: `🗑️ Delete Broadcast #${l.id} (${l.recipientCount} users)`,
-          callback_data: `exec_recall_${l.id}`
-        }]));
-        await adminBot?.sendMessage(chatId, `🗑️ <b>Select a Broadcast Campaign to RECALL & DELETE from all users:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
-        return;
-      }
-
-      if (data?.startsWith('exec_recall_')) {
-        const logId = parseInt(data.replace('exec_recall_', ''));
-        const [log] = await db.select().from(broadcastLogs).where(eq(broadcastLogs.id, logId));
-
-        if (!log || !log.sentMessagesJson) {
-          await adminBot?.sendMessage(chatId, `❌ Broadcast log #${logId} not found or has no record.`).catch(() => {});
-          return;
-        }
-
-        await adminBot?.sendMessage(chatId, `⏳ <b>Recalling and deleting Broadcast #${logId} from ALL recipient chats...</b>`, { parse_mode: 'HTML' }).catch(() => {});
-
-        const sentMessages: { chatId: string; messageId: number }[] = JSON.parse(log.sentMessagesJson);
-        let deletedCount = 0;
-
-        const targetSenderBot = mainBotReference || adminBot;
-
-        for (const item of sentMessages) {
-          try {
-            await targetSenderBot?.deleteMessage(item.chatId, item.messageId);
-            deletedCount++;
-          } catch (e) {}
-        }
-
-        await db.delete(broadcastLogs).where(eq(broadcastLogs.id, logId));
-
-        await adminBot?.sendMessage(chatId, `🗑️ <b>BROADCAST RECALL COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\nSuccessfully deleted <b>${deletedCount} / ${sentMessages.length}</b> broadcast messages across all Telegram chats.`, { parse_mode: 'HTML' }).catch(() => {});
-        await sendBroadcastAdminMenu(chatId);
-        return;
-      }
+      await handleAdminCallbackQuery(query);
     });
 
     // Schedule 24-hour Automated Daily Statement Cron
@@ -1363,4 +1037,343 @@ export async function initAdminBotController() {
     console.error('[ADMIN BOT] Initialization failed:', err);
     return null;
   }
+}
+
+export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery, overrideBot?: TelegramBot): Promise<boolean> {
+  if (!query.message || !query.data) return false;
+
+  const chatId = query.message.chat.id;
+  const data = query.data;
+
+  if (!(await isAuthorizedAdmin(chatId))) return false;
+
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return false;
+
+  await botToUse.answerCallbackQuery(query.id).catch(() => {});
+
+  if (data === 'admin_main_menu') {
+    adminSessions.delete(String(chatId));
+    await sendAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (data === 'menu_products') {
+    await sendProductsAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (data === 'menu_customers') {
+    await sendCustomersAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (data === 'menu_promocodes') {
+    await sendPromoCodesAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (data === 'menu_settings') {
+    await sendSettingsAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (data === 'menu_broadcast') {
+    await sendBroadcastAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  if (data === 'get_statement') {
+    const target = selectedServerMap.get(String(chatId)) || getServerName();
+    const text = await generate24hDailyStatementText(target);
+    await botToUse.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  if (data === 'toggle_status') {
+    const currentlyPaused = await isShopBotPaused();
+    const nextState = !currentlyPaused;
+    await setShopBotPaused(nextState);
+    const newLabel = nextState ? '🔴 PAUSED (Maintenance Mode)' : '🟢 ACTIVE (Live)';
+    await botToUse.sendMessage(chatId, `🔄 <b>[${getServerName()}] Status changed:</b> ${newLabel}`, { parse_mode: 'HTML' }).catch(() => {});
+    await sendAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  if (data?.startsWith('prod_')) {
+    const prodId = parseInt(data.replace('prod_', ''));
+    const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+    if (prod) {
+      const priceUSD = (prod.price / 100).toFixed(2);
+      const emojiTag = prod.customEmojiId ? `<tg-emoji emoji-id="${prod.customEmojiId}">📦</tg-emoji>` : `📦`;
+      const text = `${emojiTag} <b>${escapeHTML(prod.name)}</b>\n\n` +
+        `<b>Price:</b> $${priceUSD} USD\n` +
+        `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
+        `<b>Description:</b>\n${escapeHTML(prod.description) || 'Instant 24/7 delivery guaranteed.'}`;
+
+      await botToUse.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
+    }
+    return true;
+  }
+
+  // Add Product Trigger
+  if (data === 'admin_add_product') {
+    adminSessions.set(String(chatId), { step: 'add_prod_name', data: {} });
+    await botToUse.sendMessage(chatId, `📦 <b>Adding New Product</b>\n\nPlease enter the <b>Product Name</b>:`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Add Stock Trigger
+  if (data === 'admin_add_stock') {
+    const allProds = await db.select().from(products);
+    if (allProds.length === 0) {
+      await botToUse.sendMessage(chatId, `❌ No products available. Please create a product first.`).catch(() => {});
+      return true;
+    }
+    const buttons = allProds.map(p => ([{
+      text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
+      callback_data: `sel_prod_stock_${p.id}`
+    }]));
+    await botToUse.sendMessage(chatId, `📦 <b>Select a product to add Stock Accounts / Keys:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    return true;
+  }
+
+  if (data?.startsWith('sel_prod_stock_')) {
+    const prodId = parseInt(data.replace('sel_prod_stock_', ''));
+    adminSessions.set(String(chatId), { step: 'add_stock_keys', data: { productId: prodId } });
+    await botToUse.sendMessage(chatId, `🔑 <b>Paste Accounts / Digital Keys line-by-line:</b>\n\nEach line will be added as 1 available stock account item.`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Edit Product Custom Emoji Trigger
+  if (data === 'admin_edit_emoji') {
+    const allProds = await db.select().from(products);
+    if (allProds.length === 0) {
+      await botToUse.sendMessage(chatId, `❌ No products available. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const buttons = allProds.map(p => ([{
+      text: `✨ ${p.name} ($${(p.price / 100).toFixed(2)})`,
+      callback_data: `sel_prod_emoji_${p.id}`
+    }]));
+    await botToUse.sendMessage(chatId, `✨ <b>Select a Product to set/update its Telegram Premium Custom Emoji:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    return true;
+  }
+
+  if (data?.startsWith('sel_prod_emoji_')) {
+    const prodId = parseInt(data.replace('sel_prod_emoji_', ''));
+    adminSessions.set(String(chatId), { step: 'update_prod_emoji', data: { productId: prodId } });
+    const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+    await botToUse.sendMessage(chatId, `✨ <b>Send / Paste Premium Custom Emoji for "${escapeHTML(prod?.name || 'Product')}":</b>\n\nSend ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and update the product in real-time!`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Credit balance trigger
+  if (data === 'admin_credit_balance') {
+    adminSessions.set(String(chatId), { step: 'credit_user_search' });
+    await botToUse.sendMessage(chatId, `🔍 Send the Customer's <b>Telegram Chat ID</b> or <b>Username</b> (e.g. <code>7507799896</code> or <code>@username</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Create promo code trigger
+  if (data === 'admin_create_promo') {
+    adminSessions.set(String(chatId), { step: 'promo_code_name' });
+    await botToUse.sendMessage(chatId, `🎟️ Enter New <b>Promo Code</b> (e.g. <code>BONUS5</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Gateway Toggles
+  if (data?.startsWith('toggle_gateway_')) {
+    const gw = data.replace('toggle_gateway_', '').toUpperCase();
+    const key = `PAYMENT_${gw}_ENABLED`;
+    const curr = (await storage.getSetting(key))?.value !== 'false';
+    await storage.setSetting(key, curr ? 'false' : 'true');
+    await botToUse.sendMessage(chatId, `🔄 <b>Gateway ${gw} status updated:</b> ${!curr ? '🟢 Enabled' : '🔴 Disabled'}`, { parse_mode: 'HTML' }).catch(() => {});
+    await sendSettingsAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  // Broadcast Flow Triggers
+  if (data === 'admin_start_broadcast') {
+    adminSessions.set(String(chatId), { step: 'broadcast_text', data: {} });
+    await botToUse.editMessageText(`📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML'
+    }).catch(async () => {
+      await botToUse.sendMessage(chatId, `📢 <b>NEW MASS BROADCAST</b>\n\nPlease enter or send the Broadcast Message (text or photo caption with Premium Emojis & HTML supported):`, { parse_mode: 'HTML' }).catch(() => {});
+    });
+    return true;
+  }
+
+  if (data === 'bcast_attach_product') {
+    const allProds = await db.select().from(products);
+    if (allProds.length === 0) {
+      await botToUse.sendMessage(chatId, `❌ No products found in store. Please create a product first.`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const buttons = allProds.map(p => ([{
+      text: `📦 ${p.name} ($${(p.price / 100).toFixed(2)})`,
+      callback_data: `bcast_sel_prod_${p.id}`
+    }]));
+    await botToUse.sendMessage(chatId, `🛒 <b>Select Product to attach as "Buy Now" button:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    return true;
+  }
+
+  if (data?.startsWith('bcast_sel_prod_')) {
+    const prodId = parseInt(data.replace('bcast_sel_prod_', ''));
+    const session = adminSessions.get(String(chatId));
+    if (session) {
+      session.data = session.data || {};
+      session.data.targetProductId = prodId;
+    }
+
+    const [prod] = await db.select().from(products).where(eq(products.id, prodId));
+    const prodName = prod ? prod.name : `Product #${prodId}`;
+    const priceUSD = prod ? (prod.price / 100).toFixed(2) : '0.00';
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '⚡ CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send' }],
+        [{ text: '❌ Cancel Broadcast', callback_data: 'admin_main_menu' }]
+      ]
+    };
+
+    await botToUse.sendMessage(chatId, `✅ <b>Product Attached:</b> ${escapeHTML(prodName)} ($${priceUSD})\n\n📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session?.data?.messageText || ''}\n\n<b>Attached Button:</b> [ 🟢 Buy Now ]`, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard
+    }).catch(() => {});
+    return true;
+  }
+
+  if (data === 'bcast_attach_url') {
+    adminSessions.set(String(chatId), { step: 'broadcast_url_btn_text', data: adminSessions.get(String(chatId))?.data || {} });
+    await botToUse.sendMessage(chatId, `📝 Enter Button Label Text (e.g. <code>Join Channel</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // CONFIRM AND EXECUTE BROADCAST
+  if (data === 'bcast_confirm_send') {
+    const session = adminSessions.get(String(chatId));
+    if (!session || !session.data || (!session.data.messageText && !session.data.photoBuffer)) {
+      await botToUse.sendMessage(chatId, `❌ No broadcast content found. Please restart broadcast creation.`).catch(() => {});
+      return true;
+    }
+
+    const bText = session.data.messageText || '';
+    const photoBuffer = session.data.photoBuffer as Buffer | undefined;
+    const targetProdId = session.data.targetProductId;
+    const customBtnText = session.data.customButtonText;
+    const customBtnUrl = session.data.customButtonUrl;
+
+    await botToUse.sendMessage(chatId, `⏳ <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
+
+    const allUsers = await db.select().from(telegramUsers);
+    const sentMessages: { chatId: string; messageId: number }[] = [];
+    let successCount = 0;
+
+    const inlineKeyboard: any[][] = [];
+    if (targetProdId) {
+      inlineKeyboard.push([{
+        text: 'Buy Now',
+        callback_data: `prod_${targetProdId}`,
+        style: 'success',
+        icon_custom_emoji_id: '5361781191722699867'
+      }]);
+    } else if (customBtnText && customBtnUrl) {
+      inlineKeyboard.push([{ text: customBtnText, url: customBtnUrl }]);
+    }
+
+    const targetSenderBot = botToUse || mainBotReference || adminBot;
+    let mainBotPhotoFileId: string | undefined = undefined;
+
+    for (const user of allUsers) {
+      try {
+        let sentMsg;
+        if (photoBuffer) {
+          const photoToSend = mainBotPhotoFileId || photoBuffer;
+          sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, photoToSend, {
+            caption: bText,
+            parse_mode: 'HTML',
+            reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
+          });
+          if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0 && !mainBotPhotoFileId) {
+            mainBotPhotoFileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
+          }
+        } else {
+          sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
+            parse_mode: 'HTML',
+            reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
+          });
+        }
+
+        if (sentMsg) {
+          sentMessages.push({ chatId: String(user.telegramId), messageId: sentMsg.message_id });
+          successCount++;
+        }
+      } catch (err: any) {
+        console.error(`[BROADCAST] Error sending to user ${user.telegramId}:`, err?.message || err);
+      }
+    }
+
+    const [bLog] = await db.insert(broadcastLogs).values({
+      adminChatId: String(chatId),
+      broadcastType: photoBuffer ? 'photo' : 'text',
+      messageText: bText,
+      photoUrl: photoBuffer ? 'photo_buffer' : null,
+      targetProductId: targetProdId || null,
+      customButtonText: customBtnText || null,
+      customButtonUrl: customBtnUrl || null,
+      recipientCount: successCount,
+      sentMessagesJson: JSON.stringify(sentMessages)
+    }).returning();
+
+    adminSessions.delete(String(chatId));
+
+    await botToUse.sendMessage(chatId, `🎉 <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n▪️ Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n▪️ Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+    await sendBroadcastAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  // RECALL / DELETE SENT BROADCAST
+  if (data === 'admin_recall_broadcast') {
+    const pastLogs = await db.select().from(broadcastLogs).orderBy(desc(broadcastLogs.createdAt)).limit(10);
+    if (pastLogs.length === 0) {
+      await botToUse.sendMessage(chatId, `❌ No active broadcast campaigns found to recall.`).catch(() => {});
+      return true;
+    }
+    const buttons = pastLogs.map(l => ([{
+      text: `🗑️ Delete Broadcast #${l.id} (${l.recipientCount} users)`,
+      callback_data: `exec_recall_${l.id}`
+    }]));
+    await botToUse.sendMessage(chatId, `🗑️ <b>Select a Broadcast Campaign to RECALL & DELETE from all users:</b>`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } }).catch(() => {});
+    return true;
+  }
+
+  if (data?.startsWith('exec_recall_')) {
+    const logId = parseInt(data.replace('exec_recall_', ''));
+    const [log] = await db.select().from(broadcastLogs).where(eq(broadcastLogs.id, logId));
+
+    if (!log || !log.sentMessagesJson) {
+      await botToUse.sendMessage(chatId, `❌ Broadcast log #${logId} not found or has no record.`).catch(() => {});
+      return true;
+    }
+
+    await botToUse.sendMessage(chatId, `⏳ <b>Recalling and deleting Broadcast #${logId} from ALL recipient chats...</b>`, { parse_mode: 'HTML' }).catch(() => {});
+
+    const sentMessages: { chatId: string; messageId: number }[] = JSON.parse(log.sentMessagesJson);
+    let deletedCount = 0;
+
+    const targetSenderBot = botToUse || mainBotReference || adminBot;
+
+    for (const item of sentMessages) {
+      try {
+        await targetSenderBot?.deleteMessage(item.chatId, item.messageId);
+        deletedCount++;
+      } catch (e) {}
+    }
+
+    await db.delete(broadcastLogs).where(eq(broadcastLogs.id, logId));
+
+    await botToUse.sendMessage(chatId, `🗑️ <b>BROADCAST RECALL COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\nSuccessfully deleted <b>${deletedCount} / ${sentMessages.length}</b> broadcast messages across all Telegram chats.`, { parse_mode: 'HTML' }).catch(() => {});
+    await sendBroadcastAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  return false;
 }
