@@ -3040,10 +3040,6 @@ const sendAutoDeleteError = async (
   } catch (err) {
     console.error("sendAutoDeleteError failed:", err);
   }
-};
-
-const bannerFileIdCache: Record<string, string> = {};
-
 const sendOrEditScreenWithPhoto = async (
   targetBot: TelegramBot,
   chatId: number,
