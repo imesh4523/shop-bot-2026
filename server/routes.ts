@@ -7026,9 +7026,25 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
             status: 'pending_fulfillment'
           });
 
+          // Emit real-time notification to Admin Dashboard UI
+          const userDisplayName = tgUser.username ? `@${tgUser.username}` : (tgUser.firstName || `User #${tgUser.id}`);
+          io.emit('admin_notification', {
+            type: 'preorder',
+            title: '📦 New Pre-Order Received',
+            message: `${userDisplayName} pre-ordered ${qty}x ${productName} ($${totalUSD})`,
+            data: {
+              ...newPreorder,
+              productName,
+              qty,
+              totalUSD,
+              userDisplayName
+            }
+          });
+
+          // Emit Native Web Push & Admin Telegram Push Notification
           sendAdminPushNotification(
             `📦 New Pre-Order #${newPreorder.id}`,
-            `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} pre-ordered ${qty}x ${productName} ($${totalUSD})`,
+            `${userDisplayName} pre-ordered ${qty}x ${productName} ($${totalUSD})`,
             '/preorders'
           ).catch(console.error);
 
