@@ -616,7 +616,21 @@ export async function registerRoutes(
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS reward INTEGER DEFAULT 0;
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS max_uses INTEGER DEFAULT 1;
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS uses_count INTEGER DEFAULT 0;
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS admin_chat_id TEXT DEFAULT '';
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS title TEXT;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS broadcast_type TEXT DEFAULT 'text';
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS message_text TEXT;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS photo_url TEXT;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS target_product_id INTEGER;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS custom_button_text TEXT;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS custom_button_url TEXT;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS recipient_count INTEGER DEFAULT 0;
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS sent_messages_json TEXT;
     `);
     console.log('[DB] referrals, promo_codes, and broadcast_logs tables verified/created');
   } catch (err: any) {
