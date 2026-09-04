@@ -250,6 +250,18 @@ export async function registerServerHeartbeat() {
 
 export async function getAuthorizedAdminChatIds(): Promise<string[]> {
   const chatIds = new Set<string>(HARDCODED_ADMIN_CHAT_IDS);
+  if (process.env.ADMIN_CHAT_ID) {
+    process.env.ADMIN_CHAT_ID.split(',').forEach(id => {
+      const clean = id.trim();
+      if (clean) chatIds.add(clean);
+    });
+  }
+  if (process.env.ADMIN_CHAT_IDS) {
+    process.env.ADMIN_CHAT_IDS.split(',').forEach(id => {
+      const clean = id.trim();
+      if (clean) chatIds.add(clean);
+    });
+  }
   inMemoryAdminChatIds.forEach(id => chatIds.add(id));
   try {
     const dbSetting = await storage.getSetting('ADMIN_CHAT_IDS');
@@ -269,12 +281,8 @@ export async function getAuthorizedAdminChatIds(): Promise<string[]> {
 export async function isAuthorizedAdmin(chatId: string | number): Promise<boolean> {
   if (!chatId) return false;
   const idStr = String(chatId).trim();
-  inMemoryAdminChatIds.add(idStr);
   const authorized = await getAuthorizedAdminChatIds();
-  if (!authorized.includes(idStr)) {
-    await addAdminChatId(idStr).catch(() => {});
-  }
-  return true;
+  return authorized.includes(idStr);
 }
 
 export async function isShopBotPaused(): Promise<boolean> {
@@ -298,10 +306,11 @@ export async function setShopBotPaused(paused: boolean): Promise<boolean> {
 }
 
 export async function addAdminChatId(newChatId: string): Promise<string[]> {
-  inMemoryAdminChatIds.add(newChatId);
+  const cleanId = String(newChatId).trim();
+  inMemoryAdminChatIds.add(cleanId);
   const current = await getAuthorizedAdminChatIds();
-  if (!current.includes(newChatId)) {
-    current.push(newChatId);
+  if (!current.includes(cleanId)) {
+    current.push(cleanId);
     try {
       await storage.setSetting('ADMIN_CHAT_IDS', current.join(','));
     } catch (err) {
@@ -309,6 +318,19 @@ export async function addAdminChatId(newChatId: string): Promise<string[]> {
     }
   }
   return current;
+}
+
+export async function removeAdminChatId(chatIdToRemove: string): Promise<string[]> {
+  const cleanId = String(chatIdToRemove).trim();
+  inMemoryAdminChatIds.delete(cleanId);
+  const current = await getAuthorizedAdminChatIds();
+  const updated = current.filter(id => id !== cleanId);
+  try {
+    await storage.setSetting('ADMIN_CHAT_IDS', updated.join(','));
+  } catch (err) {
+    console.error('[ADMIN BOT] DB setting error:', err);
+  }
+  return updated;
 }
 
 // PERSISTENT ADMIN REPLY KEYBOARD
@@ -335,6 +357,13 @@ export function getAdminReplyKeyboard() {
 
 export function getActiveAdminBot(overrideBot?: TelegramBot): TelegramBot | null {
   return overrideBot || adminBot || mainBotReference;
+}
+
+export function isDedicatedAdminBot(bot: TelegramBot | null): boolean {
+  if (!bot) return false;
+  if (adminBot && (bot === adminBot || bot.token === HARDCODED_ADMIN_BOT_TOKEN)) return true;
+  if (bot.token === HARDCODED_ADMIN_BOT_TOKEN) return true;
+  return false;
 }
 
 export async function sendAdminMenu(chatId: string | number, overrideBot?: TelegramBot) {
@@ -493,6 +522,7 @@ export async function sendSettingsAdminMenu(chatId: string | number, overrideBot
     inline_keyboard: [
       [{ text: `BEP20: ${bep20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_bep20' }, { text: `TRC20: ${trc20On ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_trc20' }],
       [{ text: `Binance: ${binanceOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_binance' }, { text: `Cryptomus: ${cryptomusOn ? 'Disable' : 'Enable'}`, callback_data: 'toggle_gateway_cryptomus' }],
+      [{ text: '👤 Authorized Admin Chat IDs', callback_data: 'admin_manage_chat_ids' }],
       [{ text: '✏️ Update Wallet Address / Pay ID', callback_data: 'admin_edit_wallet_settings' }],
       [{ text: '🔑 Change Admin Bot Token', callback_data: 'prompt_add_bot_token' }],
       [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
@@ -1079,6 +1109,29 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     await sendSettingsAdminMenu(chatId, botToUse);
     return true;
   }
+  if (data === 'admin_manage_chat_ids') {
+    const adminIds = await getAuthorizedAdminChatIds();
+    const msgText = `👥 <b>AUTHORIZED ADMIN CHAT IDS</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `Current Admins (<b>${adminIds.length}</b>):\n` +
+      adminIds.map(id => `▪️ <code>${id}</code>`).join('\n') + `\n\n` +
+      `To add a new admin, run:\n<code>/addadmin &lt;CHAT_ID&gt;</code>\n\n` +
+      `To remove an admin, run:\n<code>/deladmin &lt;CHAT_ID&gt;</code>`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '➕ Add New Admin Chat ID', callback_data: 'prompt_add_admin_id' }],
+        [{ text: '⏪ Back to Settings', callback_data: 'menu_settings' }]
+      ]
+    };
+    await botToUse.sendMessage(chatId, msgText, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+    return true;
+  }
+  if (data === 'prompt_add_admin_id') {
+    adminSessions.set(String(chatId), { step: 'input_add_admin_id' });
+    await botToUse.sendMessage(chatId, `👥 <b>Send or Paste Telegram Chat ID</b> to authorize as Admin (e.g. <code>7507799896</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
   if (data === 'menu_broadcast') {
     await sendBroadcastAdminMenu(chatId, botToUse);
     return true;
@@ -1386,23 +1439,93 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
 
 export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?: TelegramBot): Promise<boolean> {
   const chatId = String(msg.chat.id);
-  await isAuthorizedAdmin(chatId);
-
   const botToUse = getActiveAdminBot(overrideBot);
   if (!botToUse) return false;
 
   const text = (msg.text || msg.caption || '').trim();
 
-  // Check commands
+  // Command to get Telegram Chat ID
+  if (text === '/id' || text === '/myid') {
+    await botToUse.sendMessage(chatId, `🆔 <b>Your Telegram Chat ID:</b> <code>${chatId}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  const isAdmin = await isAuthorizedAdmin(chatId);
+
+  // Admin Management Commands
+  if (text.startsWith('/addadmin')) {
+    if (!isAdmin) {
+      await botToUse.sendMessage(chatId, `🔒 <b>Access Denied.</b> Your Chat ID <code>${chatId}</code> is not authorized as Admin.`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const parts = text.split(/\s+/);
+    const newId = parts[1]?.trim();
+    if (!newId || !/^\d+$/.test(newId)) {
+      await botToUse.sendMessage(chatId, `❌ Usage: <code>/addadmin &lt;CHAT_ID&gt;</code>\nExample: <code>/addadmin 7507799896</code>`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const updated = await addAdminChatId(newId);
+    await botToUse.sendMessage(chatId, `✅ <b>Added Admin Chat ID:</b> <code>${newId}</code>\nTotal Authorized Admins: <b>${updated.length}</b>`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  if (text.startsWith('/deladmin') || text.startsWith('/removeadmin')) {
+    if (!isAdmin) {
+      await botToUse.sendMessage(chatId, `🔒 <b>Access Denied.</b>`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const parts = text.split(/\s+/);
+    const idToRemove = parts[1]?.trim();
+    if (!idToRemove) {
+      await botToUse.sendMessage(chatId, `❌ Usage: <code>/deladmin &lt;CHAT_ID&gt;</code>`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    const updated = await removeAdminChatId(idToRemove);
+    await botToUse.sendMessage(chatId, `✅ <b>Removed Admin Chat ID:</b> <code>${idToRemove}</code>\nTotal Authorized Admins: <b>${updated.length}</b>`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  if (text === '/listadmins') {
+    if (!isAdmin) return false;
+    const admins = await getAuthorizedAdminChatIds();
+    await botToUse.sendMessage(chatId, `👥 <b>Authorized Admin Chat IDs (${admins.length}):</b>\n\n` + admins.map(id => `▪️ <code>${id}</code>`).join('\n'), { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // If user is NOT an admin:
+  if (!isAdmin) {
+    if (text.startsWith('/admin') || text.startsWith('/broadcast') || text.startsWith('/massbroadcast')) {
+      await botToUse.sendMessage(chatId, 
+        `🔒 <b>Access Denied</b>\n\n` +
+        `Your Telegram Chat ID <code>${chatId}</code> is not authorized for Admin Panel.\n\n` +
+        `To authorize, ask an existing admin to run <code>/addadmin ${chatId}</code> or add <code>${chatId}</code> to environment variable <code>ADMIN_CHAT_ID</code>.`, 
+        { parse_mode: 'HTML' }
+      ).catch(() => {});
+      return true;
+    }
+    return false; // Pass through to regular user shop handlers!
+  }
+
+  // If user IS an authorized admin:
   if (text.startsWith('/broadcast') || text.startsWith('/massbroadcast')) {
     adminSessions.delete(chatId);
     await sendBroadcastAdminMenu(chatId, botToUse);
     return true;
   }
-  if (text.startsWith('/start') || text.startsWith('/admin') || text.startsWith('/menu') || text.startsWith('/status') || text.startsWith('/help')) {
+
+  if (text.startsWith('/admin')) {
     adminSessions.delete(chatId);
     await sendAdminMenu(chatId, botToUse);
     return true;
+  }
+
+  if (text.startsWith('/start')) {
+    if (isDedicatedAdminBot(botToUse)) {
+      adminSessions.delete(chatId);
+      await sendAdminMenu(chatId, botToUse);
+      return true;
+    }
+    return false; // In main shop bot, let /start show regular customer welcome banner
   }
 
   if (text.includes('Products & Stock')) {
@@ -1440,6 +1563,18 @@ export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?:
   // Handle active step inputs
   const session = adminSessions.get(chatId);
   if (session && session.step) {
+    if (session.step === 'input_add_admin_id') {
+      const newId = text.trim();
+      if (!/^\d+$/.test(newId)) {
+        await botToUse.sendMessage(chatId, `❌ Invalid Chat ID. Enter numeric Telegram Chat ID (e.g. <code>7507799896</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+        return true;
+      }
+      const updated = await addAdminChatId(newId);
+      adminSessions.delete(chatId);
+      await botToUse.sendMessage(chatId, `✅ <b>Successfully Authorized Chat ID ${newId} as Admin!</b>\nTotal Authorized Admins: <b>${updated.length}</b>`, { parse_mode: 'HTML' }).catch(() => {});
+      await sendSettingsAdminMenu(chatId, botToUse);
+      return true;
+    }
     if (session.step === 'add_prod_name') {
       session.data = { name: text };
       session.step = 'add_prod_price';
