@@ -2941,7 +2941,7 @@ async function initBot() {
       bot = new TelegramBot(token, { polling: false });
       (bot as any).token = token;
       (bot as any).isMainBot = true;
-      await bot.deleteWebHook().catch(() => {});
+      bot.deleteWebHook().catch(() => {});
       bot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[MAIN BOT] 409 Conflict: another instance is polling.');
@@ -3022,9 +3022,6 @@ async function initBot() {
     console.error('Telegram bot init failed:', err);
   }
 };
-
-console.log('[REGISTER ROUTES] Triggering initBot execution NOW...');
-initBot().catch(err => console.error("Initial bot setup failed:", err));
 const bannerFileIdCache: Record<string, string> = {};
 
 const getPersistentBottomKeyboard = () => ({
