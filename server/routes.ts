@@ -8526,13 +8526,10 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            const quickMenuMsg = await targetBot.sendMessage(chatId, '<tg-emoji emoji-id="5938185976307258461">👇</tg-emoji> <b>Quick Menu</b>', {
+            await targetBot.sendMessage(chatId, '<tg-emoji emoji-id="5938185976307258461">👇</tg-emoji> <b>Quick Menu</b>', {
               parse_mode: 'HTML',
               reply_markup: bottomKeyboard
             });
-            setTimeout(() => {
-              targetBot.deleteMessage(chatId, quickMenuMsg.message_id).catch(() => {});
-            }, 5000);
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
