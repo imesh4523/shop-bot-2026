@@ -1740,6 +1740,7 @@ try {
   `).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT FALSE;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;`).catch(() => {});
+  db.execute(sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS expected_crypto_amount TEXT;`).catch(() => {});
   console.log("[DB] preorders table & product preorder columns verified/created");
 } catch (err) {
   console.error("[DB Init Preorders Error]:", err);
@@ -4994,6 +4995,42 @@ async function processCryptomusInvoiceCreation(targetBot: TelegramBot, chatId: n
 }
 
 async function processCryptomusBep20InvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number, messageIdToEdit?: number) {
+  const gatewayMode = (await storage.getSetting('PAYMENT_GATEWAY_MODE'))?.value || 'cryptomus';
+  const bep20DirectWallet = (await storage.getSetting('BEP20_WALLET_ADDRESS'))?.value || "0x018e0aeeb1d2197c6bfc69d0cefb831e952c14ce";
+
+  if (gatewayMode === 'binance_api') {
+    const expectedCryptoAmount = generateUniqueCryptoAmount(amount);
+    const newPayment = await storage.createPayment({
+      telegramUserId: tgUser.id,
+      amount: Math.round(amount * 100),
+      paymentMethod: 'bep20',
+      status: 'pending',
+      txid: bep20DirectWallet,
+      expectedCryptoAmount: expectedCryptoAmount
+    });
+
+    await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: `awaiting_bep20_txid_${newPayment.id}_0` });
+
+    const responseMsg = `<tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji> You need to pay <b>${expectedCryptoAmount} USDT</b> \n\n` +
+      `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+      `<b>Network:</b> BEP20 (Binance Smart Chain) <tg-emoji emoji-id="5280907155107506256">🪙</tg-emoji>\n\n` +
+      `<code>${bep20DirectWallet}</code>\n\n` +
+      `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>EXACTLY ${expectedCryptoAmount} USDT</b> to the address above.\n\n` +
+      `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>BEP20</b> to this address. Payment invoice expires in 1 hour.</i>\n\n` +
+      `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b>). Our automated Binance system verifies the unique decimal amount to credit your account!</blockquote>`;
+
+    const keyboard = [
+      [{ text: 'Generate QR Code', callback_data: `gen_qr_bep20_${newPayment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+      [{ text: 'Copy Wallet Address', copy_text: { text: bep20DirectWallet }, icon_custom_emoji_id: '5231102735817918643' }],
+      [{ text: 'Check payment', callback_data: `check_payment_${newPayment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+      [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+    ] as any[][];
+
+    const balanceBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_balance_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, balanceBannerPath, responseMsg, { inline_keyboard: keyboard }, messageIdToEdit, true);
+    return;
+  }
+
   const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
   const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
 
@@ -5111,7 +5148,90 @@ async function checkCryptomusInvoiceStatus(uuid?: string, orderId?: string) {
   return null;
 }
 
+function generateUniqueCryptoAmount(baseAmountUSD: number): string {
+  const offset = Math.floor(Math.random() * 90 + 10);
+  return (baseAmountUSD + (offset / 10000)).toFixed(4);
+}
+
+async function checkBinanceDepositStatus(txid?: string, expectedAmount?: string) {
+  const apiKey = (await storage.getSetting('BINANCE_API_KEY'))?.value;
+  const apiSecret = (await storage.getSetting('BINANCE_SECRET_KEY'))?.value || (await storage.getSetting('BINANCE_API_SECRET'))?.value;
+  if (!apiKey || !apiSecret) return null;
+
+  try {
+    const timestamp = Date.now();
+    let queryString = `coin=USDT&status=1&timestamp=${timestamp}`;
+    if (txid && !txid.startsWith('0x') && txid.length > 20) {
+      queryString += `&txId=${encodeURIComponent(txid.trim())}`;
+    }
+
+    const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+    const fullUrl = `https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryString}&signature=${signature}`;
+
+    const response = await axios.get(fullUrl, {
+      headers: { 'X-MBX-APIKEY': apiKey }
+    });
+
+    if (response.data && Array.isArray(response.data)) {
+      const deposits = response.data;
+      for (const d of deposits) {
+        if (d.status === 1) {
+          if (txid && d.txId && d.txId.toLowerCase() === txid.trim().toLowerCase()) {
+            return { verified: true, deposit: d, txid: d.txId };
+          }
+          if (expectedAmount) {
+            const depAmt = parseFloat(d.amount);
+            const expAmt = parseFloat(expectedAmount);
+            if (!isNaN(depAmt) && !isNaN(expAmt) && Math.abs(depAmt - expAmt) < 0.0001) {
+              return { verified: true, deposit: d, txid: d.txId };
+            }
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error('[Binance SAPI Deposit Check Error]:', err.response?.data || err.message);
+  }
+  return null;
+}
+
 async function processCryptomusTrc20InvoiceCreation(targetBot: TelegramBot, chatId: number, tgUser: any, amount: number, messageIdToEdit?: number) {
+  const gatewayMode = (await storage.getSetting('PAYMENT_GATEWAY_MODE'))?.value || 'cryptomus';
+  const trc20DirectWallet = (await storage.getSetting('TRC20_WALLET_ADDRESS'))?.value || "TJR7q1c8k5v74B8F91M5B1mzpml3x9k";
+
+  if (gatewayMode === 'binance_api') {
+    const expectedCryptoAmount = generateUniqueCryptoAmount(amount);
+    const newPayment = await storage.createPayment({
+      telegramUserId: tgUser.id,
+      amount: Math.round(amount * 100),
+      paymentMethod: 'trc20',
+      status: 'pending',
+      txid: trc20DirectWallet,
+      expectedCryptoAmount: expectedCryptoAmount
+    });
+
+    await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: `awaiting_trc20_txid_${newPayment.id}_0` });
+
+    const responseMsg = `<tg-emoji emoji-id="5936189134342199863">💰</tg-emoji> You need to pay <b>${expectedCryptoAmount} USDT</b> \n\n` +
+      `<b>Coin:</b> USDT <tg-emoji emoji-id="5201692367437974073">💵</tg-emoji>\n` +
+      `<b>Network:</b> TRC20 (Direct Wallet) <tg-emoji emoji-id="5936189134342199863">💰</tg-emoji>\n\n` +
+      `<code>${trc20DirectWallet}</code>\n\n` +
+      `<tg-emoji emoji-id="5803393311100113792">🥂</tg-emoji> Send <b>EXACTLY ${expectedCryptoAmount} USDT</b> to the address above.\n\n` +
+      `<tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <i>Send only <b>USDT</b> via <b>TRC20</b> to this address. Payment invoice expires in 1 hour.</i>\n\n` +
+      `<blockquote><tg-emoji emoji-id="6327875123646829719">⚠️</tg-emoji> <b>Important Notice:</b>\nYou must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b>). Our automated Binance system verifies the unique decimal amount to credit your account!</blockquote>`;
+
+    const keyboard = [
+      [{ text: 'Generate QR Code', callback_data: `gen_qr_trc20_${newPayment.id}`, icon_custom_emoji_id: '5309771942381785364' }],
+      [{ text: 'Copy Wallet Address', copy_text: { text: trc20DirectWallet }, icon_custom_emoji_id: '5231102735817918643' }],
+      [{ text: 'Check payment', callback_data: `check_payment_${newPayment.id}`, icon_custom_emoji_id: '5386367538735104399' }],
+      [{ text: 'Change Network', callback_data: 'add_funds', icon_custom_emoji_id: '5976535107933050770' }]
+    ] as any[][];
+
+    const trc20BannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_trc20_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, trc20BannerPath, responseMsg, { inline_keyboard: keyboard }, messageIdToEdit, true);
+    return;
+  }
+
   const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
   const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
 
@@ -8109,6 +8229,46 @@ async function processAntiSpamCheck(userId: string, chatId: number, queryId?: st
 
         // 3. Cryptomus / BEP20 / TRC20 / Aptos Payment Re-Check Handler
         if (paymentCheck.paymentMethod === 'trc20' || paymentCheck.paymentMethod === 'bep20' || paymentCheck.paymentMethod === 'cryptomus' || paymentCheck.paymentMethod === 'aptos') {
+          // First check Binance API if expectedCryptoAmount is present or binance_api mode is enabled
+          const binanceCheck = await checkBinanceDepositStatus(paymentCheck.txid, paymentCheck.expectedCryptoAmount);
+          if (binanceCheck && binanceCheck.verified) {
+            const result = await db.transaction(async (tx) => {
+              const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentCheck.id)).for('update');
+              if (!payment || payment.status === 'completed') {
+                return { success: false, alreadyCompleted: true };
+              }
+
+              await tx.update(telegramUsers).set({
+                balance: sql`balance + ${payment.amount}`
+              }).where(eq(telegramUsers.id, payment.telegramUserId));
+
+              await tx.update(payments).set({ status: 'completed', txid: binanceCheck.txid || payment.txid, updatedAt: new Date() }).where(eq(payments.id, payment.id));
+
+              const [updatedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, payment.telegramUserId));
+              return { success: true, payment, user: updatedUser };
+            });
+
+            if (result.success && result.payment) {
+              const updatedPayment = result.payment;
+              const newBalUSD = result.user ? (result.user.balance / 100) : (updatedPayment.amount / 100);
+              await sendDepositSuccessNotification(
+                targetBot,
+                chatId,
+                updatedPayment.amount / 100,
+                newBalUSD,
+                `${paymentCheck.paymentMethod.toUpperCase()} (Binance Direct)`,
+                binanceCheck.txid || paymentCheck.txid
+              );
+
+              await sendTrackTransactionDetail(targetBot, chatId, updatedPayment.id, query.message?.message_id);
+              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment Verified via Binance API! Balance updated.", show_alert: true }).catch(() => {});
+              return;
+            } else if (result.alreadyCompleted) {
+              await targetBot.answerCallbackQuery(query.id, { text: "✅ Payment already verified!", show_alert: true }).catch(() => {});
+              return;
+            }
+          }
+
           let checkRes = await checkCryptomusInvoiceStatus(paymentCheck.cryptomusUuid, paymentCheck.cryptomusUuid ? undefined : `${paymentCheck.paymentMethod}_${paymentCheck.id}`);
           if (!checkRes || !checkRes.paid) {
             const prefixes = ['bep20_', 'trc20_', 'payment_', 'aptos_'];

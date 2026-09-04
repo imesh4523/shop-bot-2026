@@ -19,6 +19,9 @@ export default function SettingsPage() {
   const [supportContact, setSupportContact] = useState("");
   const [cryptomusApiKey, setCryptomusApiKey] = useState("");
   const [cryptomusMerchantId, setCryptomusMerchantId] = useState("");
+  const [paymentGatewayMode, setPaymentGatewayMode] = useState("cryptomus");
+  const [bep20WalletAddress, setBep20WalletAddress] = useState("");
+  const [trc20WalletAddress, setTrc20WalletAddress] = useState("");
   const [appUrl, setAppUrl] = useState("https://monkfish-app-isiw9.ondigitalocean.app");
   const [cryptoBotToken, setCryptoBotToken] = useState("");
   const [cryptoBotEnabled, setCryptoBotEnabled] = useState(true);
@@ -94,6 +97,18 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/CRYPTOMUS_MERCHANT_ID"],
   });
 
+  const { data: gatewayModeSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_GATEWAY_MODE"],
+  });
+
+  const { data: bep20WalletSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BEP20_WALLET_ADDRESS"],
+  });
+
+  const { data: trc20WalletSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"],
+  });
+
   const { data: appUrlSetting } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/APP_URL"],
   });
@@ -152,10 +167,6 @@ export default function SettingsPage() {
 
   const { data: aptosEnabledSetting, isLoading: isAptosEnabledLoading } = useQuery<{ key: string, value: string }>({
     queryKey: ["/api/settings/PAYMENT_APTOS_ENABLED"],
-  });
-
-  const { data: trc20WalletSetting, isLoading: isTrc20WalletLoading } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"],
   });
 
   const { data: aptosWalletSetting, isLoading: isAptosWalletLoading } = useQuery<{ key: string, value: string }>({
@@ -320,6 +331,18 @@ export default function SettingsPage() {
   useEffect(() => {
     if (merchantSetting?.value !== undefined) setCryptomusMerchantId(merchantSetting.value);
   }, [merchantSetting]);
+
+  useEffect(() => {
+    if (gatewayModeSetting?.value !== undefined) setPaymentGatewayMode(gatewayModeSetting.value);
+  }, [gatewayModeSetting]);
+
+  useEffect(() => {
+    if (bep20WalletSetting?.value !== undefined) setBep20WalletAddress(bep20WalletSetting.value);
+  }, [bep20WalletSetting]);
+
+  useEffect(() => {
+    if (trc20WalletSetting?.value !== undefined) setTrc20WalletAddress(trc20WalletSetting.value);
+  }, [trc20WalletSetting]);
 
   useEffect(() => {
     if (appUrlSetting?.value !== undefined) setAppUrl(appUrlSetting.value);
@@ -581,6 +604,23 @@ export default function SettingsPage() {
     }
   });
 
+  const bep20WalletMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BEP20_WALLET_ADDRESS",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BEP20_WALLET_ADDRESS"] });
+      toast({
+        title: "BEP20 Wallet Address Updated",
+        description: "Direct BEP20 deposit address saved.",
+      });
+    }
+  });
+
   const trc20WalletMutation = useMutation({
     mutationFn: async (value: string) => {
       const res = await apiRequest("POST", "/api/settings", {
@@ -592,8 +632,8 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"] });
       toast({
-        title: "TRC20 Wallet Updated",
-        description: "TRC20 wallet address has been updated.",
+        title: "TRC20 Wallet Address Updated",
+        description: "Direct TRC20 deposit address saved.",
       });
     }
   });
@@ -1525,6 +1565,104 @@ export default function SettingsPage() {
             </div>
 
             <div className="h-px bg-white/5" />
+
+            {/* Payment Gateway Mode Switcher */}
+            <div className="p-5 rounded-2xl border border-purple-500/30 bg-purple-500/10 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    Payment Gateway Mode Switcher
+                  </h4>
+                  <p className="text-xs text-white/60 mt-1">
+                    Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices.
+                  </p>
+                </div>
+                <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentGatewayMode("cryptomus");
+                      togglePaymentMutation.mutate({ key: "PAYMENT_GATEWAY_MODE", value: "cryptomus" });
+                    }}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      paymentGatewayMode !== "binance_api"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    Cryptomus API Mode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentGatewayMode("binance_api");
+                      togglePaymentMutation.mutate({ key: "PAYMENT_GATEWAY_MODE", value: "binance_api" });
+                    }}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      paymentGatewayMode === "binance_api"
+                        ? "bg-amber-500 text-black shadow-lg shadow-amber-500/30 font-black"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    Direct Wallet + Binance API Mode
+                  </button>
+                </div>
+              </div>
+              {paymentGatewayMode === "binance_api" ? (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+                  ⚡ <b>Direct Wallet + Binance API Active:</b> Users receive your direct BEP20/TRC20 wallet addresses with a unique micro-decimal offset (e.g., <code>5.0074 USDT</code>) to avoid payment collisions. Payments automatically expire in 1 hour and auto-verify via Binance API.
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200">
+                  🔮 <b>Cryptomus API Active:</b> Users pay via dynamic Cryptomus invoices generated for each transaction.
+                </div>
+              )}
+            </div>
+
+            {/* Direct Wallet Addresses (BEP20 & TRC20) */}
+            <div className="space-y-4 p-5 rounded-2xl border border-white/10 bg-white/5">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider text-amber-400">Direct Deposit Wallet Addresses</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/60 uppercase">BEP20 Direct Wallet Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="0x..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                      value={bep20WalletAddress}
+                      onChange={(e) => setBep20WalletAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => bep20WalletMutation.mutate(bep20WalletAddress)}
+                      disabled={bep20WalletMutation.isPending}
+                      className="h-11 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/60 uppercase">TRC20 Direct Wallet Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="T..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                      value={trc20WalletAddress}
+                      onChange={(e) => setTrc20WalletAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => trc20WalletMutation.mutate(trc20WalletAddress)}
+                      disabled={trc20WalletMutation.isPending}
+                      className="h-11 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Cryptomus Section */}
             <div className="space-y-6">
