@@ -55,7 +55,10 @@ import {
   type InsertSupportTicket,
   preorders,
   type Preorder,
-  type InsertPreorder
+  type InsertPreorder,
+  apiKeys,
+  type ApiKey,
+  type InsertApiKey
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -180,6 +183,16 @@ export interface IStorage {
   getSupportTickets(): Promise<SupportTicket[]>;
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
   updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket>;
+
+  // Developer API Keys
+  createApiKey(telegramUserId: number, key: string): Promise<ApiKey>;
+  getApiKeyByKey(key: string): Promise<ApiKey | undefined>;
+  getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined>;
+  getUserApiKeys(telegramUserId: number): Promise<ApiKey[]>;
+  getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]>;
+  revokeApiKey(id: number): Promise<ApiKey>;
+  updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey>;
+  getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -950,6 +963,108 @@ export class DatabaseStorage implements IStorage {
       .where(eq(preorders.id, id))
       .returning();
     return updated;
+  }
+
+  // Developer API Keys Implementation
+  async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+    await db.update(apiKeys)
+      .set({ status: "revoked" })
+      .where(and(eq(apiKeys.telegramUserId, telegramUserId), eq(apiKeys.status, "active")));
+
+    const [inserted] = await db.insert(apiKeys)
+      .values({
+        telegramUserId,
+        key,
+        status: "active",
+      })
+      .returning();
+    return inserted;
+  }
+
+  async getApiKeyByKey(key: string): Promise<ApiKey | undefined> {
+    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.key, key));
+    return apiKey;
+  }
+
+  async getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined> {
+    const activeKeys = await db.select()
+      .from(apiKeys)
+      .where(and(eq(apiKeys.telegramUserId, telegramUserId), eq(apiKeys.status, "active")))
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(1);
+
+    if (activeKeys.length > 0) return activeKeys[0];
+
+    const anyKeys = await db.select()
+      .from(apiKeys)
+      .where(eq(apiKeys.telegramUserId, telegramUserId))
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(1);
+
+    return anyKeys[0];
+  }
+
+  async getUserApiKeys(telegramUserId: number): Promise<ApiKey[]> {
+    return await db.select()
+      .from(apiKeys)
+      .where(eq(apiKeys.telegramUserId, telegramUserId))
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
+  async getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]> {
+    const rows = await db.select()
+      .from(apiKeys)
+      .leftJoin(telegramUsers, eq(apiKeys.telegramUserId, telegramUsers.id))
+      .orderBy(desc(apiKeys.createdAt));
+
+    return rows.map((r) => ({
+      ...r.api_keys,
+      telegramUser: r.telegram_users,
+    }));
+  }
+
+  async revokeApiKey(id: number): Promise<ApiKey> {
+    const [updated] = await db.update(apiKeys)
+      .set({ status: "revoked" })
+      .where(eq(apiKeys.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey> {
+    const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+    if (!existing) throw new Error("API Key not found");
+
+    const totalOrders = (existing.totalOrders || 0) + 1;
+    const successOrders = (existing.successOrders || 0) + (success ? 1 : 0);
+    const failedOrders = (existing.failedOrders || 0) + (success ? 0 : 1);
+    const revenue = (existing.revenue || 0) + (success ? amountCents : 0);
+
+    const [updated] = await db.update(apiKeys)
+      .set({
+        totalOrders,
+        successOrders,
+        failedOrders,
+        revenue,
+        lastUsedAt: new Date(),
+      })
+      .where(eq(apiKeys.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]> {
+    const rows = await db.select()
+      .from(orders)
+      .leftJoin(products, eq(orders.productId, products.id))
+      .where(eq(orders.apiKeyId, apiKeyId))
+      .orderBy(desc(orders.createdAt));
+
+    return rows.map((r) => ({
+      ...r.orders,
+      product: r.products,
+    }));
   }
 }
 

@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { LayoutShell } from "@/components/layout-shell";
 import { AdminNotifier } from "@/components/admin-notifier";
 
-// Eagerly import all pages to eliminate dynamic chunk import errors permanently!
+// Eagerly import all pages
 import Dashboard from "@/pages/dashboard";
 import ProductsPage from "@/pages/products-page";
 import InventoryPage from "@/pages/inventory-page";
@@ -31,6 +31,8 @@ import SupportTicketsPage from "@/pages/support-tickets-page";
 import CustomerTrackerPage from "@/pages/customer-tracker-page";
 import PreordersPage from "@/pages/preorders-page";
 import MiniAppShop from "@/pages/mini-app-shop";
+import ApiDocsPage from "@/pages/api-docs-page";
+import AdminApiKeysPage from "@/pages/admin-api-keys-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -50,7 +52,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!user) {
-    return <Redirect to="/login" />;
+    return <Redirect to="/imeshadmindashbord/login" />;
   }
 
   return (
@@ -65,92 +67,111 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function Router() {
   return (
     <Switch>
-      <Route path="/login">
-        <LoginPage />
+      {/* Public Pages */}
+      <Route path="/docs">
+        <ApiDocsPage />
       </Route>
-      
+
       <Route path="/shop">
         <MiniAppShop />
       </Route>
 
-      <Route path="/">
+      {/* Secret Admin Route Login */}
+      <Route path="/imeshadmindashbord/login">
+        <LoginPage />
+      </Route>
+      <Route path="/login">
+        <Redirect to="/imeshadmindashbord/login" />
+      </Route>
+
+      {/* Secret Admin Routes (/imeshadmindashbord/*) */}
+      <Route path="/imeshadmindashbord">
         <ProtectedRoute component={Dashboard} />
       </Route>
 
-      <Route path="/customer-tracker">
+      <Route path="/imeshadmindashbord/api-keys">
+        <ProtectedRoute component={AdminApiKeysPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/customer-tracker">
         <ProtectedRoute component={CustomerTrackerPage} />
       </Route>
 
-      <Route path="/preorders">
+      <Route path="/imeshadmindashbord/preorders">
         <ProtectedRoute component={PreordersPage} />
       </Route>
       
-      <Route path="/products">
+      <Route path="/imeshadmindashbord/products">
         <ProtectedRoute component={ProductsPage} />
       </Route>
       
-      <Route path="/inventory">
+      <Route path="/imeshadmindashbord/inventory">
         <ProtectedRoute component={InventoryPage} />
       </Route>
 
-      <Route path="/orders">
+      <Route path="/imeshadmindashbord/orders">
         <ProtectedRoute component={OrdersPage} />
       </Route>
 
-      <Route path="/payments">
+      <Route path="/imeshadmindashbord/payments">
         <ProtectedRoute component={PaymentsPage} />
       </Route>
 
-      <Route path="/support-tickets">
+      <Route path="/imeshadmindashbord/support-tickets">
         <ProtectedRoute component={SupportTicketsPage} />
       </Route>
 
-      <Route path="/broadcast">
+      <Route path="/imeshadmindashbord/broadcast">
         <ProtectedRoute component={BroadcastPage} />
       </Route>
 
-      <Route path="/settings">
+      <Route path="/imeshadmindashbord/settings">
         <ProtectedRoute component={SettingsPage} />
       </Route>
 
-      <Route path="/aws-checker">
+      <Route path="/imeshadmindashbord/aws-checker">
         <ProtectedRoute component={AwsCheckerPage} />
       </Route>
 
-      <Route path="/special-offers">
+      <Route path="/imeshadmindashbord/special-offers">
         <ProtectedRoute component={SpecialOffersPage} />
       </Route>
 
-      <Route path="/promo-codes">
+      <Route path="/imeshadmindashbord/promo-codes">
         <ProtectedRoute component={PromoCodesPage} />
       </Route>
 
-      <Route path="/backups">
+      <Route path="/imeshadmindashbord/backups">
         <ProtectedRoute component={BackupPage} />
       </Route>
 
-      <Route path="/users">
+      <Route path="/imeshadmindashbord/users">
         <ProtectedRoute component={TelegramUsersPage} />
       </Route>
 
-      <Route path="/referrals">
+      <Route path="/imeshadmindashbord/referrals">
         <ProtectedRoute component={ReferralsPage} />
       </Route>
 
-      <Route path="/spam-protector">
+      <Route path="/imeshadmindashbord/spam-protector">
         <ProtectedRoute component={SpamProtectorPage} />
       </Route>
 
-      <Route path="/telegram-inspector">
+      <Route path="/imeshadmindashbord/telegram-inspector">
         <ProtectedRoute component={TelegramInspectorPage} />
       </Route>
 
-      <Route path="/telegram-client">
+      <Route path="/imeshadmindashbord/telegram-client">
         <ProtectedRoute component={TelegramClientPage} />
       </Route>
 
-      <Route path="/forward">
+      <Route path="/imeshadmindashbord/forward">
         <ProtectedRoute component={ForwardPage} />
+      </Route>
+
+      {/* Root Path redirects to public API docs */}
+      <Route path="/">
+        <ApiDocsPage />
       </Route>
 
       {/* Fallback to 404 */}

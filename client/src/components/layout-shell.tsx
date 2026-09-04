@@ -21,6 +21,7 @@ import {
   LifeBuoy,
   Database,
   Clock,
+  Key,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,26 +49,27 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Pre-Orders', href: '/preorders', icon: Clock },
-    { name: 'Customer Audit & Fix', href: '/customer-tracker', icon: ShieldCheck },
-    { name: 'Broadcast', href: '/broadcast', icon: Megaphone },
-    { name: 'Products', href: '/products', icon: Package },
-    { name: 'Inventory', href: '/inventory', icon: Package },
-    { name: 'Orders', href: '/orders', icon: ShoppingCart },
-    { name: 'Support Tickets', href: '/support-tickets', icon: LifeBuoy },
-    { name: 'Payments', href: '/payments', icon: User },
-    { name: 'Database Backup', href: '/backups', icon: Database },
-    { name: 'Special Offers', href: '/special-offers', icon: Tag },
-    { name: 'Promo Codes', href: '/promo-codes', icon: Ticket },
-    { name: 'AWS Checker', href: '/aws-checker', icon: ShieldCheck },
-    { name: 'Users', href: '/users', icon: Users },
-    { name: 'Referral Program', href: '/referrals', icon: Users },
-    { name: 'Spam Protector', href: '/spam-protector', icon: ShieldAlert },
-    { name: 'Telegram Inspector', href: '/telegram-inspector', icon: Smile },
-    { name: 'Telegram AI', href: '/telegram-client', icon: Send },
-    { name: 'Auto Forward', href: '/forward', icon: Share2 },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Dashboard', href: '/imeshadmindashbord', icon: LayoutDashboard },
+    { name: 'API Keys', href: '/imeshadmindashbord/api-keys', icon: Key },
+    { name: 'Pre-Orders', href: '/imeshadmindashbord/preorders', icon: Clock },
+    { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },
+    { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
+    { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
+    { name: 'Inventory', href: '/imeshadmindashbord/inventory', icon: Package },
+    { name: 'Orders', href: '/imeshadmindashbord/orders', icon: ShoppingCart },
+    { name: 'Support Tickets', href: '/imeshadmindashbord/support-tickets', icon: LifeBuoy },
+    { name: 'Payments', href: '/imeshadmindashbord/payments', icon: User },
+    { name: 'Database Backup', href: '/imeshadmindashbord/backups', icon: Database },
+    { name: 'Special Offers', href: '/imeshadmindashbord/special-offers', icon: Tag },
+    { name: 'Promo Codes', href: '/imeshadmindashbord/promo-codes', icon: Ticket },
+    { name: 'AWS Checker', href: '/imeshadmindashbord/aws-checker', icon: ShieldCheck },
+    { name: 'Users', href: '/imeshadmindashbord/users', icon: Users },
+    { name: 'Referral Program', href: '/imeshadmindashbord/referrals', icon: Users },
+    { name: 'Spam Protector', href: '/imeshadmindashbord/spam-protector', icon: ShieldAlert },
+    { name: 'Telegram Inspector', href: '/imeshadmindashbord/telegram-inspector', icon: Smile },
+    { name: 'Telegram AI', href: '/imeshadmindashbord/telegram-client', icon: Send },
+    { name: 'Auto Forward', href: '/imeshadmindashbord/forward', icon: Share2 },
+    { name: 'Settings', href: '/imeshadmindashbord/settings', icon: Settings },
   ];
 
   const NavContent = () => (

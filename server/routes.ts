@@ -13,6 +13,7 @@ import { storage } from "./storage";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
+import { apiV1Router } from "./routes/api-v1";
 import { z } from "zod";
 import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
@@ -500,6 +501,8 @@ export async function registerRoutes(
     next();
   });
 
+  app.use("/api/v1", apiV1Router);
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
@@ -932,6 +935,96 @@ export async function registerRoutes(
 
     const userPayments = await storage.getPaymentsForUser(dbUser.id);
     res.json(userPayments);
+  });
+
+  // Admin API Keys Management Endpoints
+  app.get("/api/admin/api-keys", isAuth, async (req, res) => {
+    try {
+      const keys = await storage.getAllApiKeys();
+      res.json(keys);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/api-keys/generate", isAuth, async (req, res) => {
+    try {
+      const { telegramUserId } = req.body;
+      if (!telegramUserId) {
+        return res.status(400).json({ message: "telegramUserId is required" });
+      }
+
+      const keyStr = "ric_" + crypto.randomBytes(20).toString("hex");
+      const created = await storage.createApiKey(Number(telegramUserId), keyStr);
+      res.json(created);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/api-keys/:id/revoke", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+
+      const updated = await storage.revokeApiKey(id);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/api-keys/:id/orders", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+
+      const keyOrders = await storage.getApiKeyOrders(id);
+      res.json(keyOrders);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/users/:telegramUserId/api-details", isAuth, async (req, res) => {
+    try {
+      const tgUserId = parseInt(req.params.telegramUserId, 10);
+      if (isNaN(tgUserId)) return res.status(400).json({ message: "Invalid Telegram User ID" });
+
+      const userKeys = await storage.getUserApiKeys(tgUserId);
+      const keyIds = userKeys.map(k => k.id);
+
+      let keyOrders: any[] = [];
+      if (keyIds.length > 0) {
+        const rows = await db.select()
+          .from(orders)
+          .leftJoin(products, eq(orders.productId, products.id))
+          .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+          .leftJoin(apiKeys, eq(orders.apiKeyId, apiKeys.id))
+          .where(inArray(orders.apiKeyId, keyIds))
+          .orderBy(desc(orders.createdAt));
+
+        keyOrders = rows.map((r) => ({
+          id: r.orders.id,
+          productId: r.orders.productId,
+          productName: r.products?.name || "Unknown Product",
+          priceCents: r.products?.price || 0,
+          priceUsd: ((r.products?.price || 0) / 100).toFixed(2),
+          status: r.orders.status,
+          apiKey: r.api_keys?.key || null,
+          apiKeyStatus: r.api_keys?.status || null,
+          deliveredContent: r.credentials?.content || null,
+          createdAt: r.orders.createdAt
+        }));
+      }
+
+      res.json({
+        keys: userKeys,
+        orders: keyOrders
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
   });
 
   // Referral Program Admin API Endpoints
@@ -2726,7 +2819,6 @@ const patchBotMethods = (targetBot: TelegramBot) => {
           if (Array.isArray(row)) {
             for (const btn of row) {
               delete btn.style;
-              delete btn.icon_custom_emoji_id;
             }
           }
         }
@@ -2745,43 +2837,55 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   };
 
   targetBot.sendMessage = async function(chatId: any, text: string, options?: any) {
-    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendMessage(chatId, text, cleanOpts);
+      return await originalSendMessage(chatId, text, options);
     } catch (err: any) {
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendMessage to ${chatId}`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendMessage(chatId, text, cleanOpts);
+      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendMessage to ${chatId}`);
         const cleanText = stripEmojis(text);
-        return await originalSendMessage(chatId, cleanText, cleanOpts);
+        return await originalSendMessage(chatId, cleanText, options);
       }
       throw err;
     }
   } as any;
 
   targetBot.editMessageText = async function(text: string, options?: any) {
-    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalEditMessageText(text, cleanOpts);
+      return await originalEditMessageText(text, options);
     } catch (err: any) {
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying editMessageText`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalEditMessageText(text, cleanOpts);
+      }
       if (isDocumentInvalid(err) && typeof text === 'string' && text.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying editMessageText`);
         const cleanText = stripEmojis(text);
-        return await originalEditMessageText(cleanText, cleanOpts);
+        return await originalEditMessageText(cleanText, options);
       }
       throw err;
     }
   } as any;
 
   targetBot.sendPhoto = async function(chatId: any, photo: any, options?: any, fileOptions?: any) {
-    const cleanOpts = stripButtonStyles(options);
     const fileOpts = fileOptions || (Buffer.isBuffer(photo) ? { filename: 'photo.jpg', contentType: 'image/jpeg' } : undefined);
     try {
-      return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
+      return await originalSendPhoto(chatId, photo, options, fileOpts);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        console.warn(`[Bot API] Invalid button style detected. Stripping style attributes and retrying sendPhoto to ${chatId}`);
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendPhoto(chatId, photo, cleanOpts, fileOpts);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendPhoto to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
         return await originalSendPhoto(chatId, photo, retryOpts, fileOpts);
       }
       throw err;
@@ -2789,14 +2893,17 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   } as any;
 
   targetBot.sendVideo = async function(chatId: any, video: any, options?: any) {
-    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendVideo(chatId, video, cleanOpts);
+      return await originalSendVideo(chatId, video, options);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendVideo(chatId, video, cleanOpts);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendVideo to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
         return await originalSendVideo(chatId, video, retryOpts);
       }
       throw err;
@@ -2804,14 +2911,17 @@ const patchBotMethods = (targetBot: TelegramBot) => {
   } as any;
 
   targetBot.sendDocument = async function(chatId: any, doc: any, options?: any, fileOptions?: any) {
-    const cleanOpts = stripButtonStyles(options);
     try {
-      return await originalSendDocument(chatId, doc, cleanOpts, fileOptions);
+      return await originalSendDocument(chatId, doc, options, fileOptions);
     } catch (err: any) {
-      const caption = cleanOpts?.caption;
+      if (isButtonStyleInvalid(err)) {
+        const cleanOpts = stripButtonStyles(options);
+        return await originalSendDocument(chatId, doc, cleanOpts, fileOptions);
+      }
+      const caption = options?.caption;
       if (isDocumentInvalid(err) && typeof caption === 'string' && caption.includes('<tg-emoji')) {
         console.warn(`[Bot API] DOCUMENT_INVALID detected. Stripping tg-emoji tags and retrying sendDocument to ${chatId}`);
-        const retryOpts = { ...cleanOpts, caption: stripEmojis(caption) };
+        const retryOpts = { ...options, caption: stripEmojis(caption) };
         return await originalSendDocument(chatId, doc, retryOpts, fileOptions);
       }
       throw err;
@@ -3270,15 +3380,15 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const profileInlineKeyboard = {
     inline_keyboard: [
-      [{ text: '💵 Top up balance', callback_data: 'add_funds' }],
-      [{ text: '📦 My purchases', callback_data: 'purchase_history' }],
-      [{ text: '👤 Referral program', callback_data: 'referral_program' }],
-      [{ text: '🎟 Promo code', callback_data: 'enter_promocode' }],
-      [{ text: '🔄 Transactions', callback_data: 'transactions' }],
-      [{ text: '💱 Price currency', callback_data: 'change_currency' }],
-      [{ text: '🌐 Язык / Language', callback_data: 'change_language' }],
-      [{ text: '◀️ Back', callback_data: 'main_menu' }]
-    ]
+      [{ text: 'Top up balance', callback_data: 'add_funds', style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+      [{ text: 'My purchases', callback_data: 'purchase_history', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
+      [{ text: 'Referral program', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5208604387156448480' }],
+      [{ text: 'Promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
+      [{ text: 'Transactions', callback_data: 'transactions', style: 'primary', icon_custom_emoji_id: '5312441427764989435' }],
+      [{ text: 'Price currency', callback_data: 'change_currency', style: 'primary', icon_custom_emoji_id: '5429518319243775957' }],
+      [{ text: 'Язык / Language', callback_data: 'change_language', style: 'primary', icon_custom_emoji_id: '5854908544712707500' }],
+      [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+    ] as any
   };
 
   const profileBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_profile_banner.png");
@@ -3361,16 +3471,20 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
     const btnObj: any = {
       text: btnText,
-      callback_data: `cat_${category}`
+      callback_data: `cat_${category}`,
+      style: buttonStyle
     };
+    if (iconEmojiId) {
+      btnObj.icon_custom_emoji_id = iconEmojiId;
+    }
     inline_keyboard.push([btnObj]);
   }
 
   inline_keyboard.push([
-    { text: '🔍 Search catalog', callback_data: 'search_catalog' }
+    { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5231012545799666522' }
   ]);
   inline_keyboard.push([
-    { text: '◀️ Back', callback_data: 'profile' }
+    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${t(userLang, 'catalog_title')}</b>\n\n${t(userLang, 'choose_category')}`;
@@ -3618,16 +3732,16 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     `Choose payment method:`;
 
   const inline_keyboard = [
-    [{ text: '🎟 Enter promo code', callback_data: 'enter_promocode' }],
-    [{ text: '🤖 CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}` }],
-    [{ text: '🟡 Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}` }],
+    [{ text: 'Enter promo code', callback_data: 'enter_promocode', style: 'primary', icon_custom_emoji_id: '6113971389935391397' }],
+    [{ text: 'CryptoBot', callback_data: `pay_cryptobot_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5361914370068613491' }],
+    [{ text: 'Binance Pay / UID', callback_data: `pay_binance_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5281029063459234079' }],
     [
-      { text: '🌐 USDT • BEP20', callback_data: `pay_bep20_${productId}_${qty}` },
-      { text: '⚡ USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}` }
+      { text: 'USDT • BEP20', callback_data: `pay_bep20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5280907155107506256' },
+      { text: 'USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5936189134342199863' }
     ],
-    [{ text: '💵 Pay from balance', callback_data: `pay_bal_${productId}_${qty}` }],
-    [{ text: '◀️ Cancel / Back', callback_data: `prod_${productId}` }]
-  ];
+    [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
+    [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
+  ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, paymentBannerPath, orderCaption, { inline_keyboard }, messageId);
@@ -3752,8 +3866,12 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   }
 
   inline_keyboard.push(
-    [{ text: '💵 Top up balance', callback_data: 'add_funds' }],
-    [{ text: '◀️ Back', callback_data: 'profile' }]
+    [
+      { text: 'Top up balance', callback_data: 'add_funds', style: 'primary', icon_custom_emoji_id: '5409048419211682843' }
+    ],
+    [
+      { text: 'Back', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    ]
   );
 
   const ordersCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>My Purchases</b> <code>(Page ${page})</code>\n\n` +
@@ -3799,11 +3917,39 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}`;
 
   const inline_keyboard = [
-    [{ text: '🔗 Share link', url: shareUrl }],
-    [{ text: '🔄 Convert to shop balance', callback_data: 'convert_ref_to_bal' }],
-    [{ text: '💸 Withdraw USDT BEP-20', callback_data: 'withdraw_referral' }],
-    [{ text: '◀️ Back', callback_data: 'profile' }]
-  ];
+    [
+      {
+        text: 'Share link',
+        url: shareUrl,
+        style: 'primary',
+        icon_custom_emoji_id: '5271604874419647061'
+      }
+    ],
+    [
+      {
+        text: 'Convert to shop balance',
+        callback_data: 'convert_ref_to_bal',
+        style: 'success',
+        icon_custom_emoji_id: '5409048419211682843'
+      }
+    ],
+    [
+      {
+        text: 'Withdraw USDT BEP-20',
+        callback_data: 'withdraw_referral',
+        style: 'primary',
+        icon_custom_emoji_id: '5404617696589390973'
+      }
+    ],
+    [
+      {
+        text: 'Back',
+        callback_data: 'profile',
+        style: 'primary',
+        icon_custom_emoji_id: '5976535107933050770'
+      }
+    ]
+  ] as any;
 
   const refBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_referral_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, refBannerPath, refCaption, { inline_keyboard }, messageId);
@@ -3830,21 +3976,28 @@ const sendCurrencyScreen = async (targetBot: TelegramBot, chatId: number, userId
   const inline_keyboard: any[] = [];
   const currencyKeys = Object.keys(SUPPORTED_CURRENCIES);
 
+  // Rows of 3 buttons without standard unicode emojis in text
   for (let i = 0; i < currencyKeys.length; i += 3) {
     const row = currencyKeys.slice(i, i + 3).map(code => {
       const info = SUPPORTED_CURRENCIES[code];
       const isSelected = currCurrency === code;
-      const prefix = isSelected ? '✅ ' : '';
       return {
-        text: `${prefix}${code} (${info.symbol})`,
-        callback_data: `set_curr_${code}`
+        text: `${code} (${info.symbol})`,
+        callback_data: `set_curr_${code}`,
+        style: isSelected ? 'success' : 'primary',
+        icon_custom_emoji_id: isSelected ? '5409048419211682843' : info.customEmojiId
       };
     });
     inline_keyboard.push(row);
   }
 
   inline_keyboard.push([
-    { text: '◀️ Back', callback_data: 'profile' }
+    {
+      text: 'Back',
+      callback_data: 'profile',
+      style: 'primary',
+      icon_custom_emoji_id: '5976535107933050770'
+    }
   ]);
 
   const currencyBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_currency_banner.png");
@@ -3862,34 +4015,46 @@ const sendLanguageScreen = async (targetBot: TelegramBot, chatId: number, userId
   const inline_keyboard: any[] = [
     [
       {
-        text: `${currLang === 'en' ? '✅ ' : ''}🇺🇸 English`,
-        callback_data: 'set_lang_en'
+        text: 'English',
+        callback_data: 'set_lang_en',
+        style: currLang === 'en' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'en' ? '5409048419211682843' : '5404617696589390973'
       },
       {
-        text: `${currLang === 'ru' ? '✅ ' : ''}🇷🇺 Русский`,
-        callback_data: 'set_lang_ru'
+        text: 'Русский',
+        callback_data: 'set_lang_ru',
+        style: currLang === 'ru' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'ru' ? '5409048419211682843' : '5231449120635370684'
       }
     ],
     [
       {
-        text: `${currLang === 'hi' ? '✅ ' : ''}🇮🇳 हिंदी`,
-        callback_data: 'set_lang_hi'
+        text: 'हिंदी',
+        callback_data: 'set_lang_hi',
+        style: currLang === 'hi' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'hi' ? '5409048419211682843' : '6113971389935391397'
       },
       {
-        text: `${currLang === 'zh' ? '✅ ' : ''}🇨🇳 中文`,
-        callback_data: 'set_lang_zh'
+        text: '中文',
+        callback_data: 'set_lang_zh',
+        style: currLang === 'zh' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'zh' ? '5409048419211682843' : '5854908544712707500'
       }
     ],
     [
       {
-        text: `${currLang === 'vi' ? '✅ ' : ''}🇻🇳 Tiếng Việt`,
-        callback_data: 'set_lang_vi'
+        text: 'Tiếng Việt',
+        callback_data: 'set_lang_vi',
+        style: currLang === 'vi' ? 'success' : 'primary',
+        icon_custom_emoji_id: currLang === 'vi' ? '5409048419211682843' : '5429518319243775957'
       }
     ],
     [
       {
-        text: '◀️ Back',
-        callback_data: 'profile'
+        text: t(currLang, 'btn_back'),
+        callback_data: 'profile',
+        style: 'primary',
+        icon_custom_emoji_id: '5976535107933050770'
       }
     ]
   ];
@@ -4641,16 +4806,20 @@ async function setupBotProfile(targetBot: TelegramBot) {
 
     // Set bot commands
     try {
-      await targetBot.setMyCommands([
+      await targetBot.deleteMyCommands().catch(() => {});
+      const botCommands = [
         { command: 'start', description: 'Open shop' },
+        { command: 'devoloperapi', description: 'Developer API Keys & Access' },
         { command: 'language', description: 'Change language' },
         { command: 'tracktransaction', description: 'Track payment transactions' },
         { command: 'help', description: 'Help' },
         { command: 'info', description: 'Information' },
         { command: 'search', description: 'Search products' },
         { command: 'promo', description: 'Apply promo code' }
-      ]);
-      console.log('[Bot Commands] setMyCommands registered successfully!');
+      ];
+      await targetBot.setMyCommands(botCommands, { scope: { type: 'default' } } as any).catch(() => {});
+      await targetBot.setMyCommands(botCommands);
+      console.log('[Bot Commands] setMyCommands registered successfully across all scopes!');
     } catch (err: any) {
       console.error('Failed to set bot commands:', err.message);
     }
@@ -5520,6 +5689,32 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       // --- LOGIC FROM LISTENER 1 & 2 ---
       if (data === 'buy' || data === 'catalog') {
         await sendCatalogMenu(targetBot, chatId, msgId);
+        return;
+      }
+
+      if (data === 'dev_api_menu') {
+        await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
+        return;
+      }
+
+      if (data === 'create_api_key') {
+        const newKeyStr = 'ric_' + crypto.randomBytes(20).toString('hex');
+        await storage.createApiKey(tgUser.id, newKeyStr);
+        await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
+        return;
+      }
+
+      if (data === 'revoke_api_key') {
+        const existingKey = await storage.getApiKeyByTelegramUser(tgUser.id);
+        if (existingKey) {
+          await storage.revokeApiKey(existingKey.id);
+        }
+        await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
+        return;
+      }
+
+      if (data === 'api_key_stats') {
+        await sendApiKeyStatsScreen(targetBot, chatId, userId, msgId);
         return;
       }
 
@@ -8438,6 +8633,128 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       return;
     }
     await sendTrackTransactionList(targetBot, chatId, tgUser, 1);
+  });
+
+  async function sendDeveloperApiScreen(targetBot: TelegramBot, chatId: number, userId: string, messageIdToEdit?: number) {
+    try {
+      const tgUser = await storage.getTelegramUserByChatId(userId);
+      if (!tgUser) {
+        await targetBot.sendMessage(chatId, "⚠️ User profile not found. Please tap /start first.").catch(() => {});
+        return;
+      }
+
+      const apiKey = await storage.getApiKeyByTelegramUser(tgUser.id);
+      const appBaseUrl = await getAppBaseUrl();
+      const customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `${appBaseUrl}/custom`;
+      const customDocsUrl = (await storage.getSetting("API_DOCS_URL"))?.value || `${appBaseUrl}/docs`;
+
+      if (!apiKey || apiKey.status === "revoked") {
+        const caption = `<tg-emoji emoji-id="6206077285720659346">⚠️</tg-emoji> <b>Developer API Access</b>\n\n` +
+          `Generate your personal API Key to integrate our store endpoints directly into your custom applications or bots.\n\n` +
+          `Tap the button below to generate your API key:`;
+
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: 'Create your API key', callback_data: 'create_api_key', icon_custom_emoji_id: '5307843983102204243' }],
+            [{ text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+          ]
+        };
+
+        if (messageIdToEdit) {
+          try {
+            await targetBot.editMessageText(caption, { chat_id: chatId, message_id: messageIdToEdit, parse_mode: 'HTML', reply_markup: keyboard });
+            return;
+          } catch (err) {}
+        }
+        await targetBot.sendMessage(chatId, caption, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+        return;
+      }
+
+      const caption = `<tg-emoji emoji-id="6206077285720659346">⚠️</tg-emoji> <b>Your API key</b>\n\n` +
+        `<code>${apiKey.key}</code>\n\n` +
+        `<tg-emoji emoji-id="5411225014148014586">🔴</tg-emoji> <b>Full documentation:</b>\n` +
+        `<code>${customDocsUrl}</code>\n\n` +
+        `<tg-emoji emoji-id="5411225014148014586">🔴</tg-emoji> <b>Endpoints:</b>\n` +
+        `<code>GET  /api/v1/me</code> — Get balance\n` +
+        `<code>GET  /api/v1/products</code> — List products\n` +
+        `<code>POST /api/v1/order</code> — Place one order\n` +
+        `<code>POST /api/v1/batch-order</code> — Place multiple orders\n` +
+        `<code>GET  /api/v1/orders</code> — Order history\n` +
+        `<code>GET  /api/v1/order/{id}</code> — Order details\n` +
+        `<code>GET  /api/v1/pending/{id}</code> — Approval status\n` +
+        `<code>GET  /api/v1/stats</code> — API-key statistics\n\n` +
+        `<b>Base URL:</b> <code>${customBaseUrl}</code>\n` +
+        `<b>Auth header:</b> <code>X-API-Key: &lt;your key&gt;</code>`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: 'Copy API Key', copy_text: { text: apiKey.key }, icon_custom_emoji_id: '5231102735817918643' },
+            { text: 'Copy Base URL', copy_text: { text: customBaseUrl }, icon_custom_emoji_id: '5231102735817918643' }
+          ],
+          [
+            { text: 'Revoke API Key', callback_data: 'revoke_api_key', icon_custom_emoji_id: '5307843983102204243' }
+          ],
+          [
+            { text: 'API Key Statistics', callback_data: 'api_key_stats', icon_custom_emoji_id: '5307843983102204243' }
+          ],
+          [
+            { text: 'Back', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+          ]
+        ]
+      };
+
+      if (messageIdToEdit) {
+        try {
+          await targetBot.editMessageText(caption, { chat_id: chatId, message_id: messageIdToEdit, parse_mode: 'HTML', reply_markup: keyboard });
+          return;
+        } catch (err) {}
+      }
+      await targetBot.sendMessage(chatId, caption, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+    } catch (err) {
+      console.error("Error in sendDeveloperApiScreen:", err);
+    }
+  }
+
+  async function sendApiKeyStatsScreen(targetBot: TelegramBot, chatId: number, userId: string, messageIdToEdit?: number) {
+    const tgUser = await storage.getTelegramUserByChatId(userId);
+    if (!tgUser) return;
+
+    const apiKey = await storage.getApiKeyByTelegramUser(tgUser.id);
+    if (!apiKey) {
+      await sendDeveloperApiScreen(targetBot, chatId, userId, messageIdToEdit);
+      return;
+    }
+
+    const maskedKey = apiKey.key.length > 18 ? `${apiKey.key.substring(0, 15)}…` : apiKey.key;
+    const statusEmoji = apiKey.status === "active" ? `<tg-emoji emoji-id="6179295235462406768">🟢</tg-emoji>` : `🔴`;
+    const revenueUsd = ((apiKey.revenue || 0) / 100).toFixed(2);
+    const lastUsedText = apiKey.lastUsedAt ? formatSriLankaTime(apiKey.lastUsedAt, 'full') : "Never";
+
+    const caption = `<tg-emoji emoji-id="5307843983102204243">🔑</tg-emoji> <b>API Key Statistics</b>\n\n` +
+      `<b>API Key</b> · <code>${maskedKey}</code> ${statusEmoji}\n` +
+      `Orders: <b>${apiKey.totalOrders || 0}</b> · Success: <b>${apiKey.successOrders || 0}</b> · Other/failed: <b>${apiKey.failedOrders || 0}</b> · Revenue: <b>$${revenueUsd}</b>\n` +
+      `Last used: <b>${lastUsedText}</b>`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: 'Back', callback_data: 'dev_api_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
+      ]
+    };
+
+    if (messageIdToEdit) {
+      try {
+        await targetBot.editMessageText(caption, { chat_id: chatId, message_id: messageIdToEdit, parse_mode: 'HTML', reply_markup: keyboard });
+        return;
+      } catch (err) {}
+    }
+    await targetBot.sendMessage(chatId, caption, { parse_mode: 'HTML', reply_markup: keyboard });
+  }
+
+  targetBot.onText(/\/(?:developerapi|devoloperapi|devoloperapikey|developerapikey)/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString() || chatId.toString();
+    await sendDeveloperApiScreen(targetBot, chatId, userId);
   });
 
   targetBot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {

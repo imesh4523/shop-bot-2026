@@ -101,6 +101,28 @@ export const telegramUsersRelations = relations(telegramUsers, ({ many }) => ({
   orders: many(orders),
   payments: many(payments),
   promoCodeRedemptions: many(promoCodeRedemptions),
+  apiKeys: many(apiKeys),
+}));
+
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  key: text("key").unique().notNull(),
+  status: text("status").notNull().default("active"),
+  totalOrders: integer("total_orders").notNull().default(0),
+  successOrders: integer("success_orders").notNull().default(0),
+  failedOrders: integer("failed_orders").notNull().default(0),
+  revenue: integer("revenue").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const apiKeysRelations = relations(apiKeys, ({ one, many }) => ({
+  telegramUser: one(telegramUsers, {
+    fields: [apiKeys.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+  orders: many(orders),
 }));
 
 export const orders = pgTable("orders", {
@@ -108,6 +130,7 @@ export const orders = pgTable("orders", {
   productId: integer("product_id").references(() => products.id),
   credentialId: integer("credential_id").references(() => credentials.id),
   telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  apiKeyId: integer("api_key_id").references(() => apiKeys.id),
   status: text("status").notNull().default("completed"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -135,6 +158,10 @@ export const ordersRelations = relations(orders, ({ one }) => ({
     fields: [orders.telegramUserId],
     references: [telegramUsers.id],
   }),
+  apiKey: one(apiKeys, {
+    fields: [orders.apiKeyId],
+    references: [apiKeys.id],
+  }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -149,6 +176,7 @@ export const insertCredentialSchema = createInsertSchema(credentials).omit({ id:
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 export const insertTelegramUserSchema = createInsertSchema(telegramUsers).omit({ id: true, createdAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -160,6 +188,8 @@ export type TelegramUser = typeof telegramUsers.$inferSelect;
 export type InsertTelegramUser = z.infer<typeof insertTelegramUserSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 export const broadcastChannels = pgTable("broadcast_channels", {
   id: serial("id").primaryKey(),
   channelId: text("channel_id").unique().notNull(),
