@@ -2932,7 +2932,9 @@ const initBot = async () => {
         console.log('Stopping existing main bot...');
         await bot.stopPolling().catch(() => {});
       }
-      bot = new TelegramBot(token, { polling: true });
+      bot = new TelegramBot(token, { polling: false });
+      await bot.deleteWebHook().catch(() => {});
+      await bot.startPolling();
       bot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[MAIN BOT] 409 Conflict: another instance is polling.');
@@ -2947,7 +2949,7 @@ const initBot = async () => {
       setupBotHandlers(bot);
       setupBotProfile(bot).catch(err => console.error('Failed to setup bot profile:', err));
       setMainBotReferenceForAdmin(bot);
-      console.log('Main bot initialized successfully');
+      console.log('Main bot initialized successfully with deleted webhook & fresh polling');
     }
 
     if (broadcastToken && broadcastToken !== token) {
@@ -2955,7 +2957,9 @@ const initBot = async () => {
         console.log('Stopping existing broadcast bot...');
         await broadcastBot.stopPolling().catch(() => {});
       }
-      broadcastBot = new TelegramBot(broadcastToken, { polling: true });
+      broadcastBot = new TelegramBot(broadcastToken, { polling: false });
+      await broadcastBot.deleteWebHook().catch(() => {});
+      await broadcastBot.startPolling();
       broadcastBot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[BROADCAST BOT] 409 Conflict: another instance is polling.');
@@ -2979,7 +2983,9 @@ const initBot = async () => {
         console.log('Stopping existing inspector bot...');
         await inspectorBot.stopPolling().catch(() => {});
       }
-      inspectorBot = new TelegramBot(inspectorToken, { polling: true });
+      inspectorBot = new TelegramBot(inspectorToken, { polling: false });
+      await inspectorBot.deleteWebHook().catch(() => {});
+      await inspectorBot.startPolling();
       inspectorBot.on('polling_error', (err: any) => {
         if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
           console.warn('[INSPECTOR BOT] 409 Conflict: another instance is polling.');
