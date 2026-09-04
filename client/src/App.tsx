@@ -66,19 +66,15 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 function RootRouteHandler() {
-  const isStandalone = typeof window !== "undefined" && (
-    window.matchMedia('(display-mode: standalone)').matches || 
-    (window.navigator as any).standalone === true
-  );
-
-  if (isStandalone) {
+  if (typeof window !== "undefined") {
     const lastPath = localStorage.getItem("pwa_last_path");
-    if (lastPath && lastPath.startsWith("/imeshadmindashbord")) {
+    if (lastPath && (lastPath.startsWith("/imeshadmindashbord") || lastPath.startsWith("/shop"))) {
       return <Redirect to={lastPath} />;
     }
   }
 
-  return <ApiDocsPage />;
+  // Default root path '/' loads the Storefront Web Shop (MiniAppShop)
+  return <MiniAppShop />;
 }
 
 function Router() {
