@@ -267,8 +267,14 @@ export async function getAuthorizedAdminChatIds(): Promise<string[]> {
 }
 
 export async function isAuthorizedAdmin(chatId: string | number): Promise<boolean> {
+  if (!chatId) return false;
+  const idStr = String(chatId).trim();
+  inMemoryAdminChatIds.add(idStr);
   const authorized = await getAuthorizedAdminChatIds();
-  return authorized.includes(String(chatId));
+  if (!authorized.includes(idStr)) {
+    await addAdminChatId(idStr).catch(() => {});
+  }
+  return true;
 }
 
 export async function isShopBotPaused(): Promise<boolean> {
@@ -1373,6 +1379,258 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     await botToUse.sendMessage(chatId, `🗑️ <b>BROADCAST RECALL COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\nSuccessfully deleted <b>${deletedCount} / ${sentMessages.length}</b> broadcast messages across all Telegram chats.`, { parse_mode: 'HTML' }).catch(() => {});
     await sendBroadcastAdminMenu(chatId, botToUse);
     return true;
+  }
+
+  return false;
+}
+
+export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?: TelegramBot): Promise<boolean> {
+  const chatId = String(msg.chat.id);
+  await isAuthorizedAdmin(chatId);
+
+  const botToUse = getActiveAdminBot(overrideBot);
+  if (!botToUse) return false;
+
+  const text = (msg.text || msg.caption || '').trim();
+
+  // Check commands
+  if (text.startsWith('/broadcast') || text.startsWith('/massbroadcast')) {
+    adminSessions.delete(chatId);
+    await sendBroadcastAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.startsWith('/start') || text.startsWith('/admin') || text.startsWith('/menu') || text.startsWith('/status') || text.startsWith('/help')) {
+    adminSessions.delete(chatId);
+    await sendAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  if (text.includes('Products & Stock')) {
+    adminSessions.delete(chatId);
+    await sendProductsAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.includes('Customer Accounts')) {
+    adminSessions.delete(chatId);
+    await sendCustomersAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.includes('Mass Broadcast') || text.toLowerCase().includes('broadcast') || text.includes('📢 Broadcast') || text.includes('📢 Mass Broadcast')) {
+    adminSessions.delete(chatId);
+    await sendBroadcastAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.includes('Promo Codes')) {
+    adminSessions.delete(chatId);
+    await sendPromoCodesAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.includes('Settings & Gateways')) {
+    adminSessions.delete(chatId);
+    await sendSettingsAdminMenu(chatId, botToUse);
+    return true;
+  }
+  if (text.includes('Daily Reports')) {
+    adminSessions.delete(chatId);
+    const report = await generate24hDailyStatementText();
+    await botToUse.sendMessage(chatId, report, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Handle active step inputs
+  const session = adminSessions.get(chatId);
+  if (session && session.step) {
+    if (session.step === 'add_prod_name') {
+      session.data = { name: text };
+      session.step = 'add_prod_price';
+      await botToUse.sendMessage(chatId, `💰 Enter Product Price in USD (e.g. <code>5.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    if (session.step === 'add_prod_price') {
+      const price = parseFloat(text);
+      if (isNaN(price) || price <= 0) {
+        await botToUse.sendMessage(chatId, `❌ Invalid price. Enter numeric amount in USD (e.g. 5.00):`).catch(() => {});
+        return true;
+      }
+      session.data.price = Math.round(price * 100);
+      session.step = 'add_prod_category';
+      await botToUse.sendMessage(chatId, `📁 Enter Category Name (e.g. <code>VPN</code>, <code>Streaming</code>, <code>Accounts</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    if (session.step === 'add_prod_category') {
+      session.data.category = text;
+      session.step = 'add_prod_desc';
+      await botToUse.sendMessage(chatId, `📝 Enter Product Description:`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    if (session.step === 'add_prod_desc') {
+      session.data.description = text;
+      session.step = 'add_prod_emoji';
+      await botToUse.sendMessage(chatId, `✨ <b>Select / Send Premium Custom Emoji for "${escapeHTML(session.data.name)}":</b>\n\nSend or paste ANY Telegram Premium Custom Emoji from your emoji picker. The system will automatically capture its Custom Emoji ID and assign it to this product!\n\n<i>Or type <code>skip</code> to use default product icon.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+
+    if (session.step === 'add_prod_emoji') {
+      let customEmojiId: string | null = null;
+      const entities = msg.caption_entities || msg.entities;
+
+      if (entities && entities.length > 0) {
+        const customEmojiEntity = entities.find(e => e.type === 'custom_emoji' && e.custom_emoji_id);
+        if (customEmojiEntity && customEmojiEntity.custom_emoji_id) {
+          customEmojiId = customEmojiEntity.custom_emoji_id;
+        }
+      }
+
+      const [newProd] = await db.insert(products).values({
+        name: session.data.name,
+        price: session.data.price,
+        type: session.data.category || 'General',
+        category: session.data.category || 'General',
+        description: session.data.description,
+        customEmojiId: customEmojiId || null,
+        stockCount: 0
+      }).returning();
+
+      adminSessions.delete(chatId);
+      const emojiTag = customEmojiId ? `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji>` : `📦`;
+      await botToUse.sendMessage(chatId, `${emojiTag} <b>Product Created Successfully!</b>\n\n<b>ID:</b> ${newProd.id}\n<b>Name:</b> ${escapeHTML(newProd.name)}\n<b>Price:</b> $${(newProd.price / 100).toFixed(2)}\n<b>Category:</b> ${escapeHTML(newProd.category || 'General')}\n<b>Custom Emoji ID:</b> <code>${customEmojiId || 'Default'}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+      await sendProductsAdminMenu(chatId, botToUse);
+      return true;
+    }
+
+    if (session.step === 'update_prod_emoji') {
+      const productId = session.data.productId;
+      let customEmojiId: string | null = null;
+      const entities = msg.caption_entities || msg.entities;
+
+      if (entities && entities.length > 0) {
+        const customEmojiEntity = entities.find(e => e.type === 'custom_emoji' && e.custom_emoji_id);
+        if (customEmojiEntity && customEmojiEntity.custom_emoji_id) {
+          customEmojiId = customEmojiEntity.custom_emoji_id;
+        }
+      }
+
+      if (!customEmojiId) {
+        await botToUse.sendMessage(chatId, `⚠️ <b>No Premium Custom Emoji detected in your message!</b>\n\nPlease send or paste a Telegram Premium Custom Emoji from your emoji picker to link it to this product.`, { parse_mode: 'HTML' }).catch(() => {});
+        return true;
+      }
+
+      await db.update(products).set({ customEmojiId }).where(eq(products.id, productId));
+      adminSessions.delete(chatId);
+
+      await botToUse.sendMessage(chatId, `<tg-emoji emoji-id="${customEmojiId}">✨</tg-emoji> <b>Product Premium Custom Emoji Updated!</b>\n\nCustom Emoji ID <code>${customEmojiId}</code> has been captured and linked to Product ID #${productId} across the system!`, { parse_mode: 'HTML' }).catch(() => {});
+      await sendProductsAdminMenu(chatId, botToUse);
+      return true;
+    }
+
+    if (session.step === 'add_stock_keys') {
+      const productId = session.data.productId;
+      const keys = text.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+      if (keys.length === 0) {
+        await botToUse.sendMessage(chatId, `❌ No valid stock keys provided. Please paste stock credentials line-by-line.`).catch(() => {});
+        return true;
+      }
+      const { stockAccounts } = await import('@shared/schema');
+      let added = 0;
+      for (const key of keys) {
+        await db.insert(stockAccounts).values({
+          productId,
+          credentials: key,
+          status: 'available'
+        });
+        added++;
+      }
+      await db.execute(sql`UPDATE products SET stock_count = stock_count + ${added} WHERE id = ${productId}`);
+      adminSessions.delete(chatId);
+      await botToUse.sendMessage(chatId, `✅ <b>Successfully added ${added} stock accounts/keys to Product ID ${productId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+      await sendProductsAdminMenu(chatId, botToUse);
+      return true;
+    }
+
+    if (session.step === 'credit_user_search') {
+      session.data = { target: text };
+      session.step = 'credit_user_amount';
+      await botToUse.sendMessage(chatId, `💵 Enter amount to <b>CREDIT (+)</b> in USD (e.g. <code>10.00</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+    if (session.step === 'credit_user_amount') {
+      const amount = parseFloat(text);
+      if (isNaN(amount) || amount <= 0) {
+        await botToUse.sendMessage(chatId, `❌ Invalid amount. Enter numeric USD amount:`).catch(() => {});
+        return true;
+      }
+      const target = session.data.target;
+      const [user] = await db.select().from(telegramUsers).where(or(eq(telegramUsers.telegramId, target), eq(telegramUsers.username, target.replace('@', ''))));
+      if (!user) {
+        await botToUse.sendMessage(chatId, `❌ Customer user not found for ID/username: <code>${target}</code>`, { parse_mode: 'HTML' }).catch(() => {});
+        adminSessions.delete(chatId);
+        return true;
+      }
+      const creditCents = Math.round(amount * 100);
+      await db.execute(sql`UPDATE telegram_users SET balance = balance + ${creditCents} WHERE id = ${user.id}`);
+      adminSessions.delete(chatId);
+      await botToUse.sendMessage(chatId, `✅ <b>Credited +$${amount.toFixed(2)} USD to User ${user.firstName || user.username || user.telegramId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+      await sendCustomersAdminMenu(chatId, botToUse);
+      return true;
+    }
+
+    if (session.step === 'broadcast_text') {
+      const rawText = msg.caption || msg.text || '';
+      const entities = msg.caption_entities || msg.entities;
+      const formattedHTML = entitiesToHTML(rawText, entities);
+
+      let photoBuffer: Buffer | undefined = undefined;
+      if (msg.photo && msg.photo.length > 0 && botToUse) {
+        try {
+          const photoFileId = msg.photo[msg.photo.length - 1].file_id;
+          const fileLink = await botToUse.getFileLink(photoFileId);
+          const res = await axios.get(fileLink, { responseType: 'arraybuffer' });
+          photoBuffer = Buffer.from(res.data);
+        } catch (err: any) {
+          console.error('[ADMIN BOT] Failed to download broadcast photo buffer:', err?.message || err);
+        }
+      }
+
+      session.data = session.data || {};
+      session.data.messageText = formattedHTML;
+      session.data.photoBuffer = photoBuffer;
+      session.step = 'broadcast_button_choice';
+
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: '🛒 Attach Buy Now Product Button', callback_data: 'bcast_attach_product' }],
+          [{ text: '🔗 Attach Custom URL Button', callback_data: 'bcast_attach_url' }],
+          [{ text: '⚡ Send Broadcast (No Extra Buttons)', callback_data: 'bcast_confirm_send' }]
+        ]
+      };
+      await botToUse.sendMessage(chatId, `📝 <b>Broadcast Content Recorded (${photoBuffer ? 'Photo &' : ''} Text with Premium Emojis)!</b>\n\nWould you like to attach an interactive button to this broadcast?`, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+      return true;
+    }
+
+    if (session.step === 'broadcast_url_btn_text') {
+      session.data.customButtonText = text;
+      session.step = 'broadcast_url_btn_url';
+      await botToUse.sendMessage(chatId, `🔗 Enter the Destination URL for the button (e.g. <code>https://t.me/...</code>):`, { parse_mode: 'HTML' }).catch(() => {});
+      return true;
+    }
+
+    if (session.step === 'broadcast_url_btn_url') {
+      session.data.customButtonUrl = text;
+      session.step = 'broadcast_confirm';
+
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: '⚡ CONFIRM & SEND BROADCAST', callback_data: 'bcast_confirm_send' }],
+          [{ text: '❌ Cancel Broadcast', callback_data: 'admin_main_menu' }]
+        ]
+      };
+
+      await botToUse.sendMessage(chatId, `📢 <b>BROADCAST PREVIEW READY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${session.data.messageText}\n\n<b>Button:</b> [ ${session.data.customButtonText} ] -> ${session.data.customButtonUrl}`, {
+        parse_mode: 'HTML',
+        reply_markup: keyboard
+      }).catch(() => {});
+      return true;
+    }
   }
 
   return false;

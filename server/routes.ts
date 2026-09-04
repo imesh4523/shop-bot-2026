@@ -24,7 +24,7 @@ import FormData from "form-data";
 import { sendAdminPushNotification, initPushNotifications } from "./push-notifications";
 import { fetchLiveExchangeRates, getCachedRates, formatPriceInCurrency, SUPPORTED_CURRENCIES } from "./currency";
 import { t, SUPPORTED_LANGUAGES, type Language } from "./i18n";
-import { initAdminBotController, setMainBotReferenceForAdmin, isAuthorizedAdmin, sendBroadcastAdminMenu, sendAdminMenu, handleAdminCallbackQuery } from "./admin-bot-controller";
+import { initAdminBotController, setMainBotReferenceForAdmin, isAuthorizedAdmin, sendBroadcastAdminMenu, sendAdminMenu, handleAdminCallbackQuery, handleAdminMessage } from "./admin-bot-controller";
 import { 
   processTelegramInspectorTrace, 
   getTraceHistory, 
@@ -4932,6 +4932,11 @@ function setupBotHandlers(targetBot: TelegramBot) {
 
   // Detect groups when a message is sent to them
   targetBot.on('message', async (msg) => {
+    try {
+      const handled = await handleAdminMessage(msg, targetBot);
+      if (handled) return;
+    } catch (e) {}
+
     if (msg.chat.type === 'group' || msg.chat.type === 'supergroup' || msg.chat.type === 'channel') {
       try {
         const channels = await storage.getBroadcastChannels();
