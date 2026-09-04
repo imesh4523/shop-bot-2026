@@ -615,6 +615,8 @@ export async function registerRoutes(
         sent_messages_json TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS admin_chat_id TEXT DEFAULT '';
     `);
     console.log('[DB] referrals, promo_codes, and broadcast_logs tables verified/created');
   } catch (err: any) {
