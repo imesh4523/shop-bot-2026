@@ -2486,7 +2486,8 @@ app.post("/api/broadcast/availability", isAuth, async (req, res) => {
         if (!formattedName.includes('5785025630055700143')) {
           formattedName = formattedName.replace(/\bAWS\b/gi, '<tg-emoji emoji-id="5785025630055700143">☁️</tg-emoji> AWS');
         }
-        availabilityMsg += `${formattedName} | $${(item.price / 100).toFixed(2)} | In stock ${item.stockCount} pcs\n`;
+        const itemStock = typeof item.stockCount === 'number' && !isNaN(item.stockCount) ? item.stockCount : 0;
+        availabilityMsg += `${formattedName} | $${(item.price / 100).toFixed(2)} | In stock ${itemStock} pcs\n`;
       }
       availabilityMsg += "\n";
     }
@@ -9592,7 +9593,8 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               formattedName = formattedName.replace(/\bAWS\b/gi, '<tg-emoji emoji-id="5785025630055700143">☁️</tg-emoji> AWS');
             }
 
-            response += `${formattedName} | $${(item.price / 100).toFixed(2)} | In stock ${item.stockCount} pcs\n`;
+            const safeItemStock = typeof item.stockCount === 'number' && !isNaN(item.stockCount) ? item.stockCount : 0;
+            response += `${formattedName} | $${(item.price / 100).toFixed(2)} | In stock ${safeItemStock} pcs\n`;
           }
           response += "\n";
         }

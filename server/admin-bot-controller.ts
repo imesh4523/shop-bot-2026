@@ -1189,12 +1189,14 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     const prodId = parseInt(data.replace('prod_', ''));
     const [prod] = await db.select().from(products).where(eq(products.id, prodId));
     if (prod) {
+      const creds = await db.select().from(credentials).where(and(eq(credentials.productId, prod.id), eq(credentials.status, 'available')));
+      const stockCount = creds.length;
       const priceUSD = (prod.price / 100).toFixed(2);
       const emojiTag = prod.customEmojiId ? `<tg-emoji emoji-id="${prod.customEmojiId}">📦</tg-emoji>` : `📦`;
       const text = `${emojiTag} <b>${escapeHTML(prod.name)}</b>\n\n` +
         `<b>Price:</b> $${priceUSD} USD\n` +
-        `<b>Stock Available:</b> ${prod.stockCount} pcs\n\n` +
-        `<b>Description:</b>\n${escapeHTML(prod.description) || 'Instant 24/7 delivery guaranteed.'}`;
+        `<b>Stock Available:</b> ${stockCount} pcs\n\n` +
+        `<b>Description:</b>\n${escapeHTML(prod.description || '') || 'Instant 24/7 delivery guaranteed.'}`;
 
       await botToUse.sendMessage(chatId, text, { parse_mode: 'HTML' }).catch(() => {});
     }
