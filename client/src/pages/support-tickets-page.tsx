@@ -12,15 +12,34 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Send,
+  Loader2,
+  Zap,
+  Bot
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { SupportTicket } from "@shared/schema";
+
+interface TicketMessage {
+  sender: 'user' | 'admin';
+  text: string;
+  timestamp?: string;
+}
+
+const QUICK_REPLIES = [
+  "⚡ Checking your issue now, please wait...",
+  "✅ Payment verified! Your order is processing.",
+  "⏳ Please wait 5-10 minutes for activation.",
+  "📷 Please send a clear screenshot of your payment receipt.",
+  "👍 Your issue has been resolved. Thank you!"
+];
 
 export default function SupportTicketsPage() {
   const { toast } = useToast();
@@ -28,10 +47,11 @@ export default function SupportTicketsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
 
   const { data: tickets = [], isLoading } = useQuery<SupportTicket[]>({
     queryKey: ["/api/support-tickets"],
-    refetchInterval: 5000,
+    refetchInterval: 3000,
   });
 
   const updateStatusMutation = useMutation({
@@ -48,7 +68,7 @@ export default function SupportTicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/support-tickets"] });
       toast({
         title: "Status Updated & Customer Notified",
-        description: `Support ticket #${variables.id} status changed to ${variables.status}. Customer was notified via Telegram!`,
+        description: `Support ticket #${variables.id < 2000 ? variables.id + 2000 : variables.id} status changed to ${variables.status}. Customer was notified via Telegram!`,
       });
     },
     onError: (err: Error) => {
@@ -59,6 +79,56 @@ export default function SupportTicketsPage() {
       });
     },
   });
+
+  const sendReplyMutation = useMutation({
+    mutationFn: async ({ id, replyText }: { id: number; replyText: string }) => {
+      const res = await fetch(`/api/support-tickets/${id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replyText }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Failed to send reply to customer");
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/support-tickets"] });
+      setReplyTexts(prev => ({ ...prev, [variables.id]: "" }));
+      toast({
+        title: "Reply Sent to Customer",
+        description: `Your reply was sent to Telegram user for ticket #${variables.id < 2000 ? variables.id + 2000 : variables.id}`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Reply Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleQuickReply = (ticketId: number, preset: string) => {
+    setReplyTexts(prev => ({
+      ...prev,
+      [ticketId]: preset
+    }));
+  };
+
+  const handleSendReply = (ticketId: number) => {
+    const text = replyTexts[ticketId]?.trim();
+    if (!text) {
+      toast({
+        title: "Empty Reply",
+        description: "Please enter a reply message first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    sendReplyMutation.mutate({ id: ticketId, replyText: text });
+  };
 
   const copyTemplate = (ticket: SupportTicket) => {
     const template = `Order ID:\nPayment method:\nAmount sent:\nScreenshot attached: Yes/No\nProblem details: ${ticket.details || ticket.issueType}`;
@@ -97,7 +167,7 @@ export default function SupportTicketsPage() {
             Support Requests & Tickets
           </h1>
           <p className="text-white/60 mt-1">
-            Manage customer support requests submitted via Telegram bot.
+            Manage customer support requests submitted via Telegram bot. Reply directly to users from here!
           </p>
         </div>
       </div>
@@ -212,19 +282,35 @@ export default function SupportTicketsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {filteredTickets.map((ticket) => {
             const cleanUser = (ticket.username || ticket.userTelegramId || "Customer").replace("@", "");
+            const displayId = ticket.id < 2000 ? ticket.id + 2000 : ticket.id;
+
+            // Parse conversation messages
+            let parsedMessages: TicketMessage[] = [];
+            if (ticket.messages) {
+              try {
+                parsedMessages = JSON.parse(ticket.messages);
+              } catch (e) {
+                parsedMessages = [];
+              }
+            }
+            if (parsedMessages.length === 0 && ticket.details) {
+              parsedMessages = [{ sender: 'user', text: ticket.details }];
+            }
+
+            const isReplyingThis = sendReplyMutation.isPending && sendReplyMutation.variables?.id === ticket.id;
 
             return (
               <Card key={ticket.id} className="glass-card border-0 hover:border-purple-500/30 transition-all">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-6 space-y-6">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     {/* User & Issue Header */}
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-3">
                         <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-3 py-1 text-sm">
-                          #{ticket.id < 2000 ? ticket.id + 2000 : ticket.id}
+                          #{displayId}
                         </Badge>
 
                         {ticket.status === "open" && (
@@ -266,7 +352,7 @@ export default function SupportTicketsPage() {
                       </div>
                     </div>
 
-                    {/* Quick Link & Template Actions */}
+                    {/* Quick Link & Actions */}
                     <div className="flex items-center gap-3">
                       <Button
                         variant="outline"
@@ -290,23 +376,6 @@ export default function SupportTicketsPage() {
                         </a>
                       </Button>
                     </div>
-                  </div>
-
-                  {/* Customer Details / Message Text Box */}
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                    <p className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4" />
-                      Customer Details / Message:
-                    </p>
-                    {ticket.details ? (
-                      <p className="text-sm text-white font-mono whitespace-pre-wrap leading-relaxed bg-black/30 p-3 rounded-xl border border-white/5">
-                        {ticket.details}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-white/40 italic">
-                        Waiting for customer to send message details in Telegram chat...
-                      </p>
-                    )}
                   </div>
 
                   {/* Customer Screenshot Attachment */}
@@ -337,6 +406,102 @@ export default function SupportTicketsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Conversation History Thread */}
+                  <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-3">
+                    <p className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      Ticket Conversation Thread:
+                    </p>
+
+                    {parsedMessages.length === 0 ? (
+                      <p className="text-sm text-white/40 italic">Waiting for details from customer...</p>
+                    ) : (
+                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        {parsedMessages.map((msg, index) => (
+                          <div 
+                            key={index} 
+                            className={`p-3.5 rounded-xl text-sm leading-relaxed border ${
+                              msg.sender === 'admin' 
+                                ? 'bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6' 
+                                : 'bg-white/5 border-white/10 text-white mr-6'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className={`text-xs font-bold flex items-center gap-1.5 ${
+                                msg.sender === 'admin' ? 'text-purple-300' : 'text-yellow-400'
+                              }`}>
+                                {msg.sender === 'admin' ? (
+                                  <>
+                                    <Bot className="w-3.5 h-3.5" />
+                                    Admin Reply:
+                                  </>
+                                ) : (
+                                  <>
+                                    <User className="w-3.5 h-3.5" />
+                                    Submitted Message (Customer):
+                                  </>
+                                )}
+                              </span>
+                              {msg.timestamp && (
+                                <span className="text-[10px] text-white/40">
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                            <p className="whitespace-pre-wrap font-mono text-xs">{msg.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Replies & Admin Reply Form */}
+                  <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-purple-400" />
+                        Reply to Telegram Customer:
+                      </label>
+                      <span className="text-xs text-white/40">Quick preset response chips:</span>
+                    </div>
+
+                    {/* Quick Reply Preset Chips */}
+                    <div className="flex flex-wrap gap-2">
+                      {QUICK_REPLIES.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleQuickReply(ticket.id, preset)}
+                          className="text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white/80 hover:text-white px-2.5 py-1 rounded-lg transition-all"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Textarea
+                        placeholder="Type reply message to send directly to customer's Telegram..."
+                        value={replyTexts[ticket.id] || ""}
+                        onChange={(e) => setReplyTexts(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                        className="glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm"
+                      />
+
+                      <Button
+                        onClick={() => handleSendReply(ticket.id)}
+                        disabled={isReplyingThis || !(replyTexts[ticket.id]?.trim())}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 self-end h-12"
+                      >
+                        {isReplyingThis ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                        Send Reply
+                      </Button>
+                    </div>
+                  </div>
 
                   {/* Status Change Buttons */}
                   <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">

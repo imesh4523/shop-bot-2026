@@ -260,6 +260,7 @@ export const supportTickets = pgTable("support_tickets", {
   subject: text("subject"),
   status: text("status").notNull().default("open"),
   details: text("details"),
+  messages: text("messages"),
   attachmentUrl: text("attachment_url"),
   userTelegramId: text("user_telegram_id").notNull(),
   username: text("username"),
