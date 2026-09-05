@@ -1353,11 +1353,37 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     const customBtnText = session.data.customButtonText;
     const customBtnUrl = session.data.customButtonUrl;
 
-    await botToUse.sendMessage(chatId, `⏳ <b>Sending Mass Broadcast with Premium Emojis, Photos & Buttons to ALL users...</b> Please wait.`, { parse_mode: 'HTML' }).catch(() => {});
+    const targetSenderBot = mainBotReference || botToUse || adminBot;
+    if (!targetSenderBot) {
+      await botToUse.sendMessage(chatId, `❌ Bot instance not ready.`).catch(() => {});
+      return true;
+    }
 
     const allUsers = await db.select().from(telegramUsers);
+    const totalUsers = allUsers.length;
+
+    if (totalUsers === 0) {
+      await botToUse.sendMessage(chatId, `⚠️ No registered customers found in database to send broadcast.`).catch(() => {});
+      return true;
+    }
+
+    const startTime = Date.now();
+    const statusMsg = await botToUse.sendMessage(chatId, 
+      `⏳ <b>MASS BROADCAST IN PROGRESS</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🤖 <b>Sender Bot:</b> Main Shop Bot\n` +
+      `👥 <b>Total Target Users:</b> <b>${totalUsers}</b>\n` +
+      `📊 <b>Progress:</b> 0 / ${totalUsers} (0%)\n` +
+      `✅ <b>Delivered:</b> 0\n` +
+      `❌ <b>Failed/Blocked:</b> 0\n` +
+      `⏱️ <b>Status:</b> Initializing batch delivery...`, 
+      { parse_mode: 'HTML' }
+    ).catch(() => null);
+
     const sentMessages: { chatId: string; messageId: number }[] = [];
     let successCount = 0;
+    let failedCount = 0;
+    let mainBotPhotoFileId: string | undefined = photoFileId;
 
     const inlineKeyboard: any[][] = [];
     if (targetProdId) {
@@ -1371,37 +1397,88 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
       inlineKeyboard.push([{ text: customBtnText, url: customBtnUrl }]);
     }
 
-    const targetSenderBot = botToUse || mainBotReference || adminBot;
-    let mainBotPhotoFileId: string | undefined = photoFileId;
+    const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
 
-    for (const user of allUsers) {
-      try {
-        let sentMsg;
-        if (photoToSend) {
-          const currentPhoto = mainBotPhotoFileId || photoToSend;
-          sentMsg = await targetSenderBot?.sendPhoto(user.telegramId, currentPhoto, {
-            caption: bText,
-            parse_mode: 'HTML',
-            reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
-          });
-          if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0 && !mainBotPhotoFileId) {
-            mainBotPhotoFileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
+    const BATCH_SIZE = 20;
+    let lastProgressUpdate = Date.now();
+
+    for (let i = 0; i < totalUsers; i += BATCH_SIZE) {
+      const batch = allUsers.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(batch.map(async (user) => {
+        let sentMsg = null;
+        let retries = 0;
+
+        while (retries < 2) {
+          try {
+            if (photoToSend) {
+              const currentPhoto = mainBotPhotoFileId || photoToSend;
+              sentMsg = await targetSenderBot.sendPhoto(user.telegramId, currentPhoto, {
+                caption: bText,
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup
+              });
+              if (sentMsg && sentMsg.photo && sentMsg.photo.length > 0 && !mainBotPhotoFileId) {
+                mainBotPhotoFileId = sentMsg.photo[sentMsg.photo.length - 1].file_id;
+              }
+            } else {
+              sentMsg = await targetSenderBot.sendMessage(user.telegramId, bText, {
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup
+              });
+            }
+            break;
+          } catch (err: any) {
+            const errMsg = err?.message || '';
+            if (errMsg.includes('429 Too Many Requests') || err?.code === 'ETELEGRAM') {
+              const retryAfterMatch = errMsg.match(/retry after (\d+)/i);
+              const retrySec = retryAfterMatch ? parseInt(retryAfterMatch[1], 10) : 2;
+              await new Promise(r => setTimeout(r, (retrySec + 1) * 1000));
+              retries++;
+            } else {
+              break;
+            }
           }
-        } else {
-          sentMsg = await targetSenderBot?.sendMessage(user.telegramId, bText, {
-            parse_mode: 'HTML',
-            reply_markup: inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined
-          });
         }
 
         if (sentMsg) {
           sentMessages.push({ chatId: String(user.telegramId), messageId: sentMsg.message_id });
           successCount++;
+        } else {
+          failedCount++;
         }
-      } catch (err: any) {
-        console.error(`[BROADCAST] Error sending to user ${user.telegramId}:`, err?.message || err);
+      }));
+
+      const processedCount = Math.min(i + BATCH_SIZE, totalUsers);
+      const now = Date.now();
+      if (statusMsg && (now - lastProgressUpdate > 2000 || processedCount === totalUsers)) {
+        lastProgressUpdate = now;
+        const pct = Math.round((processedCount / totalUsers) * 100);
+        const elapsedSec = Math.round((now - startTime) / 1000);
+        const updateText = 
+          `⏳ <b>MASS BROADCAST IN PROGRESS</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `🤖 <b>Sender Bot:</b> Main Shop Bot\n` +
+          `👥 <b>Total Target Users:</b> <b>${totalUsers}</b>\n` +
+          `📊 <b>Progress:</b> <b>${processedCount} / ${totalUsers}</b> (${pct}%)\n` +
+          `✅ <b>Delivered:</b> <b>${successCount}</b>\n` +
+          `❌ <b>Failed/Blocked:</b> <b>${failedCount}</b>\n` +
+          `⏱️ <b>Elapsed Time:</b> <b>${elapsedSec}s</b>`;
+
+        await botToUse.editMessageText(updateText, {
+          chat_id: chatId,
+          message_id: statusMsg.message_id,
+          parse_mode: 'HTML'
+        }).catch(() => {});
+      }
+
+      if (i + BATCH_SIZE < totalUsers) {
+        await new Promise(r => setTimeout(r, 200));
       }
     }
+
+    const durationSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+    const avgSpeed = (successCount / durationSec).toFixed(1);
 
     const [bLog] = await db.insert(broadcastLogs).values({
       adminChatId: String(chatId),
@@ -1417,7 +1494,19 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
 
     await clearAdminSession(String(chatId));
 
-    await botToUse.sendMessage(chatId, `🎉 <b>MASS BROADCAST COMPLETED!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n▪️ Successful Deliveries: <b>${successCount} / ${allUsers.length}</b>\n▪️ Campaign Log ID: <code>#${bLog.id}</code>\n\n<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`, { parse_mode: 'HTML' }).catch(() => {});
+    const summaryMsg = 
+      `🎉 <b>MASS BROADCAST COMPLETED!</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `🆔 <b>Campaign Log ID:</b> <code>#${bLog.id}</code>\n` +
+      `🤖 <b>Sender Bot:</b> Main Shop Bot\n` +
+      `👥 <b>Total Target Users:</b> <b>${totalUsers}</b>\n` +
+      `✅ <b>Successfully Delivered:</b> <b>${successCount}</b>\n` +
+      `❌ <b>Failed / Blocked Bot:</b> <b>${failedCount}</b>\n` +
+      `⏱️ <b>Total Time Elapsed:</b> <b>${durationSec} seconds</b>\n` +
+      `⚡ <b>Delivery Speed:</b> <b>~${avgSpeed} msgs/sec</b>\n\n` +
+      `<i>You can recall/delete this broadcast anytime from the Mass Broadcast menu.</i>`;
+
+    await botToUse.sendMessage(chatId, summaryMsg, { parse_mode: 'HTML' }).catch(() => {});
     await sendBroadcastAdminMenu(chatId, botToUse);
     return true;
   }
@@ -1451,7 +1540,7 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     const sentMessages: { chatId: string; messageId: number }[] = JSON.parse(log.sentMessagesJson);
     let deletedCount = 0;
 
-    const targetSenderBot = botToUse || mainBotReference || adminBot;
+    const targetSenderBot = mainBotReference || botToUse || adminBot;
 
     for (const item of sentMessages) {
       try {
