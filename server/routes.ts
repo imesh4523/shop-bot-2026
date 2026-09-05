@@ -3046,6 +3046,7 @@ async function initBot() {
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS user_telegram_id TEXT;
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS username TEXT;
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS telegram_user_id INTEGER;
+        SELECT setval('support_tickets_id_seq', GREATEST(2000, COALESCE((SELECT MAX(id) FROM support_tickets), 0)));
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS spam_violations INTEGER DEFAULT 0;
@@ -4494,25 +4495,27 @@ const handleSupportIssue = async (
       });
 
       ticketId = ticket.id;
+      const displayTicketId = ticketId < 2000 ? ticketId + 2000 : ticketId;
       await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticket.id}` });
 
       sendAdminPushNotification({
-        title: `🆘 New Support Ticket (#${ticket.id})`,
+        title: `🆘 New Support Ticket (#${displayTicketId})`,
         body: `@${tgUser.username || userId} requested support: ${issueTitle}`
       }).catch(() => {});
 
       io.emit('admin_notification', {
         type: 'support',
-        title: `New Support Ticket (#${ticket.id})`,
+        title: `New Support Ticket (#${displayTicketId})`,
         message: `User @${tgUser.username || userId} requested support: ${issueTitle}`,
-        data: { ticketId: ticket.id, userId, issueTitle }
+        data: { ticketId: displayTicketId, realTicketId: ticket.id, userId, issueTitle }
       });
     }
   } catch (err) {
     console.error('Error creating support ticket:', err);
   }
 
-  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${issueTitle}</b> ${ticketId > 0 ? `(Ticket #${ticketId})` : ''}\n\n` +
+  const displayTicketId = ticketId > 0 ? (ticketId < 2000 ? ticketId + 2000 : ticketId) : 2001;
+  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${issueTitle}</b> (Ticket #${displayTicketId})\n\n` +
     `Please <b>type your message or problem details below in this chat</b> (or attach a screenshot).\n\n` +
     `<blockquote>Order ID:\n` +
     `Payment method / Amount:\n` +
@@ -9109,23 +9112,25 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
             await storage.updateTelegramUserByChatId(userId, { lastAction: null });
 
+            const displayTicketId = ticketId > 0 ? (ticketId < 2000 ? ticketId + 2000 : ticketId) : 2001;
+
             // Send push notification & socket event to Admin Dashboard
             sendAdminPushNotification({
-              title: `🆘 Support Ticket Received (#${ticketId})`,
+              title: `🆘 Support Ticket Received (#${displayTicketId})`,
               body: `@${tgUser.username || userId}: ${supportDetailsText.substring(0, 100) || 'Attachment sent'}`
             }).catch(() => {});
 
             io.emit('admin_notification', {
               type: 'support',
-              title: `Support Ticket Submitted (#${ticketId})`,
-              message: `User @${tgUser.username || userId} submitted ticket #${ticketId}: ${supportDetailsText || 'Attachment attached'}`,
-              data: { ticketId, userId, details: supportDetailsText, attachmentUrl: relativeUrl }
+              title: `Support Ticket Submitted (#${displayTicketId})`,
+              message: `User @${tgUser.username || userId} submitted ticket #${displayTicketId}: ${supportDetailsText || 'Attachment attached'}`,
+              data: { ticketId: displayTicketId, realTicketId: ticketId, userId, details: supportDetailsText, attachmentUrl: relativeUrl }
             });
 
             // Forward to Admin Chat ID if configured
             const adminSetting = await storage.getSetting('ADMIN_CHAT_ID');
             if (adminSetting?.value) {
-              const adminMsgText = `🆘 <b>New Support Ticket (#${ticketId})</b>\n\n` +
+              const adminMsgText = `🆘 <b>New Support Ticket (#${displayTicketId})</b>\n\n` +
                 `User: @${tgUser.username || tgUser.firstName || userId} (<code>${userId}</code>)\n` +
                 `Details: ${escapeHTML(supportDetailsText || 'Attachment attached')}`;
               if (relativeUrl && fs.existsSync(path.join(process.cwd(), "public", relativeUrl))) {
@@ -9140,7 +9145,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
             // Reply to user with Custom Emoji ticket submission confirmation
             const confirmationMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
-              `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${ticketId}</code>\n` +
+              `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${displayTicketId}</code>\n` +
               `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Status:</b> <b>Open & Received</b>\n\n` +
               `${supportDetailsText ? `<blockquote><tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Submitted Message:</b>\n${escapeHTML(supportDetailsText)}</blockquote>\n\n` : ''}` +
               `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;

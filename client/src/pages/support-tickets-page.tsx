@@ -224,7 +224,7 @@ export default function SupportTicketsPage() {
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-3">
                         <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-3 py-1 text-sm">
-                          #{ticket.id}
+                          #{ticket.id < 2000 ? ticket.id + 2000 : ticket.id}
                         </Badge>
 
                         {ticket.status === "open" && (
