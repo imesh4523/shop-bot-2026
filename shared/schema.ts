@@ -257,6 +257,7 @@ export const supportTickets = pgTable("support_tickets", {
   id: serial("id").primaryKey(),
   telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
   issueType: text("issue_type").notNull(),
+  subject: text("subject"),
   status: text("status").notNull().default("open"),
   details: text("details"),
   attachmentUrl: text("attachment_url"),

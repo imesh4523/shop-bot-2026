@@ -3055,6 +3055,12 @@ async function initBot() {
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS user_telegram_id TEXT;
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS username TEXT;
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS telegram_user_id INTEGER;
+        DO $$ 
+        BEGIN 
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='support_tickets' AND column_name='subject') THEN
+            ALTER TABLE support_tickets ALTER COLUMN subject DROP NOT NULL;
+          END IF;
+        END $$;
         SELECT setval('support_tickets_id_seq', GREATEST(2000, COALESCE((SELECT MAX(id) FROM support_tickets), 0)));
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP;
@@ -4497,6 +4503,7 @@ const handleSupportIssue = async (
       const ticket = await storage.createSupportTicket({
         telegramUserId: tgUser.id,
         issueType: issueTitle,
+        subject: issueTitle || 'General Support Request',
         status: 'open',
         userTelegramId: userId,
         username: tgUser.username || tgUser.firstName || 'Customer',
@@ -9104,6 +9111,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               const ticket = await storage.createSupportTicket({
                 telegramUserId: tgUser.id,
                 issueType: 'General Support Request',
+                subject: 'General Support Request',
                 status: 'open',
                 userTelegramId: userId,
                 username: tgUser.username || tgUser.firstName || 'Customer',
@@ -9165,7 +9173,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
             const keyboard = {
               inline_keyboard: [
-                [{ text: 'Main Menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5416041192905265756' }]
+                [{ text: '🏠 Main Menu', callback_data: 'main_menu' }]
               ]
             };
 
@@ -9175,7 +9183,11 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             });
           } catch (err) {
             console.error("Error finalizing support ticket:", err);
-            await targetBot.sendMessage(chatId, `✅ <b>Your ticket has been submitted!</b>\n\nYour ticket ID is <code>#${ticketId}</code>. Our support team has been notified.`, { parse_mode: 'HTML' });
+            const safeDisplayId = ticketId > 0 ? (ticketId < 2000 ? ticketId + 2000 : ticketId) : 2001;
+            const fallbackMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
+              `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${safeDisplayId}</code>\n\n` +
+              `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;
+            await targetBot.sendMessage(chatId, fallbackMsg, { parse_mode: 'HTML' });
           }
           return;
         }
