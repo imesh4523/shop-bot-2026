@@ -3217,32 +3217,49 @@ const sendOrEditScreenWithPhoto = async (
   const token = (targetBot as any)?.token;
 
   if (messageId) {
-    // If forceMediaEdit is true (e.g., QR code photo change), try editMessageMedia
-    if (forceMediaEdit && fs.existsSync(bannerPath) && token) {
-      try {
-        const cachedFileId = bannerFileIdCache[bannerPath];
-        const mediaPayload: any = {
-          type: 'photo',
-          caption: caption,
-          parse_mode: 'HTML'
-        };
-
-        if (cachedFileId) {
-          mediaPayload.media = cachedFileId;
-          const res = await targetBot.editMessageMedia(mediaPayload, {
-            chat_id: chatId,
-            message_id: messageId,
-            reply_markup: replyMarkup
-          } as any);
+    if (fs.existsSync(bannerPath)) {
+      // 1. Try editing media using cached Telegram file_id (Super fast, ~20ms in-place edit)
+      const cachedFileId = bannerFileIdCache[bannerPath];
+      if (cachedFileId) {
+        try {
+          const res = await targetBot.editMessageMedia(
+            {
+              type: 'photo',
+              media: cachedFileId,
+              caption: caption,
+              parse_mode: 'HTML'
+            } as any,
+            {
+              chat_id: chatId,
+              message_id: messageId,
+              reply_markup: replyMarkup
+            } as any
+          );
           if (res) return;
-        } else {
+        } catch (errMediaCached: any) {
+          if (errMediaCached?.message?.includes('message is not modified')) {
+            return;
+          }
+        }
+      }
+
+      // 2. If no cached file_id or cached edit failed, upload buffer via editMessageMedia endpoint
+      if (token) {
+        try {
           const fileBuffer = fs.readFileSync(bannerPath);
           const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
           const form = new FormData();
           form.append('chat_id', chatId.toString());
           form.append('message_id', messageId.toString());
-          mediaPayload.media = 'attach://banner_file';
-          form.append('media', JSON.stringify(mediaPayload));
+          form.append(
+            'media',
+            JSON.stringify({
+              type: 'photo',
+              media: 'attach://banner_file',
+              caption: caption,
+              parse_mode: 'HTML'
+            })
+          );
           if (replyMarkup) {
             form.append('reply_markup', JSON.stringify(replyMarkup));
           }
@@ -3255,71 +3272,28 @@ const sendOrEditScreenWithPhoto = async (
             headers: form.getHeaders()
           });
           if (res.data?.ok) {
-            const newFileId = res.data?.result?.photo?.[0]?.file_id;
-            if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
+            const photos = res.data?.result?.photo;
+            if (photos && photos.length > 0) {
+              const newFileId = photos[photos.length - 1].file_id;
+              if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
+            }
+            return;
+          }
+        } catch (errMediaUpload: any) {
+          if (errMediaUpload?.response?.data?.description?.includes('message is not modified')) {
             return;
           }
         }
-      } catch (errMedia: any) {}
+      }
     }
 
-    // Fast Path 1: Edit message caption in-place (Lightning fast ~20-30ms)
+    // 3. Fallback: If media editing failed (e.g. text message or deleted message), delete old message cleanly
     try {
-      await targetBot.editMessageCaption(caption, {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      });
-      return;
-    } catch (err1: any) {}
-
-    // Fast Path 2: Edit message text in-place (if message was a text message)
-    try {
-      await targetBot.editMessageText(caption, {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      });
-      return;
-    } catch (err2: any) {}
-
-    // Fallback Media Edit if forceMediaEdit was false but caption edit failed
-    if (fs.existsSync(bannerPath) && token) {
-      try {
-        const fileBuffer = fs.readFileSync(bannerPath);
-        const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
-        const form = new FormData();
-        form.append('chat_id', chatId.toString());
-        form.append('message_id', messageId.toString());
-        form.append('media', JSON.stringify({
-          type: 'photo',
-          media: 'attach://banner_file',
-          caption: caption,
-          parse_mode: 'HTML'
-        }));
-        if (replyMarkup) {
-          form.append('reply_markup', JSON.stringify(replyMarkup));
-        }
-        form.append('banner_file', fileBuffer, {
-          filename: dynamicFilename,
-          contentType: 'image/png'
-        });
-
-        const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
-          headers: form.getHeaders()
-        });
-        if (res.data?.ok) {
-          const newFileId = res.data?.result?.photo?.[0]?.file_id;
-          if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
-          return;
-        }
-      } catch (err3: any) {}
-    }
+      await targetBot.deleteMessage(chatId, messageId);
+    } catch (errDel: any) {}
   }
 
-  // Fallback: Send photo if messageId wasn't editable or message didn't exist
+  // 4. Send fresh photo message if messageId wasn't editable or message didn't exist
   if (bannerFileIdCache[bannerPath]) {
     try {
       await targetBot.sendPhoto(chatId, bannerFileIdCache[bannerPath], {
@@ -3337,16 +3311,23 @@ const sendOrEditScreenWithPhoto = async (
     const fileBuffer = fs.readFileSync(bannerPath);
     const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
     try {
-      const sent = await targetBot.sendPhoto(chatId, fileBuffer, {
-        caption,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      }, {
-        filename: dynamicFilename,
-        contentType: 'image/png'
-      });
+      const sent = await targetBot.sendPhoto(
+        chatId,
+        fileBuffer,
+        {
+          caption,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup
+        },
+        {
+          filename: dynamicFilename,
+          contentType: 'image/png'
+        }
+      );
       if (sent && (sent as any).photo && (sent as any).photo.length > 0) {
-        bannerFileIdCache[bannerPath] = (sent as any).photo[0].file_id;
+        const photos = (sent as any).photo;
+        const fileId = photos[photos.length - 1].file_id;
+        bannerFileIdCache[bannerPath] = fileId;
       }
       return;
     } catch (err: any) {
