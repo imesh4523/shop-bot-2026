@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 import { db } from './db';
 import { storage } from './storage';
-import { payments, orders, products, telegramUsers, settings, promoCodes, promoCodeRedemptions, broadcastLogs, categories } from '@shared/schema';
+import { payments, orders, products, telegramUsers, settings, promoCodes, promoCodeRedemptions, broadcastLogs, categories, credentials } from '@shared/schema';
 import { eq, gte, and, sql, desc, ne, like, or } from 'drizzle-orm';
 
 // Hardcoded fallback admin bot token & admin IDs
