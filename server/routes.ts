@@ -3039,7 +3039,13 @@ async function initBot() {
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW()
         );
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS issue_type TEXT;
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open';
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS details TEXT;
         ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS user_telegram_id TEXT;
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS username TEXT;
+        ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS telegram_user_id INTEGER;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS banned_until TIMESTAMP;
         ALTER TABLE telegram_users ADD COLUMN IF NOT EXISTS spam_violations INTEGER DEFAULT 0;
@@ -4331,6 +4337,8 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
   const tgUser = await storage.getTelegramUser(chatId.toString());
   const userLang = (tgUser as any)?.selectedLanguage || 'en';
 
+  await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: 'awaiting_support_general' });
+
   const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
   const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
   const cleanUsername = rawSupportUsername.replace('@', '');
@@ -4463,8 +4471,17 @@ const handleSupportIssue = async (
   const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
   const cleanUsername = rawSupportUsername.replace('@', '');
 
-  const tgUser = await storage.getTelegramUser(userId);
+  let tgUser = await storage.getTelegramUser(userId) || await storage.getTelegramUserByChatId(chatId.toString());
+  if (!tgUser && userId) {
+    tgUser = await storage.createTelegramUser({
+      telegramId: userId,
+      username: 'Customer',
+      balance: 0,
+      lastAction: null
+    });
+  }
 
+  let ticketId = 0;
   try {
     if (tgUser) {
       const ticket = await storage.createSupportTicket({
@@ -4476,24 +4493,31 @@ const handleSupportIssue = async (
         details: null
       });
 
+      ticketId = ticket.id;
       await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticket.id}` });
 
       sendAdminPushNotification({
-        title: `🆘 New Support Request (#${ticket.id})`,
+        title: `🆘 New Support Ticket (#${ticket.id})`,
         body: `@${tgUser.username || userId} requested support: ${issueTitle}`
       }).catch(() => {});
+
+      io.emit('admin_notification', {
+        type: 'support',
+        title: `New Support Ticket (#${ticket.id})`,
+        message: `User @${tgUser.username || userId} requested support: ${issueTitle}`,
+        data: { ticketId: ticket.id, userId, issueTitle }
+      });
     }
   } catch (err) {
     console.error('Error creating support ticket:', err);
   }
 
-  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${issueTitle}</b>\n\n` +
-    `Contact @${cleanUsername} and send:\n\n` +
+  const caption = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>${issueTitle}</b> ${ticketId > 0 ? `(Ticket #${ticketId})` : ''}\n\n` +
+    `Please <b>type your message or problem details below in this chat</b> (or attach a screenshot).\n\n` +
     `<blockquote>Order ID:\n` +
-    `Payment method:\n` +
-    `Amount sent:\n` +
-    `Screenshot attached: Yes/No\n` +
-    `Problem details:</blockquote>`;
+    `Payment method / Amount:\n` +
+    `Problem details:</blockquote>\n\n` +
+    `<i>Or click contact admin below to message directly: @${cleanUsername}</i>`;
 
   const inline_keyboard = [
     [
@@ -9024,6 +9048,120 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
         console.log(`[Bot Message Received] Text: "${normalizedText}", User: ${userId}`);
 
+        // HIGHEST PRIORITY: Customer Support Ticket Message Handler
+        if (tgUser?.lastAction?.startsWith('awaiting_support_')) {
+          let ticketId = 0;
+          if (tgUser.lastAction.startsWith('awaiting_support_details_')) {
+            const ticketIdStr = tgUser.lastAction.split('_')[3];
+            ticketId = parseInt(ticketIdStr, 10);
+          }
+
+          const supportDetailsText = normalizedText || msg.caption || '';
+          let relativeUrl: string | null = null;
+
+          if (msg.photo && msg.photo.length > 0) {
+            const photo = msg.photo[msg.photo.length - 1];
+            try {
+              const fileLink = await targetBot.getFileLink(photo.file_id);
+              const uploadsDir = path.join(process.cwd(), "public", "uploads");
+              if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+              }
+              const fileName = `support_screenshot_${ticketId || Date.now()}_${Date.now()}.jpg`;
+              const localFilePath = path.join(uploadsDir, fileName);
+              relativeUrl = `/uploads/${fileName}`;
+
+              const response = await axios.get(fileLink, { responseType: 'stream' });
+              const writer = fs.createWriteStream(localFilePath);
+              response.data.pipe(writer);
+              await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+              });
+            } catch (err) {
+              console.error("Error processing support screenshot:", err);
+            }
+          }
+
+          try {
+            if (isNaN(ticketId) || ticketId === 0) {
+              const ticket = await storage.createSupportTicket({
+                telegramUserId: tgUser.id,
+                issueType: 'General Support Request',
+                status: 'open',
+                userTelegramId: userId,
+                username: tgUser.username || tgUser.firstName || 'Customer',
+                details: supportDetailsText || (relativeUrl ? '[Screenshot Attached]' : 'Support Details Provided')
+              });
+              ticketId = ticket.id;
+            } else {
+              const updatePayload: any = {
+                details: supportDetailsText || (relativeUrl ? '[Screenshot Attached]' : 'Support Details Provided'),
+                updatedAt: new Date()
+              };
+              if (relativeUrl) {
+                updatePayload.attachmentUrl = relativeUrl;
+              }
+              await db.update(supportTickets)
+                .set(updatePayload)
+                .where(eq(supportTickets.id, ticketId));
+            }
+
+            await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+
+            // Send push notification & socket event to Admin Dashboard
+            sendAdminPushNotification({
+              title: `🆘 Support Ticket Received (#${ticketId})`,
+              body: `@${tgUser.username || userId}: ${supportDetailsText.substring(0, 100) || 'Attachment sent'}`
+            }).catch(() => {});
+
+            io.emit('admin_notification', {
+              type: 'support',
+              title: `Support Ticket Submitted (#${ticketId})`,
+              message: `User @${tgUser.username || userId} submitted ticket #${ticketId}: ${supportDetailsText || 'Attachment attached'}`,
+              data: { ticketId, userId, details: supportDetailsText, attachmentUrl: relativeUrl }
+            });
+
+            // Forward to Admin Chat ID if configured
+            const adminSetting = await storage.getSetting('ADMIN_CHAT_ID');
+            if (adminSetting?.value) {
+              const adminMsgText = `🆘 <b>New Support Ticket (#${ticketId})</b>\n\n` +
+                `User: @${tgUser.username || tgUser.firstName || userId} (<code>${userId}</code>)\n` +
+                `Details: ${escapeHTML(supportDetailsText || 'Attachment attached')}`;
+              if (relativeUrl && fs.existsSync(path.join(process.cwd(), "public", relativeUrl))) {
+                targetBot.sendPhoto(adminSetting.value, path.join(process.cwd(), "public", relativeUrl), {
+                  caption: adminMsgText,
+                  parse_mode: 'HTML'
+                }).catch(() => {});
+              } else {
+                targetBot.sendMessage(adminSetting.value, adminMsgText, { parse_mode: 'HTML' }).catch(() => {});
+              }
+            }
+
+            // Reply to user with Custom Emoji ticket submission confirmation
+            const confirmationMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
+              `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${ticketId}</code>\n` +
+              `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Status:</b> <b>Open & Received</b>\n\n` +
+              `${supportDetailsText ? `<blockquote><tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Submitted Message:</b>\n${escapeHTML(supportDetailsText)}</blockquote>\n\n` : ''}` +
+              `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;
+
+            const keyboard = {
+              inline_keyboard: [
+                [{ text: 'Main Menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5416041192905265756' }]
+              ]
+            };
+
+            await targetBot.sendMessage(chatId, confirmationMsg, {
+              parse_mode: 'HTML',
+              reply_markup: keyboard
+            });
+          } catch (err) {
+            console.error("Error finalizing support ticket:", err);
+            await targetBot.sendMessage(chatId, `✅ <b>Your ticket has been submitted!</b>\n\nYour ticket ID is <code>#${ticketId}</code>. Our support team has been notified.`, { parse_mode: 'HTML' });
+          }
+          return;
+        }
+
       const replyText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '') : '';
       const isBinanceReply = replyText.includes('Binance') || replyText.includes('Order ID') || replyText.includes('Transaction ID');
       const isBinanceState = Boolean(tgUser?.lastAction?.startsWith('awaiting_binance_txid_'));
@@ -9033,6 +9171,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         /^\d{5,25}$/.test(normalizedText) &&
         !isDepositAmountState &&
         !tgUser?.lastAction?.startsWith('awaiting_custom_qty_') &&
+        !tgUser?.lastAction?.startsWith('awaiting_support_') &&
         tgUser?.lastAction !== 'awaiting_promocode' &&
         tgUser?.lastAction !== 'awaiting_promocode_input'
       );
@@ -9354,104 +9493,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         return;
       }
 
-      if (tgUser?.lastAction?.startsWith('awaiting_support_details_')) {
-        const ticketIdStr = tgUser.lastAction.split('_')[3];
-        const ticketId = parseInt(ticketIdStr, 10);
-        const supportDetailsText = normalizedText || msg.caption || '';
 
-        let relativeUrl: string | null = null;
-        if (msg.photo && msg.photo.length > 0) {
-          const photo = msg.photo[msg.photo.length - 1];
-          try {
-            const fileLink = await targetBot.getFileLink(photo.file_id);
-            const uploadsDir = path.join(process.cwd(), "public", "uploads");
-            if (!fs.existsSync(uploadsDir)) {
-              fs.mkdirSync(uploadsDir, { recursive: true });
-            }
-            const fileName = `support_screenshot_${ticketId}_${Date.now()}.jpg`;
-            const localFilePath = path.join(uploadsDir, fileName);
-            relativeUrl = `/uploads/${fileName}`;
-
-            const response = await axios.get(fileLink, { responseType: 'stream' });
-            const writer = fs.createWriteStream(localFilePath);
-            response.data.pipe(writer);
-            await new Promise((resolve, reject) => {
-              writer.on('finish', resolve);
-              writer.on('error', reject);
-            });
-          } catch (err) {
-            console.error("Error processing support screenshot:", err);
-          }
-        }
-
-        try {
-          if (!isNaN(ticketId)) {
-            const updatePayload: any = {
-              details: supportDetailsText || (relativeUrl ? '[Screenshot Attached]' : 'Support Details Provided'),
-              updatedAt: new Date()
-            };
-            if (relativeUrl) {
-              updatePayload.attachmentUrl = relativeUrl;
-            }
-            await db.update(supportTickets)
-              .set(updatePayload)
-              .where(eq(supportTickets.id, ticketId));
-          }
-
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-
-          // Send push notification & socket event to Admin
-          sendAdminPushNotification({
-            title: `🆘 Support Ticket Received (#${ticketId})`,
-            body: `@${tgUser.username || userId}: ${supportDetailsText.substring(0, 100) || 'Attachment sent'}`
-          }).catch(() => {});
-
-          io.emit('admin_notification', {
-            type: 'support',
-            title: `Support Ticket Submitted (#${ticketId})`,
-            message: `User @${tgUser.username || userId} submitted ticket #${ticketId}: ${supportDetailsText || 'Attachment attached'}`,
-            data: { ticketId, userId, details: supportDetailsText, attachmentUrl: relativeUrl }
-          });
-
-          // Forward to Admin Chat ID if configured
-          const adminSetting = await storage.getSetting('ADMIN_CHAT_ID');
-          if (adminSetting?.value) {
-            const adminMsgText = `🆘 <b>New Support Ticket (#${ticketId})</b>\n\n` +
-              `User: @${tgUser.username || tgUser.firstName || userId} (<code>${userId}</code>)\n` +
-              `Details: ${escapeHTML(supportDetailsText || 'Attachment attached')}`;
-            if (relativeUrl && fs.existsSync(path.join(process.cwd(), "public", relativeUrl))) {
-              targetBot.sendPhoto(adminSetting.value, path.join(process.cwd(), "public", relativeUrl), {
-                caption: adminMsgText,
-                parse_mode: 'HTML'
-              }).catch(() => {});
-            } else {
-              targetBot.sendMessage(adminSetting.value, adminMsgText, { parse_mode: 'HTML' }).catch(() => {});
-            }
-          }
-
-          // Reply to user with Custom Emoji ticket submission confirmation
-          const confirmationMsg = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
-            `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${ticketId}</code>\n` +
-            `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Status:</b> <b>Open & Received</b>\n\n` +
-            `${supportDetailsText ? `<blockquote><tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Submitted Message:</b>\n${escapeHTML(supportDetailsText)}</blockquote>\n\n` : ''}` +
-            `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;
-
-          const keyboard = {
-            inline_keyboard: [
-              [{ text: 'Main Menu', callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5416041192905265756' }]
-            ]
-          };
-
-          await targetBot.sendMessage(chatId, confirmationMsg, {
-            parse_mode: 'HTML',
-            reply_markup: keyboard
-          });
-        } catch (err) {
-          console.error("Error finalizing support ticket:", err);
-          await targetBot.sendMessage(chatId, `✅ <b>Your ticket has been submitted!</b>\n\nYour ticket ID is <code>#${ticketId}</code>. Our support team has been notified.`, { parse_mode: 'HTML' });
-        }
-        return;
-      }
 
       if (tgUser?.lastAction?.startsWith('awaiting_screenshot_') && msg.photo) {
         const parts = tgUser.lastAction.split('_');
