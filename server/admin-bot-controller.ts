@@ -913,8 +913,8 @@ export async function initAdminBotController() {
           await adminBot?.sendMessage(chatId, `✅ <b>Successfully added ${added} stock account(s)/key(s) to Product ID ${productId}!</b>\n⚡ Checking & auto-fulfilling pending pre-orders...`, { parse_mode: 'HTML' }).catch(() => {});
 
           try {
-            const { autoFulfillPendingPreorders } = await import('./routes');
-            autoFulfillPendingPreorders(productId).catch(e => console.error("[AutoFulfill Error]:", e));
+            const { triggerAutoFulfillPreorders } = await import('./routes');
+            triggerAutoFulfillPreorders(productId).catch(e => console.error("[AutoFulfill Error]:", e));
           } catch (e) {
             console.error("AutoFulfill import error:", e);
           }

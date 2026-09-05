@@ -32,6 +32,14 @@ import {
   deleteTraceRecord 
 } from "./telegram-inspector";
 
+let autoFulfillFn: ((targetProductId?: number) => Promise<void>) | null = null;
+
+export const triggerAutoFulfillPreorders = async (targetProductId?: number) => {
+  if (autoFulfillFn) {
+    await autoFulfillFn(targetProductId);
+  }
+};
+
 const formatSriLankaTime = (dateInput?: Date | string | number, formatPattern: 'full' | 'short' | 'time' | 'date' = 'full'): string => {
   const d = dateInput ? new Date(dateInput) : new Date();
   const utcMs = d.getTime() + (d.getTimezoneOffset() * 60000);
@@ -4689,7 +4697,7 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, reviewsCaption, { inline_keyboard }, messageId);
 };
 
-export const autoFulfillPendingPreorders = async (targetProductId?: number) => {
+const autoFulfillPendingPreorders = async (targetProductId?: number) => {
   try {
     const allProducts = targetProductId ? [await storage.getProduct(targetProductId)].filter(Boolean) : await storage.getProducts();
 
@@ -4750,6 +4758,7 @@ export const autoFulfillPendingPreorders = async (targetProductId?: number) => {
     console.error("[AutoFulfill Preorders Error]:", err);
   }
 };
+autoFulfillFn = autoFulfillPendingPreorders;
 
 const sendOrderSuccessMessage = async (
   targetBot: TelegramBot,
