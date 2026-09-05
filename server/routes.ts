@@ -4689,7 +4689,7 @@ const sendCustomerReviewsScreen = async (targetBot: TelegramBot, chatId: number,
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, reviewsCaption, { inline_keyboard }, messageId);
 };
 
-const autoFulfillPendingPreorders = async (targetProductId?: number) => {
+export const autoFulfillPendingPreorders = async (targetProductId?: number) => {
   try {
     const allProducts = targetProductId ? [await storage.getProduct(targetProductId)].filter(Boolean) : await storage.getProducts();
 
@@ -4733,7 +4733,7 @@ const autoFulfillPendingPreorders = async (targetProductId?: number) => {
         });
 
         const tgUser = (await storage.getAllTelegramUsers()).find(u => u.id === preorder.telegramUserId);
-        const activeBot = await getBroadcastBot();
+        const activeBot = bot || (await getBroadcastBot());
         if (tgUser && activeBot) {
           console.log(`[Pre-Order AutoFulfill] Sending auto-fulfilled credentials to Telegram user ${tgUser.telegramId}...`);
           await sendOrderSuccessMessage(
@@ -4787,7 +4787,10 @@ const sendOrderSuccessMessage = async (
     const partInfo = totalMessages > 1 ? ` (Part ${msgIdx + 1}/${totalMessages} - Items ${startIdx + 1} to ${endIdx})` : '';
 
     const slDeliveryTime = formatSriLankaTime(new Date(), 'full');
-    const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Purchase completed successfully</b>${partInfo}\n\n` +
+    const isPreOrderMsg = productName.toLowerCase().includes('pre-order');
+    const headerTitleText = isPreOrderMsg ? 'Pre-Order Fulfilled Successfully!' : 'Purchase completed successfully';
+
+    const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>${headerTitleText}</b>${partInfo}\n\n` +
       `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
       `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n` +
       `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Delivery Time: <b>${slDeliveryTime}</b>\n\n` +

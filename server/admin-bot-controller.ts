@@ -900,19 +900,25 @@ export async function initAdminBotController() {
             await adminBot?.sendMessage(chatId, `❌ No valid stock keys provided. Please paste stock credentials line-by-line.`).catch(() => {});
             return;
           }
-          const { stockAccounts } = await import('@shared/schema');
           let added = 0;
           for (const key of keys) {
-            await db.insert(stockAccounts).values({
+            await storage.createCredential({
               productId,
-              credentials: key,
+              content: key,
               status: 'available'
             });
             added++;
           }
-          await db.execute(sql`UPDATE products SET stock_count = stock_count + ${added} WHERE id = ${productId}`);
           adminSessions.delete(chatId);
-          await adminBot?.sendMessage(chatId, `✅ <b>Successfully added ${added} stock accounts/keys to Product ID ${productId}!</b>`, { parse_mode: 'HTML' }).catch(() => {});
+          await adminBot?.sendMessage(chatId, `✅ <b>Successfully added ${added} stock account(s)/key(s) to Product ID ${productId}!</b>\n⚡ Checking & auto-fulfilling pending pre-orders...`, { parse_mode: 'HTML' }).catch(() => {});
+
+          try {
+            const { autoFulfillPendingPreorders } = await import('./routes');
+            autoFulfillPendingPreorders(productId).catch(e => console.error("[AutoFulfill Error]:", e));
+          } catch (e) {
+            console.error("AutoFulfill import error:", e);
+          }
+
           await sendProductsAdminMenu(chatId);
           return;
         }
