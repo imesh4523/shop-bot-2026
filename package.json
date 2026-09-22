@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-cloudtrail": "^3.1027.0",
+    "@aws-sdk/client-ec2": "^3.1137.0",
     "@aws-sdk/client-service-quotas": "^3.1029.0",
     "@aws-sdk/client-sts": "^3.1051.0",
     "@hookform/resolvers": "^3.10.0",

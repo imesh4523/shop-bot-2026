@@ -466,6 +466,10 @@ export default function MiniAppShopModern() {
   const [catScrollLeft, setCatScrollLeft] = useState(0);
   const [catMoved, setCatMoved] = useState(false);
 
+  // Top-Up State
+  const [cryptomusAmount, setCryptomusAmount] = useState("10");
+  const [isCreatingCryptomus, setIsCreatingCryptomus] = useState(false);
+
   const handleCatMouseDown = (e: React.MouseEvent) => {
     if (!catScrollRef.current) return;
     setIsCatDown(true);
@@ -558,6 +562,28 @@ export default function MiniAppShopModern() {
 
   const supportUser = supportUserSetting?.value || "@rochana_imesh";
 
+  const { data: depositMethods } = useQuery<{ binancePayId: string; cryptomusEnabled: boolean; supportUsername: string }>({
+    queryKey: ["/api/mini/deposit/methods"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/deposit/methods");
+        return res.json();
+      } catch {
+        return { binancePayId: "284910485", cryptomusEnabled: true, supportUsername: "@rochana_imesh" };
+      }
+    },
+  });
+
+  const binancePayId = depositMethods?.binancePayId || "284910485";
+
+  // Check if current visitor is inside Telegram Mini App or has real Telegram ID
+  const isTelegramUser = useMemo(() => {
+    const tg = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tg?.id) return true;
+    if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest") return true;
+    return false;
+  }, [user]);
+
   // Dynamic Greeting based on client time
   const greeting = useMemo(() => {
     const hr = new Date().getHours();
@@ -570,8 +596,35 @@ export default function MiniAppShopModern() {
     if (user?.firstName) return user.firstName;
     const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
     if (tgUser?.first_name) return tgUser.first_name;
-    return "Web Visitor";
-  }, [user]);
+    return isTelegramUser ? "Telegram User" : "Web Visitor";
+  }, [user, isTelegramUser]);
+
+  const handleCryptomusPay = async () => {
+    const num = parseFloat(cryptomusAmount);
+    if (isNaN(num) || num < 1) {
+      toast({ title: "Invalid Amount", description: "Minimum top-up amount is $1.00", variant: "destructive" });
+      return;
+    }
+    setIsCreatingCryptomus(true);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", { amount: num });
+      const data = await res.json();
+      if (data.url) {
+        toast({ title: "Invoice Created", description: "Opening Cryptomus checkout...", duration: 2500 });
+        if ((window as any).Telegram?.WebApp?.openLink) {
+          (window as any).Telegram.WebApp.openLink(data.url);
+        } else {
+          window.open(data.url, "_blank");
+        }
+      } else {
+        toast({ title: "Payment Error", description: data.message || "Failed to create invoice", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
+    } finally {
+      setIsCreatingCryptomus(false);
+    }
+  };
 
   // Real Brand Categories with Crisp Vector Icons
   const categories = [
@@ -732,23 +785,25 @@ export default function MiniAppShopModern() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Balance Pill */}
-            <button
-              onClick={() => setActiveTab("wallet")}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group"
-            >
-              <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-bold text-[#181432]">
-                ${((user?.balance || 0) / 100).toFixed(2)}
-              </span>
-            </button>
+            {/* Balance Pill - Only show for Telegram Mini App users */}
+            {isTelegramUser && (
+              <button
+                onClick={() => setActiveTab("wallet")}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group"
+              >
+                <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-[#181432]">
+                  ${((user?.balance || 0) / 100).toFixed(2)}
+                </span>
+              </button>
+            )}
 
             {/* Profile Avatar */}
             <button
               onClick={() => setActiveTab("profile")}
               className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
             >
-              {user?.username ? (
+              {user?.username && isTelegramUser ? (
                 <span className="text-sm font-black bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] bg-clip-text text-transparent">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
@@ -1083,63 +1138,182 @@ export default function MiniAppShopModern() {
         {/* WALLET TAB */}
         {activeTab === "wallet" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            {/* Balance Card */}
-            <div className="bg-gradient-to-br from-[#181135] via-[#2F1D5E] to-[#5B42F3] rounded-3xl p-6 text-white shadow-xl shadow-[#5B42F3]/25 relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-              <span className="text-xs font-semibold text-pink-200/90 uppercase tracking-wider block mb-1">
-                Total Available Balance
-              </span>
-              <h2 className="text-3xl font-black tracking-tight">
-                ${((user?.balance || 0) / 100).toFixed(2)}
-              </h2>
-              <span className="text-[11px] text-purple-200/80 block mt-1">
-                Telegram ID: {user?.telegramId || "Web Guest"}
-              </span>
-            </div>
-
-            {/* Deposit Notice */}
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8]">
-              <h3 className="text-sm font-black text-[#181432] mb-2 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-[#D92078]" /> Instant Top-Up Options
-              </h3>
-              <p className="text-xs text-[#7E7998] leading-relaxed mb-4">
-                To top up your wallet balance instantly with CryptoBot, Binance Pay, TRC20, or Bank Transfer, please open our Telegram Bot and tap <b>Deposit</b>.
-              </p>
-              <a
-                href="https://t.me/youuhostbot"
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-3 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/25 hover:opacity-95 transition-opacity"
-              >
-                Open Deposit in Telegram Bot <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-
-            {/* Payment History */}
-            <h3 className="text-xs font-black text-[#181432] uppercase tracking-wider mt-4">Top-Up History</h3>
-            {payments.length === 0 ? (
-              <div className="bg-white rounded-3xl p-5 text-center shadow-sm border border-[#ECEEF8]">
-                <p className="text-xs text-[#7E7998]">No payment transactions found.</p>
+            {/* Balance Card or Guest Info Card */}
+            {isTelegramUser ? (
+              <div className="bg-gradient-to-br from-[#181135] via-[#2F1D5E] to-[#5B42F3] rounded-3xl p-6 text-white shadow-xl shadow-[#5B42F3]/25 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+                <span className="text-xs font-semibold text-pink-200/90 uppercase tracking-wider block mb-1">
+                  Total Available Balance
+                </span>
+                <h2 className="text-3xl font-black tracking-tight">
+                  ${((user?.balance || 0) / 100).toFixed(2)}
+                </h2>
+                <span className="text-[11px] text-purple-200/80 block mt-1">
+                  Telegram ID: {user?.telegramId}
+                </span>
               </div>
             ) : (
-              <div className="space-y-2.5">
-                {payments.map((p) => (
-                  <div
-                    key={p.id}
-                    className="bg-white rounded-2xl p-3.5 shadow-sm border border-[#ECEEF8] flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-xs font-bold text-[#181432] block">{p.method.toUpperCase()} Top-Up</span>
-                      <span className="text-[10px] text-[#7E7998]">
-                        {p.createdAt ? format(new Date(p.createdAt), "MMM d, HH:mm") : "Recent"}
-                      </span>
-                    </div>
-                    <span className="text-xs font-black text-[#5B42F3]">
-                      +${(p.amount / 100).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+              <div className="bg-gradient-to-br from-[#181135] via-[#2F1D5E] to-[#5B42F3] rounded-3xl p-6 text-white shadow-xl shadow-[#5B42F3]/25 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+                <span className="text-xs font-semibold text-pink-200/90 uppercase tracking-wider block mb-1">
+                  Instant Top-Up & Checkout
+                </span>
+                <h2 className="text-2xl font-black tracking-tight mb-1.5">
+                  Instant Payment Gateways
+                </h2>
+                <p className="text-xs text-purple-200/80 leading-relaxed">
+                  Use Binance Pay or Cryptomus below for automatic top-up. Open our Telegram Bot to connect your account.
+                </p>
               </div>
+            )}
+
+            {/* TOP UP OPTIONS: BINANCE PAY & CRYPTOMUS */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-[#D92078]" /> Instant Payment Methods
+              </h3>
+
+              {/* 1. BINANCE PAY */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center text-[#F3BA2F]">
+                      <SiBinance className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Binance Pay</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">Zero Fee • Instant Verification</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-[#F3BA2F] bg-[#F3BA2F]/10 px-2.5 py-1 rounded-full">
+                    FAST PAY ID
+                  </span>
+                </div>
+
+                <div className="bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] mb-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-[#7E7998] block uppercase font-bold">Binance Pay ID</span>
+                    <span className="text-sm font-mono font-black text-[#181432] tracking-wider">{binancePayId}</span>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(binancePayId, "Binance Pay ID Copied")}
+                    className="px-3 py-1.5 bg-white border border-[#ECEEF8] text-[#5B42F3] rounded-xl text-xs font-bold hover:bg-[#EDE9FE] transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Copy ID
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-[#7E7998] leading-relaxed mb-3">
+                  Send USDT/crypto in Binance App to Binance Pay ID <b className="text-[#181432]">{binancePayId}</b>. Then message support with your TxID or Screenshot.
+                </p>
+
+                <a
+                  href={`https://t.me/${supportUser.replace('@', '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2.5 bg-[#F3BA2F] text-[#181432] rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#F3BA2F]/20 hover:opacity-95 transition-opacity"
+                >
+                  <SiBinance className="w-4 h-4" /> Confirm Binance Payment ({supportUser})
+                </a>
+              </div>
+
+              {/* 2. CRYPTOMUS GATEWAY */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center text-[#5B42F3]">
+                      <Zap className="w-5 h-5 text-[#5B42F3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Cryptomus Auto-Pay</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">USDT • TRC20 • BEP20 • TON • BTC</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-[#5B42F3] bg-[#EDE9FE] px-2.5 py-1 rounded-full">
+                    AUTO CREDIT
+                  </span>
+                </div>
+
+                {/* Amount selection quick chips */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5">Select Top-Up Amount (USD)</label>
+                  <div className="grid grid-cols-5 gap-1.5 mb-2">
+                    {["5", "10", "20", "50", "100"].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setCryptomusAmount(amt)}
+                        className={`py-1.5 rounded-xl text-xs font-black transition-all ${
+                          cryptomusAmount === amt
+                            ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30"
+                            : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                        }`}
+                      >
+                        ${amt}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={cryptomusAmount}
+                      onChange={(e) => setCryptomusAmount(e.target.value)}
+                      placeholder="Custom Amount in USD"
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-7 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCryptomusPay}
+                  disabled={isCreatingCryptomus}
+                  className="w-full py-3 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 transition-opacity disabled:opacity-50"
+                >
+                  {isCreatingCryptomus ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Creating Cryptomus Invoice...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" /> Pay ${cryptomusAmount || "0"} via Cryptomus Gateway <ExternalLink className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Payment History - Only show for Telegram Users */}
+            {isTelegramUser && (
+              <>
+                <h3 className="text-xs font-black text-[#181432] uppercase tracking-wider mt-4">Top-Up History</h3>
+                {payments.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-5 text-center shadow-sm border border-[#ECEEF8]">
+                    <p className="text-xs text-[#7E7998]">No payment transactions found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {payments.map((p) => (
+                      <div
+                        key={p.id}
+                        className="bg-white rounded-2xl p-3.5 shadow-sm border border-[#ECEEF8] flex items-center justify-between"
+                      >
+                        <div>
+                          <span className="text-xs font-bold text-[#181432] block">{p.method.toUpperCase()} Top-Up</span>
+                          <span className="text-[10px] text-[#7E7998]">
+                            {p.createdAt ? format(new Date(p.createdAt), "MMM d, HH:mm") : "Recent"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-black text-[#5B42F3]">
+                          +${(p.amount / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         )}
@@ -1152,7 +1326,9 @@ export default function MiniAppShopModern() {
                 {displayName.charAt(0).toUpperCase()}
               </div>
               <h3 className="text-base font-black text-[#181432]">{displayName}</h3>
-              <span className="text-xs text-[#7E7998] block mt-0.5">@{user?.username || "web_guest"}</span>
+              <span className="text-xs text-[#7E7998] block mt-0.5">
+                {isTelegramUser ? (user?.username ? `@${user.username}` : `ID: ${user?.telegramId}`) : "Store Customer"}
+              </span>
             </div>
 
             <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">

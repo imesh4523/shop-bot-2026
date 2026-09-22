@@ -64009,6 +64009,83 @@ ${extraInstructions}
     const userPayments = await storage.getPaymentsForUser(dbUser.id);
     res.json(userPayments);
   });
+  app2.get("/api/mini/deposit/methods", async (req, res) => {
+    try {
+      const binancePayId = (await storage.getSetting("BINANCE_PAY_ID"))?.value || "284910485";
+      const cryptomusEnabled = (await storage.getSetting("PAYMENT_CRYPTOMUS_ENABLED"))?.value !== "false";
+      res.json({
+        binancePayId,
+        cryptomusEnabled,
+        supportUsername: (await storage.getSetting("SUPPORT_USERNAME"))?.value || "@rochana_imesh"
+      });
+    } catch (err) {
+      res.json({
+        binancePayId: "284910485",
+        cryptomusEnabled: true,
+        supportUsername: "@rochana_imesh"
+      });
+    }
+  });
+  app2.post("/api/mini/deposit/cryptomus", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount < 1) {
+        return res.status(400).json({ message: "Invalid amount. Minimum is $1." });
+      }
+      const apiKey = (await storage.getSetting("CRYPTOMUS_API_KEY"))?.value;
+      const merchantId = (await storage.getSetting("CRYPTOMUS_MERCHANT_ID"))?.value;
+      if (!apiKey || !merchantId) {
+        return res.status(400).json({ message: "Cryptomus gateway not configured by administrator." });
+      }
+      const tgUser = req.tgUser;
+      let userId = tgUser?.id;
+      if (!userId || tgUser.isGuest) {
+        const guestDb = await storage.getTelegramUser("0");
+        userId = guestDb?.id || 1;
+      } else {
+        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
+        if (dbUser) userId = dbUser.id;
+      }
+      const orderId2 = `DEP_${Date.now()}_${Math.floor(Math.random() * 1e3)}`;
+      const baseUrl = await getAppBaseUrl();
+      const callbackUrl = `${baseUrl}/api/payments/webhook`;
+      const sign = import_crypto2.default.createHash("md5").update(Buffer.from(JSON.stringify({
+        amount: numAmount.toFixed(2),
+        currency: "USD",
+        order_id: orderId2,
+        url_callback: callbackUrl,
+        url_return: `${baseUrl}/`
+      })).toString("base64") + apiKey).digest("hex");
+      const response = await axios_default.post("https://api.cryptomus.com/v1/payment", {
+        amount: numAmount.toFixed(2),
+        currency: "USD",
+        order_id: orderId2,
+        url_callback: callbackUrl,
+        url_return: `${baseUrl}/`
+      }, {
+        headers: {
+          "merchant": merchantId,
+          "sign": sign
+        }
+      });
+      if (response.data && response.data.result) {
+        const paymentData = response.data.result;
+        await storage.createPayment({
+          telegramUserId: userId,
+          amount: Math.round(numAmount * 100),
+          paymentMethod: "cryptomus",
+          status: "pending",
+          cryptomusUuid: paymentData.uuid
+        });
+        return res.json({ url: paymentData.url, uuid: paymentData.uuid });
+      }
+      res.status(500).json({ message: "Failed to create invoice with Cryptomus" });
+    } catch (err) {
+      console.error("Cryptomus mini app error:", err.response?.data || err.message);
+      res.status(500).json({ message: err.response?.data?.message || err.message || "Failed to create Cryptomus invoice" });
+    }
+  });
   app2.get("/api/admin/api-keys", isAuth, async (req, res) => {
     try {
       const keys = await storage.getAllApiKeys();
@@ -67496,7 +67573,7 @@ A review would help us if everything went well.`;
         }
       }
     });
-    async function getAppBaseUrl(req) {
+    async function getAppBaseUrl2(req) {
       const customUrl = (await storage.getSetting("APP_URL"))?.value;
       if (customUrl && customUrl.trim()) {
         let url2 = customUrl.trim();
@@ -67668,7 +67745,7 @@ ${createdDateStr}
         return;
       }
       try {
-        const baseUrl = await getAppBaseUrl();
+        const baseUrl = await getAppBaseUrl2();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const existingPending = await storage.getPendingPaymentByAmount(tgUser.id, Math.round(amount * 100));
         if (existingPending) {
@@ -67773,7 +67850,7 @@ You must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b
       }
       try {
         const orderId2 = "bep20_" + import_crypto2.default.randomBytes(8).toString("hex");
-        const baseUrl = await getAppBaseUrl();
+        const baseUrl = await getAppBaseUrl2();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
           amount: amount.toString(),
@@ -67984,7 +68061,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
       }
       try {
         const orderId2 = "trc20_" + import_crypto2.default.randomBytes(8).toString("hex");
-        const baseUrl = await getAppBaseUrl();
+        const baseUrl = await getAppBaseUrl2();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
           amount: amount.toString(),
@@ -70951,7 +71028,7 @@ Please send your promo code below:`, { parse_mode: "HTML" });
           return;
         }
         const apiKey = await storage.getApiKeyByTelegramUser(tgUser.id);
-        const appBaseUrl = await getAppBaseUrl();
+        const appBaseUrl = await getAppBaseUrl2();
         const customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `${appBaseUrl}/custom`;
         const customDocsUrl = (await storage.getSetting("API_DOCS_URL"))?.value || `${appBaseUrl}/docs`;
         if (!apiKey || apiKey.status === "revoked") {

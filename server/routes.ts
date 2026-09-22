@@ -1007,6 +1007,94 @@ export async function registerRoutes(
     res.json(userPayments);
   });
 
+  // Mini App Deposit Methods & Cryptomus Invoice
+  app.get("/api/mini/deposit/methods", async (req, res) => {
+    try {
+      const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+      const cryptomusEnabled = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== "false";
+      res.json({
+        binancePayId,
+        cryptomusEnabled,
+        supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@rochana_imesh"
+      });
+    } catch (err: any) {
+      res.json({
+        binancePayId: "284910485",
+        cryptomusEnabled: true,
+        supportUsername: "@rochana_imesh"
+      });
+    }
+  });
+
+  app.post("/api/mini/deposit/cryptomus", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount < 1) {
+        return res.status(400).json({ message: "Invalid amount. Minimum is $1." });
+      }
+      const apiKey = (await storage.getSetting('CRYPTOMUS_API_KEY'))?.value;
+      const merchantId = (await storage.getSetting('CRYPTOMUS_MERCHANT_ID'))?.value;
+
+      if (!apiKey || !merchantId) {
+        return res.status(400).json({ message: "Cryptomus gateway not configured by administrator." });
+      }
+
+      const tgUser = (req as any).tgUser;
+      let userId = tgUser?.id;
+      if (!userId || tgUser.isGuest) {
+        const guestDb = await storage.getTelegramUser("0");
+        userId = guestDb?.id || 1;
+      } else {
+        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
+        if (dbUser) userId = dbUser.id;
+      }
+
+      const orderId = `DEP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const baseUrl = await getAppBaseUrl();
+      const callbackUrl = `${baseUrl}/api/payments/webhook`;
+
+      const sign = crypto.createHash('md5').update(Buffer.from(JSON.stringify({
+        amount: numAmount.toFixed(2),
+        currency: 'USD',
+        order_id: orderId,
+        url_callback: callbackUrl,
+        url_return: `${baseUrl}/`
+      })).toString('base64') + apiKey).digest('hex');
+
+      const response = await axios.post('https://api.cryptomus.com/v1/payment', {
+        amount: numAmount.toFixed(2),
+        currency: 'USD',
+        order_id: orderId,
+        url_callback: callbackUrl,
+        url_return: `${baseUrl}/`
+      }, {
+        headers: {
+          'merchant': merchantId,
+          'sign': sign
+        }
+      });
+
+      if (response.data && response.data.result) {
+        const paymentData = response.data.result;
+        await storage.createPayment({
+          telegramUserId: userId,
+          amount: Math.round(numAmount * 100),
+          paymentMethod: 'cryptomus',
+          status: 'pending',
+          cryptomusUuid: paymentData.uuid
+        });
+
+        return res.json({ url: paymentData.url, uuid: paymentData.uuid });
+      }
+
+      res.status(500).json({ message: "Failed to create invoice with Cryptomus" });
+    } catch (err: any) {
+      console.error("Cryptomus mini app error:", err.response?.data || err.message);
+      res.status(500).json({ message: err.response?.data?.message || err.message || "Failed to create Cryptomus invoice" });
+    }
+  });
+
   // Admin API Keys Management Endpoints
   app.get("/api/admin/api-keys", isAuth, async (req, res) => {
     try {
