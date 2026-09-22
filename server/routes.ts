@@ -531,13 +531,19 @@ export async function registerRoutes(
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #0f0e17; }
+    a[href*="client.scalar.com"],
+    .show-api-client-button,
+    [aria-label="Open API Client"],
+    [data-testid="api-client-button"] {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
   <script
     id="api-reference"
     data-url="/openapi.json"
-    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
+    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"hideTestRequestButton":true,"hideClientButton":true,"hideDownloadButton":true,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
   ></script>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122"></script>
 </body>
@@ -656,6 +662,20 @@ export async function registerRoutes(
         sent_messages_json TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id SERIAL PRIMARY KEY,
+        telegram_user_id INTEGER NOT NULL REFERENCES telegram_users(id) ON DELETE CASCADE,
+        key TEXT UNIQUE NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        total_orders INTEGER NOT NULL DEFAULT 0,
+        success_orders INTEGER NOT NULL DEFAULT 0,
+        failed_orders INTEGER NOT NULL DEFAULT 0,
+        revenue INTEGER NOT NULL DEFAULT 0,
+        last_used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS api_key_id INTEGER REFERENCES api_keys(id) ON DELETE SET NULL;
 
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS reward INTEGER DEFAULT 0;
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS max_uses INTEGER DEFAULT 1;
