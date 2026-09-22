@@ -1,29 +1,47 @@
-# DigitalOcean App Platform Configuration
+# DigitalOcean App Platform & DevSecOps Deployment Guide
 
-Your application is ready to be hosted on DigitalOcean App Platform. Below are the steps and configurations needed for a successful deployment.
+## 🌐 Subdomain & Architecture
+* **Frontend Domain**: `https://youuhost.com`
+* **API Subdomain**: `https://api.youuhost.com`
+* **Platform**: DigitalOcean App Platform + Cloudflare WAF Proxy
+* **App Spec**: Located at [`.do/app.yaml`](file:///.do/app.yaml)
 
-## Prerequisites
-- A DigitalOcean account.
-- A GitHub/GitLab/Bitbucket repository containing this project.
-- A PostgreSQL database (DigitalOcean Managed Database is recommended).
+---
 
-## Deployment Steps
-1. **Create App**: In DigitalOcean, click "Create" -> "Apps" and connect your repository.
-2. **Environment Variables**: Add the following in the DigitalOcean App Platform dashboard:
-   - `DATABASE_URL`: Your production database connection string.
-   - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
-   - `SESSION_SECRET`: A long, random string for session security.
-   - `NODE_ENV`: `production`
-   - `PGSSLMODE`: `no-verify` (if using a self-signed certificate, though managed DBs usually provide proper certs).
-3. **Build Command**: `npm run build`
-4. **Run Command**: `npm start`
-5. **HTTP Port**: Set to `5000`.
+## 🛠️ Step 1: DigitalOcean App Platform Setup
+1. Push this repository to your GitHub/GitLab repository.
+2. In DigitalOcean, navigate to **Apps** $\rightarrow$ **Create App**.
+3. Select your repository and branch (`main`).
+4. Import configuration from [`.do/app.yaml`](file:///.do/app.yaml) or set:
+   * **Build Command**: `npm run build`
+   * **Run Command**: `node dist/index.cjs`
+   * **Port**: `5000`
+5. Configure encrypted environment variables in App Platform:
+   * `DATABASE_URL` (Encrypted Secret)
+   * `SESSION_SECRET` (Encrypted Secret)
+   * `ADMIN_PASSWORD` (Encrypted Secret)
+   * `TELEGRAM_BOT_TOKEN` (Encrypted Secret)
+   * `CORS_ALLOWED_ORIGINS`: `https://youuhost.com,https://www.youuhost.com`
+   * `NODE_ENV`: `production`
 
-## Database Setup
-Run the following command once to push your schema to the production database:
+---
+
+## 🔒 Step 2: Cloudflare & DNS Hardening (api.youuhost.com)
+1. **DNS CNAME Record**:
+   * Name: `api` (points to your DO default domain: `*.ondigitalocean.app`)
+   * Proxy Status: **Proxied (Orange Cloud)**
+2. **TLS / SSL Settings**:
+   * Encryption Mode: **Full (Strict)**
+   * Minimum TLS Version: **TLS 1.2** (TLS 1.3 Recommended)
+   * **Always Use HTTPS**: Enabled
+   * **HSTS**: Max-age 1 Year (`31536000`), Include Subdomains: ON, Preload: ON
+3. **WAF Rules**:
+   * Challenge suspicious traffic and block non-standard API HTTP methods.
+
+---
+
+## 🗄️ Step 3: Production Database Schema Migration
+Run once against the production PostgreSQL instance:
 ```bash
 npm run db:push
 ```
-
-## Static Assets
-The application serves static files from the `dist/public` directory in production. Ensure your build script correctly bundles the frontend.

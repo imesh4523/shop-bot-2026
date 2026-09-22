@@ -77,7 +77,7 @@ function RootRouteHandler() {
     return <Redirect to="/imeshadmindashbord" />;
   }
 
-  return <ApiDocsPage />;
+  return <MiniAppShop />;
 }
 
 function Router() {

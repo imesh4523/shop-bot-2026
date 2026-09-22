@@ -657,7 +657,15 @@ export async function registerRoutes(
   const verifyMiniAppAuth = async (req: Request, res: Response, next: NextFunction) => {
     const initData = req.headers['x-telegram-init-data'] as string;
     if (!initData) {
-      return res.status(401).json({ message: "No Telegram init data provided" });
+      // Allow graceful web browser preview
+      (req as any).tgUser = {
+        id: 0,
+        username: "Guest",
+        first_name: "Web Visitor",
+        last_name: "",
+        isGuest: true
+      };
+      return next();
     }
 
     const token = await storage.getSetting("TELEGRAM_BOT_TOKEN");
@@ -703,7 +711,17 @@ export async function registerRoutes(
   // Get current user balance and info within Mini App
   app.get("/api/mini/user", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
-    if (!tgUser.id) return res.status(400).json({ message: "User ID missing" });
+    if (!tgUser || tgUser.isGuest || !tgUser.id) {
+      return res.json({
+        id: 0,
+        telegramId: "0",
+        username: "Guest",
+        firstName: "Web Visitor",
+        lastName: "",
+        balance: 0,
+        createdAt: new Date().toISOString()
+      });
+    }
 
     // Fetch or create user in our DB
     let user = await storage.getTelegramUser(tgUser.id.toString());
@@ -952,7 +970,7 @@ export async function registerRoutes(
         stockCount: stock.filter(s => s.status === 'available').length
       };
     }));
-    res.json(activeProducts.filter(p => p.stockCount > 0));
+    res.json(activeProducts);
   });
 
   // Get active special offers
@@ -964,10 +982,10 @@ export async function registerRoutes(
   // Get user's purchase history within Mini App
   app.get("/api/mini/orders", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
-    if (!tgUser.id) return res.status(400).json({ message: "User ID missing" });
+    if (!tgUser || tgUser.isGuest || !tgUser.id) return res.json([]);
 
     const dbUser = await storage.getTelegramUser(tgUser.id.toString());
-    if (!dbUser) return res.status(404).json({ message: "User not found" });
+    if (!dbUser) return res.json([]);
 
     const allOrders = await storage.getOrders();
     const userOrders = allOrders
@@ -980,10 +998,10 @@ export async function registerRoutes(
   // Get user's payment history (top-ups) within Mini App
   app.get("/api/mini/payments", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
-    if (!tgUser.id) return res.status(400).json({ message: "User ID missing" });
+    if (!tgUser || tgUser.isGuest || !tgUser.id) return res.json([]);
 
     const dbUser = await storage.getTelegramUser(tgUser.id.toString());
-    if (!dbUser) return res.status(404).json({ message: "User not found" });
+    if (!dbUser) return res.json([]);
 
     const userPayments = await storage.getPaymentsForUser(dbUser.id);
     res.json(userPayments);
@@ -2557,7 +2575,16 @@ app.get("/api/settings", isAuth, async (req, res) => {
   }
 });
 
-app.get("/api/settings/:key", isAuth, async (req, res) => {
+app.get("/api/settings/:key", async (req, res, next) => {
+  const publicKeys = [
+    'STORE_NAME', 'SUPPORT_USERNAME', 'SUPPORT_BTN_TEXT', 'LOADING_TEXT', 
+    'BOT_USERNAME', 'faq_content', 'CURRENCY_RATES', 'VAPID_PUBLIC_KEY', 
+    'MINI_APP_URL', 'BOT_ABOUT_TEXT', 'BOT_DESCRIPTION_TEXT', 'REVIEWS_CHANNEL_URL',
+    'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME'
+  ];
+  if (!publicKeys.includes(req.params.key) && !req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   try {
     const setting = await storage.getSetting(req.params.key);
     res.json(setting || { key: req.params.key, value: "" });

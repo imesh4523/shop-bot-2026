@@ -1,0 +1,66 @@
+name: youuhost-api
+region: sgp1
+services:
+- name: api
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: your-org/shop-bot
+  build_command: npm run build
+  run_command: node dist/index.cjs
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xs
+  http_port: 5000
+
+  health_check:
+    http_path: /api/health
+    initial_delay_seconds: 15
+    period_seconds: 15
+    timeout_seconds: 5
+    failure_threshold: 3
+    success_threshold: 1
+
+  envs:
+  - key: NODE_ENV
+    value: production
+    scope: RUN_AND_BUILD_TIME
+  - key: PORT
+    value: "5000"
+    scope: RUN_TIME
+  - key: CORS_ALLOWED_ORIGINS
+    value: "https://youuhost.com,https://www.youuhost.com"
+    scope: RUN_TIME
+  - key: DATABASE_URL
+    value: "YOUR_ENCRYPTED_DATABASE_URL"
+    type: SECRET
+    scope: RUN_TIME
+  - key: SESSION_SECRET
+    value: "YOUR_ENCRYPTED_SESSION_SECRET"
+    type: SECRET
+    scope: RUN_TIME
+  - key: ADMIN_EMAIL
+    value: "admin@shopeefy.com"
+    scope: RUN_TIME
+  - key: ADMIN_PASSWORD
+    value: "YOUR_ADMIN_PASSWORD"
+    type: SECRET
+    scope: RUN_TIME
+  - key: TELEGRAM_BOT_TOKEN
+    value: "YOUR_TELEGRAM_BOT_TOKEN"
+    type: SECRET
+    scope: RUN_TIME
+
+  routes:
+  - path: /
+
+alerts:
+- rule: CPU_UTILIZATION
+  value: 85
+  window: FIVE_MINUTES
+- rule: MEM_UTILIZATION
+  value: 85
+  window: FIVE_MINUTES
+- rule: RESTART_COUNT
+  value: 3
+  window: FIVE_MINUTES

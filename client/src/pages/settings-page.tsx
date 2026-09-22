@@ -64,6 +64,33 @@ export default function SettingsPage() {
     }
   }, [adminBotTokenSetting]);
 
+  const [miniAppTheme, setMiniAppTheme] = useState("v2_modern");
+  const { data: miniAppThemeSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/MINI_APP_THEME"],
+  });
+  useEffect(() => {
+    if (miniAppThemeSetting?.value) {
+      setMiniAppTheme(miniAppThemeSetting.value);
+    }
+  }, [miniAppThemeSetting]);
+
+  const miniAppThemeMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "MINI_APP_THEME",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/MINI_APP_THEME"] });
+      toast({
+        title: "Storefront Theme Switched!",
+        description: "The MiniApp store theme was updated instantly.",
+      });
+    }
+  });
+
   const adminBotTokenMutation = useMutation({
     mutationFn: async (value: string) => {
       const res = await apiRequest("POST", "/api/settings", {
@@ -877,7 +904,86 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-2xl space-y-6">
+        {/* Storefront Theme Selector Card */}
+        <Card className="glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background/80 to-purple-900/20 border border-purple-500/20 shadow-2xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-bold flex items-center gap-2 text-white">
+                <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
+                MiniApp Storefront Theme
+              </CardTitle>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Live Switcher
+              </span>
+            </div>
+            <CardDescription className="text-white/60">
+              Select which storefront UI design is shown when users open your shop or MiniApp.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Modern Luxe UI Option */}
+              <div
+                onClick={() => {
+                  setMiniAppTheme("v2_modern");
+                  miniAppThemeMutation.mutate("v2_modern");
+                }}
+                className={`p-5 rounded-2xl cursor-pointer transition-all duration-300 border-2 relative overflow-hidden ${
+                  miniAppTheme === "v2_modern"
+                    ? "bg-[#1E3325]/90 border-emerald-400 shadow-lg shadow-emerald-950/40 scale-[1.02]"
+                    : "bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-2xl">🌿</span>
+                  {miniAppTheme === "v2_modern" && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-emerald-950 px-2.5 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-base font-extrabold text-white">Modern Luxe Mobile UI</h4>
+                <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                  Clean ivory & emerald organic design, search bar, category chips, best sellers grid & floating navigation.
+                </p>
+                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
+                  <span>✨ 2026 Mobile-First Design</span>
+                </div>
+              </div>
+
+              {/* Classic Cyber-Dark Option */}
+              <div
+                onClick={() => {
+                  setMiniAppTheme("v1_classic");
+                  miniAppThemeMutation.mutate("v1_classic");
+                }}
+                className={`p-5 rounded-2xl cursor-pointer transition-all duration-300 border-2 relative overflow-hidden ${
+                  miniAppTheme === "v1_classic"
+                    ? "bg-purple-950/80 border-purple-400 shadow-lg shadow-purple-950/40 scale-[1.02]"
+                    : "bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-2xl">⚡</span>
+                  {miniAppTheme === "v1_classic" && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-400 text-purple-950 px-2.5 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-base font-extrabold text-white">Classic Cyber-Dark UI</h4>
+                <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                  Deep dark glassmorphic design, neon gradients, hot bundle carousel & tab navigation.
+                </p>
+                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-purple-300">
+                  <span>🚀 Original Shopeefy Theme</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="glass-card border-0">
           <CardHeader>
             <CardTitle className="text-2xl font-bold flex items-center gap-2">
