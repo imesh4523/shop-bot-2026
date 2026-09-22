@@ -595,6 +595,26 @@ export default function MiniAppShopModern() {
     { id: "duolingo", label: "Duolingo", renderIcon: () => <SiDuolingo className="w-5 h-5 text-[#58CC02]" /> },
   ];
 
+  // Helper to compute available stock quantity for each category
+  const getCategoryCount = useMemo(() => {
+    return (categoryId: string) => {
+      if (categoryId === "all") {
+        const totalStock = products.reduce((acc, p) => acc + (p.stockCount || 0), 0);
+        return totalStock > 0 ? totalStock : products.length;
+      }
+      const matching = products.filter((p) => {
+        const conf = getProviderConfig(p.name, p.type);
+        return (
+          conf.category === categoryId ||
+          p.type.toLowerCase().includes(categoryId) ||
+          p.name.toLowerCase().includes(categoryId)
+        );
+      });
+      const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
+      return totalStock > 0 ? totalStock : matching.length;
+    };
+  }, [products]);
+
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -790,6 +810,7 @@ export default function MiniAppShopModern() {
             >
               {categories.map((cat) => {
                 const isActive = selectedCategory === cat.id;
+                const count = getCategoryCount(cat.id);
                 return (
                   <button
                     key={cat.id}
@@ -798,12 +819,25 @@ export default function MiniAppShopModern() {
                         setSelectedCategory(cat.id);
                       }
                     }}
-                    className={`flex flex-col items-center justify-center min-w-[78px] h-[84px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
+                    className={`relative flex flex-col items-center justify-center min-w-[78px] h-[84px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
                       isActive
                         ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105"
                         : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"
                     }`}
                   >
+                    {/* Top-Left Available Quantity Badge */}
+                    <span
+                      className={`absolute top-2 left-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
+                        isActive
+                          ? "bg-white text-[#5B42F3] shadow-sm"
+                          : count > 0
+                          ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"
+                          : "bg-[#ECEEF8] text-[#9490A8]"
+                      }`}
+                    >
+                      {count}
+                    </span>
+
                     <div className="h-7 w-7 flex items-center justify-center mb-1.5">
                       {cat.renderIcon()}
                     </div>
@@ -968,7 +1002,7 @@ export default function MiniAppShopModern() {
                     <div className="mb-2 h-8 w-8 flex items-center justify-center">{cat.renderIcon()}</div>
                     <h4 className="text-sm font-bold text-[#181432]">{cat.label}</h4>
                     <span className="text-[10px] text-[#7E7998] mt-0.5">
-                      {products.filter((p) => getProviderConfig(p.name, p.type).category === cat.id || p.name.toLowerCase().includes(cat.id)).length} Items
+                      {getCategoryCount(cat.id)} Available
                     </span>
                   </div>
                 ))}
