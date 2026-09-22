@@ -825,9 +825,9 @@ export default function MiniAppShopModern() {
                         : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"
                     }`}
                   >
-                    {/* Top-Left Available Quantity Badge */}
+                    {/* Top-Right Available Quantity Badge */}
                     <span
-                      className={`absolute top-2 left-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
+                      className={`absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
                         isActive
                           ? "bg-white text-[#5B42F3] shadow-sm"
                           : count > 0
