@@ -14,6 +14,7 @@ import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
 import { apiV1Router } from "./routes/api-v1";
+import { openApiSpec } from "./openapi";
 import { z } from "zod";
 import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
@@ -510,6 +511,38 @@ export async function registerRoutes(
   });
 
   app.use("/api/v1", apiV1Router);
+
+  // OpenAPI 3.0 Specification
+  app.get("/openapi.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.json(openApiSpec);
+  });
+
+  // Modern Scalar API Reference Documentation (identical to https://aiversehub.store/docs)
+  app.get("/docs", (_req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="youuhost REST API documentation" />
+  <title>youuhost · API Docs</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0f0e17; }
+  </style>
+</head>
+<body>
+  <script
+    id="api-reference"
+    data-url="/openapi.json"
+    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122"></script>
+</body>
+</html>`);
+  });
 
   // Static Secure PWA Manifest Route (Always uses '/' as start_url to prevent admin URL leaks)
   app.get("/manifest.json", (_req, res) => {
