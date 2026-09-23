@@ -243,9 +243,20 @@ const BrandIcon = ({
   return <Package className={`${className} text-[#2D4F38]`} />;
 };
 
+export function cleanSandromaniaText(text: string = ""): string {
+  if (!text) return "";
+  return text
+    .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
+    .replace(/\{ce:\d+\}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // Provider Metadata
-const getProviderConfig = (name: string, type: string) => {
-  const n = (name + " " + type).toLowerCase();
+const getProviderConfig = (name: string = "", type: string = "") => {
+  const cleanName = cleanSandromaniaText(name);
+  const cleanType = cleanSandromaniaText(type);
+  const n = (cleanName + " " + cleanType).toLowerCase();
   if (n.includes("aws") || n.includes("amazon")) {
     return {
       tag: "AWS Cloud",
@@ -1234,12 +1245,14 @@ export default function MiniAppShopModern() {
       });
       const matchingSandro = sandromaniaProductsList.filter((s: any) => {
         if (s.isActive === false) return false;
-        const title = (s.title || "").toLowerCase();
-        const cat = (s.category || "").toLowerCase();
-        return cat.includes(categoryId) || title.includes(categoryId);
+        const title = cleanSandromaniaText(s.title || "").toLowerCase();
+        const cat = cleanSandromaniaText(s.category || "").toLowerCase();
+        const targetCat = categoryId.toLowerCase();
+        return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
       });
       const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
-      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + matchingSandro.length;
+      const sandroStock = matchingSandro.reduce((acc, s) => acc + (s.stock || s.stockCount || 1), 0);
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock;
     };
   }, [products, smmServicesList, sandromaniaProductsList]);
 
@@ -1286,13 +1299,15 @@ export default function MiniAppShopModern() {
   const filteredSandromaniaProducts = useMemo(() => {
     return sandromaniaProductsList.filter((p: any) => {
       if (p.isActive === false) return false;
-      const title = (p.title || "").toLowerCase();
-      const cat = (p.category || "").toLowerCase();
+      const title = cleanSandromaniaText(p.title || "").toLowerCase();
+      const cat = cleanSandromaniaText(p.category || "").toLowerCase();
+      const targetCat = selectedCategory.toLowerCase();
 
       const matchesCategory =
-        selectedCategory === "all" ||
-        cat.includes(selectedCategory) ||
-        title.includes(selectedCategory);
+        targetCat === "all" ||
+        cat === targetCat ||
+        cat.includes(targetCat) ||
+        title.includes(targetCat);
 
       const matchesSearch =
         !searchQuery.trim() ||
@@ -1859,8 +1874,11 @@ export default function MiniAppShopModern() {
 
                 {/* 2. Sandromania Partner Products */}
                 {filteredSandromaniaProducts.map((sandProd) => {
-                  const conf = getProviderConfig(sandProd.title, sandProd.category);
+                  const cleanTitle = cleanSandromaniaText(sandProd.title);
+                  const cleanCat = cleanSandromaniaText(sandProd.category);
+                  const conf = getProviderConfig(cleanTitle, cleanCat);
                   const priceFormatted = formatSandromaniaPrice(sandProd.sellingPriceUsd, 1);
+                  const availableStock = sandProd.stock || sandProd.stockCount || 0;
 
                   return (
                     <motion.div
@@ -1889,21 +1907,21 @@ export default function MiniAppShopModern() {
                           className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
                         />
                         <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
-                          <BrandIcon name={sandProd.title} type={sandProd.category} className="w-12 h-12" />
+                          <BrandIcon name={cleanTitle} type={cleanCat} className="w-12 h-12" />
                         </div>
                       </div>
 
                       {/* Product Details */}
                       <div className="mt-1">
                         <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
-                          {sandProd.title}
+                          {cleanTitle}
                         </h4>
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-[10px] text-[#7E7998] truncate">
-                            {sandProd.category || "Digital Product"}
+                            {cleanCat || "Digital Product"}
                           </span>
                           <span className="text-[9px] font-bold text-emerald-600 shrink-0">
-                            {sandProd.stockCount > 0 ? `${sandProd.stockCount} in stock` : "In Stock"}
+                            {availableStock > 0 ? `${availableStock} in stock` : "In Stock"}
                           </span>
                         </div>
                       </div>
@@ -3304,12 +3322,17 @@ export default function MiniAppShopModern() {
         <DialogContent className="max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           {detailSandromaniaProduct && (
             <div>
+              <DialogHeader className="sr-only">
+                <DialogTitle>{cleanSandromaniaText(detailSandromaniaProduct.title)}</DialogTitle>
+                <DialogDescription>Purchase instant auto-delivery digital product</DialogDescription>
+              </DialogHeader>
+
               {/* Product Header */}
               <div className="flex items-start gap-3 mb-4">
                 <div className="relative w-14 h-14 rounded-2xl bg-[#F5F4FC] flex items-center justify-center shrink-0 border border-[#ECEEF8]">
                   <BrandIcon
-                    name={detailSandromaniaProduct.title}
-                    type={detailSandromaniaProduct.category}
+                    name={cleanSandromaniaText(detailSandromaniaProduct.title)}
+                    type={cleanSandromaniaText(detailSandromaniaProduct.category)}
                     className="w-8 h-8"
                   />
                 </div>
@@ -3319,15 +3342,15 @@ export default function MiniAppShopModern() {
                       ⚡ Instant Auto-Delivery
                     </span>
                     <span className="text-[9px] font-bold text-[#7E7998]">
-                      {detailSandromaniaProduct.category || "Partner CDK"}
+                      {cleanSandromaniaText(detailSandromaniaProduct.category) || "Partner CDK"}
                     </span>
                   </div>
                   <h3 className="text-sm font-black text-[#181432] line-clamp-2">
-                    {detailSandromaniaProduct.title}
+                    {cleanSandromaniaText(detailSandromaniaProduct.title)}
                   </h3>
-                  {detailSandromaniaProduct.stockCount > 0 && (
+                  {(detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 0) > 0 && (
                     <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">
-                      ✓ {detailSandromaniaProduct.stockCount} in stock
+                      ✓ {detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount} in stock
                     </span>
                   )}
                 </div>

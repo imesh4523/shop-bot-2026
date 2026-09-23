@@ -3172,12 +3172,46 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
       return res.status(400).json({ message: "No products selected for import." });
     }
 
+    const cleanSandromaniaText = (text: string = ""): string => {
+      if (!text) return "";
+      return text
+        .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
+        .replace(/\{ce:\d+\}/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const detectCategory = (title: string = "", rawCat: string = ""): string => {
+      const combined = (cleanSandromaniaText(title) + " " + cleanSandromaniaText(rawCat)).toLowerCase();
+      if (combined.includes("gemini")) return "gemini";
+      if (combined.includes("chatgpt") || combined.includes("openai") || combined.includes("gpt")) return "chatgpt";
+      if (combined.includes("claude") || combined.includes("anthropic")) return "claude";
+      if (combined.includes("aws") || combined.includes("amazon")) return "aws";
+      if (combined.includes("digitalocean") || combined.includes("digital ocean")) return "digitalocean";
+      if (combined.includes("azure") || combined.includes("microsoft")) return "azure";
+      if (combined.includes("oracle")) return "oracle";
+      if (combined.includes("linode") || combined.includes("linod") || combined.includes("akamai")) return "linode";
+      if (combined.includes("spotify")) return "spotify";
+      if (combined.includes("youtube")) return "youtube";
+      if (combined.includes("tiktok")) return "tiktok";
+      if (combined.includes("instagram")) return "instagram";
+      if (combined.includes("facebook") || combined.includes("fb")) return "facebook";
+      if (combined.includes("telegram")) return "telegram";
+      if (combined.includes("duolingo")) return "duolingo";
+      if (combined.includes("capcut")) return "capcut";
+      if (combined.includes("kamatera")) return "kamatera";
+      return cleanSandromaniaText(rawCat) || "general";
+    };
+
     let count = 0;
     for (const item of importList) {
       const extId = parseInt(item.id);
       const rawPriceUsd = typeof item.price_usd === "number" ? item.price_usd : parseFloat(item.price_usd || "0");
       const costCents = Math.round(rawPriceUsd * 100);
       const sellingCents = Math.round(costCents * (1 + markupPercent / 100));
+
+      const cleanedTitle = cleanSandromaniaText(item.title);
+      const assignedCategory = item.category ? cleanSandromaniaText(item.category) : detectCategory(cleanedTitle, item.category);
 
       const existing = await db.query.sandromaniaProducts.findFirst({
         where: eq(sandromaniaProducts.externalProductId, extId),
@@ -3187,29 +3221,29 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
         await db
           .update(sandromaniaProducts)
           .set({
-            title: item.title,
+            title: cleanedTitle || item.title,
             type: item.type || "standard",
             stock: parseInt(item.stock) || 0,
             available: Boolean(item.available),
             costPriceUsd: costCents,
             bulkPrices: item.bulk_prices || null,
-            category: item.category || existing.category || "general",
+            category: existing.category && existing.category !== "general" ? existing.category : assignedCategory,
             updatedAt: new Date(),
           })
           .where(eq(sandromaniaProducts.id, existing.id));
       } else {
         await db.insert(sandromaniaProducts).values({
           externalProductId: extId,
-          title: item.title,
+          title: cleanedTitle || item.title,
           type: item.type || "standard",
           stock: parseInt(item.stock) || 0,
           available: Boolean(item.available),
           costPriceUsd: costCents,
           sellingPriceUsd: sellingCents > 0 ? sellingCents : costCents,
           bulkPrices: item.bulk_prices || null,
-          category: item.category || "general",
+          category: assignedCategory,
           isActive: true,
-          description: item.title,
+          description: cleanedTitle || item.title,
         });
       }
       count++;

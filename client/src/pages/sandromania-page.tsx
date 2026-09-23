@@ -45,6 +45,37 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 
+export function cleanSandromaniaText(text: string = ""): string {
+  if (!text) return "";
+  return text
+    .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
+    .replace(/\{ce:\d+\}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export const PRESET_CATEGORIES = [
+  { id: "gemini", label: "Gemini AI" },
+  { id: "chatgpt", label: "ChatGPT / OpenAI" },
+  { id: "claude", label: "Claude AI" },
+  { id: "aws", label: "AWS Cloud" },
+  { id: "digitalocean", label: "DigitalOcean" },
+  { id: "azure", label: "MS Azure" },
+  { id: "oracle", label: "Oracle Cloud" },
+  { id: "linode", label: "Linode" },
+  { id: "google", label: "GCP Cloud" },
+  { id: "spotify", label: "Spotify" },
+  { id: "youtube", label: "YouTube" },
+  { id: "tiktok", label: "TikTok" },
+  { id: "instagram", label: "Instagram" },
+  { id: "facebook", label: "Facebook" },
+  { id: "telegram", label: "Telegram" },
+  { id: "duolingo", label: "Duolingo" },
+  { id: "capcut", label: "CapCut" },
+  { id: "kamatera", label: "Kamatera" },
+  { id: "general", label: "General / Other" },
+];
+
 export default function SandromaniaPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"products" | "orders" | "settings">("products");
@@ -60,6 +91,7 @@ export default function SandromaniaPage() {
 
   // Edit Product Modal State
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState<string>("");
   const [editSellingPriceUsd, setEditSellingPriceUsd] = useState<string>("");
   const [editSellingPriceLkr, setEditSellingPriceLkr] = useState<string>("");
   const [editCategory, setEditCategory] = useState<string>("general");
@@ -224,6 +256,7 @@ export default function SandromaniaPage() {
 
   const handleOpenEdit = (prod: any) => {
     setEditingProduct(prod);
+    setEditTitle(prod.title || "");
     setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
     setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : "");
     setEditCategory(prod.category || "general");
@@ -241,6 +274,7 @@ export default function SandromaniaPage() {
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
+        title: editTitle.trim() || editingProduct.title,
         sellingPriceUsd: Math.round(usdVal * 100),
         sellingPriceLkr: lkrVal,
         category: editCategory.trim(),
@@ -880,58 +914,96 @@ export default function SandromaniaPage() {
 
       {/* EDIT PRODUCT MODAL */}
       <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
-        <DialogContent className="max-w-md w-full p-6 rounded-3xl">
+        <DialogContent className="max-w-md w-full p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base font-black">Edit Product Pricing</DialogTitle>
+            <DialogTitle className="text-base font-black">Edit Product Details & Pricing</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              {editingProduct?.title}
+              Customize product title, category, and selling price in your store.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
+            {/* Custom Product Title */}
             <div>
               <label className="text-xs font-bold text-muted-foreground block mb-1">
-                Selling Price (USD $)
+                Custom Product Name (Title)
               </label>
               <Input
-                type="number"
-                step="0.01"
-                value={editSellingPriceUsd}
-                onChange={(e) => setEditSellingPriceUsd(e.target.value)}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="e.g. Gemini Advanced 18 Months"
                 className="font-bold text-sm rounded-xl"
               />
               <span className="text-[10px] text-muted-foreground mt-0.5 block">
-                Cost Price: ${((editingProduct?.costPriceUsd || 0) / 100).toFixed(2)} USD
+                Original Sandromania ID: #{editingProduct?.externalProductId}
               </span>
             </div>
 
+            {/* Category Selector with Quick Preset Pills */}
             <div>
               <label className="text-xs font-bold text-muted-foreground block mb-1">
-                Selling Price (LKR Rs - Optional)
+                Store Category
               </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESET_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setEditCategory(cat.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                      editCategory.toLowerCase() === cat.id
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "bg-muted/70 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
               <Input
-                type="number"
-                placeholder="Auto-converts if blank"
-                value={editSellingPriceLkr}
-                onChange={(e) => setEditSellingPriceLkr(e.target.value)}
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                placeholder="Or type custom category (e.g. gemini, chatgpt, aws, telegram)"
                 className="text-xs rounded-xl"
               />
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-muted-foreground block mb-1">Category</label>
-              <Input
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                placeholder="e.g. ChatGPT, VPN, Streaming"
-                className="text-xs rounded-xl"
-              />
+            {/* Pricing USD & LKR */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
+                  Selling Price ($ USD)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editSellingPriceUsd}
+                  onChange={(e) => setEditSellingPriceUsd(e.target.value)}
+                  className="font-bold text-sm rounded-xl"
+                />
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  Cost: ${((editingProduct?.costPriceUsd || 0) / 100).toFixed(2)}
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
+                  Price (Rs LKR - Opt)
+                </label>
+                <Input
+                  type="number"
+                  placeholder="Auto-converts"
+                  value={editSellingPriceLkr}
+                  onChange={(e) => setEditSellingPriceLkr(e.target.value)}
+                  className="text-xs rounded-xl"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border">
               <div>
                 <span className="text-xs font-bold block">Active in Store</span>
-                <span className="text-[10px] text-muted-foreground">Enable customer purchases</span>
+                <span className="text-[10px] text-muted-foreground">Enable customer purchases in Mini App</span>
               </div>
               <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
             </div>
