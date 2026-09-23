@@ -1,8 +1,46 @@
+export function getOpenApiSpec(baseUrl: string = "/") {
+  let apiSubdomain = "https://api.youuhost.store";
+  let mainUrl = baseUrl;
+
+  if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+    try {
+      const u = new URL(baseUrl);
+      if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
+        const parts = u.hostname.split(".");
+        if (parts.length >= 2 && !parts[0].startsWith("api")) {
+          apiSubdomain = `${u.protocol}//api.${u.hostname}`;
+        } else {
+          apiSubdomain = baseUrl;
+        }
+      }
+    } catch {}
+  }
+
+  return {
+    ...openApiSpec,
+    info: {
+      ...openApiSpec.info,
+      description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n- **Subdomain**: \`${apiSubdomain}\`\n- **Main Domain**: \`${mainUrl.startsWith("http") ? mainUrl + "/api/v1" : "/api/v1"}\``,
+    },
+    servers: [
+      {
+        url: apiSubdomain,
+        description: "API Subdomain (Recommended)"
+      },
+      ...(baseUrl.startsWith("http") ? [{ url: baseUrl, description: "Main Server Domain" }] : []),
+      {
+        url: "/",
+        description: "Current Server (Relative)"
+      }
+    ]
+  };
+}
+
 export const openApiSpec = {
   openapi: "3.0.3",
   info: {
     title: "youuhost API",
-    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n\`/api/v1\``,
+    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n\`https://api.youuhost.store\``,
     version: "1.0.0",
     contact: {
       name: "youuhost Support",
@@ -10,6 +48,10 @@ export const openApiSpec = {
     }
   },
   servers: [
+    {
+      url: "https://api.youuhost.store",
+      description: "API Subdomain"
+    },
     {
       url: "/",
       description: "Production Server"

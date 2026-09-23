@@ -47949,6 +47949,53 @@ var init_api_v1 = __esm({
 });
 
 // server/openapi.ts
+function getOpenApiSpec(baseUrl = "/") {
+  let apiSubdomain = "https://api.youuhost.store";
+  let mainUrl = baseUrl;
+  if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+    try {
+      const u = new URL(baseUrl);
+      if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
+        const parts = u.hostname.split(".");
+        if (parts.length >= 2 && !parts[0].startsWith("api")) {
+          apiSubdomain = `${u.protocol}//api.${u.hostname}`;
+        } else {
+          apiSubdomain = baseUrl;
+        }
+      }
+    } catch {
+    }
+  }
+  return {
+    ...openApiSpec,
+    info: {
+      ...openApiSpec.info,
+      description: `Official REST API for **youuhost** cloud store.
+
+## Authentication
+Send your API key in the \`X-API-Key\` header on every request.
+Generate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.
+
+## Rate limits
+Maximum **5 requests / second** per API key.
+
+## Base URL
+- **Subdomain**: \`${apiSubdomain}\`
+- **Main Domain**: \`${mainUrl.startsWith("http") ? mainUrl + "/api/v1" : "/api/v1"}\``
+    },
+    servers: [
+      {
+        url: apiSubdomain,
+        description: "API Subdomain (Recommended)"
+      },
+      ...baseUrl.startsWith("http") ? [{ url: baseUrl, description: "Main Server Domain" }] : [],
+      {
+        url: "/",
+        description: "Current Server (Relative)"
+      }
+    ]
+  };
+}
 var openApiSpec;
 var init_openapi = __esm({
   "server/openapi.ts"() {
@@ -47967,7 +48014,7 @@ Generate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard
 Maximum **5 requests / second** per API key.
 
 ## Base URL
-\`/api/v1\``,
+\`https://api.youuhost.store\``,
         version: "1.0.0",
         contact: {
           name: "youuhost Support",
@@ -47975,6 +48022,10 @@ Maximum **5 requests / second** per API key.
         }
       },
       servers: [
+        {
+          url: "https://api.youuhost.store",
+          description: "API Subdomain"
+        },
         {
           url: "/",
           description: "Production Server"
@@ -64110,9 +64161,16 @@ async function registerRoutes(httpServer2, app2, io2) {
     next();
   });
   app2.use("/api/v1", apiV1Router);
-  app2.get("/openapi.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.json(openApiSpec);
+  app2.use("/v1", apiV1Router);
+  app2.get("/openapi.json", async (req, res) => {
+    try {
+      const baseUrl = await getAppBaseUrl(req);
+      res.setHeader("Content-Type", "application/json");
+      res.json(getOpenApiSpec(baseUrl));
+    } catch {
+      res.setHeader("Content-Type", "application/json");
+      res.json(openApiSpec);
+    }
   });
   app2.get("/docs", (_req, res) => {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -71594,7 +71652,24 @@ Please send your promo code below:`, { parse_mode: "HTML" });
         }
         const apiKey = await storage.getApiKeyByTelegramUser(tgUser.id);
         const appBaseUrl = await getAppBaseUrl2();
-        const customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `${appBaseUrl}/custom`;
+        let customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value;
+        if (!customBaseUrl || !customBaseUrl.trim() || customBaseUrl.endsWith("/custom")) {
+          try {
+            const u = new URL(appBaseUrl);
+            if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
+              const parts = u.hostname.split(".");
+              if (parts.length >= 2 && !parts[0].startsWith("api")) {
+                customBaseUrl = `${u.protocol}//api.${u.hostname}`;
+              } else {
+                customBaseUrl = `${appBaseUrl}/api/v1`;
+              }
+            } else {
+              customBaseUrl = `${appBaseUrl}/api/v1`;
+            }
+          } catch {
+            customBaseUrl = `${appBaseUrl}/api/v1`;
+          }
+        }
         const customDocsUrl = (await storage.getSetting("API_DOCS_URL"))?.value || `${appBaseUrl}/docs`;
         if (!apiKey || apiKey.status === "revoked") {
           const caption2 = `<tg-emoji emoji-id="6206077285720659346">\u26A0\uFE0F</tg-emoji> <b>Developer API Access</b>

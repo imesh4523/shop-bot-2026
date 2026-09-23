@@ -14,7 +14,7 @@ import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
 import { apiV1Router } from "./routes/api-v1";
-import { openApiSpec } from "./openapi";
+import { openApiSpec, getOpenApiSpec } from "./openapi";
 import { z } from "zod";
 import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
@@ -511,11 +511,18 @@ export async function registerRoutes(
   });
 
   app.use("/api/v1", apiV1Router);
+  app.use("/v1", apiV1Router);
 
   // OpenAPI 3.0 Specification
-  app.get("/openapi.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.json(openApiSpec);
+  app.get("/openapi.json", async (req, res) => {
+    try {
+      const baseUrl = await getAppBaseUrl(req);
+      res.setHeader("Content-Type", "application/json");
+      res.json(getOpenApiSpec(baseUrl));
+    } catch {
+      res.setHeader("Content-Type", "application/json");
+      res.json(openApiSpec);
+    }
   });
 
   // Modern Scalar API Reference Documentation (identical to https://aiversehub.store/docs)
@@ -8896,7 +8903,24 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
       const apiKey = await storage.getApiKeyByTelegramUser(tgUser.id);
       const appBaseUrl = await getAppBaseUrl();
-      const customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `${appBaseUrl}/custom`;
+      let customBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value;
+      if (!customBaseUrl || !customBaseUrl.trim() || customBaseUrl.endsWith("/custom")) {
+        try {
+          const u = new URL(appBaseUrl);
+          if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
+            const parts = u.hostname.split(".");
+            if (parts.length >= 2 && !parts[0].startsWith("api")) {
+              customBaseUrl = `${u.protocol}//api.${u.hostname}`;
+            } else {
+              customBaseUrl = `${appBaseUrl}/api/v1`;
+            }
+          } else {
+            customBaseUrl = `${appBaseUrl}/api/v1`;
+          }
+        } catch {
+          customBaseUrl = `${appBaseUrl}/api/v1`;
+        }
+      }
       const customDocsUrl = (await storage.getSetting("API_DOCS_URL"))?.value || `${appBaseUrl}/docs`;
 
       if (!apiKey || apiKey.status === "revoked") {
