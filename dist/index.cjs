@@ -47620,6 +47620,15 @@ var init_api_v1 = __esm({
     init_schema2();
     init_drizzle_orm();
     apiV1Router = (0, import_express.Router)();
+    apiV1Router.use((req, res, next) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, api_key, Accept");
+      if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+      }
+      next();
+    });
     apiV1Router.use(authenticateApiKey);
     apiV1Router.get("/me", async (req, res) => {
       try {
@@ -47950,9 +47959,10 @@ var init_api_v1 = __esm({
 
 // server/openapi.ts
 function getOpenApiSpec(baseUrl = "/") {
+  let isHttp = baseUrl.startsWith("http://") || baseUrl.startsWith("https://");
+  let currentHostServer = isHttp ? baseUrl : "/";
   let apiSubdomain = "https://api.youuhost.store";
-  let mainUrl = baseUrl;
-  if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+  if (isHttp) {
     try {
       const u = new URL(baseUrl);
       if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
@@ -47980,18 +47990,18 @@ Generate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard
 Maximum **5 requests / second** per API key.
 
 ## Base URL
-- **Subdomain**: \`${apiSubdomain}\`
-- **Main Domain**: \`${mainUrl.startsWith("http") ? mainUrl + "/api/v1" : "/api/v1"}\``
+- **Current Host**: \`${currentHostServer}\`
+- **API Subdomain**: \`${apiSubdomain}\``
     },
     servers: [
       {
-        url: apiSubdomain,
-        description: "API Subdomain (Recommended)"
-      },
-      ...baseUrl.startsWith("http") ? [{ url: baseUrl, description: "Main Server Domain" }] : [],
-      {
         url: "/",
-        description: "Current Server (Relative)"
+        description: "Current Host (Default & Direct In-Browser Testing)"
+      },
+      ...isHttp ? [{ url: baseUrl, description: "Main Domain Server" }] : [],
+      {
+        url: apiSubdomain,
+        description: "API Subdomain (api.domain.com)"
       }
     ]
   };
@@ -48014,7 +48024,7 @@ Generate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard
 Maximum **5 requests / second** per API key.
 
 ## Base URL
-\`https://api.youuhost.store\``,
+\`/api/v1\``,
         version: "1.0.0",
         contact: {
           name: "youuhost Support",
@@ -48023,12 +48033,12 @@ Maximum **5 requests / second** per API key.
       },
       servers: [
         {
-          url: "https://api.youuhost.store",
-          description: "API Subdomain"
+          url: "/",
+          description: "Current Host (Direct Testing)"
         },
         {
-          url: "/",
-          description: "Production Server"
+          url: "https://api.youuhost.store",
+          description: "API Subdomain"
         }
       ],
       tags: [

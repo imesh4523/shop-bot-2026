@@ -1,8 +1,9 @@
 export function getOpenApiSpec(baseUrl: string = "/") {
+  let isHttp = baseUrl.startsWith("http://") || baseUrl.startsWith("https://");
+  let currentHostServer = isHttp ? baseUrl : "/";
   let apiSubdomain = "https://api.youuhost.store";
-  let mainUrl = baseUrl;
 
-  if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+  if (isHttp) {
     try {
       const u = new URL(baseUrl);
       if (!u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1")) {
@@ -20,17 +21,17 @@ export function getOpenApiSpec(baseUrl: string = "/") {
     ...openApiSpec,
     info: {
       ...openApiSpec.info,
-      description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n- **Subdomain**: \`${apiSubdomain}\`\n- **Main Domain**: \`${mainUrl.startsWith("http") ? mainUrl + "/api/v1" : "/api/v1"}\``,
+      description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n- **Current Host**: \`${currentHostServer}\`\n- **API Subdomain**: \`${apiSubdomain}\``,
     },
     servers: [
       {
-        url: apiSubdomain,
-        description: "API Subdomain (Recommended)"
-      },
-      ...(baseUrl.startsWith("http") ? [{ url: baseUrl, description: "Main Server Domain" }] : []),
-      {
         url: "/",
-        description: "Current Server (Relative)"
+        description: "Current Host (Default & Direct In-Browser Testing)"
+      },
+      ...(isHttp ? [{ url: baseUrl, description: "Main Domain Server" }] : []),
+      {
+        url: apiSubdomain,
+        description: "API Subdomain (api.domain.com)"
       }
     ]
   };
@@ -40,7 +41,7 @@ export const openApiSpec = {
   openapi: "3.0.3",
   info: {
     title: "youuhost API",
-    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n\`https://api.youuhost.store\``,
+    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n\`/api/v1\``,
     version: "1.0.0",
     contact: {
       name: "youuhost Support",
@@ -49,12 +50,12 @@ export const openApiSpec = {
   },
   servers: [
     {
-      url: "https://api.youuhost.store",
-      description: "API Subdomain"
+      url: "/",
+      description: "Current Host (Direct Testing)"
     },
     {
-      url: "/",
-      description: "Production Server"
+      url: "https://api.youuhost.store",
+      description: "API Subdomain"
     }
   ],
   tags: [

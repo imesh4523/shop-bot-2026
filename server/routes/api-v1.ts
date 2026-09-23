@@ -62,6 +62,17 @@ async function authenticateApiKey(req: AuthenticatedApiRequest, res: Response, n
   next();
 }
 
+// Global CORS & preflight middleware for API V1
+apiV1Router.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, api_key, Accept");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Apply auth middleware to all /api/v1 routes
 apiV1Router.use(authenticateApiKey as any);
 
