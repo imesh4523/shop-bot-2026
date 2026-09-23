@@ -537,20 +537,14 @@ export async function registerRoutes(
   <title>youuhost · API Docs</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #0f0e17; }
-    a[href*="client.scalar.com"],
-    .show-api-client-button,
-    [aria-label="Open API Client"],
-    [data-testid="api-client-button"] {
-      display: none !important;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; }
   </style>
 </head>
 <body>
   <script
     id="api-reference"
     data-url="/openapi.json"
-    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"hideTestRequestButton":true,"hideClientButton":true,"hideDownloadButton":true,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
+    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
   ></script>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122"></script>
 </body>
