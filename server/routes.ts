@@ -1090,6 +1090,16 @@ export async function registerRoutes(
     }
   });
 
+  // Get Google OAuth Client ID
+  app.get("/api/auth/customer/google-client-id", async (req, res) => {
+    try {
+      const clientId = (await storage.getSetting("GOOGLE_CLIENT_ID"))?.value || process.env.GOOGLE_CLIENT_ID || "";
+      res.json({ clientId });
+    } catch {
+      res.json({ clientId: "" });
+    }
+  });
+
   // Sign in / Sign up with Google
   app.post("/api/auth/customer/google", async (req, res) => {
     try {

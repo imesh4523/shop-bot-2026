@@ -899,9 +899,55 @@ export default function MiniAppShopModern() {
     }
   };
 
+  const { data: googleConfig } = useQuery<{ clientId: string }>({
+    queryKey: ["/api/auth/customer/google-client-id"],
+  });
+
   // Handle Google Sign In
   const handleGoogleSignIn = async (customEmail?: string, customName?: string) => {
     setIsGoogleLoading(true);
+
+    // If Google OAuth Client ID is available and GIS is loaded, trigger real Google OAuth login
+    if (googleConfig?.clientId && (window as any).google?.accounts?.id && !customEmail) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleConfig.clientId,
+          callback: async (response: { credential: string }) => {
+            try {
+              const res = await fetch("/api/auth/customer/google", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: response.credential }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message || "Google sign-in failed.");
+              toast({
+                title: "Google Sign-In Successful!",
+                description: `Welcome, ${data.user?.firstName || data.user?.email}!`,
+              });
+              queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+              refetchUser();
+            } catch (err: any) {
+              toast({ title: "Sign-In Failed", description: err.message || "Google sign-in failed.", variant: "destructive" });
+            } finally {
+              setIsGoogleLoading(false);
+            }
+          },
+        });
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setShowGoogleModal(true);
+            setIsGoogleLoading(false);
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn("GIS prompt error:", e);
+      }
+    }
+
     try {
       const emailToUse = customEmail || googleEmailInput || "";
       const nameToUse = customName || googleNameInput || (emailToUse ? emailToUse.split("@")[0] : "");
