@@ -128,21 +128,29 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 );
 
 const BinanceLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 126.61 126.61" fill="none">
-    <path fill="#F3BA2F" d="M38.83,52.27l24.47-24.47l24.48,24.48l14.19-14.19L63.3,0L24.64,38.08L38.83,52.27z M14.19,63.3l14.19,14.19 l14.19-14.19L28.38,49.11L14.19,63.3z M63.3,74.33l-24.48-24.47L24.63,64.05L63.3,102.72l38.67-38.67L87.78,49.86L63.3,74.33z M98.22,49.11l-14.19,14.19l14.19,14.19l14.19-14.19L98.22,49.11z M63.3,38.08l10.28,10.28l14.19-14.19L63.3,9.7l-24.47,24.47 l14.19,14.19L63.3,38.08z M63.3,88.52l-10.28-10.28l-14.19,14.19L63.3,116.91l24.47-24.48l-14.19-14.19L63.3,88.52z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#F0B90B" />
+    <path
+      fill="#1E2026"
+      d="M16.624 13.92a2.44 2.44 0 0 0-3.248 0L9.4 17.896l3.976 3.976 3.248-3.976zm-9.248 7.224-3.248 3.248a2.44 2.44 0 0 0 0 3.248l3.248 3.248 3.248-3.248-3.248-3.248zm17.248 0-3.248 3.248-3.248 3.248 3.248 3.248 3.248-3.248a2.44 2.44 0 0 0 0-3.248zm-8.624 7.224-3.248 3.248 3.248 3.248 3.248-3.248-3.248-3.248zM12 0 1.584 10.416a2.44 2.44 0 0 0 0 3.248l3.248 3.248 7.168-7.168 7.168 7.168 3.248-3.248a2.44 2.44 0 0 0 0-3.248L12 0z"
+      transform="scale(0.55) translate(10, 10)"
+    />
   </svg>
 );
 
 const CryptomusLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none">
-    <circle cx="50" cy="50" r="50" fill="url(#cryptomusGradient)" />
-    <path d="M50 25C36.193 25 25 36.193 25 50C25 63.807 36.193 75 50 75C63.807 75 75 63.807 75 50C75 36.193 63.807 25 50 25ZM61 60L56 65C54.6 66.4 52.3 66.4 50.9 65L39.7 53.8C38.3 52.4 38.3 50.1 39.7 48.7L50.9 37.5C52.3 36.1 54.6 36.1 56 37.5L61 42.5C61.7 43.2 61.7 44.3 61 45L53.9 52.1C53.2 52.8 53.2 53.9 53.9 54.6L61 61.7C61.7 62.4 61.7 63.5 61 64.2V60Z" fill="white" />
-    <path d="M43 36L57 50L43 64" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect width="100" height="100" rx="28" fill="url(#cryptomusBgGrad)" />
+    <path
+      d="M50 20C33.43 20 20 33.43 20 50C20 66.57 33.43 80 50 80C62.8 80 73.6 72 77.8 60.5L66.4 56.2C63.8 63.8 57.5 69 50 69C39.51 69 31 60.49 31 50C31 39.51 39.51 31 50 31C57.5 31 63.8 36.2 66.4 43.8L77.8 39.5C73.6 28 62.8 20 50 20Z"
+      fill="white"
+    />
+    <circle cx="71" cy="50" r="7.5" fill="#10B981" />
     <defs>
-      <linearGradient id="cryptomusGradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <linearGradient id="cryptomusBgGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
         <stop stopColor="#635BFF" />
-        <stop offset="0.5" stopColor="#9C27B0" />
-        <stop offset="1" stopColor="#E02475" />
+        <stop offset="0.5" stopColor="#8B5CF6" />
+        <stop offset="1" stopColor="#EC4899" />
       </linearGradient>
     </defs>
   </svg>
@@ -697,6 +705,7 @@ export default function MiniAppShopModern() {
   const [binanceTxId, setBinanceTxId] = useState<string>("");
   const [isVerifyingBinance, setIsVerifyingBinance] = useState<boolean>(false);
   const [binanceSuccessMsg, setBinanceSuccessMsg] = useState<string | null>(null);
+  const [binanceErrorMsg, setBinanceErrorMsg] = useState<string | null>(null);
 
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -712,6 +721,7 @@ export default function MiniAppShopModern() {
 
     setIsVerifyingBinance(true);
     setBinanceSuccessMsg(null);
+    setBinanceErrorMsg(null);
     try {
       const res = await miniApiRequest("POST", "/api/mini/deposit/binance", {
         amount: num,
@@ -722,23 +732,27 @@ export default function MiniAppShopModern() {
       if (res.ok && data.success) {
         setBinanceSuccessMsg(data.message);
         toast({
-          title: data.status === "completed" ? "✅ Payment Verified!" : "⏳ Payment Submitted",
+          title: "✅ Payment Verified!",
           description: data.message,
         });
         setBinanceTxId("");
         queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
         queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
       } else {
+        const errorText = data.message || "Could not verify Binance Pay payment.";
+        setBinanceErrorMsg(errorText);
         toast({
-          title: "Verification Notice",
-          description: data.message || "Could not verify Binance Pay payment.",
+          title: "Verification Failed",
+          description: errorText,
           variant: "destructive",
         });
       }
     } catch (err: any) {
+      const errorText = err.message || "Failed to submit Binance payment verification.";
+      setBinanceErrorMsg(errorText);
       toast({
-        title: "Submission Error",
-        description: err.message || "Failed to submit Binance payment verification.",
+        title: "Verification Failed",
+        description: errorText,
         variant: "destructive",
       });
     } finally {
@@ -1649,6 +1663,13 @@ export default function MiniAppShopModern() {
                   <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>{binanceSuccessMsg}</span>
+                  </div>
+                )}
+
+                {binanceErrorMsg && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold flex items-start gap-2 animate-in fade-in">
+                    <X className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{binanceErrorMsg}</span>
                   </div>
                 )}
               </div>

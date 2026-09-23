@@ -208,6 +208,86 @@ async function verifyDepositViaBinance(
   }
 }
 
+async function verifyBinancePaymentLive(
+  orderOrTxId: string,
+  expectedAmount?: number
+): Promise<{ verified: boolean; actualAmount?: number; message?: string }> {
+  const apiKey = (await storage.getSetting("BINANCE_PAY_API_KEY"))?.value || (await storage.getSetting("BINANCE_API_KEY"))?.value;
+  const secretKey = (await storage.getSetting("BINANCE_PAY_SECRET_KEY"))?.value || (await storage.getSetting("BINANCE_SECRET_KEY"))?.value;
+
+  if (!apiKey || !secretKey) {
+    return {
+      verified: false,
+      message: "Binance API verification keys are not configured in Admin Settings. Please contact support @rochana_imesh."
+    };
+  }
+
+  const cleanId = orderOrTxId.trim();
+
+  // 1. Check Binance Pay Transaction History API (/sapi/v1/pay/transactions)
+  try {
+    const timestamp = Date.now();
+    const queryStr = `timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', secretKey).update(queryStr).digest('hex');
+
+    const res = await axios.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
+      headers: {
+        'X-MBX-APIKEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (res.data && res.data.code === '000000' && Array.isArray(res.data.data)) {
+      const match = res.data.data.find((t: any) => 
+        (t.orderId && t.orderId.toString().toLowerCase() === cleanId.toLowerCase()) ||
+        (t.transactionId && t.transactionId.toString().toLowerCase() === cleanId.toLowerCase())
+      );
+      if (match) {
+        const amount = parseFloat(match.amount || match.totalAmount || "0");
+        return { verified: true, actualAmount: amount > 0 ? amount : expectedAmount };
+      }
+    }
+  } catch (e: any) {
+    console.warn("[Binance Live Check] Pay Transactions API error:", e?.response?.data || e.message);
+  }
+
+  // 2. Check Binance SAPI Deposit History (/sapi/v1/capital/deposit/hisrec)
+  try {
+    const timestamp = Date.now();
+    const queryStr = `coin=USDT&status=1&timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', secretKey).update(queryStr).digest('hex');
+
+    const res = await axios.get(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryStr}&signature=${signature}`, {
+      headers: {
+        'X-MBX-APIKEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (res.data && Array.isArray(res.data)) {
+      const match = res.data.find((d: any) => 
+        d.status === 1 && (
+          (d.txId && d.txId.toLowerCase() === cleanId.toLowerCase()) ||
+          (d.id && d.id.toString() === cleanId)
+        )
+      );
+      if (match) {
+        const amount = parseFloat(match.amount || "0");
+        return { verified: true, actualAmount: amount > 0 ? amount : expectedAmount };
+      }
+    }
+  } catch (e: any) {
+    console.warn("[Binance Live Check] Deposit Hisrec API error:", e?.response?.data || e.message);
+  }
+
+  return {
+    verified: false,
+    message: `Binance payment not found for Order ID: ${cleanId}. Please verify that you sent the funds in Binance app and entered the exact Order ID / TxID.`
+  };
+}
+
 async function verifyTrc20Transaction(
   txId: string,
   walletAddress: string
@@ -1480,88 +1560,67 @@ export async function registerRoutes(
         if (dbUser) userId = dbUser.id;
       }
 
-      // 1. Anti-Fraud / Duplicate check
+      // 1. Anti-Duplicate Check in Database
       const existingPayments = await storage.getPayments();
       const duplicate = existingPayments.find(p => p.txId && p.txId.toLowerCase() === cleanTx.toLowerCase());
       if (duplicate) {
         return res.status(400).json({
           success: false,
-          message: "This Binance Order ID / TxID has already been submitted or processed. Duplicate requests are rejected."
+          message: `This Binance Order ID (${cleanTx}) has already been used or redeemed. Each transaction can only be used once.`
         });
       }
 
-      const amountInCents = Math.round(numAmount * 100);
-
-      // 2. Automated SAPI verification if Binance API keys are configured
-      let autoVerified = false;
-      const binanceApiKey = (await storage.getSetting('BINANCE_API_KEY'))?.value;
-      const binanceSecretKey = (await storage.getSetting('BINANCE_SECRET_KEY'))?.value;
-
-      if (binanceApiKey && binanceSecretKey) {
-        try {
-          const verifyResult = await verifyDepositViaBinance(cleanTx, 'TRC20', '');
-          if (verifyResult.success && verifyResult.actualAmount) {
-            autoVerified = true;
-          }
-        } catch (e) {
-          console.warn("[Binance Pay] Auto-verify check failed:", e);
-        }
-      }
-
-      if (autoVerified) {
-        const newPayment = await storage.createPayment({
-          telegramUserId: userId,
-          amount: amountInCents,
-          currency: 'USD',
-          paymentMethod: 'binance_pay',
-          status: 'completed',
-          txId: cleanTx
-        });
-
-        const user = await storage.getTelegramUser(userId.toString());
-        if (user) {
-          await storage.updateTelegramUser(user.id, {
-            balance: (user.balance || 0) + amountInCents
-          });
-        }
-
-        return res.json({
-          success: true,
-          status: 'completed',
-          message: `Payment verified instantly! $${numAmount.toFixed(2)} has been credited to your balance.`
-        });
-      } else {
-        const newPayment = await storage.createPayment({
-          telegramUserId: userId,
-          amount: amountInCents,
-          currency: 'USD',
-          paymentMethod: 'binance_pay',
-          status: 'pending',
-          txId: cleanTx
-        });
-
-        const displayUser = tgUser?.username ? `@${tgUser.username}` : `User ${tgUser?.telegramId || userId}`;
-        sendAdminPushNotification({
-          title: `💳 Binance Pay Top-Up ($${numAmount.toFixed(2)})`,
-          body: `${displayUser} submitted Order ID: ${cleanTx}`
-        }).catch(() => {});
-
-        io.emit('admin_notification', {
-          type: 'payment',
-          title: `Binance Pay Top-Up ($${numAmount.toFixed(2)})`,
-          message: `${displayUser} submitted Binance Order ID: ${cleanTx}`,
-          data: { paymentId: newPayment.id, amount: numAmount, txId: cleanTx, userId }
-        });
-
-        return res.json({
-          success: true,
-          status: 'pending',
-          message: `Your Binance Pay Order ID (${cleanTx}) has been submitted for instant verification. Your balance will update automatically once verified!`
+      // 2. Strict Live Verification against Binance Read-Only APIs
+      const verifyResult = await verifyBinancePaymentLive(cleanTx, numAmount);
+      if (!verifyResult.verified) {
+        return res.status(400).json({
+          success: false,
+          message: verifyResult.message || `Binance payment not found. We could not verify Order ID (${cleanTx}) on Binance Pay.`
         });
       }
+
+      // 3. Payment is 100% verified on Binance! Credit balance instantly.
+      const creditAmount = verifyResult.actualAmount && verifyResult.actualAmount > 0 ? verifyResult.actualAmount : numAmount;
+      const amountInCents = Math.round(creditAmount * 100);
+
+      const newPayment = await storage.createPayment({
+        telegramUserId: userId,
+        amount: amountInCents,
+        currency: 'USD',
+        paymentMethod: 'binance_pay',
+        status: 'completed',
+        txId: cleanTx
+      });
+
+      const user = await storage.getTelegramUser(userId.toString());
+      if (user) {
+        await storage.updateTelegramUser(user.id, {
+          balance: (user.balance || 0) + amountInCents
+        });
+      }
+
+      const displayUser = tgUser?.username ? `@${tgUser.username}` : `User ${tgUser?.telegramId || userId}`;
+      sendAdminPushNotification({
+        title: `✅ Binance Pay Verified ($${creditAmount.toFixed(2)})`,
+        body: `${displayUser} deposited $${creditAmount.toFixed(2)} with Order ID: ${cleanTx}`
+      }).catch(() => {});
+
+      io.emit('admin_notification', {
+        type: 'payment',
+        title: `Binance Pay Top-Up ($${creditAmount.toFixed(2)})`,
+        message: `${displayUser} verified Binance Order ID: ${cleanTx}`,
+        data: { paymentId: newPayment.id, amount: creditAmount, txId: cleanTx, userId }
+      });
+
+      return res.json({
+        success: true,
+        status: 'completed',
+        message: `Payment verified successfully! $${creditAmount.toFixed(2)} has been credited to your balance.`
+      });
+
     } catch (err: any) {
       console.error("Binance pay deposit error:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to process Binance Pay submission" });
+      res.status(500).json({ success: false, message: err.message || "Failed to process Binance Pay verification" });
     }
   });
 
