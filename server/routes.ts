@@ -1836,6 +1836,9 @@ export async function registerRoutes(
   // Purchase a product via Mini App
   app.post("/api/mini/purchase", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
+    if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+      return res.status(401).json({ message: "Sign in required to complete purchase. Please log in first." });
+    }
     const { productId, quantity = 1 } = req.body;
 
     if (!productId) return res.status(400).json({ message: "Product ID required" });
@@ -1983,6 +1986,9 @@ export async function registerRoutes(
 
   app.post("/api/mini/purchase-offer", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
+    if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+      return res.status(401).json({ message: "Sign in required to complete purchase. Please log in first." });
+    }
     const { offerId } = req.body;
 
     if (!offerId) return res.status(400).json({ message: "Offer ID required" });

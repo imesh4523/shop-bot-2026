@@ -42,8 +42,8 @@ import {
   TrendingUp
 } from "lucide-react";
 import { format } from "date-fns";
-import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane } from "react-icons/fa";
-import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance } from "react-icons/si";
+import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
+import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude } from "react-icons/si";
 import { VscAzure } from "react-icons/vsc";
 import youuHostLogo from "@/assets/youuhost_logo.png";
 import { Button } from "@/components/ui/button";
@@ -88,79 +88,47 @@ const OracleLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 const LinodeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="24" fill="#00A95C" />
-    <circle cx="50" cy="30" r="10" fill="white" />
-    <rect x="26" y="46" width="20" height="34" rx="10" fill="white" />
-    <rect x="54" y="46" width="20" height="34" rx="10" fill="white" />
-  </svg>
-);
-
-const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="24" fill="#D97757" />
-    <path
-      d="M50 22L56 42L76 48L56 54L50 74L44 54L24 48L44 42L50 22Z"
-      fill="white"
-    />
-  </svg>
-);
-
-const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24">
-    <path
-      fill="#4285F4"
-      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-    />
-  </svg>
-);
-
-const BinanceLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <span className={`inline-flex items-center justify-center rounded-full bg-[#F3BA2F] p-0.5 shrink-0 ${className}`}>
-    <SiBinance className="w-full h-full text-[#1E2026]" />
+  <span className={`inline-flex items-center justify-center rounded-2xl bg-[#00A95C] p-1.5 text-white shrink-0 ${className}`}>
+    <FaLinode className="w-full h-full text-white" />
   </span>
 );
 
-const CryptomusLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="28" fill="#1C1838" />
-    <path
-      d="M50 20C33.43 20 20 33.43 20 50C20 66.57 33.43 80 50 80C62.8 80 73.6 72 77.8 60.5L66.4 56.2C63.8 63.8 57.5 69 50 69C39.51 69 31 60.49 31 50C31 39.51 39.51 31 50 31C57.5 31 63.8 36.2 66.4 43.8L77.8 39.5C73.6 28 62.8 20 50 20Z"
-      fill="#FFFFFF"
-    />
-    <circle cx="72" cy="50" r="8" fill="#00D287" />
-  </svg>
+const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <span className={`inline-flex items-center justify-center rounded-2xl bg-[#D97757] p-1.5 text-white shrink-0 ${className}`}>
+    <SiClaude className="w-full h-full text-white" />
+  </span>
 );
 
 const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
+  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
     <rect width="100" height="100" rx="24" fill="#000000" />
     <path
-      d="M30 26L50 46L70 26V42L50 62L30 42V26ZM30 74L50 54L70 74V58L50 38L30 58V74Z"
-      fill="white"
+      d="M16 18H40L64 46H40L16 18Z"
+      fill="#FFFFFF"
+    />
+    <path
+      d="M84 18H60L36 46H60L84 18Z"
+      fill="#FFFFFF"
+    />
+    <path
+      d="M16 82H40L64 54H40L16 82Z"
+      fill="#FFFFFF"
+    />
+    <path
+      d="M84 82H60L36 54H60L84 82Z"
+      fill="#FFFFFF"
     />
   </svg>
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
+  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
     <rect width="100" height="100" rx="24" fill="#FF5E00" />
     <path
-      d="M28 26H42V45L62 26H78L54 49L78 74H62L42 53V74H28V26Z"
-      fill="white"
+      d="M26 22H38V78H26V22ZM44 48L68 22H80L54 50L82 78H70L44 52V48Z"
+      fill="#FFFFFF"
     />
+    <circle cx="72" cy="28" r="5.5" fill="#FFFFFF" />
   </svg>
 );
 
@@ -1061,6 +1029,7 @@ export default function MiniAppShopModern() {
     { id: "gemini", label: "Gemini", renderIcon: () => <SiGooglegemini className="w-5 h-5 text-[#1BA0E2]" /> },
     { id: "claude", label: "Claude", renderIcon: () => <ClaudeLogo className="w-5 h-5" /> },
     { id: "capcut", label: "CapCut", renderIcon: () => <CapCutLogo className="w-5 h-5" /> },
+    { id: "kamatera", label: "Kamatera", renderIcon: () => <KamateraLogo className="w-5 h-5" /> },
     { id: "duolingo", label: "Duolingo", renderIcon: () => <SiDuolingo className="w-5 h-5 text-[#58CC02]" /> },
   ];
 
@@ -1102,9 +1071,21 @@ export default function MiniAppShopModern() {
     });
   }, [products, selectedCategory, searchQuery]);
 
-  // Handle Quick Purchase
+  // Handle Quick Purchase (Enforce authentication)
   const handlePurchase = async () => {
     if (!detailProduct) return;
+
+    // Strict Login Requirement Check
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to complete your purchase.",
+      });
+      setDetailProduct(null);
+      setActiveTab("profile");
+      return;
+    }
+
     const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = (detailProduct.price * quantity) / 100;
 
@@ -2287,6 +2268,10 @@ export default function MiniAppShopModern() {
                 >
                   {isPurchasing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : !isCustomerLoggedIn ? (
+                    <>
+                      <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
+                    </>
                   ) : (
                     <>
                       <Zap className="w-4 h-4 text-pink-200" /> Buy Now
