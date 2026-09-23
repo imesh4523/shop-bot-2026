@@ -22,6 +22,7 @@ import {
   Database,
   Clock,
   Key,
+  ShoppingBag,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
     { name: 'N1Panel SMM', href: '/imeshadmindashbord/n1panel', icon: Share2 },
+    { name: 'Sandromania Shop', href: '/imeshadmindashbord/sandromania', icon: ShoppingBag },
     { name: 'Inventory', href: '/imeshadmindashbord/inventory', icon: Package },
     { name: 'Orders', href: '/imeshadmindashbord/orders', icon: ShoppingCart },
     { name: 'Support Tickets', href: '/imeshadmindashbord/support-tickets', icon: LifeBuoy },

@@ -522,5 +522,65 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).omit({ id: tru
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
 
+// Sandromania Shop Partner Products
+export const sandromaniaProducts = pgTable("sandromania_products", {
+  id: serial("id").primaryKey(),
+  externalProductId: integer("external_product_id").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  category: text("category").default("general"),
+  bulkPrices: text("bulk_prices"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Sandromania Shop Partner Orders
+export const sandromaniaOrders = pgTable("sandromania_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  sandromaniaProductId: integer("sandromania_product_id").references(() => sandromaniaProducts.id),
+  externalOrderId: integer("external_order_id"),
+  externalProductId: integer("external_product_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  status: text("status").notNull().default("approved"),
+  deliveryText: text("delivery_text"),
+  idempotencyKey: text("idempotency_key").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sandromaniaProductsRelations = relations(sandromaniaProducts, ({ many }) => ({
+  orders: many(sandromaniaOrders),
+}));
+
+export const sandromaniaOrdersRelations = relations(sandromaniaOrders, ({ one }) => ({
+  product: one(sandromaniaProducts, {
+    fields: [sandromaniaOrders.sandromaniaProductId],
+    references: [sandromaniaProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [sandromaniaOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertSandromaniaProductSchema = createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type SandromaniaProduct = typeof sandromaniaProducts.$inferSelect;
+export type InsertSandromaniaProduct = z.infer<typeof insertSandromaniaProductSchema>;
+
+export const insertSandromaniaOrderSchema = createInsertSchema(sandromaniaOrders).omit({ id: true, createdAt: true });
+export type SandromaniaOrder = typeof sandromaniaOrders.$inferSelect;
+export type InsertSandromaniaOrder = z.infer<typeof insertSandromaniaOrderSchema>;
+
+
 
 

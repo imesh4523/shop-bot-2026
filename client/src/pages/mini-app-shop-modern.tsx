@@ -712,6 +712,38 @@ export default function MiniAppShopModern() {
   const [smmOrderQty, setSmmOrderQty] = useState<number>(1000);
   const [isSmmPurchasing, setIsSmmPurchasing] = useState(false);
 
+  // Sandromania Products & Orders Queries
+  const { data: sandromaniaProductsList = [] } = useQuery<any[]>({
+    queryKey: ["/api/mini/sandromania/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/sandromania/products");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: sandromaniaOrdersList = [], refetch: refetchSandromaniaOrders } = useQuery<any[]>({
+    queryKey: ["/api/mini/sandromania/orders"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/sandromania/orders");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "orders",
+  });
+
+  // Sandromania Modal & Ordering State
+  const [detailSandromaniaProduct, setDetailSandromaniaProduct] = useState<any | null>(null);
+  const [sandromaniaOrderQty, setSandromaniaOrderQty] = useState<number>(1);
+  const [isSandromaniaPurchasing, setIsSandromaniaPurchasing] = useState(false);
+
   const { data: supportUserSetting } = useQuery<{ value: string }>({
     queryKey: ["/api/settings/SUPPORT_USERNAME"],
   });
@@ -1183,7 +1215,8 @@ export default function MiniAppShopModern() {
       if (categoryId === "all") {
         const totalStock = products.reduce((acc, p) => acc + (p.stockCount || 0), 0);
         const activeSmmCount = smmServicesList.filter((s: any) => s.isActive !== false).length;
-        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount;
+        const activeSandroCount = sandromaniaProductsList.filter((s: any) => s.isActive !== false).length;
+        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount + activeSandroCount;
       }
       const matching = products.filter((p) => {
         const conf = getProviderConfig(p.name, p.type);
@@ -1199,10 +1232,16 @@ export default function MiniAppShopModern() {
         const name = (s.name || "").toLowerCase();
         return cat.includes(categoryId) || name.includes(categoryId);
       });
+      const matchingSandro = sandromaniaProductsList.filter((s: any) => {
+        if (s.isActive === false) return false;
+        const title = (s.title || "").toLowerCase();
+        const cat = (s.category || "").toLowerCase();
+        return cat.includes(categoryId) || title.includes(categoryId);
+      });
       const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
-      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length;
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + matchingSandro.length;
     };
-  }, [products, smmServicesList]);
+  }, [products, smmServicesList, sandromaniaProductsList]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -1242,6 +1281,98 @@ export default function MiniAppShopModern() {
       return matchesCategory && matchesSearch;
     });
   }, [smmServicesList, selectedCategory, searchQuery]);
+
+  // Filtered Sandromania Partner Products
+  const filteredSandromaniaProducts = useMemo(() => {
+    return sandromaniaProductsList.filter((p: any) => {
+      if (p.isActive === false) return false;
+      const title = (p.title || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        cat.includes(selectedCategory) ||
+        title.includes(selectedCategory);
+
+      const matchesSearch =
+        !searchQuery.trim() ||
+        title.includes(searchQuery.toLowerCase()) ||
+        cat.includes(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [sandromaniaProductsList, selectedCategory, searchQuery]);
+
+  // Format Sandromania price helper
+  const formatSandromaniaPrice = (priceCents: number, qty: number = 1) => {
+    const totalCents = (priceCents || 0) * qty;
+    const usd = totalCents / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString()}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
+  // Handle Sandromania Instant Auto-Delivery Purchase
+  const handleSandromaniaPurchase = async () => {
+    if (!detailSandromaniaProduct) return;
+
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to complete your purchase.",
+      });
+      setDetailSandromaniaProduct(null);
+      setActiveTab("profile");
+      return;
+    }
+
+    const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+    const userBalanceUsd = (user?.balance || 0) / 100;
+    const totalPriceUsd = totalCents / 100;
+
+    if (userBalanceUsd < totalPriceUsd) {
+      const neededStr = formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty);
+      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
+        variant: "destructive",
+      });
+      setDetailSandromaniaProduct(null);
+      setActiveTab("wallet");
+      return;
+    }
+
+    setIsSandromaniaPurchasing(true);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
+        productId: detailSandromaniaProduct.id,
+        quantity: sandromaniaOrderQty,
+      });
+      await res.json();
+      toast({
+        title: "🎉 Purchase Successful!",
+        description: "Your digital license keys and credentials have been delivered.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/sandromania/orders"] });
+      refetchUser();
+      refetchSandromaniaOrders();
+      setDetailSandromaniaProduct(null);
+      setActiveTab("orders");
+    } catch (err: any) {
+      toast({
+        title: "Order Failed",
+        description: err.message || "Failed to process partner purchase.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSandromaniaPurchasing(false);
+    }
+  };
 
   // Handle Quick Purchase (Enforce authentication)
   const handlePurchase = async () => {
@@ -1726,7 +1857,80 @@ export default function MiniAppShopModern() {
                   );
                 })}
 
-                {/* 2. Direct Cloud & Account Products */}
+                {/* 2. Sandromania Partner Products */}
+                {filteredSandromaniaProducts.map((sandProd) => {
+                  const conf = getProviderConfig(sandProd.title, sandProd.category);
+                  const priceFormatted = formatSandromaniaPrice(sandProd.sellingPriceUsd, 1);
+
+                  return (
+                    <motion.div
+                      key={`sandro-prod-${sandProd.id}`}
+                      whileHover={{ y: -3 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setDetailSandromaniaProduct(sandProd);
+                        setSandromaniaOrderQty(1);
+                      }}
+                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
+                    >
+                      {/* Top Action: Provider Tag & Instant Delivery Tag */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                          {conf.tag}
+                        </span>
+                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5" /> Auto-Key
+                        </span>
+                      </div>
+
+                      {/* Centered Image with Real Brand Icon and Organic Blob Background */}
+                      <div className="relative my-2 py-3 flex items-center justify-center">
+                        <div
+                          className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
+                        />
+                        <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                          <BrandIcon name={sandProd.title} type={sandProd.category} className="w-12 h-12" />
+                        </div>
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="mt-1">
+                        <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
+                          {sandProd.title}
+                        </h4>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] text-[#7E7998] truncate">
+                            {sandProd.category || "Digital Product"}
+                          </span>
+                          <span className="text-[9px] font-bold text-emerald-600 shrink-0">
+                            {sandProd.stockCount > 0 ? `${sandProd.stockCount} in stock` : "In Stock"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bottom Price & Add (+) Button */}
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                        <div>
+                          <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                          <span className="text-[9px] text-[#7E7998] block">Instant Auto</span>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailSandromaniaProduct(sandProd);
+                            setSandromaniaOrderQty(1);
+                          }}
+                          className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#10A37F] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#10A37F]/20 hover:opacity-95 active:scale-90 transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {/* 3. Direct Cloud & Account Products */}
                 {filteredProducts.map((prod) => {
                   const conf = getProviderConfig(prod.name, prod.type);
                   const isFav = favorites.includes(prod.id);
@@ -1945,15 +2149,122 @@ export default function MiniAppShopModern() {
               </div>
             )}
 
+            {/* SANDROMANIA DIGITAL AUTO-DELIVERY ORDERS SECTION */}
+            {sandromaniaOrdersList.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5" /> Digital License & CDK Orders ({sandromaniaOrdersList.length})
+                  </h3>
+                  <button
+                    onClick={() => refetchSandromaniaOrders()}
+                    className="text-[10px] font-bold text-[#7E7998] hover:text-emerald-600 flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Sync
+                  </button>
+                </div>
+
+                {sandromaniaOrdersList.map((sandroOrd: any) => {
+                  const conf = getProviderConfig(sandroOrd.product?.title || "", sandroOrd.product?.category || "");
+                  const status = (sandroOrd.status || "Completed").toLowerCase();
+
+                  let statusBadge = (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                      Auto-Delivered
+                    </span>
+                  );
+                  if (status.includes("fail") || status.includes("cancel")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+                        Failed
+                      </span>
+                    );
+                  } else if (status.includes("pend") || status.includes("process")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                        Processing
+                      </span>
+                    );
+                  }
+
+                  const deliveredData =
+                    sandroOrd.deliveredData ||
+                    (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload || ""));
+
+                  return (
+                    <div
+                      key={`sandro-ord-${sandroOrd.id}`}
+                      className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                            {conf.tag}
+                          </span>
+                          <span className="text-[10px] font-mono text-[#7E7998]">
+                            #{sandroOrd.externalOrderId ? `SANDRO-${sandroOrd.externalOrderId}` : `ORD-${sandroOrd.id}`}
+                          </span>
+                        </div>
+                        {statusBadge}
+                      </div>
+
+                      <h4 className="text-xs font-black text-[#181432] mb-1.5">
+                        {sandroOrd.product?.title || `Sandromania Item #${sandroOrd.productId}`}
+                      </h4>
+
+                      {/* Delivered Key / Credentials Display */}
+                      {deliveredData ? (
+                        <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200 mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wide flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
+                            </span>
+                            <button
+                              onClick={() => copyToClipboard(deliveredData, "License Data Copied")}
+                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-xs"
+                            >
+                              <Copy className="w-2.5 h-2.5" /> Copy
+                            </button>
+                          </div>
+                          <div className="font-mono text-[11px] text-emerald-950 font-bold bg-white/80 p-2 rounded-xl border border-emerald-100 break-all select-all whitespace-pre-wrap">
+                            {deliveredData}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-[#F8F7FD] p-2 rounded-2xl border border-[#ECEEF8] mb-2 text-[10px] text-[#7E7998]">
+                          Awaiting license key generation...
+                        </div>
+                      )}
+
+                      {/* Quantity, Cost & Date */}
+                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#F5F4FC]">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[#181432]">
+                            Qty: <span className="font-black text-[#5B42F3]">{sandroOrd.quantity || 1}</span>
+                          </span>
+                          <span className="font-bold text-[#7E7998]">
+                            Paid: <span className="font-black text-[#181432]">{formatBalanceInCurrentCurrency(sandroOrd.amountPaid || 0)}</span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#7E7998]">
+                          {sandroOrd.createdAt ? format(new Date(sandroOrd.createdAt), "MMM d • HH:mm") : "Recent"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* CLOUD & ACCOUNT PURCHASES SECTION */}
             <div className="space-y-3">
-              {smmOrdersList.length > 0 && orders.length > 0 && (
+              {(smmOrdersList.length > 0 || sandromaniaOrdersList.length > 0) && orders.length > 0 && (
                 <h3 className="text-xs font-black text-[#7E7998] uppercase tracking-wider flex items-center gap-1.5 pt-2">
                   <Package className="w-3.5 h-3.5" /> Cloud & Account Orders ({orders.length})
                 </h3>
               )}
 
-              {orders.length === 0 && smmOrdersList.length === 0 ? (
+              {orders.length === 0 && smmOrdersList.length === 0 && sandromaniaOrdersList.length === 0 ? (
                 <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
                   <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
                   <h4 className="text-sm font-bold text-[#181432]">No orders yet</h4>
@@ -2975,6 +3286,166 @@ export default function MiniAppShopModern() {
                 ) : (
                   <>
                     <Zap className="w-4 h-4" /> Place SMM Order Now 🚀
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* SANDROMANIA PARTNER PRODUCT PURCHASE DIALOG */}
+      <Dialog
+        open={!!detailSandromaniaProduct}
+        onOpenChange={(open) => {
+          if (!open) setDetailSandromaniaProduct(null);
+        }}
+      >
+        <DialogContent className="max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          {detailSandromaniaProduct && (
+            <div>
+              {/* Product Header */}
+              <div className="flex items-start gap-3 mb-4">
+                <div className="relative w-14 h-14 rounded-2xl bg-[#F5F4FC] flex items-center justify-center shrink-0 border border-[#ECEEF8]">
+                  <BrandIcon
+                    name={detailSandromaniaProduct.title}
+                    type={detailSandromaniaProduct.category}
+                    className="w-8 h-8"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      ⚡ Instant Auto-Delivery
+                    </span>
+                    <span className="text-[9px] font-bold text-[#7E7998]">
+                      {detailSandromaniaProduct.category || "Partner CDK"}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-black text-[#181432] line-clamp-2">
+                    {detailSandromaniaProduct.title}
+                  </h3>
+                  {detailSandromaniaProduct.stockCount > 0 && (
+                    <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">
+                      ✓ {detailSandromaniaProduct.stockCount} in stock
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Instant Auto-Delivery Banner */}
+              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-emerald-950">
+                  <span className="font-extrabold block">Instant Auto-Fulfillment</span>
+                  License keys, CDK tokens, and digital credentials are automatically generated and saved to your Orders tab upon purchase.
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-[#181432]">Select Quantity:</label>
+                  <span className="text-xs font-mono font-bold text-[#5B42F3]">
+                    {sandromaniaOrderQty} unit{sandromaniaOrderQty > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSandromaniaOrderQty(Math.max(1, sandromaniaOrderQty - 1))}
+                    disabled={sandromaniaOrderQty <= 1}
+                    className="w-10 h-10 rounded-xl bg-white border border-[#ECEEF8] flex items-center justify-center text-sm font-bold hover:bg-[#F5F4FC] disabled:opacity-40"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={detailSandromaniaProduct.stockCount > 0 ? detailSandromaniaProduct.stockCount : 100}
+                    value={sandromaniaOrderQty}
+                    onChange={(e) =>
+                      setSandromaniaOrderQty(Math.max(1, parseInt(e.target.value) || 1))
+                    }
+                    className="flex-1 bg-white border border-[#ECEEF8] rounded-xl px-3 py-2 text-center text-sm font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSandromaniaOrderQty(sandromaniaOrderQty + 1)}
+                    className="w-10 h-10 rounded-xl bg-white border border-[#ECEEF8] flex items-center justify-center text-sm font-bold hover:bg-[#F5F4FC]"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Real-Time Price Calculation */}
+              {(() => {
+                const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+                const userBalCents = user?.balance || 0;
+                const hasSufficientBal = userBalCents >= totalCents;
+
+                return (
+                  <div className="bg-gradient-to-br from-[#064E3B] to-[#047857] rounded-3xl p-4 text-white mb-4 relative overflow-hidden shadow-lg shadow-[#064E3B]/20">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-emerald-100 font-semibold">Total Price:</span>
+                      <span className="text-[10px] text-emerald-200 font-mono">
+                        ${((detailSandromaniaProduct.sellingPriceUsd || 0) / 100).toFixed(2)} × {sandromaniaOrderQty}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between mb-3">
+                      <span className="text-2xl font-black tracking-tight">
+                        {formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)}
+                      </span>
+                      {selectedCurrency === "LKR" && (
+                        <span className="text-xs text-emerald-200 font-mono">
+                          (${((totalCents) / 100).toFixed(2)} USD)
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-emerald-400/30 flex items-center justify-between text-[11px]">
+                      <span className="text-emerald-100">Wallet Balance:</span>
+                      <span className={`font-bold font-mono ${hasSufficientBal ? "text-emerald-200" : "text-amber-300"}`}>
+                        {formatBalanceInCurrentCurrency(userBalCents)}
+                      </span>
+                    </div>
+
+                    {!hasSufficientBal && isCustomerLoggedIn && (
+                      <div className="mt-2 bg-amber-400/20 rounded-xl p-2 text-[10px] text-amber-200 flex items-center justify-between border border-amber-400/30">
+                        <span>⚠️ Insufficient wallet balance</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetailSandromaniaProduct(null);
+                            setActiveTab("wallet");
+                          }}
+                          className="text-white underline font-bold"
+                        >
+                          Top-Up Now
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Buy / Sign In Button */}
+              <button
+                onClick={handleSandromaniaPurchase}
+                disabled={isSandromaniaPurchasing}
+                className="w-full py-3.5 bg-gradient-to-r from-[#10A37F] via-[#059669] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#10A37F]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+              >
+                {isSandromaniaPurchasing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : !isCustomerLoggedIn ? (
+                  <>
+                    <UserIcon className="w-4 h-4" /> Sign In to Purchase
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" /> Purchase Now (Auto Delivery) 🚀
                   </>
                 )}
               </button>

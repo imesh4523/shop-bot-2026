@@ -33,7 +33,11 @@ const allowlist = [
 ];
 
 async function buildAll() {
-  await rm("dist", { recursive: true, force: true });
+  try {
+    await rm("dist", { recursive: true, force: true });
+  } catch (e) {
+    // Ignore locked files on Windows
+  }
 
   console.log("building client...");
   await viteBuild();

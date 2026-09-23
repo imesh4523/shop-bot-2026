@@ -6,11 +6,12 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders } from "@shared/schema";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
+import { SandromaniaService } from "./sandromania-service";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
@@ -3043,6 +3044,408 @@ app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
       .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
       .where(eq(smmOrders.telegramUserId, user.id))
       .orderBy(desc(smmOrders.id));
+
+    res.json(ordersList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// Verify/create sandromania_products and sandromania_orders tables
+try {
+  db.execute(sql`
+    CREATE TABLE IF NOT EXISTS sandromania_products (
+      id SERIAL PRIMARY KEY,
+      external_product_id INTEGER NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'standard',
+      stock INTEGER NOT NULL DEFAULT 0,
+      available BOOLEAN NOT NULL DEFAULT true,
+      cost_price_usd INTEGER NOT NULL DEFAULT 0,
+      selling_price_usd INTEGER NOT NULL DEFAULT 0,
+      selling_price_lkr INTEGER DEFAULT 0,
+      category TEXT DEFAULT 'general',
+      bulk_prices TEXT,
+      description TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS sandromania_orders (
+      id SERIAL PRIMARY KEY,
+      telegram_user_id INTEGER REFERENCES telegram_users(id) ON DELETE CASCADE,
+      sandromania_product_id INTEGER REFERENCES sandromania_products(id) ON DELETE CASCADE,
+      external_order_id INTEGER,
+      external_product_id INTEGER NOT NULL,
+      product_title TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      cost_price_usd INTEGER NOT NULL DEFAULT 0,
+      amount_paid INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'approved',
+      delivery_text TEXT,
+      idempotency_key TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `).catch(() => {});
+  console.log("[DB] sandromania_products & sandromania_orders tables verified/created");
+} catch (err) {
+  console.error("[DB Init Sandromania Error]:", err);
+}
+
+// --- Sandromania Shop Partner API Routes ---
+
+// 1. Get Sandromania Settings & Balance
+app.get("/api/admin/sandromania/settings", isAuth, async (req, res) => {
+  try {
+    const creds = await SandromaniaService.getCredentials();
+    const health = await SandromaniaService.getHealth();
+    let balanceInfo: any = null;
+    if (creds.apiKey && creds.apiSecret) {
+      try {
+        balanceInfo = await SandromaniaService.getBalance();
+      } catch (e: any) {
+        balanceInfo = { error: e.message };
+      }
+    }
+
+    res.json({
+      apiKey: creds.apiKey,
+      apiSecret: creds.apiSecret ? "••••••••••••••••" : "",
+      hasSecret: !!creds.apiSecret,
+      health,
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load Sandromania settings" });
+  }
+});
+
+// 2. Save Sandromania Settings
+app.post("/api/admin/sandromania/settings", isAuth, async (req, res) => {
+  try {
+    const { apiKey, apiSecret } = req.body;
+    if (apiKey === undefined) {
+      return res.status(400).json({ message: "API key is required" });
+    }
+
+    const currentCreds = await SandromaniaService.getCredentials();
+    const secretToSave = apiSecret !== undefined && apiSecret !== "" ? apiSecret : currentCreds.apiSecret;
+
+    await SandromaniaService.saveCredentials(apiKey, secretToSave);
+
+    let balanceInfo: any = null;
+    let health = await SandromaniaService.getHealth();
+    if (apiKey?.trim() && secretToSave?.trim()) {
+      try {
+        balanceInfo = await SandromaniaService.getBalance();
+      } catch (e: any) {
+        balanceInfo = { error: e.message };
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Sandromania API credentials saved successfully!",
+      health,
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save Sandromania settings" });
+  }
+});
+
+// 3. Fetch Live Products from Sandromania Partner API
+app.get("/api/admin/sandromania/fetch-products", isAuth, async (req, res) => {
+  try {
+    const productsList = await SandromaniaService.getProducts();
+    res.json(productsList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch live products from Sandromania" });
+  }
+});
+
+// 4. Import Products into Store Catalog with Custom Profit Markup
+app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
+  try {
+    const { products: importList, markupPercent = 40 } = req.body;
+    if (!Array.isArray(importList) || importList.length === 0) {
+      return res.status(400).json({ message: "No products selected for import." });
+    }
+
+    let count = 0;
+    for (const item of importList) {
+      const extId = parseInt(item.id);
+      const rawPriceUsd = typeof item.price_usd === "number" ? item.price_usd : parseFloat(item.price_usd || "0");
+      const costCents = Math.round(rawPriceUsd * 100);
+      const sellingCents = Math.round(costCents * (1 + markupPercent / 100));
+
+      const existing = await db.query.sandromaniaProducts.findFirst({
+        where: eq(sandromaniaProducts.externalProductId, extId),
+      });
+
+      if (existing) {
+        await db
+          .update(sandromaniaProducts)
+          .set({
+            title: item.title,
+            type: item.type || "standard",
+            stock: parseInt(item.stock) || 0,
+            available: Boolean(item.available),
+            costPriceUsd: costCents,
+            bulkPrices: item.bulk_prices || null,
+            category: item.category || existing.category || "general",
+            updatedAt: new Date(),
+          })
+          .where(eq(sandromaniaProducts.id, existing.id));
+      } else {
+        await db.insert(sandromaniaProducts).values({
+          externalProductId: extId,
+          title: item.title,
+          type: item.type || "standard",
+          stock: parseInt(item.stock) || 0,
+          available: Boolean(item.available),
+          costPriceUsd: costCents,
+          sellingPriceUsd: sellingCents > 0 ? sellingCents : costCents,
+          bulkPrices: item.bulk_prices || null,
+          category: item.category || "general",
+          isActive: true,
+          description: item.title,
+        });
+      }
+      count++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported / updated ${count} products from Sandromania!`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to import products" });
+  }
+});
+
+// 5. List Managed Sandromania Products
+app.get("/api/admin/sandromania/products", isAuth, async (req, res) => {
+  try {
+    const all = await db.select().from(sandromaniaProducts).orderBy(desc(sandromaniaProducts.id));
+    res.json(all);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to list Sandromania products" });
+  }
+});
+
+// 6. Update Product (Selling Price / Active Status / Category)
+app.put("/api/admin/sandromania/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description } = req.body;
+    const updates: any = { updatedAt: new Date() };
+
+    if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
+    if (sellingPriceLkr !== undefined) updates.sellingPriceLkr = parseInt(sellingPriceLkr);
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (title !== undefined) updates.title = title;
+    if (category !== undefined) updates.category = category;
+    if (description !== undefined) updates.description = description;
+
+    const [updated] = await db
+      .update(sandromaniaProducts)
+      .set(updates)
+      .where(eq(sandromaniaProducts.id, id))
+      .returning();
+
+    res.json({ success: true, product: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update product" });
+  }
+});
+
+// 7. Delete Product
+app.delete("/api/admin/sandromania/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(sandromaniaProducts).where(eq(sandromaniaProducts.id, id));
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete product" });
+  }
+});
+
+// 8. List All Sandromania Orders for Audit Tracker
+app.get("/api/admin/sandromania/orders", isAuth, async (req, res) => {
+  try {
+    const allOrders = await db
+      .select({
+        id: sandromaniaOrders.id,
+        externalOrderId: sandromaniaOrders.externalOrderId,
+        externalProductId: sandromaniaOrders.externalProductId,
+        productTitle: sandromaniaOrders.productTitle,
+        quantity: sandromaniaOrders.quantity,
+        costPriceUsd: sandromaniaOrders.costPriceUsd,
+        amountPaid: sandromaniaOrders.amountPaid,
+        status: sandromaniaOrders.status,
+        deliveryText: sandromaniaOrders.deliveryText,
+        idempotencyKey: sandromaniaOrders.idempotencyKey,
+        createdAt: sandromaniaOrders.createdAt,
+        userFirstName: telegramUsers.firstName,
+        userLastName: telegramUsers.lastName,
+        userEmail: telegramUsers.email,
+        telegramId: telegramUsers.telegramId,
+        username: telegramUsers.username,
+      })
+      .from(sandromaniaOrders)
+      .leftJoin(telegramUsers, eq(sandromaniaOrders.telegramUserId, telegramUsers.id))
+      .orderBy(desc(sandromaniaOrders.id));
+
+    res.json(allOrders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// --- Public Mini-App Sandromania Shop Routes ---
+
+// Get active Sandromania products for customer store
+app.get("/api/mini/sandromania/products", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const productsList = await db
+      .select()
+      .from(sandromaniaProducts)
+      .where(eq(sandromaniaProducts.isActive, true));
+
+    res.json(productsList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load products" });
+  }
+});
+
+// Purchase Product with Instant Auto-Delivery
+app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) => {
+  const tgUser = (req as any).tgUser;
+  if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+    return res.status(401).json({ message: "Sign in required to complete purchase. Please log in first." });
+  }
+
+  const { productId, quantity = 1 } = req.body;
+  if (!productId) {
+    return res.status(400).json({ message: "Product ID is required." });
+  }
+
+  const qty = parseInt(quantity) || 1;
+  if (qty < 1) {
+    return res.status(400).json({ message: "Invalid quantity." });
+  }
+
+  try {
+    const product = await db.query.sandromaniaProducts.findFirst({
+      where: eq(sandromaniaProducts.id, parseInt(productId)),
+    });
+
+    if (!product || !product.isActive) {
+      return res.status(400).json({ message: "Product is currently not available." });
+    }
+
+    const totalCents = product.sellingPriceUsd * qty;
+
+    const result = await db.transaction(async (tx) => {
+      // 1. Check user balance
+      const user = await tx.query.telegramUsers.findFirst({
+        where: eq(telegramUsers.telegramId, tgUser.id.toString()),
+      });
+
+      if (!user) throw new Error("User account not found.");
+      if (user.balance < totalCents) {
+        throw new Error(
+          `Insufficient balance. You need $${(totalCents / 100).toFixed(2)}, but your balance is $${((user.balance || 0) / 100).toFixed(2)}. Please top up your wallet.`
+        );
+      }
+
+      // 2. Deduct user balance
+      await tx
+        .update(telegramUsers)
+        .set({ balance: sql`${telegramUsers.balance} - ${totalCents}` })
+        .where(eq(telegramUsers.id, user.id));
+
+      // 3. Place order via Sandromania Partner API with Idempotency Key
+      const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+      let partnerOrderRes: any = null;
+      try {
+        partnerOrderRes = await SandromaniaService.createOrder(
+          product.externalProductId,
+          qty,
+          idempotencyKey
+        );
+      } catch (apiErr: any) {
+        throw new Error(`Partner Fulfillment Error: ${apiErr.message}`);
+      }
+
+      const orderData = partnerOrderRes?.order || {};
+      const externalId = orderData.id ? parseInt(orderData.id) : null;
+      const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
+      const orderStatus = orderData.status || "approved";
+
+      // 4. Save order in our database
+      const [newOrder] = await tx
+        .insert(sandromaniaOrders)
+        .values({
+          telegramUserId: user.id,
+          sandromaniaProductId: product.id,
+          externalOrderId: externalId,
+          externalProductId: product.externalProductId,
+          productTitle: product.title,
+          quantity: qty,
+          costPriceUsd: product.costPriceUsd * qty,
+          amountPaid: totalCents,
+          status: orderStatus,
+          deliveryText: deliveryText || "Delivered successfully",
+          idempotencyKey,
+        })
+        .returning();
+
+      return {
+        order: newOrder,
+        newBalance: user.balance - totalCents,
+        deliveryText,
+      };
+    });
+
+    res.json({
+      success: true,
+      message: "🎉 Purchase successful! Your digital license / account credentials have been delivered.",
+      order: result.order,
+      deliveryText: result.deliveryText,
+      newBalance: result.newBalance,
+    });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Failed to process Sandromania purchase." });
+  }
+});
+
+// Customer's Sandromania orders
+app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
+  const tgUser = (req as any).tgUser;
+  if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+    return res.json([]);
+  }
+
+  try {
+    const user = await storage.getTelegramUser(tgUser.id.toString());
+    if (!user) return res.json([]);
+
+    const ordersList = await db
+      .select({
+        id: sandromaniaOrders.id,
+        externalOrderId: sandromaniaOrders.externalOrderId,
+        productTitle: sandromaniaOrders.productTitle,
+        quantity: sandromaniaOrders.quantity,
+        amountPaid: sandromaniaOrders.amountPaid,
+        status: sandromaniaOrders.status,
+        deliveryText: sandromaniaOrders.deliveryText,
+        createdAt: sandromaniaOrders.createdAt,
+      })
+      .from(sandromaniaOrders)
+      .where(eq(sandromaniaOrders.telegramUserId, user.id))
+      .orderBy(desc(sandromaniaOrders.id));
 
     res.json(ordersList);
   } catch (err: any) {
