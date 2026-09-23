@@ -1092,6 +1092,125 @@ export async function registerRoutes(
     }
   });
 
+  // 1. Google OAuth Direct Login Redirect
+  app.get("/api/auth/customer/google/login", async (req, res) => {
+    try {
+      const clientId = (await storage.getSetting("GOOGLE_CLIENT_ID"))?.value || process.env.GOOGLE_CLIENT_ID || "";
+      if (!clientId) {
+        return res.status(500).send("Google OAuth Client ID is not configured in settings.");
+      }
+      const host = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
+      const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+      const redirectUri = `${proto}://${host}/api/auth/customer/google/callback`;
+
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+        clientId
+      )}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=code&scope=${encodeURIComponent("openid email profile")}&prompt=select_account&access_type=offline`;
+
+      return res.redirect(googleAuthUrl);
+    } catch (err: any) {
+      console.error("Google OAuth login redirect error:", err);
+      return res.status(500).send("Failed to initiate Google sign-in.");
+    }
+  });
+
+  // 2. Google OAuth Callback
+  app.get("/api/auth/customer/google/callback", async (req, res) => {
+    try {
+      const { code, error } = req.query;
+      if (error || !code) {
+        console.warn("Google OAuth canceled or returned error:", error);
+        return res.redirect("/?auth_error=" + encodeURIComponent((error as string) || "Google sign-in was cancelled"));
+      }
+
+      const clientId = (await storage.getSetting("GOOGLE_CLIENT_ID"))?.value || process.env.GOOGLE_CLIENT_ID || "";
+      const clientSecret = (await storage.getSetting("GOOGLE_CLIENT_SECRET"))?.value || process.env.GOOGLE_CLIENT_SECRET || "";
+      const host = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
+      const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+      const redirectUri = `${proto}://${host}/api/auth/customer/google/callback`;
+
+      // Exchange authorization code for tokens
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code: code as string,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok || !tokenData.access_token) {
+        console.error("Google token exchange error:", tokenData);
+        return res.redirect("/?auth_error=token_exchange_failed");
+      }
+
+      // Fetch Google User Profile
+      const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const profile = await userRes.json();
+
+      if (!profile.email) {
+        return res.redirect("/?auth_error=no_email_provided");
+      }
+
+      const cleanEmail = profile.email.toLowerCase().trim();
+      const googleName = profile.name || profile.given_name || cleanEmail.split("@")[0];
+      const googlePicture = profile.picture || "";
+      const googleSub = profile.sub || "";
+
+      let user = await storage.getTelegramUserByEmail(cleanEmail);
+      if (!user && googleSub) {
+        user = await storage.getTelegramUser(`google:${googleSub}`);
+      }
+      if (!user) {
+        user = await storage.getTelegramUser(`email:${cleanEmail}`);
+      }
+
+      if (!user) {
+        user = await storage.createTelegramUser({
+          telegramId: googleSub ? `google:${googleSub}` : `google:${cleanEmail}`,
+          username: googleName.replace(/\s+/g, "_").toLowerCase(),
+          firstName: googleName,
+          lastName: "",
+          email: cleanEmail,
+          authProvider: "google",
+          avatarUrl: googlePicture || null,
+          balance: 0,
+          lastAction: null,
+        });
+        console.log(`[Customer Auth] New user registered via Google OAuth: ${cleanEmail} (ID: ${user.id})`);
+      } else {
+        const updates: any = {};
+        if (googlePicture && !user.avatarUrl) updates.avatarUrl = googlePicture;
+        if (!user.email) updates.email = cleanEmail;
+        if (user.authProvider === "telegram" || !user.authProvider) updates.authProvider = "google";
+        if (Object.keys(updates).length > 0) {
+          user = await storage.updateTelegramUser(user.id, updates);
+        }
+      }
+
+      (req.session as any).customerUserId = user.id;
+      await new Promise<void>((resolve) => {
+        req.session.save((err) => {
+          if (err) console.error("Session save error:", err);
+          resolve();
+        });
+      });
+
+      return res.redirect("/?auth_success=google");
+    } catch (err: any) {
+      console.error("Google OAuth callback error:", err);
+      return res.redirect("/?auth_error=" + encodeURIComponent(err.message || "Failed to sign in with Google"));
+    }
+  });
+
   // Get Google OAuth Client ID
   app.get("/api/auth/customer/google-client-id", async (req, res) => {
     try {

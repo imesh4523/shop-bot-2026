@@ -609,6 +609,30 @@ export default function MiniAppShopModern() {
     expandTelegramWebApp();
     document.body.style.background = "#F8F9FD";
     document.body.style.backgroundColor = "#F8F9FD";
+
+    // Handle Google OAuth Callback params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("auth_success") === "google") {
+      toast({
+        title: "Google Sign-In Successful! 🎉",
+        description: "You are now logged in with your Google account.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+      refetchUser();
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get("auth_error")) {
+      toast({
+        title: "Google Sign-In Failed",
+        description: decodeURIComponent(urlParams.get("auth_error") || "Authentication failed"),
+        variant: "destructive",
+      });
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
     return () => {
       document.body.style.background = "";
       document.body.style.backgroundColor = "";
@@ -634,9 +658,6 @@ export default function MiniAppShopModern() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState("");
-  const [googleNameInput, setGoogleNameInput] = useState("");
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -1039,94 +1060,9 @@ export default function MiniAppShopModern() {
   });
 
   // Handle Google Sign In
-  const handleGoogleSignIn = async (customEmail?: string, customName?: string) => {
+  const handleGoogleSignIn = () => {
     setIsGoogleLoading(true);
-
-    // If Google OAuth Client ID is available and GIS is loaded, trigger real Google OAuth login
-    if (googleConfig?.clientId && (window as any).google?.accounts?.id && !customEmail) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleConfig.clientId,
-          callback: async (response: { credential: string }) => {
-            try {
-              const res = await fetch("/api/auth/customer/google", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ credential: response.credential }),
-              });
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.message || "Google sign-in failed.");
-              toast({
-                title: "Google Sign-In Successful!",
-                description: `Welcome, ${data.user?.firstName || data.user?.email}!`,
-              });
-              queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
-              refetchUser();
-            } catch (err: any) {
-              toast({ title: "Sign-In Failed", description: err.message || "Google sign-in failed.", variant: "destructive" });
-            } finally {
-              setIsGoogleLoading(false);
-            }
-          },
-        });
-        (window as any).google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setShowGoogleModal(true);
-            setIsGoogleLoading(false);
-          }
-        });
-        return;
-      } catch (e) {
-        console.warn("GIS prompt error:", e);
-      }
-    }
-
-    try {
-      const emailToUse = customEmail || googleEmailInput || "";
-      const nameToUse = customName || googleNameInput || (emailToUse ? emailToUse.split("@")[0] : "");
-
-      if (!emailToUse || !emailToUse.includes("@")) {
-        setShowGoogleModal(true);
-        setIsGoogleLoading(false);
-        return;
-      }
-
-      const res = await fetch("/api/auth/customer/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: emailToUse.trim(),
-          name: nameToUse.trim(),
-          picture: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nameToUse)}&backgroundColor=4285F4`,
-          sub: "google_" + Math.random().toString(36).substring(2, 10),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Google sign-in failed.");
-      }
-      toast({
-        title: "Google Sign-In Successful!",
-        description: `Welcome, ${data.user?.firstName || data.user?.email}!`,
-      });
-      setShowGoogleModal(false);
-      setGoogleEmailInput("");
-      setGoogleNameInput("");
-      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
-      refetchUser();
-    } catch (err: any) {
-      toast({
-        title: "Sign-In Failed",
-        description: err.message || "Google sign-in failed.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
+    window.location.href = "/api/auth/customer/google/login";
   };
 
   // Handle Logout
@@ -3601,59 +3537,6 @@ export default function MiniAppShopModern() {
             >
               <Send className="w-4 h-4" />
             </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* GOOGLE SIGN IN MODAL */}
-      <Dialog open={showGoogleModal} onOpenChange={setShowGoogleModal}>
-        <DialogContent className="max-w-sm w-full bg-white border border-[#ECEEF8] rounded-[28px] p-6 shadow-2xl">
-          <DialogHeader className="text-center">
-            <div className="w-12 h-12 rounded-2xl bg-[#E8F0FE] flex items-center justify-center mx-auto mb-2">
-              <GoogleIcon className="w-6 h-6" />
-            </div>
-            <DialogTitle className="text-base font-black text-[#181432]">Continue with Google</DialogTitle>
-            <DialogDescription className="text-xs text-[#7E7998]">
-              Sign in with your Google email to sync your cloud orders and wallet
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2">
-            <div>
-              <label className="text-[11px] font-bold text-[#6B658B] block mb-1">Google Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="name@gmail.com"
-                value={googleEmailInput}
-                onChange={(e) => setGoogleEmailInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#F8F9FD] border border-[#ECEEF8] rounded-xl text-xs font-semibold text-[#181432] focus:outline-none focus:border-[#4285F4]"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-[#6B658B] block mb-1">Your Full Name (Optional)</label>
-              <input
-                type="text"
-                placeholder="Alex Morgan"
-                value={googleNameInput}
-                onChange={(e) => setGoogleNameInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#F8F9FD] border border-[#ECEEF8] rounded-xl text-xs font-semibold text-[#181432] focus:outline-none focus:border-[#4285F4]"
-              />
-            </div>
-
-            <Button
-              onClick={() => handleGoogleSignIn()}
-              disabled={isGoogleLoading || !googleEmailInput.trim()}
-              className="w-full py-2.5 h-11 bg-[#4285F4] hover:bg-[#3367D6] text-white font-black text-xs rounded-xl shadow-md shadow-[#4285F4]/20 transition-all flex items-center justify-center gap-2 mt-2"
-            >
-              {isGoogleLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <GoogleIcon className="w-4 h-4" /> Sign In with Google
-                </>
-              )}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
