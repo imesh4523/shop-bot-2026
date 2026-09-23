@@ -122,13 +122,11 @@ const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
+  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="100" height="100" rx="24" fill="#FF5E00" />
-    <path
-      d="M26 22H38V78H26V22ZM44 48L68 22H80L54 50L82 78H70L44 52V48Z"
-      fill="#FFFFFF"
-    />
-    <circle cx="72" cy="28" r="5.5" fill="#FFFFFF" />
+    <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
+    <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
+    <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
   </svg>
 );
 
@@ -149,6 +147,20 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
     <path
       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
       fill="#EA4335"
+    />
+  </svg>
+);
+
+const BinanceLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <SiBinance className={`${className} text-[#F3BA2F]`} />
+);
+
+const CryptomusLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" rx="24" fill="#5B42F3" />
+    <path
+      d="M50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80C61.0457 80 70.6863 74.0294 75.8361 65.1639L65.4426 59.1639C62.3527 64.4832 56.5685 68 50 68C40.0589 68 32 59.9411 32 50C32 40.0589 40.0589 32 50 32C56.5685 32 62.3527 35.5168 65.4426 40.8361L75.8361 34.8361C70.6863 25.9706 61.0457 20 50 20Z"
+      fill="#FFFFFF"
     />
   </svg>
 );
@@ -184,7 +196,7 @@ const BrandIcon = ({
   if (n.includes("google") || n.includes("gcp")) {
     return <SiGooglecloud className={`${className} text-[#4285F4]`} />;
   }
-  if (n.includes("kamatera")) {
+  if (n.includes("kamatera") || n.includes("kamtera") || n.includes("kamater") || n.includes("kamat")) {
     return <KamateraLogo className={className} />;
   }
 
@@ -369,12 +381,12 @@ const getProviderConfig = (name: string, type: string) => {
       category: "duolingo",
     };
   }
-  if (n.includes("kamatera")) {
+  if (n.includes("kamatera") || n.includes("kamtera") || n.includes("kamater") || n.includes("kamat")) {
     return {
       tag: "Kamatera",
-      accent: "#FF6F00",
-      bgBadge: "bg-[#FFF8E1] text-[#F57F17]",
-      blobColor: "from-amber-100/70 to-yellow-100/40",
+      accent: "#FF5E00",
+      bgBadge: "bg-[#FFF3E0] text-[#E65100]",
+      blobColor: "from-amber-100/70 to-orange-100/40",
       category: "kamatera",
     };
   }
@@ -1253,7 +1265,16 @@ export default function MiniAppShopModern() {
               onClick={() => setActiveTab("profile")}
               className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
             >
-              {user?.username && isTelegramUser ? (
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as any).style.display = "none";
+                  }}
+                />
+              ) : isCustomerLoggedIn ? (
                 <span className="text-sm font-black bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] bg-clip-text text-transparent">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
