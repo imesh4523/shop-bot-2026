@@ -4853,7 +4853,8 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
   const tgUser = await storage.getTelegramUser(chatId.toString());
   const userLang = (tgUser as any)?.selectedLanguage || 'en';
 
-  await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: 'awaiting_support_general' });
+  // Clear any active action so navigation buttons are not intercepted while browsing support menu
+  await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
 
   const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
   const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
@@ -5000,18 +5001,35 @@ const handleSupportIssue = async (
   let ticketId = 0;
   try {
     if (tgUser) {
-      const ticket = await storage.createSupportTicket({
-        telegramUserId: tgUser.id,
-        issueType: issueTitle,
-        subject: issueTitle || 'General Support Request',
-        status: 'open',
-        userTelegramId: userId,
-        username: tgUser.username || tgUser.firstName || 'Customer',
-        details: null
-      });
+      // Find recent unsubmitted open ticket for this user to avoid duplicate empty tickets
+      const openDrafts = await db.select().from(supportTickets)
+        .where(and(
+          eq(supportTickets.userTelegramId, userId),
+          sql`${supportTickets.details} IS NULL`,
+          eq(supportTickets.status, 'open')
+        ))
+        .orderBy(desc(supportTickets.createdAt))
+        .limit(1);
 
-      ticketId = ticket.id;
-      await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticket.id}` });
+      if (openDrafts.length > 0) {
+        ticketId = openDrafts[0].id;
+        await db.update(supportTickets)
+          .set({ issueType: issueTitle, subject: issueTitle, updatedAt: new Date() })
+          .where(eq(supportTickets.id, ticketId));
+      } else {
+        const ticket = await storage.createSupportTicket({
+          telegramUserId: tgUser.id,
+          issueType: issueTitle,
+          subject: issueTitle || 'General Support Request',
+          status: 'open',
+          userTelegramId: userId,
+          username: tgUser.username || tgUser.firstName || 'Customer',
+          details: null
+        });
+        ticketId = ticket.id;
+      }
+
+      await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticketId}` });
     }
   } catch (err) {
     console.error('Error creating support ticket:', err);
@@ -5036,10 +5054,16 @@ const handleSupportIssue = async (
     ],
     [
       {
-        text: 'Back',
+        text: '◀ Back',
         callback_data: 'support',
-        style: 'danger',
+        style: 'primary',
         icon_custom_emoji_id: '5976535107933050770'
+      },
+      {
+        text: '🏠 Main Menu',
+        callback_data: 'main_menu',
+        style: 'danger',
+        icon_custom_emoji_id: '5271604874419647061'
       }
     ]
   ] as any;
@@ -6267,6 +6291,26 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       }
 
       const msgId = query.message?.message_id;
+
+      // Reset any awaiting state if user clicked a navigation button (except explicit input buttons)
+      if (
+        data === 'main_menu' ||
+        data === 'buy' ||
+        data === 'catalog' ||
+        data === 'profile' ||
+        data === 'profile_refresh' ||
+        data === 'support' ||
+        data === 'useful_links' ||
+        data === 'guarantees' ||
+        data === 'channel' ||
+        data === 'reviews' ||
+        data === 'purchase_history' ||
+        data === 'my_purchases'
+      ) {
+        if (tgUser?.lastAction?.startsWith('awaiting_')) {
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
+        }
+      }
 
       // --- LOGIC FROM LISTENER 1 & 2 ---
       if (data === 'buy' || data === 'catalog') {
@@ -9592,8 +9636,28 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
           });
         }
 
-        // Bypass processing if message is a command
-        if (msg.text?.startsWith('/')) return;
+        // Bypass processing if message is a command (except /menu)
+        if (msg.text?.startsWith('/')) {
+          if (msg.text === '/menu') {
+            await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+            const userLang = (tgUser as any)?.selectedLanguage || 'en';
+            const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
+            const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>${t(userLang, 'welcome_title')}</b>\n\n${t(userLang, 'welcome_sub')}`;
+            const startInlineMarkup = {
+              inline_keyboard: [
+                [{ text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+                [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+                [
+                  { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+                  { text: t(userLang, 'btn_support'), callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+                ]
+              ] as any
+            };
+            await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup);
+            return;
+          }
+          return;
+        }
 
         const text = msg.text;
         const normalizedText = text?.trim();
@@ -9601,7 +9665,177 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
 
         console.log(`[Bot Message Received] Text: "${normalizedText}", User: ${userId}`);
 
-        // HIGHEST PRIORITY: Customer Support Ticket Message Handler
+        const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
+        const supportBtnText = supportBtnTextSetting?.value || "Write to support";
+
+        const lowerNav = cleanNavText.toLowerCase();
+
+        // 1. Catalog / Buy / Products
+        const isCatalogNav = (
+          cleanNavText.includes('Catalog') || 
+          cleanNavText.includes('Каталог') ||
+          cleanNavText.includes('Buy') || 
+          cleanNavText.includes('Shop') || 
+          cleanNavText.includes('Products') ||
+          cleanNavText.includes('නිෂ්පාදන') ||
+          cleanNavText === '🛍️ Buy' || 
+          cleanNavText === '🛍 Catalog' ||
+          cleanNavText === '🛒 Products' ||
+          cleanNavText === '🛒 Catalog' ||
+          lowerNav === 'catalog' ||
+          lowerNav === 'buy' ||
+          lowerNav === 'shop' ||
+          lowerNav === 'products'
+        );
+
+        // 2. Profile / Account
+        const isProfileNav = (
+          cleanNavText.includes('Profile') || 
+          cleanNavText.includes('Профиль') ||
+          cleanNavText.includes('Account') || 
+          cleanNavText.includes('ගිණුම') ||
+          cleanNavText === '👤 Profile' ||
+          cleanNavText === '👤 Account' ||
+          lowerNav === 'profile' ||
+          lowerNav === 'account'
+        );
+
+        // 3. Useful Links
+        const isUsefulLinksNav = (
+          cleanNavText.includes('Useful links') || 
+          cleanNavText.includes('Полезные ссылки') ||
+          cleanNavText.includes('Links') || 
+          cleanNavText === '🔗 Useful links' ||
+          lowerNav === 'useful links' ||
+          lowerNav === 'links'
+        );
+
+        // 4. Support
+        const isSupportNav = (
+          cleanNavText === 'Support' ||
+          cleanNavText === 'Поддержка' ||
+          cleanNavText === '🆘 Support' ||
+          cleanNavText === '💬 Support' ||
+          cleanNavText === supportBtnText ||
+          cleanNavText.includes(supportBtnText) ||
+          lowerNav === 'support' ||
+          lowerNav === 'help' ||
+          lowerNav === 'contact' ||
+          cleanNavText === 'සහාය'
+        );
+
+        // 5. Main Menu / Home
+        const isMainMenuNav = (
+          cleanNavText.includes('Main Menu') ||
+          cleanNavText.includes('Главное меню') ||
+          cleanNavText.includes('Menu') ||
+          cleanNavText.includes('Home') ||
+          cleanNavText === '🏠 Main Menu' ||
+          cleanNavText === '🏠' ||
+          lowerNav === 'main menu' ||
+          lowerNav === 'menu' ||
+          lowerNav === 'home' ||
+          cleanNavText === 'ප්‍රධාන මෙනුව'
+        );
+
+        // 6. FAQ / Rules
+        const isFaqNav = (
+          cleanNavText.includes('FAQ') || 
+          cleanNavText.includes('Rules') || 
+          cleanNavText.includes('Правила') ||
+          cleanNavText === '❓ FAQ' ||
+          lowerNav === 'faq' ||
+          lowerNav === 'rules' ||
+          cleanNavText === 'වගන්ති'
+        );
+
+        // 7. Cancel / Back
+        const isCancelNav = (
+          cleanNavText === 'Cancel' ||
+          cleanNavText === 'Back' ||
+          cleanNavText === 'Назад' ||
+          cleanNavText === '❌ Cancel' ||
+          cleanNavText === '◀ Back' ||
+          cleanNavText === '🔙 Back' ||
+          lowerNav === 'cancel' ||
+          lowerNav === 'back' ||
+          cleanNavText === 'ආපසු'
+        );
+
+        if (isCatalogNav) {
+          console.log(`[Nav Override] Catalog requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendCatalogMenu(targetBot, chatId);
+          return;
+        }
+
+        if (isProfileNav) {
+          console.log(`[Nav Override] Profile requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendUserProfileCard(targetBot, chatId, userId, msg.from);
+          return;
+        }
+
+        if (isUsefulLinksNav) {
+          console.log(`[Nav Override] Useful links requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendUsefulLinksScreen(targetBot, chatId);
+          return;
+        }
+
+        if (isSupportNav) {
+          console.log(`[Nav Override] Support requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendSupportScreen(targetBot, chatId);
+          return;
+        }
+
+        if (isMainMenuNav || isCancelNav) {
+          console.log(`[Nav Override] Main menu requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          const userLang = (tgUser as any)?.selectedLanguage || 'en';
+          const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
+          const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>${t(userLang, 'welcome_title')}</b>\n\n${t(userLang, 'welcome_sub')}`;
+          const startInlineMarkup = {
+            inline_keyboard: [
+              [{ text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+              [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+              [
+                { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+                { text: t(userLang, 'btn_support'), callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+              ]
+            ] as any
+          };
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup);
+          return;
+        }
+
+        if (isFaqNav) {
+          console.log(`[Nav Override] FAQ requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          const userName = tgUser?.firstName || 'User';
+          const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
+          const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+
+          const rulesMessage = `<tg-emoji emoji-id="5413554183502572090">👋</tg-emoji> <b>Welcome, ${userName}</b> <tg-emoji emoji-id="5413554183502572090">✨</tg-emoji>\n\n` +
+            `<tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji> <b>STORE RULES – PLEASE READ BEFORE BUYING</b> <tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji>\n\n` +
+            `<tg-emoji emoji-id="5220091753930959575">1️⃣</tg-emoji> <b>Login Warranty Included</b>\n` +
+            `You will receive a 100% working account at the time of purchase.\n` +
+            `<tg-emoji emoji-id="6010111371251815589">⏱️</tg-emoji> <i>Checking time: 10–30 minutes after delivery.</i>\n\n` +
+            `<tg-emoji emoji-id="5220041227935690133">2️⃣</tg-emoji> <b>Stay Safe & Secure</b>\n` +
+            `Always use quality proxies and a proper fingerprint/anti-detect browser to avoid any security issues.\n\n` +
+            `<tg-emoji emoji-id="5220224743298312689">3️⃣</tg-emoji> <b>User Responsibility</b>\n` +
+            `We are not responsible for any actions taken after purchase.\n` +
+            `Account usage is fully under the buyer’s responsibility.\n\n` +
+            `<tg-emoji emoji-id="4958734459869332468">💯</tg-emoji> <b>Follow the rules, stay secure, and enjoy your purchase!</b> <tg-emoji emoji-id="4958734459869332468">💯</tg-emoji>\n\n` +
+            `<tg-emoji emoji-id="5341498088408234504">⛱️</tg-emoji> <b>Need help or have questions?</b>\n` +
+            `<tg-emoji emoji-id="5282843764451195532">🎗️</tg-emoji> <b>Contact us:</b> <tg-emoji emoji-id="5461151367559141950">💌</tg-emoji> ${supportUsername}`;
+
+          targetBot.sendMessage(chatId, rulesMessage, { parse_mode: 'HTML' });
+          return;
+        }
+
+        // Customer Support Ticket Message Handler
         if (tgUser?.lastAction?.startsWith('awaiting_support_')) {
           let ticketId = 0;
           if (tgUser.lastAction.startsWith('awaiting_support_details_')) {
@@ -9729,8 +9963,11 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
 
             const keyboard = {
               inline_keyboard: [
-                [{ text: '🏠 Main Menu', callback_data: 'main_menu' }]
-              ]
+                [
+                  { text: '🏠 Main Menu', callback_data: 'main_menu', style: 'primary' },
+                  { text: '🛒 Catalog', callback_data: 'buy', style: 'success' }
+                ]
+              ] as any
             };
 
             await targetBot.sendMessage(chatId, confirmationMsg, {
@@ -9960,62 +10197,7 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
         }
       }
 
-      const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
-      const supportBtnText = supportBtnTextSetting?.value || "Write to support";
 
-      // TOP PRIORITY NAVIGATION OVERRIDE: Resets any pending awaiting_... state when user taps main keyboard buttons
-      if (cleanNavText.includes('Catalog') || cleanNavText.includes('Buy') || cleanNavText.includes('Shop') || cleanNavText === '🛍️ Buy' || cleanNavText === '🛍 Catalog') {
-        console.log(`[Nav Override] Catalog/Buy requested for user: ${userId}`);
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-        await sendCatalogMenu(targetBot, chatId);
-        return;
-      }
-
-      if (cleanNavText.includes('Profile')) {
-        console.log(`[Nav Override] Profile requested for user: ${userId}`);
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-        await sendUserProfileCard(targetBot, chatId, userId, msg.from);
-        return;
-      }
-
-      if (cleanNavText.includes('Useful links') || cleanNavText.includes('Links')) {
-        console.log(`[Nav Override] Useful links requested for user: ${userId}`);
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-        await sendUsefulLinksScreen(targetBot, chatId);
-        return;
-      }
-
-      if (cleanNavText.includes('Support') || cleanNavText === supportBtnText || cleanNavText.includes(supportBtnText)) {
-        console.log(`[Nav Override] Support requested for user: ${userId}`);
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-        await sendSupportScreen(targetBot, chatId);
-        return;
-      }
-
-      if (cleanNavText.includes('FAQ') || cleanNavText.includes('Rules') || cleanNavText === '❓ FAQ') {
-        console.log(`[Nav Override] FAQ requested for user: ${userId}`);
-        await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-        const userName = tgUser?.firstName || 'User';
-        const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
-        const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
-
-        const rulesMessage = `<tg-emoji emoji-id="5413554183502572090">👋</tg-emoji> <b>Welcome, ${userName}</b> <tg-emoji emoji-id="5413554183502572090">✨</tg-emoji>\n\n` +
-          `<tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji> <b>STORE RULES – PLEASE READ BEFORE BUYING</b> <tg-emoji emoji-id="5213181173026533794">⚠️</tg-emoji>\n\n` +
-          `<tg-emoji emoji-id="5220091753930959575">1️⃣</tg-emoji> <b>Login Warranty Included</b>\n` +
-          `You will receive a 100% working account at the time of purchase.\n` +
-          `<tg-emoji emoji-id="6010111371251815589">⏱️</tg-emoji> <i>Checking time: 10–30 minutes after delivery.</i>\n\n` +
-          `<tg-emoji emoji-id="5220041227935690133">2️⃣</tg-emoji> <b>Stay Safe & Secure</b>\n` +
-          `Always use quality proxies and a proper fingerprint/anti-detect browser to avoid any security issues.\n\n` +
-          `<tg-emoji emoji-id="5220224743298312689">3️⃣</tg-emoji> <b>User Responsibility</b>\n` +
-          `We are not responsible for any actions taken after purchase.\n` +
-          `Account usage is fully under the buyer’s responsibility.\n\n` +
-          `<tg-emoji emoji-id="4958734459869332468">💯</tg-emoji> <b>Follow the rules, stay secure, and enjoy your purchase!</b> <tg-emoji emoji-id="4958734459869332468">💯</tg-emoji>\n\n` +
-          `<tg-emoji emoji-id="5341498088408234504">⛱️</tg-emoji> <b>Need help or have questions?</b>\n` +
-          `<tg-emoji emoji-id="5282843764451195532">🎗️</tg-emoji> <b>Contact us:</b> <tg-emoji emoji-id="5461151367559141950">💌</tg-emoji> ${supportUsername}`;
-
-        targetBot.sendMessage(chatId, rulesMessage, { parse_mode: 'HTML' });
-        return;
-      }
 
       // Option 2: Start fast countdown on any message interaction
       let activeOffersMsg = [];
@@ -10346,36 +10528,6 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
           await storage.updateTelegramUserByChatId(userId, { lastAction: null });
           await targetBot.sendMessage(chatId, "✅ Thank you! Your review has been saved.");
         }
-        return;
-      } else if (tgUser?.lastAction?.startsWith('awaiting_support_details_')) {
-        const ticketIdStr = tgUser.lastAction.split('_')[3];
-        const ticketId = parseInt(ticketIdStr, 10);
-        const detailsText = normalizedText || '';
-
-        if (detailsText.length > 0 && !isNaN(ticketId)) {
-          try {
-            await db.update(supportTickets)
-              .set({ details: detailsText, updatedAt: new Date() })
-              .where(eq(supportTickets.id, ticketId));
-
-            await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-
-            sendAdminPushNotification({
-              title: `💬 Support Message Received (#${ticketId})`,
-              body: `@${tgUser.username || userId}: ${detailsText.substring(0, 100)}`
-            }).catch(() => {});
-
-            await targetBot.sendMessage(
-              chatId,
-              `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Support details saved!</b>\n\n` +
-              `Our admin team has received your message and will review it shortly.`,
-              { parse_mode: 'HTML' }
-            );
-          } catch (err) {
-            console.error("Error updating support ticket details:", err);
-          }
-        }
-        return;
       } else if (tgUser?.lastAction === 'awaiting_promocode') {
         const enteredCode = normalizedText?.trim();
         if (!enteredCode) return;

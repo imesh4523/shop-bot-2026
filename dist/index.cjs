@@ -55474,7 +55474,7 @@ Choose payment method:`;
   const sendSupportScreen = async (targetBot, chatId, messageId) => {
     const tgUser = await storage.getTelegramUser(chatId.toString());
     const userLang = tgUser?.selectedLanguage || "en";
-    await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: "awaiting_support_general" });
+    await storage.updateTelegramUserByChatId(chatId.toString(), { lastAction: null });
     const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
     const rawSupportUsername = supportUsernameSetting?.value || "creativesStudios";
     const cleanUsername = rawSupportUsername.replace("@", "");
@@ -55598,17 +55598,27 @@ ${txId ? `<tg-emoji emoji-id="5976535107933050770">\u{1F9FE}</tg-emoji> Referenc
     let ticketId = 0;
     try {
       if (tgUser) {
-        const ticket = await storage.createSupportTicket({
-          telegramUserId: tgUser.id,
-          issueType: issueTitle,
-          subject: issueTitle || "General Support Request",
-          status: "open",
-          userTelegramId: userId,
-          username: tgUser.username || tgUser.firstName || "Customer",
-          details: null
-        });
-        ticketId = ticket.id;
-        await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticket.id}` });
+        const openDrafts = await db.select().from(supportTickets).where(and(
+          eq(supportTickets.userTelegramId, userId),
+          sql`${supportTickets.details} IS NULL`,
+          eq(supportTickets.status, "open")
+        )).orderBy(desc(supportTickets.createdAt)).limit(1);
+        if (openDrafts.length > 0) {
+          ticketId = openDrafts[0].id;
+          await db.update(supportTickets).set({ issueType: issueTitle, subject: issueTitle, updatedAt: /* @__PURE__ */ new Date() }).where(eq(supportTickets.id, ticketId));
+        } else {
+          const ticket = await storage.createSupportTicket({
+            telegramUserId: tgUser.id,
+            issueType: issueTitle,
+            subject: issueTitle || "General Support Request",
+            status: "open",
+            userTelegramId: userId,
+            username: tgUser.username || tgUser.firstName || "Customer",
+            details: null
+          });
+          ticketId = ticket.id;
+        }
+        await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticketId}` });
       }
     } catch (err) {
       console.error("Error creating support ticket:", err);
@@ -55634,10 +55644,16 @@ Problem details:</blockquote>
       ],
       [
         {
-          text: "Back",
+          text: "\u25C0 Back",
           callback_data: "support",
-          style: "danger",
+          style: "primary",
           icon_custom_emoji_id: "5976535107933050770"
+        },
+        {
+          text: "\u{1F3E0} Main Menu",
+          callback_data: "main_menu",
+          style: "danger",
+          icon_custom_emoji_id: "5271604874419647061"
         }
       ]
     ];
@@ -56747,6 +56763,12 @@ You exceeded maximum allowed requests (${timestamps.length}/${maxReqPerMin} per 
           console.error("Error in fast timer trigger:", err);
         }
         const msgId = query.message?.message_id;
+        if (data === "main_menu" || data === "buy" || data === "catalog" || data === "profile" || data === "profile_refresh" || data === "support" || data === "useful_links" || data === "guarantees" || data === "channel" || data === "reviews" || data === "purchase_history" || data === "my_purchases") {
+          if (tgUser?.lastAction?.startsWith("awaiting_")) {
+            await storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {
+            });
+          }
+        }
         if (data === "buy" || data === "catalog") {
           await sendCatalogMenu(targetBot, chatId, msgId);
           return;
@@ -59844,11 +59866,116 @@ ${threadContent}
             balance: 0
           });
         }
-        if (msg.text?.startsWith("/")) return;
+        if (msg.text?.startsWith("/")) {
+          if (msg.text === "/menu") {
+            await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+            const userLang = tgUser?.selectedLanguage || "en";
+            const bannerPath = import_path3.default.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
+            const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">\u2728</tg-emoji> <b>${t(userLang, "welcome_title")}</b>
+
+${t(userLang, "welcome_sub")}`;
+            const startInlineMarkup = {
+              inline_keyboard: [
+                [{ text: t(userLang, "btn_catalog"), callback_data: "buy", style: "success", icon_custom_emoji_id: "5377660214096974712" }],
+                [{ text: t(userLang, "btn_profile"), callback_data: "profile", style: "success", icon_custom_emoji_id: "5260399854500191689" }],
+                [
+                  { text: t(userLang, "btn_useful_links"), callback_data: "useful_links", style: "primary", icon_custom_emoji_id: "5271604874419647061" },
+                  { text: t(userLang, "btn_support"), callback_data: "support", style: "primary", icon_custom_emoji_id: "5260535596941582167" }
+                ]
+              ]
+            };
+            await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup);
+            return;
+          }
+          return;
+        }
         const text2 = msg.text;
         const normalizedText = text2?.trim();
         const cleanNavText = normalizedText ? normalizedText.replace(/<[^>]*>/g, "").trim() : "";
         console.log(`[Bot Message Received] Text: "${normalizedText}", User: ${userId}`);
+        const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
+        const supportBtnText = supportBtnTextSetting?.value || "Write to support";
+        const lowerNav = cleanNavText.toLowerCase();
+        const isCatalogNav = cleanNavText.includes("Catalog") || cleanNavText.includes("\u041A\u0430\u0442\u0430\u043B\u043E\u0433") || cleanNavText.includes("Buy") || cleanNavText.includes("Shop") || cleanNavText.includes("Products") || cleanNavText.includes("\u0DB1\u0DD2\u0DC2\u0DCA\u0DB4\u0DCF\u0DAF\u0DB1") || cleanNavText === "\u{1F6CD}\uFE0F Buy" || cleanNavText === "\u{1F6CD} Catalog" || cleanNavText === "\u{1F6D2} Products" || cleanNavText === "\u{1F6D2} Catalog" || lowerNav === "catalog" || lowerNav === "buy" || lowerNav === "shop" || lowerNav === "products";
+        const isProfileNav = cleanNavText.includes("Profile") || cleanNavText.includes("\u041F\u0440\u043E\u0444\u0438\u043B\u044C") || cleanNavText.includes("Account") || cleanNavText.includes("\u0D9C\u0DD2\u0DAB\u0DD4\u0DB8") || cleanNavText === "\u{1F464} Profile" || cleanNavText === "\u{1F464} Account" || lowerNav === "profile" || lowerNav === "account";
+        const isUsefulLinksNav = cleanNavText.includes("Useful links") || cleanNavText.includes("\u041F\u043E\u043B\u0435\u0437\u043D\u044B\u0435 \u0441\u0441\u044B\u043B\u043A\u0438") || cleanNavText.includes("Links") || cleanNavText === "\u{1F517} Useful links" || lowerNav === "useful links" || lowerNav === "links";
+        const isSupportNav = cleanNavText === "Support" || cleanNavText === "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430" || cleanNavText === "\u{1F198} Support" || cleanNavText === "\u{1F4AC} Support" || cleanNavText === supportBtnText || cleanNavText.includes(supportBtnText) || lowerNav === "support" || lowerNav === "help" || lowerNav === "contact" || cleanNavText === "\u0DC3\u0DC4\u0DCF\u0DBA";
+        const isMainMenuNav = cleanNavText.includes("Main Menu") || cleanNavText.includes("\u0413\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E") || cleanNavText.includes("Menu") || cleanNavText.includes("Home") || cleanNavText === "\u{1F3E0} Main Menu" || cleanNavText === "\u{1F3E0}" || lowerNav === "main menu" || lowerNav === "menu" || lowerNav === "home" || cleanNavText === "\u0DB4\u0DCA\u200D\u0DBB\u0DB0\u0DCF\u0DB1 \u0DB8\u0DD9\u0DB1\u0DD4\u0DC0";
+        const isFaqNav = cleanNavText.includes("FAQ") || cleanNavText.includes("Rules") || cleanNavText.includes("\u041F\u0440\u0430\u0432\u0438\u043B\u0430") || cleanNavText === "\u2753 FAQ" || lowerNav === "faq" || lowerNav === "rules" || cleanNavText === "\u0DC0\u0D9C\u0DB1\u0DCA\u0DAD\u0DD2";
+        const isCancelNav = cleanNavText === "Cancel" || cleanNavText === "Back" || cleanNavText === "\u041D\u0430\u0437\u0430\u0434" || cleanNavText === "\u274C Cancel" || cleanNavText === "\u25C0 Back" || cleanNavText === "\u{1F519} Back" || lowerNav === "cancel" || lowerNav === "back" || cleanNavText === "\u0D86\u0DB4\u0DC3\u0DD4";
+        if (isCatalogNav) {
+          console.log(`[Nav Override] Catalog requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendCatalogMenu(targetBot, chatId);
+          return;
+        }
+        if (isProfileNav) {
+          console.log(`[Nav Override] Profile requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendUserProfileCard(targetBot, chatId, userId, msg.from);
+          return;
+        }
+        if (isUsefulLinksNav) {
+          console.log(`[Nav Override] Useful links requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendUsefulLinksScreen(targetBot, chatId);
+          return;
+        }
+        if (isSupportNav) {
+          console.log(`[Nav Override] Support requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          await sendSupportScreen(targetBot, chatId);
+          return;
+        }
+        if (isMainMenuNav || isCancelNav) {
+          console.log(`[Nav Override] Main menu requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          const userLang = tgUser?.selectedLanguage || "en";
+          const bannerPath = import_path3.default.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
+          const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">\u2728</tg-emoji> <b>${t(userLang, "welcome_title")}</b>
+
+${t(userLang, "welcome_sub")}`;
+          const startInlineMarkup = {
+            inline_keyboard: [
+              [{ text: t(userLang, "btn_catalog"), callback_data: "buy", style: "success", icon_custom_emoji_id: "5377660214096974712" }],
+              [{ text: t(userLang, "btn_profile"), callback_data: "profile", style: "success", icon_custom_emoji_id: "5260399854500191689" }],
+              [
+                { text: t(userLang, "btn_useful_links"), callback_data: "useful_links", style: "primary", icon_custom_emoji_id: "5271604874419647061" },
+                { text: t(userLang, "btn_support"), callback_data: "support", style: "primary", icon_custom_emoji_id: "5260535596941582167" }
+              ]
+            ]
+          };
+          await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, welcomeCaption, startInlineMarkup);
+          return;
+        }
+        if (isFaqNav) {
+          console.log(`[Nav Override] FAQ requested for user: ${userId}`);
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          const userName = tgUser?.firstName || "User";
+          const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
+          const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+          const rulesMessage = `<tg-emoji emoji-id="5413554183502572090">\u{1F44B}</tg-emoji> <b>Welcome, ${userName}</b> <tg-emoji emoji-id="5413554183502572090">\u2728</tg-emoji>
+
+<tg-emoji emoji-id="5213181173026533794">\u26A0\uFE0F</tg-emoji> <b>STORE RULES \u2013 PLEASE READ BEFORE BUYING</b> <tg-emoji emoji-id="5213181173026533794">\u26A0\uFE0F</tg-emoji>
+
+<tg-emoji emoji-id="5220091753930959575">1\uFE0F\u20E3</tg-emoji> <b>Login Warranty Included</b>
+You will receive a 100% working account at the time of purchase.
+<tg-emoji emoji-id="6010111371251815589">\u23F1\uFE0F</tg-emoji> <i>Checking time: 10\u201330 minutes after delivery.</i>
+
+<tg-emoji emoji-id="5220041227935690133">2\uFE0F\u20E3</tg-emoji> <b>Stay Safe & Secure</b>
+Always use quality proxies and a proper fingerprint/anti-detect browser to avoid any security issues.
+
+<tg-emoji emoji-id="5220224743298312689">3\uFE0F\u20E3</tg-emoji> <b>User Responsibility</b>
+We are not responsible for any actions taken after purchase.
+Account usage is fully under the buyer\u2019s responsibility.
+
+<tg-emoji emoji-id="4958734459869332468">\u{1F4AF}</tg-emoji> <b>Follow the rules, stay secure, and enjoy your purchase!</b> <tg-emoji emoji-id="4958734459869332468">\u{1F4AF}</tg-emoji>
+
+<tg-emoji emoji-id="5341498088408234504">\u26F1\uFE0F</tg-emoji> <b>Need help or have questions?</b>
+<tg-emoji emoji-id="5282843764451195532">\u{1F397}\uFE0F</tg-emoji> <b>Contact us:</b> <tg-emoji emoji-id="5461151367559141950">\u{1F48C}</tg-emoji> ${supportUsername}`;
+          targetBot.sendMessage(chatId, rulesMessage, { parse_mode: "HTML" });
+          return;
+        }
         if (tgUser?.lastAction?.startsWith("awaiting_support_")) {
           let ticketId = 0;
           if (tgUser.lastAction.startsWith("awaiting_support_details_")) {
@@ -59961,7 +60088,10 @@ Details: ${escapeHTML3(currentMsgText)}`;
             const confirmationMsg = formatTicketMessageThread2(displayTicketId, "open", messagesList);
             const keyboard = {
               inline_keyboard: [
-                [{ text: "\u{1F3E0} Main Menu", callback_data: "main_menu" }]
+                [
+                  { text: "\u{1F3E0} Main Menu", callback_data: "main_menu", style: "primary" },
+                  { text: "\u{1F6D2} Catalog", callback_data: "buy", style: "success" }
+                ]
               ]
             };
             await targetBot.sendMessage(chatId, confirmationMsg, {
@@ -60160,60 +60290,6 @@ Order ID <code>${escapeHTML3(txid)}</code> verified successfully. <b>+$${(deposi
             await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
             return;
           }
-        }
-        const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
-        const supportBtnText = supportBtnTextSetting?.value || "Write to support";
-        if (cleanNavText.includes("Catalog") || cleanNavText.includes("Buy") || cleanNavText.includes("Shop") || cleanNavText === "\u{1F6CD}\uFE0F Buy" || cleanNavText === "\u{1F6CD} Catalog") {
-          console.log(`[Nav Override] Catalog/Buy requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-          await sendCatalogMenu(targetBot, chatId);
-          return;
-        }
-        if (cleanNavText.includes("Profile")) {
-          console.log(`[Nav Override] Profile requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-          await sendUserProfileCard(targetBot, chatId, userId, msg.from);
-          return;
-        }
-        if (cleanNavText.includes("Useful links") || cleanNavText.includes("Links")) {
-          console.log(`[Nav Override] Useful links requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-          await sendUsefulLinksScreen(targetBot, chatId);
-          return;
-        }
-        if (cleanNavText.includes("Support") || cleanNavText === supportBtnText || cleanNavText.includes(supportBtnText)) {
-          console.log(`[Nav Override] Support requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-          await sendSupportScreen(targetBot, chatId);
-          return;
-        }
-        if (cleanNavText.includes("FAQ") || cleanNavText.includes("Rules") || cleanNavText === "\u2753 FAQ") {
-          console.log(`[Nav Override] FAQ requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-          const userName = tgUser?.firstName || "User";
-          const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
-          const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
-          const rulesMessage = `<tg-emoji emoji-id="5413554183502572090">\u{1F44B}</tg-emoji> <b>Welcome, ${userName}</b> <tg-emoji emoji-id="5413554183502572090">\u2728</tg-emoji>
-
-<tg-emoji emoji-id="5213181173026533794">\u26A0\uFE0F</tg-emoji> <b>STORE RULES \u2013 PLEASE READ BEFORE BUYING</b> <tg-emoji emoji-id="5213181173026533794">\u26A0\uFE0F</tg-emoji>
-
-<tg-emoji emoji-id="5220091753930959575">1\uFE0F\u20E3</tg-emoji> <b>Login Warranty Included</b>
-You will receive a 100% working account at the time of purchase.
-<tg-emoji emoji-id="6010111371251815589">\u23F1\uFE0F</tg-emoji> <i>Checking time: 10\u201330 minutes after delivery.</i>
-
-<tg-emoji emoji-id="5220041227935690133">2\uFE0F\u20E3</tg-emoji> <b>Stay Safe & Secure</b>
-Always use quality proxies and a proper fingerprint/anti-detect browser to avoid any security issues.
-
-<tg-emoji emoji-id="5220224743298312689">3\uFE0F\u20E3</tg-emoji> <b>User Responsibility</b>
-We are not responsible for any actions taken after purchase.
-Account usage is fully under the buyer\u2019s responsibility.
-
-<tg-emoji emoji-id="4958734459869332468">\u{1F4AF}</tg-emoji> <b>Follow the rules, stay secure, and enjoy your purchase!</b> <tg-emoji emoji-id="4958734459869332468">\u{1F4AF}</tg-emoji>
-
-<tg-emoji emoji-id="5341498088408234504">\u26F1\uFE0F</tg-emoji> <b>Need help or have questions?</b>
-<tg-emoji emoji-id="5282843764451195532">\u{1F397}\uFE0F</tg-emoji> <b>Contact us:</b> <tg-emoji emoji-id="5461151367559141950">\u{1F48C}</tg-emoji> ${supportUsername}`;
-          targetBot.sendMessage(chatId, rulesMessage, { parse_mode: "HTML" });
-          return;
         }
         let activeOffersMsg = [];
         try {
@@ -60535,32 +60611,6 @@ Your ${starTg} review for <b>${escapeHTML3(productName)}</b> has been published 
             await storage.updateTelegramUserByChatId(userId, { lastAction: null });
             await targetBot.sendMessage(chatId, "\u2705 Thank you! Your review has been saved.");
           }
-          return;
-        } else if (tgUser?.lastAction?.startsWith("awaiting_support_details_")) {
-          const ticketIdStr = tgUser.lastAction.split("_")[3];
-          const ticketId = parseInt(ticketIdStr, 10);
-          const detailsText = normalizedText || "";
-          if (detailsText.length > 0 && !isNaN(ticketId)) {
-            try {
-              await db.update(supportTickets).set({ details: detailsText, updatedAt: /* @__PURE__ */ new Date() }).where(eq(supportTickets.id, ticketId));
-              await storage.updateTelegramUserByChatId(userId, { lastAction: null });
-              sendAdminPushNotification({
-                title: `\u{1F4AC} Support Message Received (#${ticketId})`,
-                body: `@${tgUser.username || userId}: ${detailsText.substring(0, 100)}`
-              }).catch(() => {
-              });
-              await targetBot.sendMessage(
-                chatId,
-                `<tg-emoji emoji-id="5949584381424178413">\u2705</tg-emoji> <b>Support details saved!</b>
-
-Our admin team has received your message and will review it shortly.`,
-                { parse_mode: "HTML" }
-              );
-            } catch (err) {
-              console.error("Error updating support ticket details:", err);
-            }
-          }
-          return;
         } else if (tgUser?.lastAction === "awaiting_promocode") {
           const enteredCode = normalizedText?.trim();
           if (!enteredCode) return;
