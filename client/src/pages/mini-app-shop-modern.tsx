@@ -128,9 +128,9 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 );
 
 const BinanceLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <div className={`rounded-full bg-[#F3BA2F] flex items-center justify-center p-[15%] shrink-0 overflow-hidden ${className}`}>
+  <span className={`inline-flex items-center justify-center rounded-full bg-[#F3BA2F] p-0.5 shrink-0 ${className}`}>
     <SiBinance className="w-full h-full text-[#1E2026]" />
-  </div>
+  </span>
 );
 
 const CryptomusLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -1726,7 +1726,7 @@ export default function MiniAppShopModern() {
                   <button
                     type="submit"
                     disabled={isVerifyingBinance || !binanceTxId.trim()}
-                    className="w-full py-3 bg-[#F3BA2F] hover:bg-[#F59E0B] text-[#181432] rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#F3BA2F]/20 active:scale-95 transition-all disabled:opacity-50"
+                    className="w-full h-11 px-4 bg-[#F3BA2F] hover:bg-[#F59E0B] text-[#181432] rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#F3BA2F]/20 active:scale-95 transition-all disabled:opacity-50"
                   >
                     {isVerifyingBinance ? (
                       <>
@@ -1836,7 +1836,7 @@ export default function MiniAppShopModern() {
                   type="button"
                   onClick={handleCryptomusPay}
                   disabled={isCreatingCryptomus}
-                  className="w-full py-3 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full h-11 px-4 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#5B42F3]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {isCreatingCryptomus ? (
                     <>
