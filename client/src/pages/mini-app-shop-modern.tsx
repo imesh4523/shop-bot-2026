@@ -34,7 +34,11 @@ import {
   ArrowLeft,
   Check,
   RefreshCw,
-  LayoutGrid
+  LayoutGrid,
+  Mail,
+  KeyRound,
+  LogOut,
+  Shield
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane } from "react-icons/fa";
@@ -97,6 +101,27 @@ const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
     <path
       d="M50 22L56 42L76 48L56 54L50 74L44 54L24 48L44 42L50 22Z"
       fill="white"
+    />
+  </svg>
+);
+
+const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24">
+    <path
+      fill="#4285F4"
+      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
     />
   </svg>
 );
@@ -513,8 +538,29 @@ export default function MiniAppShopModern() {
     });
   };
 
+  // Customer Auth State
+  const [authEmail, setAuthEmail] = useState("");
+  const [authOtp, setAuthOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState("");
+  const [googleNameInput, setGoogleNameInput] = useState("");
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const timer = setInterval(() => {
+      setResendTimer((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendTimer]);
+
   // Queries
-  const { data: user, isLoading: userLoading } = useQuery<TelegramUser>({
+  const { data: user, isLoading: userLoading, refetch: refetchUser } = useQuery<TelegramUser & { isLoggedIn?: boolean }>({
     queryKey: ["/api/mini/user"],
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/user");
@@ -580,9 +626,16 @@ export default function MiniAppShopModern() {
   const isTelegramUser = useMemo(() => {
     const tg = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
     if (tg?.id) return true;
-    if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest") return true;
+    if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest" && !user.telegramId.startsWith("email:") && !user.telegramId.startsWith("google:")) return true;
     return false;
   }, [user]);
+
+  const isCustomerLoggedIn = useMemo(() => {
+    if (isTelegramUser) return true;
+    if (user?.isLoggedIn === true) return true;
+    if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest") return true;
+    return false;
+  }, [user, isTelegramUser]);
 
   // Dynamic Greeting based on client time
   const greeting = useMemo(() => {
@@ -594,10 +647,161 @@ export default function MiniAppShopModern() {
 
   const displayName = useMemo(() => {
     if (user?.firstName) return user.firstName;
+    if (user?.email) return user.email.split('@')[0];
     const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
     if (tgUser?.first_name) return tgUser.first_name;
     return isTelegramUser ? "Telegram User" : "Web Visitor";
   }, [user, isTelegramUser]);
+
+  // Handle Send OTP
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!authEmail || !authEmail.includes("@")) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/customer/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to send code.");
+      }
+      setOtpSent(true);
+      setResendTimer(60);
+      toast({
+        title: "Verification Code Sent!",
+        description: data.devCode
+          ? `Code sent to ${authEmail}! (Demo Code: ${data.devCode})`
+          : `We've sent a 6-digit code to ${authEmail}. Please check your inbox.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to send code.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!authOtp || authOtp.length < 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the 6-digit verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsVerifyingOtp(true);
+    try {
+      const res = await fetch("/api/auth/customer/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail.trim(), code: authOtp.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Verification failed.");
+      }
+      toast({
+        title: "Welcome!",
+        description: `Successfully signed in as ${data.user?.email || data.user?.firstName}!`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+      refetchUser();
+      setAuthOtp("");
+      setOtpSent(false);
+    } catch (err: any) {
+      toast({
+        title: "Verification Failed",
+        description: err.message || "Invalid or expired code.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Handle Google Sign In
+  const handleGoogleSignIn = async (customEmail?: string, customName?: string) => {
+    setIsGoogleLoading(true);
+    try {
+      const emailToUse = customEmail || googleEmailInput || "";
+      const nameToUse = customName || googleNameInput || (emailToUse ? emailToUse.split("@")[0] : "");
+
+      if (!emailToUse || !emailToUse.includes("@")) {
+        setShowGoogleModal(true);
+        setIsGoogleLoading(false);
+        return;
+      }
+
+      const res = await fetch("/api/auth/customer/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailToUse.trim(),
+          name: nameToUse.trim(),
+          picture: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nameToUse)}&backgroundColor=4285F4`,
+          sub: "google_" + Math.random().toString(36).substring(2, 10),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Google sign-in failed.");
+      }
+      toast({
+        title: "Google Sign-In Successful!",
+        description: `Welcome, ${data.user?.firstName || data.user?.email}!`,
+      });
+      setShowGoogleModal(false);
+      setGoogleEmailInput("");
+      setGoogleNameInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+      refetchUser();
+    } catch (err: any) {
+      toast({
+        title: "Sign-In Failed",
+        description: err.message || "Google sign-in failed.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/customer/logout", { method: "POST" });
+      toast({
+        title: "Signed Out",
+        description: "You have been logged out successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+      refetchUser();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
 
   const handleCryptomusPay = async () => {
     const num = parseFloat(cryptomusAmount);
@@ -1320,48 +1524,265 @@ export default function MiniAppShopModern() {
 
         {/* PROFILE TAB */}
         {activeTab === "profile" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-3xl p-6 text-center shadow-sm border border-[#ECEEF8]">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white text-2xl font-black flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/30">
-                {displayName.charAt(0).toUpperCase()}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            {!isCustomerLoggedIn ? (
+              <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                {/* Decorative ambient glow */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#6C5CE7]/15 to-[#FF5E62]/15 blur-3xl rounded-full -translate-y-12 translate-x-12 pointer-events-none" />
+
+                <div className="text-center mb-6 relative z-10">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#6C5CE7] to-[#FF5E62] text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/25">
+                    <UserIcon className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-black text-[#181432]">Sign in to youuhost</h3>
+                  <p className="text-xs text-[#7E7998] mt-1 max-w-xs mx-auto">
+                    Access your cloud server orders, manage balance, and top-up with instant verification.
+                  </p>
+                </div>
+
+                {/* EMAIL + CODE AUTH FORM */}
+                <div className="space-y-3 relative z-10">
+                  {!otpSent ? (
+                    <form onSubmit={handleSendOtp} className="space-y-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-[#6B658B] block mb-1.5 uppercase tracking-wider">
+                          Email Address
+                        </label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 text-[#9490A8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="email"
+                            required
+                            placeholder="name@example.com"
+                            value={authEmail}
+                            onChange={(e) => setAuthEmail(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-[#F8F9FD] border border-[#ECEEF8] rounded-2xl text-xs font-semibold text-[#181432] placeholder:text-[#A09CB8] focus:outline-none focus:border-[#6C5CE7] focus:ring-2 focus:ring-[#6C5CE7]/20 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={isSendingOtp || !authEmail.trim()}
+                        className="w-full py-3 h-12 bg-gradient-to-r from-[#6C5CE7] to-[#5B42F3] hover:from-[#5B42F3] hover:to-[#4A32D6] text-white font-black text-xs rounded-2xl shadow-md shadow-[#6C5CE7]/25 transition-all flex items-center justify-center gap-2"
+                      >
+                        {isSendingOtp ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Sending Verification Code...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" /> Send 6-Digit Code
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleVerifyOtp} className="space-y-3">
+                      <div className="bg-[#F8F7FD] border border-[#ECEEF8] p-3 rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Mail className="w-4 h-4 text-[#6C5CE7] shrink-0" />
+                          <span className="text-xs font-bold text-[#181432] truncate">{authEmail}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setAuthOtp("");
+                          }}
+                          className="text-[10px] font-black text-[#6C5CE7] hover:underline shrink-0 ml-2"
+                        >
+                          Change
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-[#6B658B] block mb-1.5 uppercase tracking-wider">
+                          Enter 6-Digit Verification Code
+                        </label>
+                        <div className="relative">
+                          <KeyRound className="w-4 h-4 text-[#9490A8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            maxLength={6}
+                            required
+                            autoFocus
+                            placeholder="123456"
+                            value={authOtp}
+                            onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ""))}
+                            className="w-full pl-10 pr-4 py-3 bg-[#F8F9FD] border border-[#ECEEF8] rounded-2xl text-center text-lg font-black tracking-[0.3em] font-mono text-[#181432] placeholder:text-[#A09CB8] focus:outline-none focus:border-[#6C5CE7] focus:ring-2 focus:ring-[#6C5CE7]/20 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={isVerifyingOtp || authOtp.length < 6}
+                        className="w-full py-3 h-12 bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs rounded-2xl shadow-md shadow-emerald-500/25 transition-all flex items-center justify-center gap-2"
+                      >
+                        {isVerifyingOtp ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Verifying Code...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" /> Verify & Sign In
+                          </>
+                        )}
+                      </Button>
+
+                      <div className="text-center pt-1">
+                        {resendTimer > 0 ? (
+                          <span className="text-[11px] font-semibold text-[#9490A8] flex items-center justify-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-[#9490A8]" /> Resend code in {resendTimer}s
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSendOtp()}
+                            disabled={isSendingOtp}
+                            className="text-[11px] font-black text-[#6C5CE7] hover:underline flex items-center justify-center gap-1.5 mx-auto"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" /> Resend Verification Code
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  )}
+
+                  {/* DIVIDER */}
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[#ECEEF8]" />
+                    </div>
+                    <div className="relative flex justify-center text-[10px] uppercase font-black text-[#9490A8]">
+                      <span className="bg-white px-3 tracking-widest">or continue with</span>
+                    </div>
+                  </div>
+
+                  {/* GOOGLE SIGN IN BUTTON */}
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleSignIn()}
+                    disabled={isGoogleLoading}
+                    className="w-full py-3 px-4 h-12 bg-white hover:bg-[#F8F9FD] active:scale-[0.99] border border-[#ECEEF8] hover:border-[#D8DCF0] rounded-2xl text-xs font-black text-[#181432] shadow-sm flex items-center justify-center gap-3 transition-all"
+                  >
+                    {isGoogleLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#4285F4]" />
+                    ) : (
+                      <GoogleIcon className="w-5 h-5" />
+                    )}
+                    <span>Continue with Google</span>
+                  </button>
+
+                  {/* SECURITY ASSURANCE */}
+                  <div className="pt-3 flex items-center justify-center gap-2 text-[10px] text-[#9490A8] font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Passwordless 2FA · End-to-End Encrypted</span>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-base font-black text-[#181432]">{displayName}</h3>
-              <span className="text-xs text-[#7E7998] block mt-0.5">
-                {isTelegramUser ? (user?.username ? `@${user.username}` : `ID: ${user?.telegramId}`) : "Store Customer"}
-              </span>
-            </div>
+            ) : (
+              // LOGGED IN USER PROFILE
+              <div className="space-y-4">
+                <div className="bg-white rounded-3xl p-6 text-center shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" />
 
-            <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
-              <button
-                onClick={() => setActiveTab("orders")}
-                className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Package className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
-                </span>
-                <ChevronRight className="w-4 h-4 text-[#9490A8]" />
-              </button>
+                  {/* Avatar */}
+                  {user?.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={displayName}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white text-2xl font-black flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/30">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
 
-              <button
-                onClick={() => setActiveTab("wallet")}
-                className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Wallet className="w-4 h-4 text-[#D92078]" /> Wallet & Top-ups
-                </span>
-                <ChevronRight className="w-4 h-4 text-[#9490A8]" />
-              </button>
+                  <h3 className="text-base font-black text-[#181432]">{displayName}</h3>
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                    {user?.authProvider === "google" ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4285F4] bg-[#E8F0FE] px-2.5 py-0.5 rounded-full">
+                        <GoogleIcon className="w-3 h-3" /> Google Account
+                      </span>
+                    ) : user?.authProvider === "email" ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                        <Mail className="w-3 h-3 text-[#059669]" /> Email Verified
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#24A1DE] bg-sky-50 px-2.5 py-0.5 rounded-full">
+                        <FaTelegramPlane className="w-3 h-3" /> Telegram Account
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-[#7E7998] block mt-1">
+                    {user?.email || (user?.username ? `@${user.username}` : `ID: ${user?.telegramId}`)}
+                  </span>
 
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
-              >
-                <span className="flex items-center gap-2.5">
-                  <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 AI Concierge
-                </span>
-                <ChevronRight className="w-4 h-4 text-[#9490A8]" />
-              </button>
-            </div>
+                  {/* Balance Display */}
+                  <div className="mt-4 pt-4 border-t border-[#F5F4FC] flex items-center justify-between bg-[#F8F7FD] p-3.5 rounded-2xl">
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#9490A8] block">Wallet Balance</span>
+                      <span className="text-lg font-black text-[#181432]">${((user?.balance || 0) / 100).toFixed(2)}</span>
+                    </div>
+                    <Button
+                      onClick={() => setActiveTab("wallet")}
+                      className="h-8 px-3.5 bg-gradient-to-r from-[#6C5CE7] to-[#5B42F3] hover:from-[#5B42F3] hover:to-[#4A32D6] text-white text-xs font-black rounded-xl shadow-sm"
+                    >
+                      Top Up
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Profile navigation actions */}
+                <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
+                  <button
+                    onClick={() => setActiveTab("orders")}
+                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Package className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("wallet")}
+                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Wallet className="w-4 h-4 text-[#D92078]" /> Wallet & Top-ups
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                  </button>
+
+                  <button
+                    onClick={() => setIsChatOpen(true)}
+                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 AI Concierge
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                  </button>
+
+                  {/* Sign Out Button (for web sessions) */}
+                  {!isTelegramUser && (
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-red-600 hover:bg-red-50/50 rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <LogOut className="w-4 h-4 text-red-500" /> Sign Out
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-red-300" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
@@ -1587,6 +2008,59 @@ export default function MiniAppShopModern() {
             >
               <Send className="w-4 h-4" />
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* GOOGLE SIGN IN MODAL */}
+      <Dialog open={showGoogleModal} onOpenChange={setShowGoogleModal}>
+        <DialogContent className="max-w-sm w-full bg-white border border-[#ECEEF8] rounded-[28px] p-6 shadow-2xl">
+          <DialogHeader className="text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#E8F0FE] flex items-center justify-center mx-auto mb-2">
+              <GoogleIcon className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-base font-black text-[#181432]">Continue with Google</DialogTitle>
+            <DialogDescription className="text-xs text-[#7E7998]">
+              Sign in with your Google email to sync your cloud orders and wallet
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] block mb-1">Google Email Address</label>
+              <input
+                type="email"
+                required
+                placeholder="name@gmail.com"
+                value={googleEmailInput}
+                onChange={(e) => setGoogleEmailInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#F8F9FD] border border-[#ECEEF8] rounded-xl text-xs font-semibold text-[#181432] focus:outline-none focus:border-[#4285F4]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] block mb-1">Your Full Name (Optional)</label>
+              <input
+                type="text"
+                placeholder="Alex Morgan"
+                value={googleNameInput}
+                onChange={(e) => setGoogleNameInput(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#F8F9FD] border border-[#ECEEF8] rounded-xl text-xs font-semibold text-[#181432] focus:outline-none focus:border-[#4285F4]"
+              />
+            </div>
+
+            <Button
+              onClick={() => handleGoogleSignIn()}
+              disabled={isGoogleLoading || !googleEmailInput.trim()}
+              className="w-full py-2.5 h-11 bg-[#4285F4] hover:bg-[#3367D6] text-white font-black text-xs rounded-xl shadow-md shadow-[#4285F4]/20 transition-all flex items-center justify-center gap-2 mt-2"
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <GoogleIcon className="w-4 h-4" /> Sign In with Google
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

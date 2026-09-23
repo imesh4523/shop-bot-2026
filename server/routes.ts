@@ -446,6 +446,68 @@ async function checkCryptoBotInvoiceStatus(invoiceId: string): Promise<{ paid: b
 declare module "express-session" {
   interface SessionData {
     userId: number;
+    customerUserId?: number;
+  }
+}
+
+interface CustomerOtpRecord {
+  code: string;
+  expiresAt: number;
+  attempts: number;
+  createdAt: number;
+}
+const customerOtpStore = new Map<string, CustomerOtpRecord>();
+
+async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ success: boolean; devCode?: string; error?: string }> {
+  try {
+    const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+    const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+    const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+    const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+    const smtpFrom = (await storage.getSetting("SMTP_FROM"))?.value || process.env.SMTP_FROM || `"youuhost" <no-reply@youuhost.store>`;
+
+    if (smtpHost && smtpUser && smtpPass) {
+      const nodemailerMod = await import("nodemailer");
+      const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      await transporter.sendMail({
+        from: smtpFrom,
+        to: toEmail,
+        subject: `Your youuhost Verification Code: ${code}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #0B0E14; color: #FFFFFF; border-radius: 24px; border: 1px solid #1F2430;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FF5E62 0%, #6C5CE7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">youuhost</h1>
+              <p style="margin: 6px 0 0 0; font-size: 13px; color: #9490A8;">Cloud Servers & Digital Products</p>
+            </div>
+            <div style="background: #151923; padding: 28px; border-radius: 18px; text-align: center; border: 1px solid #232938;">
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #D1D5DB;">Use the one-time code below to log in or sign up to your account:</p>
+              <div style="letter-spacing: 8px; font-size: 36px; font-weight: 900; color: #4ADE80; background: #0B0E14; padding: 16px 20px; border-radius: 12px; display: inline-block; font-family: monospace; border: 1px solid #1E293B;">
+                ${code}
+              </div>
+              <p style="margin: 16px 0 0 0; font-size: 12px; color: #94A3B8;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+            </div>
+          </div>
+        `,
+      });
+      console.log(`[Customer Auth] OTP ${code} successfully sent via SMTP to ${toEmail}`);
+      return { success: true };
+    } else {
+      console.log(`[Customer Auth] SMTP not configured. OTP generated for ${toEmail}: ${code}`);
+      return { success: true, devCode: code };
+    }
+  } catch (err: any) {
+    console.error(`[Customer Auth] SMTP error for ${toEmail}:`, err?.message || err);
+    return { success: true, devCode: code, error: err?.message };
   }
 }
 
@@ -705,12 +767,36 @@ export async function registerRoutes(
   };
 
   /**
-   * Telegram Mini App Authentication Middleware
-   * Verifies the initData sent from the Telegram Mini App using the BOT_TOKEN
+   * Telegram Mini App & Web Customer Authentication Middleware
+   * Verifies the initData sent from the Telegram Mini App using BOT_TOKEN,
+   * OR authenticates web customers via session (customerUserId).
    */
   const verifyMiniAppAuth = async (req: Request, res: Response, next: NextFunction) => {
     const initData = req.headers['x-telegram-init-data'] as string;
     if (!initData) {
+      // Check web customer session
+      const customerUserId = (req.session as any)?.customerUserId;
+      if (customerUserId) {
+        try {
+          const customer = await storage.getTelegramUserById(customerUserId);
+          if (customer) {
+            (req as any).tgUser = {
+              id: customer.telegramId,
+              username: customer.username || customer.email?.split('@')[0] || "User",
+              first_name: customer.firstName || "Customer",
+              last_name: customer.lastName || "",
+              email: customer.email,
+              avatarUrl: customer.avatarUrl,
+              dbUser: customer,
+              isGuest: false
+            };
+            return next();
+          }
+        } catch (e) {
+          console.error("Error retrieving customer session:", e);
+        }
+      }
+
       // Allow graceful web browser preview
       (req as any).tgUser = {
         id: 0,
@@ -760,6 +846,239 @@ export async function registerRoutes(
     }
   };
 
+  // --- Customer Web Authentication (Email OTP & Google Login) ---
+
+  // Check current customer session
+  app.get("/api/auth/customer/me", async (req, res) => {
+    try {
+      const customerUserId = (req.session as any)?.customerUserId;
+      if (!customerUserId) {
+        return res.json({ isLoggedIn: false, user: null });
+      }
+      const user = await storage.getTelegramUserById(customerUserId);
+      if (!user) {
+        delete (req.session as any).customerUserId;
+        return res.json({ isLoggedIn: false, user: null });
+      }
+      return res.json({ isLoggedIn: true, user });
+    } catch (err: any) {
+      console.error("auth/customer/me error:", err);
+      return res.json({ isLoggedIn: false, user: null });
+    }
+  });
+
+  // Send 6-digit verification code to email
+  app.post("/api/auth/customer/send-otp", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== 'string' || !email.includes('@') || email.length < 5) {
+        return res.status(400).json({ message: "Please enter a valid email address." });
+      }
+
+      const cleanEmail = email.toLowerCase().trim();
+      const existing = customerOtpStore.get(cleanEmail);
+      if (existing && Date.now() < existing.createdAt + 30000) {
+        const waitSec = Math.ceil((existing.createdAt + 30000 - Date.now()) / 1000);
+        return res.status(429).json({ message: `Please wait ${waitSec}s before requesting another code.` });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      customerOtpStore.set(cleanEmail, {
+        code,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+        createdAt: Date.now()
+      });
+
+      const sendResult = await sendCustomerOtpEmail(cleanEmail, code);
+      return res.json({
+        success: true,
+        message: "A 6-digit verification code has been sent to your email.",
+        devCode: sendResult.devCode
+      });
+    } catch (err: any) {
+      console.error("send-otp error:", err);
+      return res.status(500).json({ message: "Failed to send verification code. Please try again." });
+    }
+  });
+
+  // Verify 6-digit code and sign in / sign up
+  app.post("/api/auth/customer/verify-otp", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) {
+        return res.status(400).json({ message: "Email and verification code are required." });
+      }
+
+      const cleanEmail = email.toLowerCase().trim();
+      const cleanCode = code.toString().trim();
+      const record = customerOtpStore.get(cleanEmail);
+
+      if (!record) {
+        return res.status(400).json({ message: "No verification code found. Please request a new code." });
+      }
+
+      if (Date.now() > record.expiresAt) {
+        customerOtpStore.delete(cleanEmail);
+        return res.status(400).json({ message: "Verification code has expired. Please request a new code." });
+      }
+
+      if (record.attempts >= 5) {
+        customerOtpStore.delete(cleanEmail);
+        return res.status(429).json({ message: "Too many incorrect attempts. Please request a new code." });
+      }
+
+      if (record.code !== cleanCode) {
+        record.attempts += 1;
+        return res.status(400).json({ message: "Invalid verification code. Please check and try again." });
+      }
+
+      customerOtpStore.delete(cleanEmail);
+
+      let user = await storage.getTelegramUserByEmail(cleanEmail);
+      if (!user) {
+        user = await storage.getTelegramUser(`email:${cleanEmail}`);
+      }
+
+      if (!user) {
+        const username = cleanEmail.split('@')[0];
+        user = await storage.createTelegramUser({
+          telegramId: `email:${cleanEmail}`,
+          username: username,
+          firstName: username,
+          lastName: "",
+          email: cleanEmail,
+          authProvider: "email",
+          balance: 0,
+          lastAction: null
+        });
+        console.log(`[Customer Auth] New user registered via Email OTP: ${cleanEmail} (ID: ${user.id})`);
+      } else {
+        if (!user.email) {
+          user = await storage.updateTelegramUser(user.id, { email: cleanEmail, authProvider: user.authProvider || "email" });
+        }
+      }
+
+      (req.session as any).customerUserId = user.id;
+      await new Promise<void>((resolve) => {
+        req.session.save((err) => {
+          if (err) console.error("Session save error:", err);
+          resolve();
+        });
+      });
+
+      return res.json({
+        success: true,
+        message: "Successfully signed in!",
+        user: {
+          ...user,
+          isLoggedIn: true
+        }
+      });
+    } catch (err: any) {
+      console.error("verify-otp error:", err);
+      return res.status(500).json({ message: "Verification failed. Please try again." });
+    }
+  });
+
+  // Sign in / Sign up with Google
+  app.post("/api/auth/customer/google", async (req, res) => {
+    try {
+      const { credential, email, name, picture, sub } = req.body;
+      let googleEmail = email;
+      let googleName = name;
+      let googlePicture = picture;
+      let googleSub = sub;
+
+      if (credential && typeof credential === 'string') {
+        try {
+          const parts = credential.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            if (payload.email) {
+              googleEmail = payload.email;
+              googleName = payload.name || payload.given_name || payload.email.split('@')[0];
+              googlePicture = payload.picture || '';
+              googleSub = payload.sub || '';
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse Google JWT credential:", e);
+        }
+      }
+
+      if (!googleEmail || typeof googleEmail !== 'string' || !googleEmail.includes('@')) {
+        return res.status(400).json({ message: "Valid Google email profile is required." });
+      }
+
+      const cleanEmail = googleEmail.toLowerCase().trim();
+
+      let user = await storage.getTelegramUserByEmail(cleanEmail);
+      if (!user && googleSub) {
+        user = await storage.getTelegramUser(`google:${googleSub}`);
+      }
+      if (!user) {
+        user = await storage.getTelegramUser(`email:${cleanEmail}`);
+      }
+
+      if (!user) {
+        const username = googleName || cleanEmail.split('@')[0];
+        user = await storage.createTelegramUser({
+          telegramId: googleSub ? `google:${googleSub}` : `google:${cleanEmail}`,
+          username: username.replace(/\s+/g, '_').toLowerCase(),
+          firstName: googleName || username,
+          lastName: "",
+          email: cleanEmail,
+          authProvider: "google",
+          avatarUrl: googlePicture || null,
+          balance: 0,
+          lastAction: null
+        });
+        console.log(`[Customer Auth] New user registered via Google: ${cleanEmail} (ID: ${user.id})`);
+      } else {
+        const updates: any = {};
+        if (googlePicture && !user.avatarUrl) updates.avatarUrl = googlePicture;
+        if (!user.email) updates.email = cleanEmail;
+        if (user.authProvider === 'telegram' || !user.authProvider) updates.authProvider = 'google';
+        if (Object.keys(updates).length > 0) {
+          user = await storage.updateTelegramUser(user.id, updates);
+        }
+      }
+
+      (req.session as any).customerUserId = user.id;
+      await new Promise<void>((resolve) => {
+        req.session.save((err) => {
+          if (err) console.error("Session save error:", err);
+          resolve();
+        });
+      });
+
+      return res.json({
+        success: true,
+        message: "Successfully signed in with Google!",
+        user: {
+          ...user,
+          isLoggedIn: true
+        }
+      });
+    } catch (err: any) {
+      console.error("google auth error:", err);
+      return res.status(500).json({ message: "Google sign-in failed. Please try again." });
+    }
+  });
+
+  // Logout customer
+  app.post("/api/auth/customer/logout", async (req, res) => {
+    delete (req.session as any).customerUserId;
+    await new Promise<void>((resolve) => {
+      req.session.save((err) => {
+        if (err) console.error("Session logout error:", err);
+        resolve();
+      });
+    });
+    return res.json({ success: true, message: "Logged out successfully" });
+  });
+
   // --- Mini App Public Shop APIs ---
 
   // Get current user balance and info within Mini App
@@ -773,7 +1092,15 @@ export async function registerRoutes(
         firstName: "Web Visitor",
         lastName: "",
         balance: 0,
+        isLoggedIn: false,
         createdAt: new Date().toISOString()
+      });
+    }
+
+    if (tgUser.dbUser) {
+      return res.json({
+        ...tgUser.dbUser,
+        isLoggedIn: true
       });
     }
 
@@ -789,7 +1116,10 @@ export async function registerRoutes(
         lastAction: null
       });
     }
-    res.json(user);
+    res.json({
+      ...user,
+      isLoggedIn: true
+    });
   });
 
   // Push Notification Routes

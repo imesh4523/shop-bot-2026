@@ -79,6 +79,8 @@ export interface IStorage {
 
   // Telegram Users
   getTelegramUser(telegramId: string): Promise<TelegramUser | undefined>;
+  getTelegramUserById(id: number): Promise<TelegramUser | undefined>;
+  getTelegramUserByEmail(email: string): Promise<TelegramUser | undefined>;
   getTelegramUserByChatId(chatId: string | number): Promise<TelegramUser | undefined>;
   getAllTelegramUsers(): Promise<TelegramUser[]>;
   createTelegramUser(user: InsertTelegramUser): Promise<TelegramUser>;
@@ -397,6 +399,17 @@ export class DatabaseStorage implements IStorage {
   // Telegram Users
   async getTelegramUser(telegramId: string): Promise<TelegramUser | undefined> {
     const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.telegramId, telegramId));
+    return user;
+  }
+
+  async getTelegramUserById(id: number): Promise<TelegramUser | undefined> {
+    const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, id));
+    return user;
+  }
+
+  async getTelegramUserByEmail(email: string): Promise<TelegramUser | undefined> {
+    const cleanEmail = email.toLowerCase().trim();
+    const [user] = await db.select().from(telegramUsers).where(sql`LOWER(${telegramUsers.email}) = ${cleanEmail}`);
     return user;
   }
 
