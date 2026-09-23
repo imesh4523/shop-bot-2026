@@ -1099,9 +1099,24 @@ export async function registerRoutes(
       if (!clientId) {
         return res.status(500).send("Google OAuth Client ID is not configured in settings.");
       }
-      const host = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
-      const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
-      const redirectUri = `${proto}://${host}/api/auth/customer/google/callback`;
+      const customRedirect = (await storage.getSetting("GOOGLE_REDIRECT_URI"))?.value;
+      let redirectUri: string;
+      if (customRedirect && customRedirect.trim()) {
+        redirectUri = customRedirect.trim();
+      } else {
+        const rawHost = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
+        const hostWithoutPort = rawHost.split(":")[0];
+        if (hostWithoutPort.includes("youuhost.com")) {
+          redirectUri = `https://${hostWithoutPort}/api/auth/customer/google/callback`;
+        } else if (hostWithoutPort === "localhost" || hostWithoutPort === "127.0.0.1") {
+          redirectUri = `http://${rawHost}/api/auth/customer/google/callback`;
+        } else {
+          const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "https");
+          redirectUri = `${proto}://${rawHost}/api/auth/customer/google/callback`;
+        }
+      }
+
+      console.log(`[Google OAuth Login] Initiating OAuth flow with redirect_uri: ${redirectUri}`);
 
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
         clientId
@@ -1127,9 +1142,25 @@ export async function registerRoutes(
 
       const clientId = (await storage.getSetting("GOOGLE_CLIENT_ID"))?.value || process.env.GOOGLE_CLIENT_ID || "";
       const clientSecret = (await storage.getSetting("GOOGLE_CLIENT_SECRET"))?.value || process.env.GOOGLE_CLIENT_SECRET || "";
-      const host = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
-      const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
-      const redirectUri = `${proto}://${host}/api/auth/customer/google/callback`;
+      
+      const customRedirect = (await storage.getSetting("GOOGLE_REDIRECT_URI"))?.value;
+      let redirectUri: string;
+      if (customRedirect && customRedirect.trim()) {
+        redirectUri = customRedirect.trim();
+      } else {
+        const rawHost = req.get("x-forwarded-host") || req.get("host") || "youuhost.com";
+        const hostWithoutPort = rawHost.split(":")[0];
+        if (hostWithoutPort.includes("youuhost.com")) {
+          redirectUri = `https://${hostWithoutPort}/api/auth/customer/google/callback`;
+        } else if (hostWithoutPort === "localhost" || hostWithoutPort === "127.0.0.1") {
+          redirectUri = `http://${rawHost}/api/auth/customer/google/callback`;
+        } else {
+          const proto = req.get("x-forwarded-proto") || (req.secure ? "https" : "https");
+          redirectUri = `${proto}://${rawHost}/api/auth/customer/google/callback`;
+        }
+      }
+
+      console.log(`[Google OAuth Callback] Processing callback with redirect_uri: ${redirectUri}`);
 
       // Exchange authorization code for tokens
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
