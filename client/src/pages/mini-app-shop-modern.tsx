@@ -128,31 +128,19 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 );
 
 const BinanceLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="12" fill="#F0B90B" />
-    <path
-      fill="#1E2026"
-      d="M16.624 13.92a2.44 2.44 0 0 0-3.248 0L9.4 17.896l3.976 3.976 3.248-3.976zm-9.248 7.224-3.248 3.248a2.44 2.44 0 0 0 0 3.248l3.248 3.248 3.248-3.248-3.248-3.248zm17.248 0-3.248 3.248-3.248 3.248 3.248 3.248 3.248-3.248a2.44 2.44 0 0 0 0-3.248zm-8.624 7.224-3.248 3.248 3.248 3.248 3.248-3.248-3.248-3.248zM12 0 1.584 10.416a2.44 2.44 0 0 0 0 3.248l3.248 3.248 7.168-7.168 7.168 7.168 3.248-3.248a2.44 2.44 0 0 0 0-3.248L12 0z"
-      transform="scale(0.55) translate(10, 10)"
-    />
-  </svg>
+  <div className={`rounded-full bg-[#F3BA2F] flex items-center justify-center p-[15%] shrink-0 overflow-hidden ${className}`}>
+    <SiBinance className="w-full h-full text-[#1E2026]" />
+  </div>
 );
 
 const CryptomusLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="28" fill="url(#cryptomusBgGrad)" />
+    <rect width="100" height="100" rx="28" fill="#1C1838" />
     <path
       d="M50 20C33.43 20 20 33.43 20 50C20 66.57 33.43 80 50 80C62.8 80 73.6 72 77.8 60.5L66.4 56.2C63.8 63.8 57.5 69 50 69C39.51 69 31 60.49 31 50C31 39.51 39.51 31 50 31C57.5 31 63.8 36.2 66.4 43.8L77.8 39.5C73.6 28 62.8 20 50 20Z"
-      fill="white"
+      fill="#FFFFFF"
     />
-    <circle cx="71" cy="50" r="7.5" fill="#10B981" />
-    <defs>
-      <linearGradient id="cryptomusBgGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#635BFF" />
-        <stop offset="0.5" stopColor="#8B5CF6" />
-        <stop offset="1" stopColor="#EC4899" />
-      </linearGradient>
-    </defs>
+    <circle cx="72" cy="50" r="8" fill="#00D287" />
   </svg>
 );
 
@@ -657,11 +645,6 @@ export default function MiniAppShopModern() {
     return (localStorage.getItem("app_currency") as "USD" | "LKR") || "USD";
   });
 
-  const handleCurrencyChange = (curr: "USD" | "LKR") => {
-    setSelectedCurrency(curr);
-    localStorage.setItem("app_currency", curr);
-  };
-
   const { data: currencyData } = useQuery<{ rates: Record<string, number> }>({
     queryKey: ["/api/currency/rates"],
     queryFn: async () => {
@@ -676,6 +659,27 @@ export default function MiniAppShopModern() {
   });
 
   const lkrRate = currencyData?.rates?.LKR || 305.50;
+
+  // Binance Pay Interactive State
+  const [binanceAmount, setBinanceAmount] = useState<string>(() => {
+    return (localStorage.getItem("app_currency") === "LKR") ? "1000" : "5";
+  });
+  const [binanceTxId, setBinanceTxId] = useState<string>("");
+  const [isVerifyingBinance, setIsVerifyingBinance] = useState<boolean>(false);
+  const [binanceSuccessMsg, setBinanceSuccessMsg] = useState<string | null>(null);
+  const [binanceErrorMsg, setBinanceErrorMsg] = useState<string | null>(null);
+
+  const handleCurrencyChange = (curr: "USD" | "LKR") => {
+    setSelectedCurrency(curr);
+    localStorage.setItem("app_currency", curr);
+    if (curr === "LKR") {
+      setBinanceAmount("1000");
+      setCryptomusAmount("1000");
+    } else {
+      setBinanceAmount("5");
+      setCryptomusAmount("10");
+    }
+  };
 
   // Formatter for product pricing
   const formatProductPrice = (prod: Product, qty: number = 1) => {
@@ -700,22 +704,42 @@ export default function MiniAppShopModern() {
     return `$${usd.toFixed(2)}`;
   };
 
-  // Binance Pay Interactive State
-  const [binanceAmount, setBinanceAmount] = useState<string>("5");
-  const [binanceTxId, setBinanceTxId] = useState<string>("");
-  const [isVerifyingBinance, setIsVerifyingBinance] = useState<boolean>(false);
-  const [binanceSuccessMsg, setBinanceSuccessMsg] = useState<string | null>(null);
-  const [binanceErrorMsg, setBinanceErrorMsg] = useState<string | null>(null);
+  // Effective USD amount to send / verify
+  const binanceCalculatedUsd = useMemo(() => {
+    const val = parseFloat(binanceAmount || "0");
+    if (isNaN(val) || val <= 0) return 0;
+    if (selectedCurrency === "LKR") {
+      return parseFloat((val / lkrRate).toFixed(2));
+    }
+    return parseFloat(val.toFixed(2));
+  }, [binanceAmount, selectedCurrency, lkrRate]);
+
+  const cryptomusCalculatedUsd = useMemo(() => {
+    const val = parseFloat(cryptomusAmount || "0");
+    if (isNaN(val) || val <= 0) return 0;
+    if (selectedCurrency === "LKR") {
+      return parseFloat((val / lkrRate).toFixed(2));
+    }
+    return parseFloat(val.toFixed(2));
+  }, [cryptomusAmount, selectedCurrency, lkrRate]);
 
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const num = parseFloat(binanceAmount);
-    if (isNaN(num) || num < 1) {
-      toast({ title: "Invalid Amount", description: "Minimum top-up amount is $1.00", variant: "destructive" });
+    const usdNum = binanceCalculatedUsd;
+    if (usdNum < 0.5) {
+      toast({
+        title: "Invalid Amount",
+        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 150" : "Minimum top-up is $0.50",
+        variant: "destructive"
+      });
       return;
     }
     if (!binanceTxId.trim() || binanceTxId.trim().length < 4) {
-      toast({ title: "Order ID Required", description: "Please enter your Binance Pay Order ID or Transaction ID (TxID).", variant: "destructive" });
+      toast({
+        title: "Order ID Required",
+        description: "Please enter your Binance Pay Order ID or Transaction ID (TxID).",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -724,7 +748,7 @@ export default function MiniAppShopModern() {
     setBinanceErrorMsg(null);
     try {
       const res = await miniApiRequest("POST", "/api/mini/deposit/binance", {
-        amount: num,
+        amount: usdNum,
         orderId: binanceTxId.trim(),
         txId: binanceTxId.trim(),
       });
@@ -942,14 +966,18 @@ export default function MiniAppShopModern() {
   };
 
   const handleCryptomusPay = async () => {
-    const num = parseFloat(cryptomusAmount);
-    if (isNaN(num) || num < 1) {
-      toast({ title: "Invalid Amount", description: "Minimum top-up amount is $1.00", variant: "destructive" });
+    const usdNum = cryptomusCalculatedUsd;
+    if (usdNum < 0.5) {
+      toast({
+        title: "Invalid Amount",
+        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 150" : "Minimum top-up is $0.50",
+        variant: "destructive"
+      });
       return;
     }
     setIsCreatingCryptomus(true);
     try {
-      const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", { amount: num });
+      const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", { amount: usdNum });
       const data = await res.json();
       if (data.url) {
         toast({ title: "Invoice Created", description: "Opening Cryptomus checkout...", duration: 2500 });
@@ -1074,10 +1102,41 @@ export default function MiniAppShopModern() {
     }
   };
 
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const res = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return res;
+    } catch (e) {
+      console.warn("Fallback copy error:", e);
+      return false;
+    }
+  };
+
   const copyToClipboard = (text: string, title = "Copied to Clipboard") => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
-    toast({ title, description: "Content copied successfully.", duration: 2000 });
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    } catch {
+      fallbackCopy(text);
+    }
+    setCopiedText(text);
+    setTimeout(() => setCopiedText(null), 2500);
+    toast({ title, description: `${text} copied to clipboard.`, duration: 2000 });
   };
 
   const handleSendChat = async () => {
@@ -1573,57 +1632,79 @@ export default function MiniAppShopModern() {
                 <div className="mb-3.5">
                   <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
                     <span>1. Select Top-Up Amount ({selectedCurrency})</span>
-                    {selectedCurrency === "LKR" && (
-                      <span className="text-purple-600 font-bold text-[9px]">
-                        ≈ ${(parseFloat(binanceAmount || "0")).toFixed(2)} USD
+                    {selectedCurrency === "LKR" ? (
+                      <span className="text-purple-600 font-black text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                        Pay: ${binanceCalculatedUsd.toFixed(2)} USDT
+                      </span>
+                    ) : (
+                      <span className="text-purple-600 font-black text-[10px]">
+                        ≈ Rs. {Math.round(parseFloat(binanceAmount || "0") * lkrRate).toLocaleString()} LKR
                       </span>
                     )}
                   </label>
-                  <div className="grid grid-cols-5 gap-1.5 mb-2">
-                    {["5", "10", "20", "50", "100"].map((amt) => {
-                      const lkrEquiv = Math.round(parseFloat(amt) * lkrRate);
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["500", "1000", "5000", "20000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = binanceAmount === amt;
                       return (
                         <button
                           key={amt}
                           type="button"
                           onClick={() => setBinanceAmount(amt)}
-                          className={`py-1.5 rounded-xl text-xs font-black transition-all ${
-                            binanceAmount === amt
+                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                            isSelected
                               ? "bg-[#F3BA2F] text-[#181432] shadow-md shadow-[#F3BA2F]/30 scale-105"
                               : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
                           }`}
                         >
-                          {selectedCurrency === "USD" ? `$${amt}` : `Rs.${lkrEquiv >= 1000 ? `${(lkrEquiv/1000).toFixed(1)}k` : lkrEquiv}`}
+                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
                         </button>
                       );
                     })}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
+                      {selectedCurrency === "LKR" ? "Rs." : "$"}
+                    </span>
                     <input
                       type="number"
                       min="1"
-                      step="0.5"
+                      step={selectedCurrency === "LKR" ? "100" : "0.5"}
                       value={binanceAmount}
                       onChange={(e) => setBinanceAmount(e.target.value)}
-                      placeholder="Custom Amount in USD (e.g. 15)"
-                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-7 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#F3BA2F]"
+                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 2500)" : "Custom Amount in USD (e.g. 15)"}
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#F3BA2F]"
                     />
                   </div>
+                  {selectedCurrency === "LKR" && (
+                    <div className="mt-1.5 px-3 py-1.5 bg-purple-50/80 border border-purple-100 rounded-xl text-[10.5px] font-bold text-purple-900 flex items-center justify-between">
+                      <span>Send to Binance: <b className="text-purple-700">${binanceCalculatedUsd.toFixed(2)} USDT</b></span>
+                      <span className="text-[9.5px] text-purple-600/80 font-normal">Rate: 1 USD ≈ Rs.{lkrRate.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Step 2: Binance Pay ID Card with Copy */}
                 <div className="bg-[#FFFDF5] p-3 rounded-2xl border border-[#F3BA2F]/30 mb-3 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-[#A67C00] block uppercase font-extrabold">2. Send to Binance Pay ID</span>
+                    <span className="text-[10px] text-[#A67C00] block uppercase font-extrabold">
+                      2. Send {selectedCurrency === "LKR" ? `$${binanceCalculatedUsd.toFixed(2)} USDT` : `$${binanceAmount || "0"} USDT`} to Binance Pay ID
+                    </span>
                     <span className="text-base font-mono font-black text-[#181432] tracking-wider">{binancePayId}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(binancePayId, "Binance Pay ID Copied")}
-                    className="px-3.5 py-2 bg-gradient-to-r from-[#F3BA2F] to-[#F59E0B] text-[#181432] rounded-xl text-xs font-black hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-sm active:scale-95"
+                    className="px-3.5 py-2 bg-gradient-to-r from-[#F3BA2F] to-[#F59E0B] text-[#181432] rounded-xl text-xs font-black hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                   >
-                    <Copy className="w-3.5 h-3.5" /> Copy ID
+                    {copiedText === binancePayId ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-[#181432]" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" /> Copy ID
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -1653,7 +1734,12 @@ export default function MiniAppShopModern() {
                       </>
                     ) : (
                       <>
-                        <BinanceLogo className="w-4 h-4" /> Verify & Credit ${binanceAmount || "0"} Balance
+                        <BinanceLogo className="w-4 h-4" />
+                        <span>
+                          {selectedCurrency === "LKR"
+                            ? `Verify & Credit Rs. ${parseFloat(binanceAmount || "0").toLocaleString()} ($${binanceCalculatedUsd.toFixed(2)}) Balance`
+                            : `Verify & Credit $${binanceAmount || "0"} Balance`}
+                        </span>
                       </>
                     )}
                   </button>
@@ -1678,7 +1764,7 @@ export default function MiniAppShopModern() {
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-[#1C1838] flex items-center justify-center shadow-sm">
                       <CryptomusLogo className="w-6 h-6" />
                     </div>
                     <div>
@@ -1695,43 +1781,55 @@ export default function MiniAppShopModern() {
                 <div className="mb-3.5">
                   <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
                     <span>Select Top-Up Amount ({selectedCurrency})</span>
-                    {selectedCurrency === "LKR" && (
-                      <span className="text-purple-600 font-bold text-[9px]">
-                        ≈ ${(parseFloat(cryptomusAmount || "0")).toFixed(2)} USD
+                    {selectedCurrency === "LKR" ? (
+                      <span className="text-purple-600 font-black text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                        Pay: ${cryptomusCalculatedUsd.toFixed(2)} USD
+                      </span>
+                    ) : (
+                      <span className="text-purple-600 font-black text-[10px]">
+                        ≈ Rs. {Math.round(parseFloat(cryptomusAmount || "0") * lkrRate).toLocaleString()} LKR
                       </span>
                     )}
                   </label>
-                  <div className="grid grid-cols-5 gap-1.5 mb-2">
-                    {["5", "10", "20", "50", "100"].map((amt) => {
-                      const lkrEquiv = Math.round(parseFloat(amt) * lkrRate);
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["500", "1000", "5000", "20000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = cryptomusAmount === amt;
                       return (
                         <button
                           key={amt}
                           type="button"
                           onClick={() => setCryptomusAmount(amt)}
-                          className={`py-1.5 rounded-xl text-xs font-black transition-all ${
-                            cryptomusAmount === amt
+                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                            isSelected
                               ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30 scale-105"
                               : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
                           }`}
                         >
-                          {selectedCurrency === "USD" ? `$${amt}` : `Rs.${lkrEquiv >= 1000 ? `${(lkrEquiv/1000).toFixed(1)}k` : lkrEquiv}`}
+                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
                         </button>
                       );
                     })}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
+                      {selectedCurrency === "LKR" ? "Rs." : "$"}
+                    </span>
                     <input
                       type="number"
                       min="1"
-                      step="1"
+                      step={selectedCurrency === "LKR" ? "100" : "1"}
                       value={cryptomusAmount}
                       onChange={(e) => setCryptomusAmount(e.target.value)}
-                      placeholder="Custom Amount in USD"
-                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-7 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 2500)" : "Custom Amount in USD (e.g. 15)"}
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
                     />
                   </div>
+                  {selectedCurrency === "LKR" && (
+                    <div className="mt-1.5 px-3 py-1.5 bg-purple-50/80 border border-purple-100 rounded-xl text-[10.5px] font-bold text-purple-900 flex items-center justify-between">
+                      <span>Gateway Invoice Amount: <b className="text-purple-700">${cryptomusCalculatedUsd.toFixed(2)} USD</b></span>
+                      <span className="text-[9.5px] text-purple-600/80 font-normal">Rate: 1 USD ≈ Rs.{lkrRate.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -1746,7 +1844,13 @@ export default function MiniAppShopModern() {
                     </>
                   ) : (
                     <>
-                      <CryptomusLogo className="w-4 h-4" /> Pay ${cryptomusAmount || "0"} via Cryptomus Gateway <ExternalLink className="w-3.5 h-3.5" />
+                      <CryptomusLogo className="w-4 h-4" />
+                      <span>
+                        {selectedCurrency === "LKR"
+                          ? `Pay Rs. ${parseFloat(cryptomusAmount || "0").toLocaleString()} (≈ $${cryptomusCalculatedUsd.toFixed(2)} USD) via Cryptomus`
+                          : `Pay $${cryptomusAmount || "0"} via Cryptomus Gateway`}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>
