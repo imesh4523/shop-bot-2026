@@ -38,7 +38,8 @@ import {
   Mail,
   KeyRound,
   LogOut,
-  Shield
+  Shield,
+  TrendingUp
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane } from "react-icons/fa";
@@ -620,7 +621,109 @@ export default function MiniAppShopModern() {
     },
   });
 
-  const binancePayId = depositMethods?.binancePayId || "284910485";
+  const binancePayId = depositMethods?.binancePayId || "410975578";
+
+  // Currency State (USD / LKR)
+  const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
+    return (localStorage.getItem("app_currency") as "USD" | "LKR") || "USD";
+  });
+
+  const handleCurrencyChange = (curr: "USD" | "LKR") => {
+    setSelectedCurrency(curr);
+    localStorage.setItem("app_currency", curr);
+  };
+
+  const { data: currencyData } = useQuery<{ rates: Record<string, number> }>({
+    queryKey: ["/api/currency/rates"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/currency/rates");
+        return res.json();
+      } catch {
+        return { rates: { USD: 1.0, LKR: 305.50 } };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const lkrRate = currencyData?.rates?.LKR || 305.50;
+
+  // Formatter for product pricing
+  const formatProductPrice = (prod: Product, qty: number = 1) => {
+    if (selectedCurrency === "LKR") {
+      if ((prod as any).priceLkr && (prod as any).priceLkr > 0) {
+        const totalLkr = (prod as any).priceLkr * qty;
+        return `Rs. ${totalLkr.toLocaleString()}`;
+      }
+      const totalLkr = Math.round(((prod.price * qty) / 100) * lkrRate);
+      return `Rs. ${totalLkr.toLocaleString()}`;
+    }
+    const totalUsd = (prod.price * qty) / 100;
+    return `$${totalUsd.toFixed(2)}`;
+  };
+
+  const formatBalanceInCurrentCurrency = (balanceCents: number) => {
+    const usd = (balanceCents || 0) / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = usd * lkrRate;
+      return `Rs. ${lkr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
+  // Binance Pay Interactive State
+  const [binanceAmount, setBinanceAmount] = useState<string>("5");
+  const [binanceTxId, setBinanceTxId] = useState<string>("");
+  const [isVerifyingBinance, setIsVerifyingBinance] = useState<boolean>(false);
+  const [binanceSuccessMsg, setBinanceSuccessMsg] = useState<string | null>(null);
+
+  const handleBinanceSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const num = parseFloat(binanceAmount);
+    if (isNaN(num) || num < 1) {
+      toast({ title: "Invalid Amount", description: "Minimum top-up amount is $1.00", variant: "destructive" });
+      return;
+    }
+    if (!binanceTxId.trim() || binanceTxId.trim().length < 4) {
+      toast({ title: "Order ID Required", description: "Please enter your Binance Pay Order ID or Transaction ID (TxID).", variant: "destructive" });
+      return;
+    }
+
+    setIsVerifyingBinance(true);
+    setBinanceSuccessMsg(null);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/binance", {
+        amount: num,
+        orderId: binanceTxId.trim(),
+        txId: binanceTxId.trim(),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBinanceSuccessMsg(data.message);
+        toast({
+          title: data.status === "completed" ? "✅ Payment Verified!" : "⏳ Payment Submitted",
+          description: data.message,
+        });
+        setBinanceTxId("");
+        queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+      } else {
+        toast({
+          title: "Verification Notice",
+          description: data.message || "Could not verify Binance Pay payment.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Submission Error",
+        description: err.message || "Failed to submit Binance payment verification.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifyingBinance(false);
+    }
+  };
 
   // Check if current visitor is inside Telegram Mini App or has real Telegram ID
   const isTelegramUser = useMemo(() => {
@@ -893,13 +996,16 @@ export default function MiniAppShopModern() {
   // Handle Quick Purchase
   const handlePurchase = async () => {
     if (!detailProduct) return;
-    const userBalance = (user?.balance || 0) / 100;
-    const totalPrice = (detailProduct.price * quantity) / 100;
+    const userBalanceUsd = (user?.balance || 0) / 100;
+    const totalPriceUsd = (detailProduct.price * quantity) / 100;
 
-    if (userBalance < totalPrice) {
+    if (userBalanceUsd < totalPriceUsd) {
+      const neededStr = formatProductPrice(detailProduct, quantity);
+      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+
       toast({
         title: "Insufficient Balance",
-        description: `You need $${totalPrice.toFixed(2)}, but your balance is $${userBalance.toFixed(2)}. Please top up your wallet.`,
+        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
         variant: "destructive",
       });
       setActiveTab("wallet");
@@ -989,18 +1095,16 @@ export default function MiniAppShopModern() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Balance Pill - Only show for Telegram Mini App users */}
-            {isTelegramUser && (
-              <button
-                onClick={() => setActiveTab("wallet")}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group"
-              >
-                <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-[#181432]">
-                  ${((user?.balance || 0) / 100).toFixed(2)}
-                </span>
-              </button>
-            )}
+            {/* Balance Pill */}
+            <button
+              onClick={() => setActiveTab("wallet")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group"
+            >
+              <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-[#181432]">
+                {formatBalanceInCurrentCurrency(user?.balance || 0)}
+              </span>
+            </button>
 
             {/* Profile Avatar */}
             <button
@@ -1170,7 +1274,7 @@ export default function MiniAppShopModern() {
                 {filteredProducts.map((prod) => {
                   const conf = getProviderConfig(prod.name, prod.type);
                   const isFav = favorites.includes(prod.id);
-                  const priceFormatted = `$${(prod.price / 100).toFixed(2)}`;
+                  const priceFormatted = formatProductPrice(prod);
 
                   return (
                     <motion.div
@@ -1342,90 +1446,197 @@ export default function MiniAppShopModern() {
         {/* WALLET TAB */}
         {activeTab === "wallet" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            {/* Balance Card or Guest Info Card */}
-            {isTelegramUser ? (
-              <div className="bg-gradient-to-br from-[#181135] via-[#2F1D5E] to-[#5B42F3] rounded-3xl p-6 text-white shadow-xl shadow-[#5B42F3]/25 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-                <span className="text-xs font-semibold text-pink-200/90 uppercase tracking-wider block mb-1">
-                  Total Available Balance
-                </span>
-                <h2 className="text-3xl font-black tracking-tight">
-                  ${((user?.balance || 0) / 100).toFixed(2)}
-                </h2>
-                <span className="text-[11px] text-purple-200/80 block mt-1">
-                  Telegram ID: {user?.telegramId}
-                </span>
-              </div>
-            ) : (
-              <div className="bg-gradient-to-br from-[#181135] via-[#2F1D5E] to-[#5B42F3] rounded-3xl p-6 text-white shadow-xl shadow-[#5B42F3]/25 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-                <span className="text-xs font-semibold text-pink-200/90 uppercase tracking-wider block mb-1">
-                  Instant Top-Up & Checkout
-                </span>
-                <h2 className="text-2xl font-black tracking-tight mb-1.5">
-                  Instant Payment Gateways
-                </h2>
-                <p className="text-xs text-purple-200/80 leading-relaxed">
-                  Use Binance Pay or Cryptomus below for automatic top-up. Open our Telegram Bot to connect your account.
-                </p>
-              </div>
-            )}
+            {/* Ultra-Modern Live Balance & Currency Switcher Card */}
+            <div className="bg-gradient-to-br from-[#120B2E] via-[#21124C] to-[#4E2ECF] rounded-3xl p-6 text-white shadow-2xl shadow-[#4E2ECF]/30 border border-white/10 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-44 h-44 bg-[#FF5E62]/15 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none" />
+              <div className="absolute left-0 bottom-0 w-40 h-40 bg-[#5B42F3]/20 rounded-full blur-3xl translate-y-10 -translate-x-10 pointer-events-none" />
 
-            {/* TOP UP OPTIONS: BINANCE PAY & CRYPTOMUS */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-[#D92078]" /> Instant Payment Methods
-              </h3>
-
-              {/* 1. BINANCE PAY */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center text-[#F3BA2F]">
-                      <SiBinance className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-[#181432]">Binance Pay</h4>
-                      <span className="text-[10px] font-bold text-[#7E7998]">Zero Fee • Instant Verification</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-extrabold text-[#F3BA2F] bg-[#F3BA2F]/10 px-2.5 py-1 rounded-full">
-                    FAST PAY ID
+              {/* Top Row: Available Balance Label & Currency Switcher */}
+              <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/80" />
+                  <span className="text-[11px] font-black uppercase tracking-wider text-purple-200/90">
+                    Available Balance
                   </span>
                 </div>
 
-                <div className="bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] mb-3 flex items-center justify-between">
+                {/* Currency Switcher Pill */}
+                <div className="flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange("USD")}
+                    className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                      selectedCurrency === "USD"
+                        ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-md shadow-[#D92078]/40 scale-105"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    USD ($)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange("LKR")}
+                    className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                      selectedCurrency === "LKR"
+                        ? "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/40 scale-105"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    LKR (Rs)
+                  </button>
+                </div>
+              </div>
+
+              {/* Big Balance Amount */}
+              <div className="relative z-10 mb-2">
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-baseline gap-1.5">
+                  {formatBalanceInCurrentCurrency(user?.balance || 0)}
+                </h2>
+                <span className="text-xs font-bold text-purple-200/75 block mt-0.5">
+                  {selectedCurrency === "USD"
+                    ? `≈ Rs. ${(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+                    : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD`}
+                </span>
+              </div>
+
+              {/* Bottom Row: Live Exchange Rate Badge & User Info */}
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10 relative z-10 text-[11px]">
+                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-purple-100 font-bold">
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>1 USD = {lkrRate.toFixed(2)} LKR</span>
+                </div>
+                <span className="text-purple-300/80 font-mono text-[10px] truncate max-w-[140px]">
+                  ID: {user?.telegramId || (user?.email ? user.email.split('@')[0] : "Guest")}
+                </span>
+              </div>
+            </div>
+
+            {/* PAYMENT METHODS */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-[#D92078]" /> PAYMENT METHODS
+              </h3>
+
+              {/* 1. BINANCE PAY REAL GATEWAY */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center text-[#F3BA2F] shadow-sm">
+                      <SiBinance className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Binance Pay Gateway</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">Zero Fee • Real-time Verification</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-[#F3BA2F] bg-[#F3BA2F]/10 px-2.5 py-1 rounded-full border border-[#F3BA2F]/20">
+                    FAST PAY
+                  </span>
+                </div>
+
+                {/* Step 1: Amount Selection */}
+                <div className="mb-3.5">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
+                    <span>1. Select Top-Up Amount ({selectedCurrency})</span>
+                    {selectedCurrency === "LKR" && (
+                      <span className="text-purple-600 font-bold text-[9px]">
+                        ≈ ${(parseFloat(binanceAmount || "0")).toFixed(2)} USD
+                      </span>
+                    )}
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5 mb-2">
+                    {["5", "10", "20", "50", "100"].map((amt) => {
+                      const lkrEquiv = Math.round(parseFloat(amt) * lkrRate);
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setBinanceAmount(amt)}
+                          className={`py-1.5 rounded-xl text-xs font-black transition-all ${
+                            binanceAmount === amt
+                              ? "bg-[#F3BA2F] text-[#181432] shadow-md shadow-[#F3BA2F]/30 scale-105"
+                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                          }`}
+                        >
+                          {selectedCurrency === "USD" ? `$${amt}` : `Rs.${lkrEquiv >= 1000 ? `${(lkrEquiv/1000).toFixed(1)}k` : lkrEquiv}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.5"
+                      value={binanceAmount}
+                      onChange={(e) => setBinanceAmount(e.target.value)}
+                      placeholder="Custom Amount in USD (e.g. 15)"
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-7 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#F3BA2F]"
+                    />
+                  </div>
+                </div>
+
+                {/* Step 2: Binance Pay ID Card with Copy */}
+                <div className="bg-[#FFFDF5] p-3 rounded-2xl border border-[#F3BA2F]/30 mb-3 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-[#7E7998] block uppercase font-bold">Binance Pay ID</span>
-                    <span className="text-sm font-mono font-black text-[#181432] tracking-wider">{binancePayId}</span>
+                    <span className="text-[10px] text-[#A67C00] block uppercase font-extrabold">2. Send to Binance Pay ID</span>
+                    <span className="text-base font-mono font-black text-[#181432] tracking-wider">{binancePayId}</span>
                   </div>
                   <button
+                    type="button"
                     onClick={() => copyToClipboard(binancePayId, "Binance Pay ID Copied")}
-                    className="px-3 py-1.5 bg-white border border-[#ECEEF8] text-[#5B42F3] rounded-xl text-xs font-bold hover:bg-[#EDE9FE] transition-colors flex items-center gap-1 shadow-sm"
+                    className="px-3.5 py-2 bg-gradient-to-r from-[#F3BA2F] to-[#F59E0B] text-[#181432] rounded-xl text-xs font-black hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-sm active:scale-95"
                   >
                     <Copy className="w-3.5 h-3.5" /> Copy ID
                   </button>
                 </div>
 
-                <p className="text-[11px] text-[#7E7998] leading-relaxed mb-3">
-                  Send USDT/crypto in Binance App to Binance Pay ID <b className="text-[#181432]">{binancePayId}</b>. Then message support with your TxID or Screenshot.
-                </p>
+                {/* Step 3: Order ID / TxID Verification Input & Submit */}
+                <form onSubmit={handleBinanceSubmit} className="space-y-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1">
+                      3. Enter Binance Order ID / TxID to Verify
+                    </label>
+                    <input
+                      type="text"
+                      value={binanceTxId}
+                      onChange={(e) => setBinanceTxId(e.target.value)}
+                      placeholder="e.g. 24891028491 (from Binance payment receipt)"
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl px-3 py-2.5 text-xs font-mono font-bold text-[#181432] placeholder-[#9490A8] focus:outline-none focus:border-[#F3BA2F]"
+                    />
+                  </div>
 
-                <a
-                  href={`https://t.me/${supportUser.replace('@', '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2.5 bg-[#F3BA2F] text-[#181432] rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#F3BA2F]/20 hover:opacity-95 transition-opacity"
-                >
-                  <SiBinance className="w-4 h-4" /> Confirm Binance Payment ({supportUser})
-                </a>
+                  <button
+                    type="submit"
+                    disabled={isVerifyingBinance || !binanceTxId.trim()}
+                    className="w-full py-3 bg-[#F3BA2F] hover:bg-[#F59E0B] text-[#181432] rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#F3BA2F]/20 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isVerifyingBinance ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Verifying Payment...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" /> Verify & Credit ${binanceAmount || "0"} Balance
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {binanceSuccessMsg && (
+                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{binanceSuccessMsg}</span>
+                  </div>
+                )}
               </div>
 
               {/* 2. CRYPTOMUS GATEWAY */}
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center text-[#5B42F3]">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center text-[#5B42F3] shadow-sm">
                       <Zap className="w-5 h-5 text-[#5B42F3]" />
                     </div>
                     <div>
@@ -1433,29 +1644,39 @@ export default function MiniAppShopModern() {
                       <span className="text-[10px] font-bold text-[#7E7998]">USDT • TRC20 • BEP20 • TON • BTC</span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-extrabold text-[#5B42F3] bg-[#EDE9FE] px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] font-extrabold text-[#5B42F3] bg-[#EDE9FE] px-2.5 py-1 rounded-full border border-[#5B42F3]/20">
                     AUTO CREDIT
                   </span>
                 </div>
 
                 {/* Amount selection quick chips */}
-                <div className="mb-3">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5">Select Top-Up Amount (USD)</label>
+                <div className="mb-3.5">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
+                    <span>Select Top-Up Amount ({selectedCurrency})</span>
+                    {selectedCurrency === "LKR" && (
+                      <span className="text-purple-600 font-bold text-[9px]">
+                        ≈ ${(parseFloat(cryptomusAmount || "0")).toFixed(2)} USD
+                      </span>
+                    )}
+                  </label>
                   <div className="grid grid-cols-5 gap-1.5 mb-2">
-                    {["5", "10", "20", "50", "100"].map((amt) => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => setCryptomusAmount(amt)}
-                        className={`py-1.5 rounded-xl text-xs font-black transition-all ${
-                          cryptomusAmount === amt
-                            ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30"
-                            : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
-                        }`}
-                      >
-                        ${amt}
-                      </button>
-                    ))}
+                    {["5", "10", "20", "50", "100"].map((amt) => {
+                      const lkrEquiv = Math.round(parseFloat(amt) * lkrRate);
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setCryptomusAmount(amt)}
+                          className={`py-1.5 rounded-xl text-xs font-black transition-all ${
+                            cryptomusAmount === amt
+                              ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30 scale-105"
+                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                          }`}
+                        >
+                          {selectedCurrency === "USD" ? `$${amt}` : `Rs.${lkrEquiv >= 1000 ? `${(lkrEquiv/1000).toFixed(1)}k` : lkrEquiv}`}
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">$</span>
@@ -1472,13 +1693,14 @@ export default function MiniAppShopModern() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleCryptomusPay}
                   disabled={isCreatingCryptomus}
-                  className="w-full py-3 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 transition-opacity disabled:opacity-50"
+                  className="w-full py-3 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {isCreatingCryptomus ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Creating Cryptomus Invoice...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Connecting to Gateway...
                     </>
                   ) : (
                     <>
@@ -1828,7 +2050,7 @@ export default function MiniAppShopModern() {
                 </div>
                 <div className="text-right">
                   <span className="text-lg font-black text-[#181432]">
-                    ${((detailProduct.price * quantity) / 100).toFixed(2)}
+                    {formatProductPrice(detailProduct, quantity)}
                   </span>
                   <span className="text-[9px] text-[#7E7998] block">total price</span>
                 </div>

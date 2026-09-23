@@ -189,6 +189,7 @@ function CredentialsDialog({ product }: { product: Product }) {
 // Zod schema for the form (needs coercion for number)
 const productFormSchema = insertProductSchema.extend({
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
+  priceLkr: z.coerce.number().optional().nullable(),
   customEmojiId: z.string().optional().nullable(),
   isPreorderEnabled: z.boolean().default(false),
   preorderQuota: z.coerce.number().default(50),
@@ -322,7 +323,10 @@ export default function ProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="font-black text-white text-base tracking-tighter">
-                    ${(product.price / 100).toFixed(2)}
+                    <div>${(product.price / 100).toFixed(2)}</div>
+                    {product.priceLkr ? (
+                      <div className="text-[10px] text-emerald-400 font-bold">Rs. {Number(product.priceLkr).toLocaleString()}</div>
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={product.status} />
@@ -434,6 +438,7 @@ function EditProductDialog({
         : "Custom",
       description: product.description || "",
       price: product.price / 100,
+      priceLkr: product.priceLkr ?? null,
       customEmojiId: product.customEmojiId || "",
       isPreorderEnabled: (product as any).isPreorderEnabled ?? false,
       preorderQuota: (product as any).preorderQuota ?? 50,
@@ -445,7 +450,8 @@ function EditProductDialog({
       const finalValues = {
         ...values,
         type: values.type === "Custom" ? customType : values.type,
-        price: Math.round(values.price * 100)
+        price: Math.round(values.price * 100),
+        priceLkr: values.priceLkr ? Math.round(values.priceLkr) : null
       };
       await apiRequest("PUT", buildUrl(api.products.update.path, { id: product.id }), finalValues);
     },
@@ -486,7 +492,7 @@ function EditProductDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <FormField
                 control={form.control}
                 name="type"
@@ -522,6 +528,27 @@ function EditProductDialog({
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Price ($)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
+                    </FormControl>
+                    <FormMessage className="text-red-400 font-bold text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="priceLkr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-emerald-400/80 ml-0.5">Price (LKR Rs.)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="1" 
+                        placeholder="e.g. 4500" 
+                        className="glass-panel h-9 rounded-xl border-emerald-500/30 bg-emerald-950/20 text-xs text-emerald-300 placeholder:text-white/10 focus:border-emerald-500/50 transition-all" 
+                        value={field.value ?? ""} 
+                        onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))} 
+                      />
                     </FormControl>
                     <FormMessage className="text-red-400 font-bold text-xs" />
                   </FormItem>
@@ -717,6 +744,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
       type: "AWS",
       description: "",
       price: 0,
+      priceLkr: null,
       customEmojiId: "",
       isPreorderEnabled: false,
       preorderQuota: 50,
@@ -729,7 +757,8 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
     const finalValues = {
       ...values,
       type: values.type === "Custom" ? customType : values.type,
-      price: Math.round(values.price * 100) // Convert Dollars to Cents for storage
+      price: Math.round(values.price * 100), // Convert Dollars to Cents for storage
+      priceLkr: values.priceLkr ? Math.round(values.priceLkr) : null
     };
     
     if (values.type === "Custom" && !customType) {
@@ -779,7 +808,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
               )}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <FormField
                 control={form.control}
                 name="type"
@@ -815,6 +844,27 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                     <FormLabel className="text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5">Price ($)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="15.00" className="glass-panel h-9 rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all" {...field} />
+                    </FormControl>
+                    <FormMessage className="text-red-400 font-bold text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="priceLkr"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[9px] font-black uppercase tracking-widest text-emerald-400/80 ml-0.5">Price (LKR Rs.)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="1" 
+                        placeholder="e.g. 4500" 
+                        className="glass-panel h-9 rounded-xl border-emerald-500/30 bg-emerald-950/20 text-xs text-emerald-300 placeholder:text-white/10 focus:border-emerald-500/50 transition-all" 
+                        value={field.value ?? ""} 
+                        onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))} 
+                      />
                     </FormControl>
                     <FormMessage className="text-red-400 font-bold text-xs" />
                   </FormItem>

@@ -1392,21 +1392,147 @@ export async function registerRoutes(
   });
 
   // Mini App Deposit Methods & Cryptomus Invoice
+  // Currency exchange rates endpoint
+  app.get("/api/currency/rates", async (req, res) => {
+    try {
+      const rates = await fetchLiveExchangeRates();
+      res.json({ rates, supported: SUPPORTED_CURRENCIES });
+    } catch (err: any) {
+      res.json({ rates: getCachedRates(), supported: SUPPORTED_CURRENCIES });
+    }
+  });
+
+  // Mini App Deposit Methods & Cryptomus Invoice
   app.get("/api/mini/deposit/methods", async (req, res) => {
     try {
-      const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "284910485";
+      const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "410975578";
       const cryptomusEnabled = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== "false";
+      const rates = await fetchLiveExchangeRates();
       res.json({
         binancePayId,
         cryptomusEnabled,
-        supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@rochana_imesh"
+        supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@rochana_imesh",
+        rates,
+        lkrRate: rates.LKR || 305.50
       });
     } catch (err: any) {
       res.json({
-        binancePayId: "284910485",
+        binancePayId: "410975578",
         cryptomusEnabled: true,
-        supportUsername: "@rochana_imesh"
+        supportUsername: "@rochana_imesh",
+        rates: getCachedRates(),
+        lkrRate: 305.50
       });
+    }
+  });
+
+  // Mini App Binance Pay Submission & Verification
+  app.post("/api/mini/deposit/binance", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const { amount, txId, orderId } = req.body;
+      const numAmount = parseFloat(amount);
+      const cleanTx = (orderId || txId || '').trim();
+
+      if (isNaN(numAmount) || numAmount < 1) {
+        return res.status(400).json({ success: false, message: "Invalid amount. Minimum top-up is $1." });
+      }
+
+      if (!cleanTx || cleanTx.length < 4) {
+        return res.status(400).json({ success: false, message: "Please enter a valid Binance Pay Order ID or Transaction ID (TxID)." });
+      }
+
+      const tgUser = (req as any).tgUser;
+      let userId = tgUser?.id;
+      if (!userId || tgUser.isGuest) {
+        const guestDb = await storage.getTelegramUser("0");
+        userId = guestDb?.id || 1;
+      } else {
+        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
+        if (dbUser) userId = dbUser.id;
+      }
+
+      // 1. Anti-Fraud / Duplicate check
+      const existingPayments = await storage.getPayments();
+      const duplicate = existingPayments.find(p => p.txId && p.txId.toLowerCase() === cleanTx.toLowerCase());
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: "This Binance Order ID / TxID has already been submitted or processed. Duplicate requests are rejected."
+        });
+      }
+
+      const amountInCents = Math.round(numAmount * 100);
+
+      // 2. Automated SAPI verification if Binance API keys are configured
+      let autoVerified = false;
+      const binanceApiKey = (await storage.getSetting('BINANCE_API_KEY'))?.value;
+      const binanceSecretKey = (await storage.getSetting('BINANCE_SECRET_KEY'))?.value;
+
+      if (binanceApiKey && binanceSecretKey) {
+        try {
+          const verifyResult = await verifyDepositViaBinance(cleanTx, 'TRC20', '');
+          if (verifyResult.success && verifyResult.actualAmount) {
+            autoVerified = true;
+          }
+        } catch (e) {
+          console.warn("[Binance Pay] Auto-verify check failed:", e);
+        }
+      }
+
+      if (autoVerified) {
+        const newPayment = await storage.createPayment({
+          telegramUserId: userId,
+          amount: amountInCents,
+          currency: 'USD',
+          paymentMethod: 'binance_pay',
+          status: 'completed',
+          txId: cleanTx
+        });
+
+        const user = await storage.getTelegramUser(userId.toString());
+        if (user) {
+          await storage.updateTelegramUser(user.id, {
+            balance: (user.balance || 0) + amountInCents
+          });
+        }
+
+        return res.json({
+          success: true,
+          status: 'completed',
+          message: `Payment verified instantly! $${numAmount.toFixed(2)} has been credited to your balance.`
+        });
+      } else {
+        const newPayment = await storage.createPayment({
+          telegramUserId: userId,
+          amount: amountInCents,
+          currency: 'USD',
+          paymentMethod: 'binance_pay',
+          status: 'pending',
+          txId: cleanTx
+        });
+
+        const displayUser = tgUser?.username ? `@${tgUser.username}` : `User ${tgUser?.telegramId || userId}`;
+        sendAdminPushNotification({
+          title: `💳 Binance Pay Top-Up ($${numAmount.toFixed(2)})`,
+          body: `${displayUser} submitted Order ID: ${cleanTx}`
+        }).catch(() => {});
+
+        io.emit('admin_notification', {
+          type: 'payment',
+          title: `Binance Pay Top-Up ($${numAmount.toFixed(2)})`,
+          message: `${displayUser} submitted Binance Order ID: ${cleanTx}`,
+          data: { paymentId: newPayment.id, amount: numAmount, txId: cleanTx, userId }
+        });
+
+        return res.json({
+          success: true,
+          status: 'pending',
+          message: `Your Binance Pay Order ID (${cleanTx}) has been submitted for instant verification. Your balance will update automatically once verified!`
+        });
+      }
+    } catch (err: any) {
+      console.error("Binance pay deposit error:", err);
+      res.status(500).json({ success: false, message: err.message || "Failed to process Binance Pay submission" });
     }
   });
 

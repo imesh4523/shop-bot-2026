@@ -22,7 +22,8 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description"),
   type: text("type").notNull(), // Category (e.g. AWS, DigitalOcean)
-  price: integer("price").notNull(), // In cents
+  price: integer("price").notNull(), // In cents (USD)
+  priceLkr: integer("price_lkr"), // In LKR (Rupees) - optional override
   customEmojiId: text("custom_emoji_id"),
   status: text("status").notNull().default("available"),
   isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
