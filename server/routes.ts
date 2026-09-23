@@ -6,10 +6,11 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders } from "@shared/schema";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
+import { N1PanelService } from "./n1panel-service";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
@@ -2612,6 +2613,442 @@ try {
 } catch (err) {
   console.error("[DB Init Preorders Error]:", err);
 }
+
+// Verify/create smm_services and smm_orders tables (N1Panel API)
+try {
+  db.execute(sql`
+    CREATE TABLE IF NOT EXISTS smm_services (
+      id SERIAL PRIMARY KEY,
+      service_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      type TEXT DEFAULT 'Default',
+      rate INTEGER NOT NULL,
+      custom_rate INTEGER NOT NULL,
+      min INTEGER NOT NULL DEFAULT 10,
+      max INTEGER NOT NULL DEFAULT 100000,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS smm_orders (
+      id SERIAL PRIMARY KEY,
+      telegram_user_id INTEGER NOT NULL REFERENCES telegram_users(id) ON DELETE CASCADE,
+      smm_service_id INTEGER NOT NULL REFERENCES smm_services(id) ON DELETE CASCADE,
+      external_order_id TEXT,
+      link TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      charge INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      start_count TEXT,
+      remains TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `).catch(() => {});
+  console.log("[DB] smm_services & smm_orders tables verified/created");
+} catch (err) {
+  console.error("[DB Init SMM Error]:", err);
+}
+
+// --- N1Panel Admin Routes ---
+
+// 1. Get N1Panel Settings & Live Balance
+app.get("/api/admin/n1panel/settings", isAuth, async (req, res) => {
+  try {
+    const keySetting = await storage.getSetting("N1PANEL_API_KEY");
+    const urlSetting = await storage.getSetting("N1PANEL_API_URL");
+    const apiKey = keySetting?.value || "";
+    const apiUrl = urlSetting?.value || "https://n1panel.com/api/v2";
+
+    let balanceInfo: any = null;
+    if (apiKey) {
+      balanceInfo = await N1PanelService.getBalance();
+    }
+
+    res.json({
+      apiKey,
+      apiUrl,
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load N1Panel settings" });
+  }
+});
+
+// 2. Save N1Panel Settings
+app.post("/api/admin/n1panel/settings", isAuth, async (req, res) => {
+  try {
+    const { apiKey, apiUrl } = req.body;
+    if (apiKey !== undefined) {
+      await storage.setSetting("N1PANEL_API_KEY", apiKey.trim());
+    }
+    if (apiUrl !== undefined) {
+      await storage.setSetting("N1PANEL_API_URL", apiUrl.trim());
+    }
+
+    let balanceInfo: any = null;
+    if (apiKey?.trim()) {
+      balanceInfo = await N1PanelService.getBalance();
+    }
+
+    res.json({
+      success: true,
+      message: "N1Panel settings saved successfully!",
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save N1Panel settings" });
+  }
+});
+
+// 3. Fetch Live Services from N1Panel
+app.get("/api/admin/n1panel/fetch-services", isAuth, async (req, res) => {
+  try {
+    const services = await N1PanelService.getServices();
+    res.json(services);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch services from N1Panel" });
+  }
+});
+
+// 4. Import / Add Selected Services into Store Catalog
+app.post("/api/admin/n1panel/import-services", isAuth, async (req, res) => {
+  try {
+    const { services, markupPercent = 50 } = req.body;
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({ message: "No services selected for import." });
+    }
+
+    let importedCount = 0;
+    for (const item of services) {
+      const rawRate = typeof item.rate === "number" ? item.rate : parseFloat(item.rate || "0");
+      const rateCents = Math.round(rawRate * 100);
+      const customRateCents = Math.round(rateCents * (1 + markupPercent / 100));
+
+      const existing = await db.query.smmServices.findFirst({
+        where: eq(smmServices.serviceId, String(item.service)),
+      });
+
+      if (existing) {
+        await db
+          .update(smmServices)
+          .set({
+            name: item.name,
+            category: item.category || "General",
+            type: item.type || "Default",
+            rate: rateCents,
+            min: parseInt(item.min) || 10,
+            max: parseInt(item.max) || 100000,
+            updatedAt: new Date(),
+          })
+          .where(eq(smmServices.id, existing.id));
+      } else {
+        await db.insert(smmServices).values({
+          serviceId: String(item.service),
+          name: item.name,
+          category: item.category || "General",
+          type: item.type || "Default",
+          rate: rateCents,
+          customRate: customRateCents > 0 ? customRateCents : rateCents,
+          min: parseInt(item.min) || 10,
+          max: parseInt(item.max) || 100000,
+          isActive: true,
+          description: item.name,
+        });
+      }
+      importedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported / updated ${importedCount} SMM services!`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to import services" });
+  }
+});
+
+// 5. List Saved SMM Services
+app.get("/api/admin/n1panel/services", isAuth, async (req, res) => {
+  try {
+    const all = await db.select().from(smmServices).orderBy(desc(smmServices.id));
+    res.json(all);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to list services" });
+  }
+});
+
+// 6. Update SMM Service Custom Rate / Active Status
+app.put("/api/admin/n1panel/services/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { customRate, isActive, name, category, min, max } = req.body;
+    const updates: any = { updatedAt: new Date() };
+
+    if (customRate !== undefined) updates.customRate = parseInt(customRate);
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (name !== undefined) updates.name = name;
+    if (category !== undefined) updates.category = category;
+    if (min !== undefined) updates.min = parseInt(min);
+    if (max !== undefined) updates.max = parseInt(max);
+
+    const [updated] = await db
+      .update(smmServices)
+      .set(updates)
+      .where(eq(smmServices.id, id))
+      .returning();
+
+    res.json({ success: true, service: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update service" });
+  }
+});
+
+// 7. Delete SMM Service
+app.delete("/api/admin/n1panel/services/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(smmServices).where(eq(smmServices.id, id));
+    res.json({ success: true, message: "Service deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete service" });
+  }
+});
+
+// 8. List All SMM Orders for Audit Tracker
+app.get("/api/admin/n1panel/orders", isAuth, async (req, res) => {
+  try {
+    const allOrders = await db
+      .select({
+        id: smmOrders.id,
+        externalOrderId: smmOrders.externalOrderId,
+        link: smmOrders.link,
+        quantity: smmOrders.quantity,
+        charge: smmOrders.charge,
+        status: smmOrders.status,
+        startCount: smmOrders.startCount,
+        remains: smmOrders.remains,
+        createdAt: smmOrders.createdAt,
+        updatedAt: smmOrders.updatedAt,
+        serviceName: smmServices.name,
+        serviceCategory: smmServices.category,
+        serviceId: smmServices.serviceId,
+        userFirstName: telegramUsers.firstName,
+        userLastName: telegramUsers.lastName,
+        userEmail: telegramUsers.email,
+        telegramId: telegramUsers.telegramId,
+        username: telegramUsers.username,
+      })
+      .from(smmOrders)
+      .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+      .leftJoin(telegramUsers, eq(smmOrders.telegramUserId, telegramUsers.id))
+      .orderBy(desc(smmOrders.id));
+
+    res.json(allOrders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch SMM orders" });
+  }
+});
+
+// 9. Sync SMM Orders Status from N1Panel
+app.post("/api/admin/n1panel/sync-orders", isAuth, async (req, res) => {
+  try {
+    const activeOrders = await db
+      .select()
+      .from(smmOrders)
+      .where(
+        and(
+          sql`external_order_id IS NOT NULL`,
+          inArray(smmOrders.status, ["Pending", "In progress", "Processing", "In Progress"])
+        )
+      );
+
+    if (activeOrders.length === 0) {
+      return res.json({ message: "No active SMM orders to sync.", syncedCount: 0 });
+    }
+
+    const orderIds = activeOrders.map((o) => o.externalOrderId as string);
+    const statuses = await N1PanelService.getMultiOrderStatus(orderIds);
+
+    let updatedCount = 0;
+    for (const ord of activeOrders) {
+      const extId = ord.externalOrderId as string;
+      const statusData = statuses[extId];
+      if (statusData && statusData.status) {
+        await db
+          .update(smmOrders)
+          .set({
+            status: statusData.status,
+            startCount: statusData.start_count || ord.startCount,
+            remains: statusData.remains || ord.remains,
+            updatedAt: new Date(),
+          })
+          .where(eq(smmOrders.id, ord.id));
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synced status for ${updatedCount} orders!`,
+      syncedCount: updatedCount,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to sync order statuses" });
+  }
+});
+
+// --- Public Mini-App SMM Routes ---
+
+// Get active SMM services for client
+app.get("/api/mini/smm/services", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const category = req.query.category as string;
+    const services = await db.select().from(smmServices).where(eq(smmServices.isActive, true));
+    let filtered = services;
+    if (category && category !== "all") {
+      filtered = services.filter((s) => s.category.toLowerCase().includes(category.toLowerCase()));
+    }
+
+    res.json(filtered);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load SMM services" });
+  }
+});
+
+// Purchase SMM Service
+app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
+  const tgUser = (req as any).tgUser;
+  if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+    return res.status(401).json({ message: "Sign in required to complete purchase. Please log in first." });
+  }
+
+  const { smmServiceId, link, quantity } = req.body;
+  if (!smmServiceId || !link || !quantity) {
+    return res.status(400).json({ message: "Service, link, and quantity are required." });
+  }
+
+  const qty = parseInt(quantity);
+  if (isNaN(qty) || qty <= 0) {
+    return res.status(400).json({ message: "Invalid quantity specified." });
+  }
+
+  try {
+    const service = await db.query.smmServices.findFirst({
+      where: eq(smmServices.id, parseInt(smmServiceId)),
+    });
+
+    if (!service || !service.isActive) {
+      return res.status(400).json({ message: "Service is currently not available." });
+    }
+
+    if (qty < service.min || qty > service.max) {
+      return res.status(400).json({
+        message: `Quantity must be between ${service.min.toLocaleString()} and ${service.max.toLocaleString()}.`,
+      });
+    }
+
+    // Calculate total price in cents: (customRate / 1000) * qty
+    const totalCents = Math.round((service.customRate / 1000) * qty);
+
+    const result = await db.transaction(async (tx) => {
+      // 1. Get and verify user balance
+      const user = await tx.query.telegramUsers.findFirst({
+        where: eq(telegramUsers.telegramId, tgUser.id.toString()),
+      });
+
+      if (!user) throw new Error("User account not found.");
+      if (user.balance < totalCents) {
+        throw new Error(
+          `Insufficient balance. You need $${(totalCents / 100).toFixed(2)}, but your balance is $${((user.balance || 0) / 100).toFixed(2)}. Please top up your wallet.`
+        );
+      }
+
+      // 2. Deduct balance
+      await tx
+        .update(telegramUsers)
+        .set({ balance: sql`${telegramUsers.balance} - ${totalCents}` })
+        .where(eq(telegramUsers.id, user.id));
+
+      // 3. Place order via N1Panel API
+      const n1OrderRes = await N1PanelService.createOrder(service.serviceId, link, qty);
+      let externalId: string | null = null;
+      let orderStatus = "Pending";
+
+      if ("order" in n1OrderRes && n1OrderRes.order) {
+        externalId = String(n1OrderRes.order);
+        orderStatus = "In progress";
+      } else if ("error" in n1OrderRes) {
+        console.warn("[N1Panel Order Warning]:", n1OrderRes.error);
+      }
+
+      // 4. Save SMM Order
+      const [newOrder] = await tx
+        .insert(smmOrders)
+        .values({
+          telegramUserId: user.id,
+          smmServiceId: service.id,
+          externalOrderId: externalId,
+          link: link.trim(),
+          quantity: qty,
+          charge: totalCents,
+          status: orderStatus,
+        })
+        .returning();
+
+      return {
+        order: newOrder,
+        newBalance: user.balance - totalCents,
+        externalId,
+      };
+    });
+
+    res.json({
+      success: true,
+      message: "🎉 SMM order successfully placed! Progress will update automatically.",
+      order: result.order,
+      newBalance: result.newBalance,
+    });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Failed to place SMM order." });
+  }
+});
+
+// Customer's SMM orders
+app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
+  const tgUser = (req as any).tgUser;
+  if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+    return res.json([]);
+  }
+
+  try {
+    const user = await storage.getTelegramUser(tgUser.id.toString());
+    if (!user) return res.json([]);
+
+    const ordersList = await db
+      .select({
+        id: smmOrders.id,
+        externalOrderId: smmOrders.externalOrderId,
+        link: smmOrders.link,
+        quantity: smmOrders.quantity,
+        charge: smmOrders.charge,
+        status: smmOrders.status,
+        createdAt: smmOrders.createdAt,
+        serviceName: smmServices.name,
+        serviceCategory: smmServices.category,
+      })
+      .from(smmOrders)
+      .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+      .where(eq(smmOrders.telegramUserId, user.id))
+      .orderBy(desc(smmOrders.id));
+
+    res.json(ordersList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
 
 app.post('/api/admin/audit-and-fix', isAuth, async (req, res) => {
   try {

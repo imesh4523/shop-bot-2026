@@ -55,6 +55,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
+    { name: 'N1Panel SMM', href: '/imeshadmindashbord/n1panel', icon: Share2 },
     { name: 'Inventory', href: '/imeshadmindashbord/inventory', icon: Package },
     { name: 'Orders', href: '/imeshadmindashbord/orders', icon: ShoppingCart },
     { name: 'Support Tickets', href: '/imeshadmindashbord/support-tickets', icon: LifeBuoy },

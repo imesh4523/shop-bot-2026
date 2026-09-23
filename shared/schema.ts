@@ -467,4 +467,60 @@ export const insertPreorderSchema = createInsertSchema(preorders).omit({ id: tru
 export type Preorder = typeof preorders.$inferSelect;
 export type InsertPreorder = z.infer<typeof insertPreorderSchema>;
 
+// SMM Services (N1Panel API Integration)
+export const smmServices = pgTable("smm_services", {
+  id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull(), // N1Panel Service ID (e.g. "1245")
+  name: text("name").notNull(),
+  category: text("category").notNull(), // Facebook, TikTok, Instagram, Telegram, Other
+  type: text("type").default("Default"),
+  rate: integer("rate").notNull(), // Original API price per 1k in cents
+  customRate: integer("custom_rate").notNull(), // Custom Selling price per 1k in cents
+  min: integer("min").notNull().default(10),
+  max: integer("max").notNull().default(100000),
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmOrders = pgTable("smm_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  smmServiceId: integer("smm_service_id").notNull().references(() => smmServices.id),
+  externalOrderId: text("external_order_id"), // N1Panel Order ID
+  link: text("link").notNull(),
+  quantity: integer("quantity").notNull(),
+  charge: integer("charge").notNull(), // In cents charged to customer
+  status: text("status").notNull().default("Pending"), // Pending, In progress, Completed, Partial, Canceled
+  startCount: text("start_count"),
+  remains: text("remains"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmServicesRelations = relations(smmServices, ({ many }) => ({
+  orders: many(smmOrders),
+}));
+
+export const smmOrdersRelations = relations(smmOrders, ({ one }) => ({
+  smmService: one(smmServices, {
+    fields: [smmOrders.smmServiceId],
+    references: [smmServices.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [smmOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertSmmServiceSchema = createInsertSchema(smmServices).omit({ id: true, createdAt: true, updatedAt: true });
+export type SmmService = typeof smmServices.$inferSelect;
+export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
+
+export const insertSmmOrderSchema = createInsertSchema(smmOrders).omit({ id: true, createdAt: true, updatedAt: true });
+export type SmmOrder = typeof smmOrders.$inferSelect;
+export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
+
+
 

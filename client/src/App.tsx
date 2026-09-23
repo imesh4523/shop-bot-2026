@@ -33,6 +33,7 @@ import PreordersPage from "@/pages/preorders-page";
 import MiniAppShop from "@/pages/mini-app-shop";
 import ApiDocsPage from "@/pages/api-docs-page";
 import AdminApiKeysPage from "@/pages/admin-api-keys-page";
+import N1PanelPage from "@/pages/n1panel-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -135,6 +136,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/support-tickets">
         <ProtectedRoute component={SupportTicketsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/n1panel">
+        <ProtectedRoute component={N1PanelPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/broadcast">

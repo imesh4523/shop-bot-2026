@@ -399,6 +399,64 @@ const getProviderConfig = (name: string, type: string) => {
   };
 };
 
+// SMM Platform Metadata Helper
+const getSmmPlatformConfig = (category: string = "", name: string = "") => {
+  const c = (category + " " + name).toLowerCase();
+  if (c.includes("tiktok")) {
+    return {
+      platform: "TikTok",
+      tag: "TikTok SMM",
+      accent: "#000000",
+      bgBadge: "bg-black/10 text-black border border-black/20",
+      blobColor: "from-slate-200/80 to-zinc-300/50",
+      icon: <FaTiktok className="w-12 h-12 text-black" />,
+      smallIcon: <FaTiktok className="w-4 h-4 text-black" />,
+    };
+  }
+  if (c.includes("instagram") || c.includes("insta")) {
+    return {
+      platform: "Instagram",
+      tag: "Instagram SMM",
+      accent: "#E1306C",
+      bgBadge: "bg-[#FCE8F0] text-[#E1306C] border border-[#FCE8F0]",
+      blobColor: "from-pink-100/80 to-rose-200/50",
+      icon: <FaInstagram className="w-12 h-12 text-[#E1306C]" />,
+      smallIcon: <FaInstagram className="w-4 h-4 text-[#E1306C]" />,
+    };
+  }
+  if (c.includes("facebook") || c.includes("fb")) {
+    return {
+      platform: "Facebook",
+      tag: "Facebook SMM",
+      accent: "#1877F2",
+      bgBadge: "bg-[#EBF3FF] text-[#1877F2] border border-[#EBF3FF]",
+      blobColor: "from-blue-100/80 to-sky-200/50",
+      icon: <FaFacebook className="w-12 h-12 text-[#1877F2]" />,
+      smallIcon: <FaFacebook className="w-4 h-4 text-[#1877F2]" />,
+    };
+  }
+  if (c.includes("telegram") || c.includes("tg")) {
+    return {
+      platform: "Telegram",
+      tag: "Telegram SMM",
+      accent: "#24A1DE",
+      bgBadge: "bg-[#E6F5FC] text-[#24A1DE] border border-[#E6F5FC]",
+      blobColor: "from-sky-100/80 to-blue-200/50",
+      icon: <FaTelegramPlane className="w-12 h-12 text-[#24A1DE]" />,
+      smallIcon: <FaTelegramPlane className="w-4 h-4 text-[#24A1DE]" />,
+    };
+  }
+  return {
+    platform: "Social",
+    tag: "Social SMM",
+    accent: "#6C5CE7",
+    bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
+    blobColor: "from-purple-100/80 to-indigo-200/50",
+    icon: <Sparkles className="w-12 h-12 text-[#6C5CE7]" />,
+    smallIcon: <Sparkles className="w-4 h-4 text-[#6C5CE7]" />,
+  };
+};
+
 // Live 2FA Component
 function LiveTOTP({ secret, onCopy }: { secret: string; onCopy: (text: string) => void }) {
   const [code, setCode] = useState("000000");
@@ -620,6 +678,39 @@ export default function MiniAppShopModern() {
     },
     enabled: activeTab === "wallet" || activeTab === "profile",
   });
+
+  // SMM Services & Orders Queries
+  const { data: smmServicesList = [] } = useQuery<any[]>({
+    queryKey: ["/api/mini/smm/services"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/smm/services");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: smmOrdersList = [], refetch: refetchSmmOrders } = useQuery<any[]>({
+    queryKey: ["/api/mini/smm/orders"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/smm/orders");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "orders",
+  });
+
+  // SMM Modal & Ordering State
+  const [detailSmmService, setDetailSmmService] = useState<any | null>(null);
+  const [smmTargetLink, setSmmTargetLink] = useState("");
+  const [smmOrderQty, setSmmOrderQty] = useState<number>(1000);
+  const [isSmmPurchasing, setIsSmmPurchasing] = useState(false);
 
   const { data: supportUserSetting } = useQuery<{ value: string }>({
     queryKey: ["/api/settings/SUPPORT_USERNAME"],
@@ -1066,12 +1157,33 @@ export default function MiniAppShopModern() {
     { id: "duolingo", label: "Duolingo", renderIcon: () => <SiDuolingo className="w-5 h-5 text-[#58CC02]" /> },
   ];
 
+  // SMM Price Formatters
+  const formatSmmRate = (rateCentsPer1000: number) => {
+    const usd = rateCentsPer1000 / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString()} / 1k`;
+    }
+    return `$${usd.toFixed(2)} / 1k`;
+  };
+
+  const calculateSmmPriceFormatted = (rateCentsPer1000: number, qty: number) => {
+    const totalCents = Math.round((rateCentsPer1000 / 1000) * (qty || 0));
+    const usd = totalCents / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString()}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
   // Helper to compute available stock quantity for each category
   const getCategoryCount = useMemo(() => {
     return (categoryId: string) => {
       if (categoryId === "all") {
         const totalStock = products.reduce((acc, p) => acc + (p.stockCount || 0), 0);
-        return totalStock > 0 ? totalStock : products.length;
+        const activeSmmCount = smmServicesList.filter((s: any) => s.isActive !== false).length;
+        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount;
       }
       const matching = products.filter((p) => {
         const conf = getProviderConfig(p.name, p.type);
@@ -1081,10 +1193,16 @@ export default function MiniAppShopModern() {
           p.name.toLowerCase().includes(categoryId)
         );
       });
+      const matchingSmm = smmServicesList.filter((s: any) => {
+        if (s.isActive === false) return false;
+        const cat = (s.category || "").toLowerCase();
+        const name = (s.name || "").toLowerCase();
+        return cat.includes(categoryId) || name.includes(categoryId);
+      });
       const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
-      return totalStock > 0 ? totalStock : matching.length;
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length;
     };
-  }, [products]);
+  }, [products, smmServicesList]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -1103,6 +1221,27 @@ export default function MiniAppShopModern() {
       return matchesCategory && matchesSearch;
     });
   }, [products, selectedCategory, searchQuery]);
+
+  // Filtered SMM Services (Facebook, TikTok, Instagram, Telegram, etc.)
+  const filteredSmmServices = useMemo(() => {
+    return smmServicesList.filter((s: any) => {
+      if (s.isActive === false) return false;
+      const cat = (s.category || "").toLowerCase();
+      const name = (s.name || "").toLowerCase();
+
+      const isSocialCategory = ["facebook", "tiktok", "instagram", "telegram"].includes(selectedCategory);
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (isSocialCategory && (cat.includes(selectedCategory) || name.includes(selectedCategory)));
+
+      const matchesSearch =
+        !searchQuery.trim() ||
+        name.includes(searchQuery.toLowerCase()) ||
+        cat.includes(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [smmServicesList, selectedCategory, searchQuery]);
 
   // Handle Quick Purchase (Enforce authentication)
   const handlePurchase = async () => {
@@ -1159,6 +1298,89 @@ export default function MiniAppShopModern() {
       });
     } finally {
       setIsPurchasing(false);
+    }
+  };
+
+  // Handle Dynamic SMM Service Purchase
+  const handleSmmPurchase = async () => {
+    if (!detailSmmService) return;
+
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to place SMM orders.",
+      });
+      setDetailSmmService(null);
+      setActiveTab("profile");
+      return;
+    }
+
+    if (!smmTargetLink.trim()) {
+      toast({
+        title: "Link Required",
+        description: "Please enter your target profile or post URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (smmOrderQty < detailSmmService.min || smmOrderQty > detailSmmService.max) {
+      toast({
+        title: "Invalid Quantity",
+        description: `Quantity must be between ${detailSmmService.min.toLocaleString()} and ${detailSmmService.max.toLocaleString()}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const totalCents = Math.round((detailSmmService.customRate / 1000) * smmOrderQty);
+    const userBalanceUsd = (user?.balance || 0) / 100;
+    const totalPriceUsd = totalCents / 100;
+
+    if (userBalanceUsd < totalPriceUsd) {
+      const neededStr =
+        selectedCurrency === "LKR"
+          ? `Rs. ${Math.round(totalPriceUsd * lkrRate).toLocaleString()}`
+          : `$${totalPriceUsd.toFixed(2)}`;
+      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
+        variant: "destructive",
+      });
+      setDetailSmmService(null);
+      setActiveTab("wallet");
+      return;
+    }
+
+    setIsSmmPurchasing(true);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/smm/purchase", {
+        smmServiceId: detailSmmService.id,
+        link: smmTargetLink.trim(),
+        quantity: smmOrderQty,
+      });
+      await res.json();
+      toast({
+        title: "🎉 SMM Order Placed!",
+        description: `Your ${detailSmmService.name} order is now being processed.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/smm/orders"] });
+      refetchUser();
+      refetchSmmOrders();
+      setDetailSmmService(null);
+      setSmmTargetLink("");
+      setActiveTab("orders");
+    } catch (err: any) {
+      toast({
+        title: "Order Notice",
+        description: err.message || "Failed to submit SMM order.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSmmPurchasing(false);
     }
   };
 
@@ -1420,13 +1642,13 @@ export default function MiniAppShopModern() {
               </button>
             </div>
 
-            {/* Products Grid */}
+            {/* Products & SMM Services Grid */}
             {productsLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-[#7E7998]">
                 <Loader2 className="w-7 h-7 animate-spin mb-2 text-[#5B42F3]" />
                 <span className="text-xs font-semibold">Loading catalog...</span>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : (filteredProducts.length === 0 && filteredSmmServices.length === 0) ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
                 <Package className="w-10 h-10 mx-auto text-[#8FA597] mb-2" />
                 <h4 className="text-sm font-bold text-[#1C3324]">No products found</h4>
@@ -1434,6 +1656,77 @@ export default function MiniAppShopModern() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3.5">
+                {/* 1. Live SMM Services (N1Panel SMM API) */}
+                {filteredSmmServices.map((smm: any) => {
+                  const smmConf = getSmmPlatformConfig(smm.category, smm.name);
+                  const rateFormatted = formatSmmRate(smm.customRate);
+
+                  return (
+                    <motion.div
+                      key={`smm-${smm.id}`}
+                      whileHover={{ y: -3 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setDetailSmmService(smm);
+                        setSmmOrderQty(smm.min || 1000);
+                        setSmmTargetLink("");
+                      }}
+                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
+                    >
+                      {/* Top Action: SMM Badge & Platform Pill */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`}>
+                          {smmConf.tag}
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                          <Zap className="w-2.5 h-2.5" /> SMM
+                        </span>
+                      </div>
+
+                      {/* Centered Image with Real Brand Icon and Organic Blob Background */}
+                      <div className="relative my-2 py-3 flex items-center justify-center">
+                        <div
+                          className={`w-20 h-20 rounded-full bg-gradient-to-br ${smmConf.blobColor} absolute blur-sm`}
+                        />
+                        <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                          {smmConf.icon}
+                        </div>
+                      </div>
+
+                      {/* SMM Service Details */}
+                      <div className="mt-1">
+                        <h4 className="text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight">
+                          {smm.name}
+                        </h4>
+                        <p className="text-[10px] text-[#7E7998] line-clamp-1 mt-1">
+                          Min: {smm.min?.toLocaleString()} • Max: {smm.max?.toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* Bottom Price & Add (+) Button */}
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                        <div>
+                          <span className="text-xs font-black text-[#181432]">{rateFormatted}</span>
+                          <span className="text-[9px] text-[#7E7998] block">Live SMM</span>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailSmmService(smm);
+                            setSmmOrderQty(smm.min || 1000);
+                            setSmmTargetLink("");
+                          }}
+                          className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-90 transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {/* 2. Direct Cloud & Account Products */}
                 {filteredProducts.map((prod) => {
                   const conf = getProviderConfig(prod.name, prod.type);
                   const isFav = favorites.includes(prod.id);
@@ -1538,27 +1831,142 @@ export default function MiniAppShopModern() {
 
         {/* ORDERS TAB */}
         {activeTab === "orders" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-black text-[#181432]">My Orders & 2FA Keys</h2>
-              <span className="text-xs font-bold text-[#7E7998]">{orders.length} Purchases</span>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-black text-[#181432]">My Orders & Services</h2>
+              <span className="text-xs font-bold text-[#7E7998]">{orders.length + smmOrdersList.length} Total</span>
             </div>
 
-            {orders.length === 0 ? (
-              <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
-                <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
-                <h4 className="text-sm font-bold text-[#181432]">No orders yet</h4>
-                <p className="text-xs text-[#7E7998] mt-1">Explore our catalog and make your first purchase!</p>
-                <Button
-                  onClick={() => setActiveTab("home")}
-                  className="mt-4 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] hover:opacity-95 text-white rounded-full text-xs font-bold px-6 shadow-md shadow-[#6C5CE7]/25"
-                >
-                  Start Shopping
-                </Button>
-              </div>
-            ) : (
+            {/* SMM SOCIAL ORDERS SECTION */}
+            {smmOrdersList.length > 0 && (
               <div className="space-y-3">
-                {orders.map((ord: any) => (
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-[#5B42F3] uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5" /> Social SMM Orders ({smmOrdersList.length})
+                  </h3>
+                  <button
+                    onClick={() => refetchSmmOrders()}
+                    className="text-[10px] font-bold text-[#7E7998] hover:text-[#5B42F3] flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Sync
+                  </button>
+                </div>
+
+                {smmOrdersList.map((smmOrd: any) => {
+                  const smmService = smmOrd.smmService || smmServicesList.find((s) => s.id === smmOrd.smmServiceId);
+                  const conf = getSmmPlatformConfig(smmService?.category || "", smmService?.name || "");
+                  const status = (smmOrd.status || "Pending").toLowerCase();
+
+                  let statusBadge = (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200">
+                      Pending
+                    </span>
+                  );
+                  if (status.includes("complete") || status.includes("success")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                        Completed
+                      </span>
+                    );
+                  } else if (status.includes("progress") || status.includes("processing")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                        In Progress
+                      </span>
+                    );
+                  } else if (status.includes("cancel")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+                        Canceled
+                      </span>
+                    );
+                  } else if (status.includes("partial")) {
+                    statusBadge = (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                        Partial
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`smm-ord-${smmOrd.id}`}
+                      className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                            {conf.tag}
+                          </span>
+                          <span className="text-[10px] font-mono text-[#7E7998]">
+                            #{smmOrd.externalOrderId || `SMM-${smmOrd.id}`}
+                          </span>
+                        </div>
+                        {statusBadge}
+                      </div>
+
+                      <h4 className="text-xs font-black text-[#181432] mb-1.5">
+                        {smmService?.name || `SMM Service #${smmOrd.smmServiceId}`}
+                      </h4>
+
+                      {/* Target Link */}
+                      <div className="bg-[#F8F7FD] p-2 rounded-2xl border border-[#ECEEF8] mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                          <ExternalLink className="w-3 h-3 text-[#5B42F3] shrink-0" />
+                          <span className="text-[10px] font-mono text-[#5B42F3] truncate">
+                            {smmOrd.link}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(smmOrd.link, "Link Copied")}
+                          className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
+                        >
+                          Copy
+                        </button>
+                      </div>
+
+                      {/* Quantity, Cost & Date */}
+                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#F5F4FC]">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[#181432]">
+                            Qty: <span className="font-black text-[#5B42F3]">{smmOrd.quantity?.toLocaleString()}</span>
+                          </span>
+                          <span className="font-bold text-[#7E7998]">
+                            Paid: <span className="font-black text-[#181432]">{formatBalanceInCurrentCurrency(smmOrd.amountPaid || 0)}</span>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#7E7998]">
+                          {smmOrd.createdAt ? format(new Date(smmOrd.createdAt), "MMM d • HH:mm") : "Recent"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* CLOUD & ACCOUNT PURCHASES SECTION */}
+            <div className="space-y-3">
+              {smmOrdersList.length > 0 && orders.length > 0 && (
+                <h3 className="text-xs font-black text-[#7E7998] uppercase tracking-wider flex items-center gap-1.5 pt-2">
+                  <Package className="w-3.5 h-3.5" /> Cloud & Account Orders ({orders.length})
+                </h3>
+              )}
+
+              {orders.length === 0 && smmOrdersList.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
+                  <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
+                  <h4 className="text-sm font-bold text-[#181432]">No orders yet</h4>
+                  <p className="text-xs text-[#7E7998] mt-1">Explore our catalog and make your first purchase!</p>
+                  <Button
+                    onClick={() => setActiveTab("home")}
+                    className="mt-4 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] hover:opacity-95 text-white rounded-full text-xs font-bold px-6 shadow-md shadow-[#6C5CE7]/25"
+                  >
+                    Start Shopping
+                  </Button>
+                </div>
+              ) : (
+                orders.map((ord: any) => (
                   <div
                     key={ord.id}
                     className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
@@ -1600,9 +2008,9 @@ export default function MiniAppShopModern() {
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -2330,6 +2738,246 @@ export default function MiniAppShopModern() {
                 </div>
                 <span className="text-[10px] text-[#7E7998] font-semibold">0-2 Mins ⚡</span>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* DYNAMIC SMM SERVICE ORDERING DIALOG */}
+      <Dialog
+        open={!!detailSmmService}
+        onOpenChange={(open) => {
+          if (!open) setDetailSmmService(null);
+        }}
+      >
+        <DialogContent className="max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          {detailSmmService && (
+            <div>
+              {/* Header: Platform & Close Button */}
+              <div className="flex items-center justify-between mb-3">
+                {(() => {
+                  const conf = getSmmPlatformConfig(detailSmmService.category, detailSmmService.name);
+                  return (
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`}>
+                        {conf.tag}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#7E7998] bg-[#F5F4FC] px-2 py-0.5 rounded-full">
+                        Service #{detailSmmService.id}
+                      </span>
+                    </div>
+                  );
+                })()}
+                <button
+                  onClick={() => setDetailSmmService(null)}
+                  className="w-8 h-8 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#7E7998] hover:bg-[#EDE9FE] hover:text-[#5B42F3] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Centered Organic Brand Blob */}
+              {(() => {
+                const conf = getSmmPlatformConfig(detailSmmService.category, detailSmmService.name);
+                return (
+                  <div className="relative my-2 py-2 flex items-center justify-center">
+                    <div
+                      className={`w-24 h-24 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-md`}
+                    />
+                    <div className="relative z-10 drop-shadow-md">
+                      {conf.icon}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Title & Limits */}
+              <div className="text-center mb-4">
+                <h3 className="text-base font-black text-[#181432] leading-snug">
+                  {detailSmmService.name}
+                </h3>
+                <div className="flex items-center justify-center gap-3 text-[11px] text-[#7E7998] mt-1 font-semibold">
+                  <span>Min: {detailSmmService.min?.toLocaleString()}</span>
+                  <span>•</span>
+                  <span>Max: {detailSmmService.max?.toLocaleString()}</span>
+                  <span>•</span>
+                  <span className="text-[#5B42F3] font-bold">
+                    {formatSmmRate(detailSmmService.customRate)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Step 1: Target Link Input */}
+              <div className="space-y-1.5 mb-4">
+                <label className="text-[11px] font-black text-[#181432] uppercase tracking-wider flex items-center justify-between">
+                  <span>1. Target Link / Username / Post</span>
+                  <span className="text-[9px] text-red-500 font-bold">*Required</span>
+                </label>
+                <div className="relative">
+                  <ExternalLink className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7E7998]" />
+                  <input
+                    type="url"
+                    value={smmTargetLink}
+                    onChange={(e) => setSmmTargetLink(e.target.value)}
+                    placeholder={
+                      (detailSmmService.category || "").toLowerCase().includes("tiktok")
+                        ? "https://www.tiktok.com/@username/video/..."
+                        : (detailSmmService.category || "").toLowerCase().includes("instagram")
+                        ? "https://www.instagram.com/p/... or @profile"
+                        : (detailSmmService.category || "").toLowerCase().includes("telegram")
+                        ? "https://t.me/your_channel_or_group"
+                        : "https://facebook.com/..."
+                    }
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#F8F7FD] border border-[#ECEEF8] rounded-2xl text-xs font-semibold text-[#181432] focus:outline-none focus:border-[#5B42F3] focus:bg-white transition-all placeholder:text-[#9490A8]"
+                  />
+                </div>
+              </div>
+
+              {/* Step 2: Quantity Stepper & Quick Preset Pills */}
+              <div className="space-y-1.5 mb-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-black text-[#181432] uppercase tracking-wider">
+                    2. Quantity ({smmOrderQty.toLocaleString()} units)
+                  </label>
+                  <span className="text-[10px] text-[#7E7998]">
+                    Min: {detailSmmService.min?.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSmmOrderQty((q) =>
+                        Math.max(detailSmmService.min || 100, q - 500)
+                      )
+                    }
+                    className="w-10 h-10 rounded-2xl bg-[#F5F4FC] hover:bg-[#EDE9FE] text-[#5B42F3] flex items-center justify-center font-bold text-lg active:scale-95 transition-all"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={detailSmmService.min || 100}
+                    max={detailSmmService.max || 100000}
+                    step={100}
+                    value={smmOrderQty}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setSmmOrderQty(val);
+                    }}
+                    className="flex-1 py-2.5 px-3 text-center bg-[#F8F7FD] border border-[#ECEEF8] rounded-2xl text-sm font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSmmOrderQty((q) =>
+                        Math.min(detailSmmService.max || 100000, q + 500)
+                      )
+                    }
+                    className="w-10 h-10 rounded-2xl bg-[#F5F4FC] hover:bg-[#EDE9FE] text-[#5B42F3] flex items-center justify-center font-bold text-lg active:scale-95 transition-all"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Quick Selection Buttons */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {[
+                    { label: "Min", val: detailSmmService.min || 100 },
+                    { label: "+500", val: smmOrderQty + 500 },
+                    { label: "+1k", val: smmOrderQty + 1000 },
+                    { label: "+5k", val: smmOrderQty + 5000 },
+                    { label: "+10k", val: smmOrderQty + 10000 },
+                    { label: "Max", val: detailSmmService.max || 10000 },
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const targetVal = Math.min(
+                          detailSmmService.max || 100000,
+                          Math.max(detailSmmService.min || 100, preset.val)
+                        );
+                        setSmmOrderQty(targetVal);
+                      }}
+                      className="px-2.5 py-1 rounded-xl bg-[#F5F4FC] hover:bg-[#EDE9FE] text-[10px] font-bold text-[#5B42F3] transition-colors border border-[#ECEEF8]"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step 3: Real-Time Dynamic Price Calculator */}
+              {(() => {
+                const totalCents = Math.round(
+                  (detailSmmService.customRate / 1000) * (smmOrderQty || 0)
+                );
+                const userBalCents = user?.balance || 0;
+                const hasSufficientBal = userBalCents >= totalCents;
+
+                return (
+                  <div className="bg-gradient-to-br from-[#120B2E] to-[#2E1A68] rounded-3xl p-4 text-white mb-4 relative overflow-hidden shadow-lg shadow-[#2E1A68]/20">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-purple-200/80 font-semibold">Total Order Cost:</span>
+                      <span className="text-[10px] text-cyan-300 font-mono">
+                        Rate: {formatSmmRate(detailSmmService.customRate)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between mb-3">
+                      <span className="text-2xl font-black text-white">
+                        {calculateSmmPriceFormatted(detailSmmService.customRate, smmOrderQty)}
+                      </span>
+                      <span className="text-xs font-bold text-purple-200/90">
+                        {selectedCurrency === "LKR"
+                          ? `≈ $${(totalCents / 100).toFixed(2)} USD`
+                          : `≈ Rs. ${Math.round((totalCents / 100) * lkrRate).toLocaleString()} LKR`}
+                      </span>
+                    </div>
+
+                    {/* Balance Status Bar */}
+                    <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <Wallet className="w-3.5 h-3.5 text-purple-300" />
+                        <span className="text-purple-200">
+                          Balance: {formatBalanceInCurrentCurrency(userBalCents)}
+                        </span>
+                      </div>
+
+                      {hasSufficientBal ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Sufficient
+                        </span>
+                      ) : (
+                        <span className="text-rose-400 font-bold flex items-center gap-1">
+                          ⚠️ Top-up needed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 4: Buy / Sign In Button */}
+              <button
+                onClick={handleSmmPurchase}
+                disabled={isSmmPurchasing}
+                className="w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+              >
+                {isSmmPurchasing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : !isCustomerLoggedIn ? (
+                  <>
+                    <UserIcon className="w-4 h-4" /> Sign In to Order SMM
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" /> Place SMM Order Now 🚀
+                  </>
+                )}
+              </button>
             </div>
           )}
         </DialogContent>
