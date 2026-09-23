@@ -535,6 +535,35 @@ export async function registerRoutes(
 ): Promise<HttpServer> {
   let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
 
+  async function getAppBaseUrl(req?: any): Promise<string> {
+    const customUrl = (await storage.getSetting('APP_URL'))?.value;
+    if (customUrl && customUrl.trim()) {
+      let url = customUrl.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      return url.replace(/\/+$/, '');
+    }
+
+    if (req && (req.headers || req.get)) {
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      if (host && typeof host === 'string' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        return `${proto}://${host}`.replace(/\/+$/, '');
+      }
+    }
+
+    if (process.env.APP_URL && process.env.APP_URL.trim()) {
+      let url = process.env.APP_URL.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      return url.replace(/\/+$/, '');
+    }
+
+    return lastAutoDetectedAppUrl || 'https://monkfish-app-isiw9.ondigitalocean.app';
+  }
+
   // Initialize Telegram client service (MTProto)
   initTelegramClientService(io);
 
@@ -5642,36 +5671,6 @@ function setupBotHandlers(targetBot: TelegramBot) {
       }
     }
   });
-
-  // Global auto-detected App URL from incoming HTTP traffic
-  async function getAppBaseUrl(req?: any): Promise<string> {
-    const customUrl = (await storage.getSetting('APP_URL'))?.value;
-    if (customUrl && customUrl.trim()) {
-      let url = customUrl.trim();
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-      return url.replace(/\/+$/, '');
-    }
-
-    if (req && (req.headers || req.get)) {
-      const host = req.headers['x-forwarded-host'] || req.headers.host;
-      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-      if (host && typeof host === 'string' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-        return `${proto}://${host}`.replace(/\/+$/, '');
-      }
-    }
-
-    if (process.env.APP_URL && process.env.APP_URL.trim()) {
-      let url = process.env.APP_URL.trim();
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-      return url.replace(/\/+$/, '');
-    }
-
-    return lastAutoDetectedAppUrl || 'https://monkfish-app-isiw9.ondigitalocean.app';
-  }
 
 async function sendTrackTransactionList(targetBot: TelegramBot, chatId: number, tgUser: any, page: number = 1, messageIdToEdit?: number) {
   const userPayments = await storage.getPaymentsForUser(tgUser.id);

@@ -127,6 +127,27 @@ const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
+const BinanceLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 126.61 126.61" fill="none">
+    <path fill="#F3BA2F" d="M38.83,52.27l24.47-24.47l24.48,24.48l14.19-14.19L63.3,0L24.64,38.08L38.83,52.27z M14.19,63.3l14.19,14.19 l14.19-14.19L28.38,49.11L14.19,63.3z M63.3,74.33l-24.48-24.47L24.63,64.05L63.3,102.72l38.67-38.67L87.78,49.86L63.3,74.33z M98.22,49.11l-14.19,14.19l14.19,14.19l14.19-14.19L98.22,49.11z M63.3,38.08l10.28,10.28l14.19-14.19L63.3,9.7l-24.47,24.47 l14.19,14.19L63.3,38.08z M63.3,88.52l-10.28-10.28l-14.19,14.19L63.3,116.91l24.47-24.48l-14.19-14.19L63.3,88.52z"/>
+  </svg>
+);
+
+const CryptomusLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="50" fill="url(#cryptomusGradient)" />
+    <path d="M50 25C36.193 25 25 36.193 25 50C25 63.807 36.193 75 50 75C63.807 75 75 63.807 75 50C75 36.193 63.807 25 50 25ZM61 60L56 65C54.6 66.4 52.3 66.4 50.9 65L39.7 53.8C38.3 52.4 38.3 50.1 39.7 48.7L50.9 37.5C52.3 36.1 54.6 36.1 56 37.5L61 42.5C61.7 43.2 61.7 44.3 61 45L53.9 52.1C53.2 52.8 53.2 53.9 53.9 54.6L61 61.7C61.7 62.4 61.7 63.5 61 64.2V60Z" fill="white" />
+    <path d="M43 36L57 50L43 64" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+    <defs>
+      <linearGradient id="cryptomusGradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#635BFF" />
+        <stop offset="0.5" stopColor="#9C27B0" />
+        <stop offset="1" stopColor="#E02475" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none">
     <rect width="100" height="100" rx="24" fill="#000000" />
@@ -1521,8 +1542,8 @@ export default function MiniAppShopModern() {
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center text-[#F3BA2F] shadow-sm">
-                      <SiBinance className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center shadow-sm">
+                      <BinanceLogo className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-[#181432]">Binance Pay Gateway</h4>
@@ -1618,7 +1639,7 @@ export default function MiniAppShopModern() {
                       </>
                     ) : (
                       <>
-                        <Zap className="w-4 h-4" /> Verify & Credit ${binanceAmount || "0"} Balance
+                        <BinanceLogo className="w-4 h-4" /> Verify & Credit ${binanceAmount || "0"} Balance
                       </>
                     )}
                   </button>
@@ -1636,8 +1657,8 @@ export default function MiniAppShopModern() {
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center text-[#5B42F3] shadow-sm">
-                      <Zap className="w-5 h-5 text-[#5B42F3]" />
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3]/15 to-[#D92078]/15 flex items-center justify-center shadow-sm">
+                      <CryptomusLogo className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-[#181432]">Cryptomus Auto-Pay</h4>
@@ -1704,7 +1725,7 @@ export default function MiniAppShopModern() {
                     </>
                   ) : (
                     <>
-                      <Zap className="w-4 h-4" /> Pay ${cryptomusAmount || "0"} via Cryptomus Gateway <ExternalLink className="w-3.5 h-3.5" />
+                      <CryptomusLogo className="w-4 h-4" /> Pay ${cryptomusAmount || "0"} via Cryptomus Gateway <ExternalLink className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>

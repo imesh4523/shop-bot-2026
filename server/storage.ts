@@ -103,6 +103,8 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPayment(id: number): Promise<Payment | undefined>;
   getPaymentByUuid(uuid: string): Promise<Payment | undefined>;
+  getPayments(): Promise<Payment[]>;
+  getAllPayments(): Promise<Payment[]>;
   updatePayment(id: number, data: Partial<Payment>): Promise<Payment>;
   getAllPaymentsWithUsers(): Promise<(Payment & { telegramUser: TelegramUser | null })[]>;
 
@@ -491,6 +493,14 @@ export class DatabaseStorage implements IStorage {
   async getPaymentByUuid(uuid: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.cryptomusUuid, uuid));
     return payment;
+  }
+
+  async getPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.createdAt));
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.createdAt));
   }
 
   async updatePayment(id: number, data: Partial<Payment>): Promise<Payment> {
