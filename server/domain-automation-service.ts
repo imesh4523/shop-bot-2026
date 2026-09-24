@@ -379,6 +379,75 @@ export class DomainAutomationService {
       apiBaseUrl,
     };
   }
+
+  // --- ADMIN CUSTOM SUBDOMAIN (e.g. imeshmain2.domain.com) ---
+  public async setupAdminSubdomain(params: {
+    domainName: string;
+    subdomain: string; // e.g. "imeshmain2"
+    enabled: boolean;
+    proxied?: boolean;
+    zoneId?: string;
+  }): Promise<{
+    success: boolean;
+    subdomainUrl: string;
+    standardUrl: string;
+    subdomain: string;
+    enabled: boolean;
+    dnsStatus: string;
+  }> {
+    const cleanDomain = (params.domainName || "youuhost.com").trim().toLowerCase();
+    const cleanSub = (params.subdomain || "imeshmain2").trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+    const fullSubdomain = `${cleanSub}.${cleanDomain}`;
+    const serverIp = await this.getServerIp();
+    const subdomainUrl = `https://${fullSubdomain}`;
+    const standardUrl = `https://${cleanDomain}/imeshadmindashbord`;
+
+    let dnsStatus = "skipped";
+
+    if (params.enabled) {
+      let zoneId = params.zoneId;
+      if (!zoneId) {
+        try {
+          const zones = await this.listCloudflareZones();
+          const matched = zones.find(
+            (z) => z.name.toLowerCase() === cleanDomain || cleanDomain.endsWith(z.name.toLowerCase())
+          );
+          if (matched) zoneId = matched.id;
+        } catch (e) {
+          console.warn("Could not auto-detect zone for admin subdomain:", e);
+        }
+      }
+
+      if (zoneId) {
+        try {
+          await this.createOrUpdateDnsRecord(zoneId, {
+            type: "A",
+            name: fullSubdomain,
+            content: serverIp,
+            proxied: params.proxied !== false,
+            ttl: 1,
+            comment: `Shopeefy Admin Subdomain (${cleanSub})`,
+          });
+          dnsStatus = "configured";
+        } catch (err: any) {
+          dnsStatus = `error: ${err.message}`;
+        }
+      }
+    }
+
+    await storage.setSetting("ADMIN_CUSTOM_SUBDOMAIN", cleanSub);
+    await storage.setSetting("ADMIN_CUSTOM_SUBDOMAIN_ENABLED", params.enabled ? "true" : "false");
+    await storage.setSetting("ADMIN_SUBDOMAIN_URL", subdomainUrl);
+
+    return {
+      success: true,
+      subdomainUrl,
+      standardUrl,
+      subdomain: cleanSub,
+      enabled: params.enabled,
+      dnsStatus,
+    };
+  }
 }
 
 export const domainAutomationService = new DomainAutomationService();

@@ -141,6 +141,67 @@ export default function DomainAutomationPage() {
   const [newDnsProxied, setNewDnsProxied] = useState(true);
   const [newDnsPriority, setNewDnsPriority] = useState("10");
 
+  // --- ADMIN SUBDOMAIN (e.g. imeshmain2.domain.com) STATE ---
+  const { data: adminSubdomainData, refetch: refetchAdminSubdomain } = useQuery<{
+    domainName: string;
+    subdomain: string;
+    enabled: boolean;
+    subdomainUrl: string;
+    standardUrl: string;
+  }>({
+    queryKey: ["/api/admin/domain-automation/admin-subdomain"],
+  });
+
+  const [adminSubInput, setAdminSubInput] = useState("imeshmain2");
+  const [adminSubEnabled, setAdminSubEnabled] = useState(false);
+  const [adminSubProxied, setAdminSubProxied] = useState(true);
+  const [adminSubInitialized, setAdminSubInitialized] = useState(false);
+  const [isAdminSubSaving, setIsAdminSubSaving] = useState(false);
+
+  if (adminSubdomainData && !adminSubInitialized) {
+    setAdminSubInput(adminSubdomainData.subdomain || "imeshmain2");
+    setAdminSubEnabled(adminSubdomainData.enabled || false);
+    setAdminSubInitialized(true);
+  }
+
+  const handleToggleAdminSubdomain = async (enableVal: boolean) => {
+    setAdminSubEnabled(enableVal);
+    setIsAdminSubSaving(true);
+    try {
+      const res = await fetch("/api/admin/domain-automation/admin-subdomain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domainName: targetDomain.trim(),
+          subdomain: adminSubInput.trim(),
+          enabled: enableVal,
+          proxied: adminSubProxied,
+          zoneId: activeZone?.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update admin subdomain");
+
+      toast({
+        title: enableVal ? "Admin Subdomain Activated! ⚡" : "Default Mode Activated 🌐",
+        description: enableVal
+          ? `Subdomain URL configured: ${data.subdomainUrl}`
+          : `Using standard path: ${data.standardUrl}`,
+      });
+      refetchAdminSubdomain();
+      refetchDns();
+    } catch (err: any) {
+      toast({
+        title: "Configuration Error",
+        description: err.message,
+        variant: "destructive",
+      });
+      setAdminSubEnabled(!enableVal);
+    } finally {
+      setIsAdminSubSaving(false);
+    }
+  };
+
   // --- SAVE SETTINGS MUTATION ---
   const saveSettingsMutation = useMutation({
     mutationFn: async () => {
@@ -517,6 +578,161 @@ export default function DomainAutomationPage() {
 
         {/* TAB 1: 1-CLICK MAGIC AUTO-CONFIG */}
         <TabsContent value="auto-config" className="space-y-6">
+          {/* ADMIN SUBDOMAIN & SAFE URL SWITCHER CARD */}
+          <Card className="glass-panel border-indigo-500/30 bg-indigo-950/15 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full" />
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg text-white">Admin Subdomain & Safe URL Switcher</CardTitle>
+                      <Badge className={adminSubEnabled ? "bg-emerald-500/20 text-emerald-300 border-0 text-xs" : "bg-white/10 text-white/60 border-0 text-xs"}>
+                        {adminSubEnabled ? "⚡ Subdomain Active" : "🌐 Standard Path Mode"}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-white/60 text-xs">
+                      Switch between standard path (<code className="text-purple-300">/imeshadmindashbord</code>) and a dedicated custom subdomain (<code className="text-indigo-300">https://{adminSubInput}.{targetDomain}</code>) with zero downtime and automatic Cloudflare DNS routing.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                {/* Main Switch / Toggle */}
+                <div className="flex items-center gap-3 bg-black/40 px-4 py-2.5 rounded-2xl border border-white/10 shrink-0">
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-white block">Dedicated Subdomain</span>
+                    <span className="text-[10px] text-white/50">{adminSubEnabled ? "Active (Direct Route)" : "Disabled (Path Only)"}</span>
+                  </div>
+                  <Switch
+                    checked={adminSubEnabled}
+                    onCheckedChange={handleToggleAdminSubdomain}
+                    disabled={isAdminSubSaving}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Subdomain Input */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-white/80">Subdomain Name</Label>
+                  <div className="flex items-center">
+                    <Input
+                      placeholder="imeshmain2"
+                      value={adminSubInput}
+                      onChange={(e) => setAdminSubInput(e.target.value)}
+                      className="bg-white/5 border-white/10 text-white text-xs font-mono rounded-r-none focus:border-indigo-500"
+                    />
+                    <span className="px-3 py-2 bg-white/10 border border-l-0 border-white/10 text-white/60 text-xs font-mono rounded-r-xl">
+                      .{targetDomain}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cloudflare Proxy Toggle */}
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                    <div className="space-y-0.5">
+                      <Label className="text-xs text-white">Cloudflare Proxy (CDN)</Label>
+                      <p className="text-[10px] text-white/40">Free SSL & DDoS Shield</p>
+                    </div>
+                    <Switch checked={adminSubProxied} onCheckedChange={setAdminSubProxied} />
+                  </div>
+                </div>
+
+                {/* Update / Push DNS Button */}
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <Button
+                    onClick={() => handleToggleAdminSubdomain(true)}
+                    disabled={isAdminSubSaving || !adminSubInput.trim()}
+                    className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
+                  >
+                    {isAdminSubSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    <span>⚡ Auto-Configure DNS & Switch</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* DUAL ACCESS URLS STATUS CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                {/* URL 1: Standard URL (Always Safe) */}
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" /> Standard Fallback URL (Always Safe)
+                    </span>
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      Permanent Access
+                    </Badge>
+                  </div>
+                  <div className="font-mono text-xs text-white truncate font-bold">
+                    https://{targetDomain}/imeshadmindashbord
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(`https://${targetDomain}/imeshadmindashbord`, "Standard URL")}
+                      className="border-white/10 text-[11px] h-7 text-white/80"
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Copy
+                    </Button>
+                    <a
+                      href={`https://${targetDomain}/imeshadmindashbord`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white text-[11px] font-semibold transition-colors"
+                    >
+                      Open <ExternalLink className="w-3 h-3 ml-0.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* URL 2: Dedicated Subdomain URL */}
+                <div className={`p-4 rounded-2xl border space-y-2 ${adminSubEnabled ? "bg-indigo-950/30 border-indigo-500/40 shadow-lg shadow-indigo-500/10" : "bg-black/40 border-white/5 opacity-70"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Dedicated Admin Subdomain URL
+                    </span>
+                    <Badge className={adminSubEnabled ? "bg-indigo-500/20 text-indigo-300 border-0 text-[10px]" : "bg-white/10 text-white/40 border-0 text-[10px]"}>
+                      {adminSubEnabled ? "⚡ Active Direct" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div className="font-mono text-xs text-indigo-200 truncate font-bold">
+                    https://{adminSubInput || "imeshmain2"}.{targetDomain}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(`https://${adminSubInput || "imeshmain2"}.${targetDomain}`, "Subdomain URL")}
+                      className="border-white/10 text-[11px] h-7 text-white/80"
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Copy
+                    </Button>
+                    <a
+                      href={`https://${adminSubInput || "imeshmain2"}.${targetDomain}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold transition-colors"
+                    >
+                      Open <ExternalLink className="w-3 h-3 ml-0.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-white/40 flex items-center gap-2 pt-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Zero-Lockout Guarantee: Both the standard URL and subdomain URL remain simultaneously operational.</span>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="glass-panel border-white/10">
             <CardHeader>
               <div className="flex items-center gap-3">

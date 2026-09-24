@@ -42797,6 +42797,56 @@ var init_domain_automation_service = __esm({
           apiBaseUrl
         };
       }
+      // --- ADMIN CUSTOM SUBDOMAIN (e.g. imeshmain2.domain.com) ---
+      async setupAdminSubdomain(params) {
+        const cleanDomain = (params.domainName || "youuhost.com").trim().toLowerCase();
+        const cleanSub = (params.subdomain || "imeshmain2").trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+        const fullSubdomain = `${cleanSub}.${cleanDomain}`;
+        const serverIp = await this.getServerIp();
+        const subdomainUrl = `https://${fullSubdomain}`;
+        const standardUrl = `https://${cleanDomain}/imeshadmindashbord`;
+        let dnsStatus = "skipped";
+        if (params.enabled) {
+          let zoneId = params.zoneId;
+          if (!zoneId) {
+            try {
+              const zones = await this.listCloudflareZones();
+              const matched = zones.find(
+                (z2) => z2.name.toLowerCase() === cleanDomain || cleanDomain.endsWith(z2.name.toLowerCase())
+              );
+              if (matched) zoneId = matched.id;
+            } catch (e) {
+              console.warn("Could not auto-detect zone for admin subdomain:", e);
+            }
+          }
+          if (zoneId) {
+            try {
+              await this.createOrUpdateDnsRecord(zoneId, {
+                type: "A",
+                name: fullSubdomain,
+                content: serverIp,
+                proxied: params.proxied !== false,
+                ttl: 1,
+                comment: `Shopeefy Admin Subdomain (${cleanSub})`
+              });
+              dnsStatus = "configured";
+            } catch (err) {
+              dnsStatus = `error: ${err.message}`;
+            }
+          }
+        }
+        await storage.setSetting("ADMIN_CUSTOM_SUBDOMAIN", cleanSub);
+        await storage.setSetting("ADMIN_CUSTOM_SUBDOMAIN_ENABLED", params.enabled ? "true" : "false");
+        await storage.setSetting("ADMIN_SUBDOMAIN_URL", subdomainUrl);
+        return {
+          success: true,
+          subdomainUrl,
+          standardUrl,
+          subdomain: cleanSub,
+          enabled: params.enabled,
+          dnsStatus
+        };
+      }
     };
     domainAutomationService = new DomainAutomationService();
   }
@@ -55082,6 +55132,39 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
     } catch (err) {
       console.error("[Auto-Configure Domain Error]:", err);
       res.status(500).json({ message: err.message || "Failed to auto-configure domain" });
+    }
+  });
+  app2.get("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res) => {
+    try {
+      const lastDomain = (await storage.getSetting("LAST_AUTOMATED_DOMAIN"))?.value || "youuhost.com";
+      const subdomain = (await storage.getSetting("ADMIN_CUSTOM_SUBDOMAIN"))?.value || "imeshmain2";
+      const enabled = (await storage.getSetting("ADMIN_CUSTOM_SUBDOMAIN_ENABLED"))?.value === "true";
+      const subdomainUrl = (await storage.getSetting("ADMIN_SUBDOMAIN_URL"))?.value || `https://${subdomain}.${lastDomain}`;
+      const standardUrl = `https://${lastDomain}/imeshadmindashbord`;
+      res.json({
+        domainName: lastDomain,
+        subdomain,
+        enabled,
+        subdomainUrl,
+        standardUrl
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to load admin subdomain settings" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res) => {
+    try {
+      const { domainName, subdomain, enabled, proxied, zoneId } = req.body;
+      const result = await domainAutomationService.setupAdminSubdomain({
+        domainName,
+        subdomain,
+        enabled: !!enabled,
+        proxied: proxied !== false,
+        zoneId
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to configure admin subdomain" });
     }
   });
   app2.post("/api/admin/audit-and-fix", isAuth, async (req, res) => {

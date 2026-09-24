@@ -76,6 +76,21 @@ function RootRouteHandler() {
     return <PageLoader />;
   }
 
+  // Check if accessing via custom admin subdomain (e.g. imeshmain2.youuhost.com or admin.youuhost.com)
+  const host = window.location.hostname.toLowerCase();
+  const isAdminSubdomain =
+    host.startsWith("imesh") ||
+    host.startsWith("admin") ||
+    host.includes("imeshmain");
+
+  if (isAdminSubdomain) {
+    if (user) {
+      return <Redirect to="/imeshadmindashbord" />;
+    } else {
+      return <Redirect to="/imeshadmindashbord/login" />;
+    }
+  }
+
   if (user) {
     return <Redirect to="/imeshadmindashbord" />;
   }

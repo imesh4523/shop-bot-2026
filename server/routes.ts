@@ -3819,6 +3819,43 @@ app.post("/api/admin/domain-automation/auto-configure", isAuth, async (req, res)
   }
 });
 
+// 13. Admin Subdomain Mode Configuration & Toggle (e.g. imeshmain2.domain.com)
+app.get("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res) => {
+  try {
+    const lastDomain = (await storage.getSetting("LAST_AUTOMATED_DOMAIN"))?.value || "youuhost.com";
+    const subdomain = (await storage.getSetting("ADMIN_CUSTOM_SUBDOMAIN"))?.value || "imeshmain2";
+    const enabled = (await storage.getSetting("ADMIN_CUSTOM_SUBDOMAIN_ENABLED"))?.value === "true";
+    const subdomainUrl = (await storage.getSetting("ADMIN_SUBDOMAIN_URL"))?.value || `https://${subdomain}.${lastDomain}`;
+    const standardUrl = `https://${lastDomain}/imeshadmindashbord`;
+
+    res.json({
+      domainName: lastDomain,
+      subdomain,
+      enabled,
+      subdomainUrl,
+      standardUrl,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load admin subdomain settings" });
+  }
+});
+
+app.post("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res) => {
+  try {
+    const { domainName, subdomain, enabled, proxied, zoneId } = req.body;
+    const result = await domainAutomationService.setupAdminSubdomain({
+      domainName,
+      subdomain,
+      enabled: !!enabled,
+      proxied: proxied !== false,
+      zoneId,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to configure admin subdomain" });
+  }
+});
+
 app.post('/api/admin/audit-and-fix', isAuth, async (req, res) => {
   try {
     const allUsers = await storage.getAllTelegramUsers();
