@@ -158,6 +158,45 @@ export default function DomainAutomationPage() {
   const [adminSubInitialized, setAdminSubInitialized] = useState(false);
   const [isAdminSubSaving, setIsAdminSubSaving] = useState(false);
 
+  // --- CYBERSECURITY SHIELD STATE ---
+  const { data: securityStatus, refetch: refetchSecurity } = useQuery<{
+    status: string;
+    activeJailedIpsCount: number;
+    jailedIps: { ip: string; expiresInMinutes: number; violations: number; reason: string }[];
+    recentThreatsCount: number;
+    recentThreats: {
+      id: string;
+      ip: string;
+      country: string;
+      method: string;
+      url: string;
+      host: string;
+      userAgent: string;
+      threatType: string;
+      action: string;
+      timestamp: string;
+    }[];
+  }>({
+    queryKey: ["/api/admin/security-shield/status"],
+    refetchInterval: selectedTab === "security" ? 4000 : false,
+  });
+
+  const handleUnbanIp = async (ip: string) => {
+    try {
+      const res = await fetch("/api/admin/security-shield/unban", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to unban IP");
+      toast({ title: "IP Unbanned! 🔓", description: `IP ${ip} has been removed from jail.` });
+      refetchSecurity();
+    } catch (err: any) {
+      toast({ title: "Unban Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   if (adminSubdomainData && !adminSubInitialized) {
     setAdminSubInput(adminSubdomainData.subdomain || "imeshmain2");
     setAdminSubEnabled(adminSubdomainData.enabled || false);
@@ -561,18 +600,21 @@ export default function DomainAutomationPage() {
 
       {/* MAIN TABS */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="bg-black/40 border border-white/10 p-1 rounded-2xl grid grid-cols-2 md:grid-cols-4 max-w-2xl">
+        <TabsList className="bg-black/40 border border-white/10 p-1 rounded-2xl grid grid-cols-2 md:grid-cols-5 max-w-3xl">
           <TabsTrigger value="auto-config" className="rounded-xl text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            <Zap className="w-3.5 h-3.5 mr-2" /> 1-Click Auto Config
+            <Zap className="w-3.5 h-3.5 mr-1.5" /> 1-Click Auto Config
           </TabsTrigger>
           <TabsTrigger value="cloudflare" className="rounded-xl text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            <Cloud className="w-3.5 h-3.5 mr-2" /> Cloudflare DNS
+            <Cloud className="w-3.5 h-3.5 mr-1.5" /> Cloudflare DNS
           </TabsTrigger>
           <TabsTrigger value="resend" className="rounded-xl text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            <Mail className="w-3.5 h-3.5 mr-2" /> Resend.com
+            <Mail className="w-3.5 h-3.5 mr-1.5" /> Resend.com
+          </TabsTrigger>
+          <TabsTrigger value="security" className="rounded-xl text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> Security Shield
           </TabsTrigger>
           <TabsTrigger value="settings" className="rounded-xl text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            <Settings className="w-3.5 h-3.5 mr-2" /> API Credentials
+            <Settings className="w-3.5 h-3.5 mr-1.5" /> API Credentials
           </TabsTrigger>
         </TabsList>
 
@@ -1305,6 +1347,175 @@ export default function DomainAutomationPage() {
                 >
                   {saveSettingsMutation.isPending ? "Saving..." : "Save API Credentials"}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: CYBERSECURITY SHIELD & WAF MONITOR */}
+        <TabsContent value="security" className="space-y-6">
+          <Card className="glass-panel border-emerald-500/30 bg-emerald-950/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full" />
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                      Enterprise Cybersecurity Shield & WAF
+                    </CardTitle>
+                    <CardDescription className="text-white/60 text-xs">
+                      Active real-time protection against SQL Injection, XSS, automated scanner bots, path traversal, and brute-force DDoS.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs px-3 py-1">
+                    🛡️ WAF ARMED & PROTECTING
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      refetchSecurity();
+                      toast({ title: "Security Threat Database Refreshed 🔄" });
+                    }}
+                    className="border-white/10 text-xs text-white"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Logs
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {/* Top Security Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Subdomain Request Validation</span>
+                  <div className="text-base font-bold text-emerald-400 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> 100% Strict Inspection
+                  </div>
+                  <p className="text-[10px] text-white/40">Headers, Query params & JSON body filtered</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Active Jailed Hacker IPs</span>
+                  <div className="text-base font-bold text-amber-400 flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> {securityStatus?.activeJailedIpsCount || 0} IPs Blocked
+                  </div>
+                  <p className="text-[10px] text-white/40">Auto-banned for scanner probes or rate abuse</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">Blocked Threats Recorded</span>
+                  <div className="text-base font-bold text-purple-300 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4" /> {securityStatus?.recentThreatsCount || 0} Events
+                  </div>
+                  <p className="text-[10px] text-white/40">SQLi, Bot Scanners, Traversal attacks dropped</p>
+                </div>
+              </div>
+
+              {/* JAILED IPS TABLE */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-400" /> Active Jailed IPs (Blacklist):
+                </h4>
+                {(!securityStatus?.jailedIps || securityStatus.jailedIps.length === 0) ? (
+                  <div className="p-4 rounded-2xl bg-black/30 border border-white/5 text-xs text-white/40 text-center font-mono">
+                    No active jailed IPs. All incoming traffic is within normal security thresholds.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-white/5">
+                    <table className="w-full text-left text-xs text-white">
+                      <thead className="bg-white/5 text-[11px] font-bold text-white/40 uppercase">
+                        <tr>
+                          <th className="p-3">IP Address</th>
+                          <th className="p-3">Reason</th>
+                          <th className="p-3">Violations</th>
+                          <th className="p-3">Ban Expires In</th>
+                          <th className="p-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 font-mono">
+                        {securityStatus.jailedIps.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-white/[0.02]">
+                            <td className="p-3 font-bold text-amber-300">{item.ip}</td>
+                            <td className="p-3 text-white/70">{item.reason}</td>
+                            <td className="p-3 text-white/50">{item.violations}</td>
+                            <td className="p-3 text-white/80">{item.expiresInMinutes} mins</td>
+                            <td className="p-3 text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUnbanIp(item.ip)}
+                                className="border-white/10 text-[10px] h-7 text-emerald-400 hover:text-emerald-300"
+                              >
+                                Unban IP
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* RECENT THREAT LOGS TABLE */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-purple-400" /> Live Threat Defense Log:
+                </h4>
+                {(!securityStatus?.recentThreats || securityStatus.recentThreats.length === 0) ? (
+                  <div className="p-4 rounded-2xl bg-black/30 border border-white/5 text-xs text-white/40 text-center font-mono">
+                    Security shield armed. Threat log is empty (no recent attack attempts).
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-white/5 max-h-80 overflow-y-auto">
+                    <table className="w-full text-left text-xs text-white">
+                      <thead className="bg-white/5 text-[11px] font-bold text-white/40 uppercase sticky top-0">
+                        <tr>
+                          <th className="p-3">Time</th>
+                          <th className="p-3">Client IP & Country</th>
+                          <th className="p-3">Threat Type</th>
+                          <th className="p-3">Method & Path</th>
+                          <th className="p-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                        {securityStatus.recentThreats.map((threat) => (
+                          <tr key={threat.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3 text-white/40 whitespace-nowrap">
+                              {new Date(threat.timestamp).toLocaleTimeString()}
+                            </td>
+                            <td className="p-3">
+                              <span className="text-white font-bold">{threat.ip}</span>
+                              <span className="text-white/40 ml-1.5 text-[10px]">({threat.country})</span>
+                            </td>
+                            <td className="p-3">
+                              <Badge className="bg-purple-500/20 text-purple-300 border-0 text-[10px]">
+                                {threat.threatType}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-white/70 max-w-xs truncate font-mono">
+                              <span className="text-emerald-400 font-bold mr-1.5">{threat.method}</span>
+                              <span>{threat.url}</span>
+                            </td>
+                            <td className="p-3">
+                              <Badge className="bg-red-500/20 text-red-300 border-0 text-[10px]">
+                                🚫 {threat.action}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

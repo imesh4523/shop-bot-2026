@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import { securityShieldMiddleware } from "./security-shield";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { log } from "./log";
@@ -42,6 +43,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Enterprise Cybersecurity Shield (WAF, Scanner Blocker, Anti-Injection, IP Jail, Rate Limiter)
+app.use(securityShieldMiddleware);
 
 
 

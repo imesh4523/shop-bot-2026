@@ -17,6 +17,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(process.cwd(), "dist/public"),
     emptyOutDir: true,
+    minify: false,
+    chunkSizeWarningLimit: 3000,
   },
   server: {
     fs: {

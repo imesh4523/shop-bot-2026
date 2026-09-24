@@ -32,6 +32,230 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// server/security-shield.ts
+function getClientIp(req) {
+  const cfIp = req.headers["cf-connecting-ip"];
+  if (cfIp && typeof cfIp === "string") return cfIp.trim();
+  const xff = req.headers["x-forwarded-for"];
+  if (xff && typeof xff === "string") {
+    return xff.split(",")[0].trim();
+  }
+  return req.socket.remoteAddress || "127.0.0.1";
+}
+function logThreat(req, type, action) {
+  const ip = getClientIp(req);
+  const country = req.headers["cf-ipcountry"] || "Unknown";
+  const userAgent = req.headers["user-agent"] || "Unknown";
+  const host = req.headers["host"] || "Unknown";
+  const threat = {
+    id: import_crypto.default.randomBytes(6).toString("hex"),
+    ip,
+    country,
+    method: req.method,
+    url: req.originalUrl || req.url,
+    host,
+    userAgent,
+    threatType: type,
+    action,
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  recentThreatLogs.unshift(threat);
+  if (recentThreatLogs.length > 200) recentThreatLogs.pop();
+  console.warn(
+    `\u{1F6A8} [SECURITY SHIELD - ${action.toUpperCase()}] ${type.toUpperCase()} from IP: ${ip} (${country}) on ${req.method} ${req.url} (Host: ${host})`
+  );
+}
+function jailIp(ip, reason, durationMinutes = 30) {
+  const existing = ipJailMap.get(ip);
+  const violations = (existing?.violations || 0) + 1;
+  const expiresAt = Date.now() + durationMinutes * 60 * 1e3;
+  ipJailMap.set(ip, { expiresAt, violations, reason });
+}
+function securityShieldMiddleware(req, res, next) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const url2 = req.originalUrl || req.url;
+  const userAgent = req.headers["user-agent"] || "";
+  const host = req.headers["host"] || "";
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.removeHeader("X-Powered-By");
+  const jailRecord = ipJailMap.get(ip);
+  if (jailRecord && now < jailRecord.expiresAt) {
+    const remainingMins = Math.ceil((jailRecord.expiresAt - now) / 6e4);
+    return res.status(403).json({
+      error: "ACCESS_DENIED",
+      message: `Your IP (${ip}) has been blocked by Shopeefy Security Shield for suspicious activity. Retry in ${remainingMins} minute(s).`,
+      code: "SECURITY_IP_JAILED"
+    });
+  }
+  for (const botPattern of MALICIOUS_USER_AGENTS) {
+    if (botPattern.test(userAgent)) {
+      logThreat(req, "scanner_bot", "jailed");
+      jailIp(ip, `Malicious scanner user-agent: ${userAgent}`, 60);
+      return res.status(403).json({ error: "FORBIDDEN", message: "Automated vulnerability scanners are strictly prohibited." });
+    }
+  }
+  for (const pathPattern of BLOCKED_PATH_PATTERNS) {
+    if (pathPattern.test(url2)) {
+      logThreat(req, "path_traversal", "jailed");
+      jailIp(ip, `Exploit probe attempt: ${url2}`, 60);
+      return res.status(403).json({ error: "FORBIDDEN", message: "Probing internal/system paths is blocked." });
+    }
+  }
+  const rawQuery = JSON.stringify(req.query || {});
+  const rawBody = typeof req.body === "object" ? JSON.stringify(req.body) : String(req.body || "");
+  const payloadToInspect = `${url2} ${rawQuery} ${rawBody}`;
+  for (const sqliPattern of SQL_INJECTION_PATTERNS) {
+    if (sqliPattern.test(payloadToInspect)) {
+      logThreat(req, "sqli_payload", "blocked");
+      jailIp(ip, `SQL Injection signature detected`, 30);
+      return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Invalid characters or query syntax detected." });
+    }
+  }
+  for (const xssPattern of XSS_PATTERNS) {
+    if (xssPattern.test(payloadToInspect)) {
+      logThreat(req, "xss_payload", "blocked");
+      return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Script injection tags detected." });
+    }
+  }
+  if (url2.includes("/login") || url2.includes("/verify-otp") || url2.includes("/send-otp")) {
+    const authLimit = authRateLimitMap.get(ip);
+    if (!authLimit || now > authLimit.resetAt) {
+      authRateLimitMap.set(ip, { count: 1, resetAt: now + 6e4 });
+    } else {
+      authLimit.count += 1;
+      if (authLimit.count > 20) {
+        logThreat(req, "rate_limit_exceeded", "jailed");
+        jailIp(ip, "Exceeded authentication rate limit", 15);
+        return res.status(429).json({
+          error: "TOO_MANY_REQUESTS",
+          message: "Too many login attempts. Please wait 15 minutes before retrying."
+        });
+      }
+    }
+  }
+  if (url2.startsWith("/api/")) {
+    const generalLimit = rateLimitMap.get(ip);
+    if (!generalLimit || now > generalLimit.resetAt) {
+      rateLimitMap.set(ip, { count: 1, resetAt: now + 6e4 });
+    } else {
+      generalLimit.count += 1;
+      if (generalLimit.count > 250) {
+        logThreat(req, "rate_limit_exceeded", "blocked");
+        return res.status(429).json({
+          error: "RATE_LIMIT_EXCEEDED",
+          message: "Rate limit exceeded. Please slow down your requests."
+        });
+      }
+    }
+  }
+  next();
+}
+function getSecurityShieldStatus() {
+  return {
+    status: "active",
+    activeJailedIpsCount: ipJailMap.size,
+    jailedIps: Array.from(ipJailMap.entries()).map(([ip, data]) => ({
+      ip,
+      expiresInMinutes: Math.max(0, Math.ceil((data.expiresAt - Date.now()) / 6e4)),
+      violations: data.violations,
+      reason: data.reason
+    })),
+    recentThreatsCount: recentThreatLogs.length,
+    recentThreats: recentThreatLogs.slice(0, 30)
+  };
+}
+function unbanJailedIp(ip) {
+  return ipJailMap.delete(ip);
+}
+var import_crypto, recentThreatLogs, ipJailMap, rateLimitMap, authRateLimitMap, usedNoncesMap, MALICIOUS_USER_AGENTS, BLOCKED_PATH_PATTERNS, SQL_INJECTION_PATTERNS, XSS_PATTERNS;
+var init_security_shield = __esm({
+  "server/security-shield.ts"() {
+    "use strict";
+    import_crypto = __toESM(require("crypto"), 1);
+    recentThreatLogs = [];
+    ipJailMap = /* @__PURE__ */ new Map();
+    rateLimitMap = /* @__PURE__ */ new Map();
+    authRateLimitMap = /* @__PURE__ */ new Map();
+    usedNoncesMap = /* @__PURE__ */ new Map();
+    setInterval(() => {
+      const now = Date.now();
+      for (const [ip, data] of ipJailMap.entries()) {
+        if (now > data.expiresAt) {
+          ipJailMap.delete(ip);
+        }
+      }
+      for (const [nonce, expiresAt] of usedNoncesMap.entries()) {
+        if (now > expiresAt) {
+          usedNoncesMap.delete(nonce);
+        }
+      }
+    }, 6e4);
+    MALICIOUS_USER_AGENTS = [
+      /sqlmap/i,
+      /nikto/i,
+      /acunetix/i,
+      /nmap/i,
+      /masscan/i,
+      /wpscan/i,
+      /dirbuster/i,
+      /gobuster/i,
+      /hydra/i,
+      /burpcollaborator/i,
+      /metasploit/i,
+      /zgrab/i,
+      /censys/i,
+      /shodan/i,
+      /havij/i,
+      /pangolin/i,
+      /openvas/i,
+      /nessus/i,
+      /netsparker/i,
+      /qualys/i
+    ];
+    BLOCKED_PATH_PATTERNS = [
+      /\/\.env/i,
+      /\/\.git/i,
+      /\/\.aws/i,
+      /\/\.ssh/i,
+      /\/wp-login\.php/i,
+      /\/wp-admin/i,
+      /\/xmlrpc\.php/i,
+      /\/phpmyadmin/i,
+      /\/pma/i,
+      /\/adminer/i,
+      /\/eval-stdin\.php/i,
+      /\/cgi-bin\//i,
+      /\/etc\/passwd/i,
+      /\/proc\/self/i,
+      /\/\.\.\//,
+      // Path traversal ../
+      /\/\.well-known\/security\.txt/i
+    ];
+    SQL_INJECTION_PATTERNS = [
+      /(\bunion\b\s+(all\s+)?\bselect\b)/i,
+      /(\bselect\b.+\bfrom\b\s+information_schema)/i,
+      /(\bwaitfor\b\s+\bdelay\b)/i,
+      /(\bbenchmark\b\s*\()/i,
+      /(\bexec\b\s*\(|\bexecute\b\s*\()/i,
+      /('|\b)\s*or\s+'?1'?\s*=\s*'?1/i,
+      /('|\b)\s*or\s+'?x'?\s*=\s*'?x/i,
+      /(\/\*.*\*\/)/
+      // Block SQL multi-line comments
+    ];
+    XSS_PATTERNS = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i,
+      /javascript\s*:/i,
+      /\bonerror\s*=\s*/i,
+      /\bonload\s*=\s*/i,
+      /\beval\s*\(/i
+    ];
+  }
+});
+
 // node_modules/media-typer/index.js
 var require_media_typer = __commonJS({
   "node_modules/media-typer/index.js"(exports2) {
@@ -13247,10 +13471,10 @@ var require_disk = __commonJS({
     var fs5 = require("fs");
     var os2 = require("os");
     var path5 = require("path");
-    var crypto4 = require("crypto");
+    var crypto5 = require("crypto");
     var mkdirp = require_mkdirp();
     function getFilename(req, file, cb) {
-      crypto4.randomBytes(16, function(err, raw) {
+      crypto5.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -30813,7 +31037,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "node_modules/pg/lib/crypto/sasl.js"(exports2, module2) {
     "use strict";
-    var crypto4 = require_utils3();
+    var crypto5 = require_utils3();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function startSession(mechanisms, stream4) {
       const candidates = ["SCRAM-SHA-256"];
@@ -30825,7 +31049,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream4.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto4.randomBytes(18).toString("base64");
+      const clientNonce = crypto5.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream4 ? "y" : "n";
       return {
         mechanism,
@@ -30860,20 +31084,20 @@ var require_sasl = __commonJS({
         const peerCert = stream4.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto4.hashByName(hashName, peerCert);
+        const certHash = await crypto5.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto4.deriveKey(password, saltBytes, sv.iteration);
-      const clientKey = await crypto4.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto4.sha256(clientKey);
-      const clientSignature = await crypto4.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto5.deriveKey(password, saltBytes, sv.iteration);
+      const clientKey = await crypto5.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto5.sha256(clientKey);
+      const clientSignature = await crypto5.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto4.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto4.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto5.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto5.hmacSha256(serverKey, authMessage);
       session2.message = "SASLResponse";
       session2.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session2.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -33009,7 +33233,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults3 = require_defaults();
     var Connection2 = require_connection();
-    var crypto4 = require_utils3();
+    var crypto5 = require_utils3();
     var Client2 = class extends EventEmitter2 {
       constructor(config) {
         super();
@@ -33204,7 +33428,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._checkPgPass(async () => {
           try {
-            const hashedPassword = await crypto4.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto5.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -37180,7 +37404,7 @@ var require_form_data = __commonJS({
     var parseUrl = require("url").parse;
     var fs5 = require("fs");
     var Stream = require("stream").Stream;
-    var crypto4 = require("crypto");
+    var crypto5 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
@@ -37386,7 +37610,7 @@ var require_form_data = __commonJS({
       return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
     };
     FormData5.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto4.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto5.randomBytes(12).toString("hex");
     };
     FormData5.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -37793,10 +38017,10 @@ var init_URLSearchParams = __esm({
 });
 
 // node_modules/axios/lib/platform/node/index.js
-var import_crypto, ALPHA, DIGIT, ALPHABET, generateString, node_default;
+var import_crypto2, ALPHA, DIGIT, ALPHABET, generateString, node_default;
 var init_node = __esm({
   "node_modules/axios/lib/platform/node/index.js"() {
-    import_crypto = __toESM(require("crypto"), 1);
+    import_crypto2 = __toESM(require("crypto"), 1);
     init_URLSearchParams();
     init_FormData();
     ALPHA = "abcdefghijklmnopqrstuvwxyz";
@@ -37810,7 +38034,7 @@ var init_node = __esm({
       let str = "";
       const { length } = alphabet;
       const randomValues = new Uint32Array(size);
-      import_crypto.default.randomFillSync(randomValues);
+      import_crypto2.default.randomFillSync(randomValues);
       for (let i = 0; i < size; i++) {
         str += alphabet[randomValues[i] % length];
       }
@@ -44395,7 +44619,7 @@ var require_form_data2 = __commonJS({
     var https2 = require("https");
     var parseUrl = require("url").parse;
     var fs5 = require("fs");
-    var crypto4 = require("crypto");
+    var crypto5 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var hasOwn = require_hasown();
@@ -44604,7 +44828,7 @@ var require_form_data2 = __commonJS({
       return Buffer2.concat([dataBuffer, Buffer2.from(this._lastBoundary())]);
     };
     FormData5.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto4.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto5.randomBytes(12).toString("hex");
     };
     FormData5.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -52161,7 +52385,7 @@ async function verifyDepositViaBinance(txId, networkType, walletAddress) {
     }
     const timestamp2 = Date.now();
     const queryStr = `coin=USDT&timestamp=${timestamp2}`;
-    const signature = import_crypto2.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -52226,7 +52450,7 @@ async function verifyBinancePaymentLive(orderOrTxId, expectedAmount) {
   try {
     const timestamp2 = Date.now();
     const queryStr = `timestamp=${timestamp2}`;
-    const signature = import_crypto2.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -52249,7 +52473,7 @@ async function verifyBinancePaymentLive(orderOrTxId, expectedAmount) {
   try {
     const timestamp2 = Date.now();
     const queryStr = `coin=USDT&status=1&timestamp=${timestamp2}`;
-    const signature = import_crypto2.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -52796,8 +53020,8 @@ async function registerRoutes(httpServer2, app2, io2) {
       const hash = urlParams.get("hash");
       urlParams.delete("hash");
       const sortedParams = Array.from(urlParams.entries()).map(([key, value]) => `${key}=${value}`).sort().join("\n");
-      const secretKey = import_crypto2.default.createHmac("sha256", "WebAppData").update(botToken).digest();
-      const calculatedHash = import_crypto2.default.createHmac("sha256", secretKey).update(sortedParams).digest("hex");
+      const secretKey = import_crypto3.default.createHmac("sha256", "WebAppData").update(botToken).digest();
+      const calculatedHash = import_crypto3.default.createHmac("sha256", secretKey).update(sortedParams).digest("hex");
       if (calculatedHash !== hash) {
         return res.status(401).json({ message: "Invalid Telegram authentication hash" });
       }
@@ -53535,7 +53759,7 @@ ${extraInstructions}
       const orderId2 = `DEP_${Date.now()}_${Math.floor(Math.random() * 1e3)}`;
       const baseUrl = await getAppBaseUrl();
       const callbackUrl = `${baseUrl}/api/payments/webhook`;
-      const sign = import_crypto2.default.createHash("md5").update(Buffer.from(JSON.stringify({
+      const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify({
         amount: numAmount.toFixed(2),
         currency: "USD",
         order_id: orderId2,
@@ -53585,7 +53809,7 @@ ${extraInstructions}
       if (!telegramUserId) {
         return res.status(400).json({ message: "telegramUserId is required" });
       }
-      const keyStr = "ric_" + import_crypto2.default.randomBytes(20).toString("hex");
+      const keyStr = "ric_" + import_crypto3.default.randomBytes(20).toString("hex");
       const created = await storage.createApiKey(Number(telegramUserId), keyStr);
       res.json(created);
     } catch (err) {
@@ -54915,7 +55139,7 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
           );
         }
         await tx.update(telegramUsers).set({ balance: sql`${telegramUsers.balance} - ${totalCents}` }).where(eq(telegramUsers.id, user.id));
-        const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${import_crypto2.default.randomBytes(6).toString("hex")}`;
+        const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${import_crypto3.default.randomBytes(6).toString("hex")}`;
         let partnerOrderRes = null;
         try {
           partnerOrderRes = await SandromaniaService.createOrder(
@@ -55165,6 +55389,24 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
       res.json(result);
     } catch (err) {
       res.status(500).json({ message: err.message || "Failed to configure admin subdomain" });
+    }
+  });
+  app2.get("/api/admin/security-shield/status", isAuth, (req, res) => {
+    try {
+      const status = getSecurityShieldStatus();
+      res.json(status);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to get security status" });
+    }
+  });
+  app2.post("/api/admin/security-shield/unban", isAuth, (req, res) => {
+    try {
+      const { ip } = req.body;
+      if (!ip) return res.status(400).json({ message: "IP address is required" });
+      const unbanned = unbanJailedIp(ip.trim());
+      res.json({ success: true, unbanned, message: `IP ${ip} unbanned successfully` });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to unban IP" });
     }
   });
   app2.post("/api/admin/audit-and-fix", isAuth, async (req, res) => {
@@ -58100,7 +58342,7 @@ ${createdDateStr}
         if (existingPending) {
           return targetBot2.sendMessage(chatId, `\u26A0\uFE0F You already have a pending $${amount} payment. Please pay that one first or wait for it to expire (1 hour).`);
         }
-        const sign = import_crypto2.default.createHash("md5").update(Buffer.from(JSON.stringify({
+        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify({
           amount: amount.toString(),
           currency: "USD",
           order_id: orderId,
@@ -58198,7 +58440,7 @@ You must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b
         return;
       }
       try {
-        const orderId2 = "bep20_" + import_crypto2.default.randomBytes(8).toString("hex");
+        const orderId2 = "bep20_" + import_crypto3.default.randomBytes(8).toString("hex");
         const baseUrl = await getAppBaseUrl();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
@@ -58209,7 +58451,7 @@ You must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b
           order_id: orderId2,
           url_callback: callbackUrl
         };
-        const sign = import_crypto2.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment", payload, {
           headers: {
             "merchant": merchantId,
@@ -58275,7 +58517,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         if (orderId2) payload.order_id = orderId2;
         if (!uuid2 && !orderId2) return null;
         const serialized = JSON.stringify(payload);
-        const sign = import_crypto2.default.createHash("md5").update(Buffer.from(serialized).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(serialized).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment/info", payload, {
           headers: {
             "merchant": merchantId,
@@ -58307,7 +58549,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         if (txid && !txid.startsWith("0x") && txid.length > 20) {
           queryString += `&txId=${encodeURIComponent(txid.trim())}`;
         }
-        const signature = import_crypto2.default.createHmac("sha256", apiSecret).update(queryString).digest("hex");
+        const signature = import_crypto3.default.createHmac("sha256", apiSecret).update(queryString).digest("hex");
         const fullUrl = `https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryString}&signature=${signature}`;
         const response = await axios_default.get(fullUrl, {
           headers: { "X-MBX-APIKEY": apiKey }
@@ -58409,7 +58651,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         return;
       }
       try {
-        const orderId2 = "trc20_" + import_crypto2.default.randomBytes(8).toString("hex");
+        const orderId2 = "trc20_" + import_crypto3.default.randomBytes(8).toString("hex");
         const baseUrl = await getAppBaseUrl();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
@@ -58420,7 +58662,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
           order_id: orderId2,
           url_callback: callbackUrl
         };
-        const sign = import_crypto2.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment", payload, {
           headers: {
             "merchant": merchantId,
@@ -58640,7 +58882,7 @@ You exceeded maximum allowed requests (${timestamps.length}/${maxReqPerMin} per 
           return;
         }
         if (data === "create_api_key") {
-          const newKeyStr = "ric_" + import_crypto2.default.randomBytes(20).toString("hex");
+          const newKeyStr = "ric_" + import_crypto3.default.randomBytes(20).toString("hex");
           await storage.createApiKey(tgUser.id, newKeyStr);
           await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
           return;
@@ -62053,7 +62295,7 @@ Please notify the admin to configure BINANCE_API_KEY in Admin Settings or contac
             try {
               const timestamp2 = Date.now();
               const queryStr = `timestamp=${timestamp2}`;
-              const signature = import_crypto2.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+              const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
               const res = await axios_default.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
                 headers: {
                   "X-MBX-APIKEY": apiKey,
@@ -63347,8 +63589,8 @@ Or tap <b>Catalog</b> below to browse products.</blockquote>`,
       }
       const rawStr = JSON.stringify(data);
       const escapedStr = rawStr.replace(/\//g, "\\/");
-      const sign1 = import_crypto2.default.createHash("md5").update(Buffer.from(rawStr).toString("base64") + apiKey).digest("hex");
-      const sign2 = import_crypto2.default.createHash("md5").update(Buffer.from(escapedStr).toString("base64") + apiKey).digest("hex");
+      const sign1 = import_crypto3.default.createHash("md5").update(Buffer.from(rawStr).toString("base64") + apiKey).digest("hex");
+      const sign2 = import_crypto3.default.createHash("md5").update(Buffer.from(escapedStr).toString("base64") + apiKey).digest("hex");
       if (sign1 !== sign && sign2 !== sign) {
         console.warn("[Cryptomus Webhook] Signature verification mismatch.", { sign1, sign2, sign });
         return res.status(400).json({ message: "Invalid signature" });
@@ -63438,8 +63680,8 @@ Or tap <b>Catalog</b> below to browse products.</blockquote>`,
         return res.status(400).json({ message: "Missing signature header" });
       }
       const rawBody = req.rawBody ? req.rawBody.toString("utf-8") : typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-      const secret = import_crypto2.default.createHash("sha256").update(apiToken).digest();
-      const checkSignature = import_crypto2.default.createHmac("sha256", secret).update(rawBody).digest("hex");
+      const secret = import_crypto3.default.createHash("sha256").update(apiToken).digest();
+      const checkSignature = import_crypto3.default.createHmac("sha256", secret).update(rawBody).digest("hex");
       if (checkSignature !== signature) {
         console.warn("[CryptoBot Webhook] Signature verification failed.");
         return res.status(400).json({ message: "Invalid signature" });
@@ -63847,7 +64089,7 @@ Your support request regarding <b>${escapeHTML3(updated.issueType)}</b> has been
   initAdminBotController().catch((err) => console.error("Admin bot setup failed:", err));
   return httpServer2;
 }
-var import_express2, import_path3, import_fs2, import_multer, import_node_telegram_bot_api3, import_crypto2, import_form_data3, import_bcryptjs2, import_express_session, import_connect_pg_simple, autoFulfillFn, triggerAutoFulfillPreorders, formatSriLankaTime, customerOtpStore, activeSpecialOfferTimers, storage_disk, upload;
+var import_express2, import_path3, import_fs2, import_multer, import_node_telegram_bot_api3, import_crypto3, import_form_data3, import_bcryptjs2, import_express_session, import_connect_pg_simple, autoFulfillFn, triggerAutoFulfillPreorders, formatSriLankaTime, customerOtpStore, activeSpecialOfferTimers, storage_disk, upload;
 var init_routes2 = __esm({
   "server/routes.ts"() {
     "use strict";
@@ -63862,6 +64104,7 @@ var init_routes2 = __esm({
     init_n1panel_service();
     init_sandromania_service();
     init_domain_automation_service();
+    init_security_shield();
     init_routes();
     init_api_v1();
     init_openapi();
@@ -63869,7 +64112,7 @@ var init_routes2 = __esm({
     init_aws_service();
     init_backup_service();
     import_node_telegram_bot_api3 = __toESM(require("node-telegram-bot-api"), 1);
-    import_crypto2 = __toESM(require("crypto"), 1);
+    import_crypto3 = __toESM(require("crypto"), 1);
     init_axios2();
     import_form_data3 = __toESM(require_form_data2(), 1);
     init_push_notifications();
@@ -63930,6 +64173,7 @@ var init_routes2 = __esm({
 // server/index.ts
 var import_config = require("dotenv/config");
 var import_express4 = __toESM(require("express"), 1);
+init_security_shield();
 init_routes2();
 
 // server/static.ts
@@ -63984,6 +64228,7 @@ app.use(
   })
 );
 app.use(import_express4.default.urlencoded({ extended: false }));
+app.use(securityShieldMiddleware);
 app.use((req, res, next) => {
   const start = Date.now();
   const path5 = req.path;

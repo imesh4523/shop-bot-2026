@@ -13,6 +13,7 @@ import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { domainAutomationService } from "./domain-automation-service";
+import { getSecurityShieldStatus, unbanJailedIp } from "./security-shield";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
@@ -3853,6 +3854,28 @@ app.post("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to configure admin subdomain" });
+  }
+});
+
+// 14. Live Cybersecurity Shield Status & Threat Logs
+app.get("/api/admin/security-shield/status", isAuth, (req, res) => {
+  try {
+    const status = getSecurityShieldStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to get security status" });
+  }
+});
+
+// 15. Unban Jailed IP
+app.post("/api/admin/security-shield/unban", isAuth, (req, res) => {
+  try {
+    const { ip } = req.body;
+    if (!ip) return res.status(400).json({ message: "IP address is required" });
+    const unbanned = unbanJailedIp(ip.trim());
+    res.json({ success: true, unbanned, message: `IP ${ip} unbanned successfully` });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to unban IP" });
   }
 });
 
