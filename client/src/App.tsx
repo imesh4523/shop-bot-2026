@@ -35,6 +35,7 @@ import ApiDocsPage from "@/pages/api-docs-page";
 import AdminApiKeysPage from "@/pages/admin-api-keys-page";
 import N1PanelPage from "@/pages/n1panel-page";
 import SandromaniaPage from "@/pages/sandromania-page";
+import DomainAutomationPage from "@/pages/domain-automation-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -109,6 +110,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/api-keys">
         <ProtectedRoute component={AdminApiKeysPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/domain-automation">
+        <ProtectedRoute component={DomainAutomationPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/customer-tracker">

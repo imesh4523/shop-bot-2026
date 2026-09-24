@@ -12,6 +12,7 @@ import { db, pool } from "./db";
 import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
 import { SandromaniaService } from "./sandromania-service";
+import { domainAutomationService } from "./domain-automation-service";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
@@ -3634,6 +3635,187 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
     res.json(ordersList);
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// --- Domain Automation (Cloudflare & Resend Auto-Config) API Routes ---
+// 1. Get Domain Automation Settings
+app.get("/api/admin/domain-automation/settings", isAuth, async (req, res) => {
+  try {
+    const cloudflareToken = (await storage.getSetting("CLOUDFLARE_API_TOKEN"))?.value || "";
+    const cloudflareEmail = (await storage.getSetting("CLOUDFLARE_EMAIL"))?.value || "";
+    const cloudflareGlobalKey = (await storage.getSetting("CLOUDFLARE_GLOBAL_KEY"))?.value || "";
+    const resendApiKey = (await storage.getSetting("RESEND_API_KEY"))?.value || "";
+    const resendFromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || "Shopeefy <onboarding@resend.dev>";
+    const targetServerIp = await domainAutomationService.getServerIp();
+    const lastDomain = (await storage.getSetting("LAST_AUTOMATED_DOMAIN"))?.value || "youuhost.com";
+    const apiBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `https://api.${lastDomain}`;
+
+    res.json({
+      cloudflareToken,
+      cloudflareEmail,
+      cloudflareGlobalKey,
+      resendApiKey,
+      resendFromEmail,
+      targetServerIp,
+      lastDomain,
+      apiBaseUrl,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load domain automation settings" });
+  }
+});
+
+// 2. Save Domain Automation Settings
+app.post("/api/admin/domain-automation/settings", isAuth, async (req, res) => {
+  try {
+    const {
+      cloudflareToken,
+      cloudflareEmail,
+      cloudflareGlobalKey,
+      resendApiKey,
+      resendFromEmail,
+      targetServerIp,
+      lastDomain,
+    } = req.body;
+
+    if (cloudflareToken !== undefined) await storage.setSetting("CLOUDFLARE_API_TOKEN", cloudflareToken.trim());
+    if (cloudflareEmail !== undefined) await storage.setSetting("CLOUDFLARE_EMAIL", cloudflareEmail.trim());
+    if (cloudflareGlobalKey !== undefined) await storage.setSetting("CLOUDFLARE_GLOBAL_KEY", cloudflareGlobalKey.trim());
+    if (resendApiKey !== undefined) await storage.setSetting("RESEND_API_KEY", resendApiKey.trim());
+    if (resendFromEmail !== undefined) await storage.setSetting("RESEND_FROM_EMAIL", resendFromEmail.trim());
+    if (targetServerIp !== undefined) await storage.setSetting("SERVER_TARGET_IP", targetServerIp.trim());
+    if (lastDomain !== undefined) {
+      await storage.setSetting("LAST_AUTOMATED_DOMAIN", lastDomain.trim().toLowerCase());
+      await storage.setSetting("API_BASE_URL", `https://api.${lastDomain.trim().toLowerCase()}`);
+    }
+
+    res.json({ success: true, message: "Domain automation settings saved successfully!" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save domain automation settings" });
+  }
+});
+
+// 3. List Cloudflare Zones
+app.get("/api/admin/domain-automation/cloudflare/zones", isAuth, async (req, res) => {
+  try {
+    const zones = await domainAutomationService.listCloudflareZones();
+    res.json(zones);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch Cloudflare zones" });
+  }
+});
+
+// 4. List DNS Records for a Zone
+app.get("/api/admin/domain-automation/cloudflare/records", isAuth, async (req, res) => {
+  try {
+    const { zoneId } = req.query;
+    if (!zoneId) return res.status(400).json({ message: "Zone ID is required" });
+    const records = await domainAutomationService.listDnsRecords(zoneId as string);
+    res.json(records);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch DNS records" });
+  }
+});
+
+// 5. Create or Update DNS Record
+app.post("/api/admin/domain-automation/cloudflare/record", isAuth, async (req, res) => {
+  try {
+    const { zoneId, record } = req.body;
+    if (!zoneId || !record) return res.status(400).json({ message: "Zone ID and record are required" });
+    const result = await domainAutomationService.createOrUpdateDnsRecord(zoneId, record);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save DNS record" });
+  }
+});
+
+// 6. Delete DNS Record
+app.delete("/api/admin/domain-automation/cloudflare/record", isAuth, async (req, res) => {
+  try {
+    const { zoneId, recordId } = req.body;
+    if (!zoneId || !recordId) return res.status(400).json({ message: "Zone ID and Record ID are required" });
+    await domainAutomationService.deleteDnsRecord(zoneId, recordId);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete DNS record" });
+  }
+});
+
+// 7. List Resend Domains
+app.get("/api/admin/domain-automation/resend/domains", isAuth, async (req, res) => {
+  try {
+    const domains = await domainAutomationService.listResendDomains();
+    res.json(domains);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to list Resend domains" });
+  }
+});
+
+// 8. Add Domain in Resend
+app.post("/api/admin/domain-automation/resend/domain", isAuth, async (req, res) => {
+  try {
+    const { name, region = "us-east-1" } = req.body;
+    if (!name) return res.status(400).json({ message: "Domain name is required" });
+    const domain = await domainAutomationService.createResendDomain(name, region);
+    res.json(domain);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to create Resend domain" });
+  }
+});
+
+// 9. Get Resend Domain Details
+app.get("/api/admin/domain-automation/resend/domain/:id", isAuth, async (req, res) => {
+  try {
+    const domain = await domainAutomationService.getResendDomain(req.params.id);
+    res.json(domain);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to get Resend domain details" });
+  }
+});
+
+// 10. Verify Resend Domain
+app.post("/api/admin/domain-automation/resend/verify", isAuth, async (req, res) => {
+  try {
+    const { domainId } = req.body;
+    if (!domainId) return res.status(400).json({ message: "Domain ID is required" });
+    const result = await domainAutomationService.verifyResendDomain(domainId);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to trigger domain verification" });
+  }
+});
+
+// 11. Send Test Email via Resend
+app.post("/api/admin/domain-automation/resend/test-email", isAuth, async (req, res) => {
+  try {
+    const { toEmail, fromEmail } = req.body;
+    if (!toEmail) return res.status(400).json({ message: "Recipient email is required" });
+    const result = await domainAutomationService.sendTestEmail(toEmail, fromEmail);
+    res.json({ success: true, message: `Test email sent to ${toEmail}!`, result });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to send test email" });
+  }
+});
+
+// 12. 🔥 Auto-Configure Everything (Cloudflare + Subdomain + Resend DNS Sync)
+app.post("/api/admin/domain-automation/auto-configure", isAuth, async (req, res) => {
+  try {
+    const { domainName, zoneId, subdomains, setupResend, proxyApiSubdomain } = req.body;
+    if (!domainName) return res.status(400).json({ message: "Domain name is required" });
+
+    const result = await domainAutomationService.autoConfigureDomain({
+      domainName,
+      zoneId,
+      subdomains,
+      setupResend,
+      proxyApiSubdomain,
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    console.error("[Auto-Configure Domain Error]:", err);
+    res.status(500).json({ message: err.message || "Failed to auto-configure domain" });
   }
 });
 

@@ -42511,6 +42511,297 @@ var init_sandromania_service = __esm({
   }
 });
 
+// server/domain-automation-service.ts
+var DomainAutomationService, domainAutomationService;
+var init_domain_automation_service = __esm({
+  "server/domain-automation-service.ts"() {
+    "use strict";
+    init_storage();
+    DomainAutomationService = class {
+      // Helpers to get credentials
+      async getCloudflareAuth() {
+        const token = (await storage.getSetting("CLOUDFLARE_API_TOKEN"))?.value || process.env.CLOUDFLARE_API_TOKEN || "";
+        const email = (await storage.getSetting("CLOUDFLARE_EMAIL"))?.value || process.env.CLOUDFLARE_EMAIL || "";
+        const globalKey = (await storage.getSetting("CLOUDFLARE_GLOBAL_KEY"))?.value || process.env.CLOUDFLARE_GLOBAL_KEY || "";
+        return { token, email, globalKey };
+      }
+      async getResendApiKey() {
+        return (await storage.getSetting("RESEND_API_KEY"))?.value || process.env.RESEND_API_KEY || "";
+      }
+      async getServerIp() {
+        const savedIp = (await storage.getSetting("SERVER_TARGET_IP"))?.value;
+        if (savedIp && savedIp.trim()) return savedIp.trim();
+        return "18.141.224.63";
+      }
+      // --- CLOUDFLARE API METHODS ---
+      async cfFetch(endpoint, options = {}) {
+        const { token, email, globalKey } = await this.getCloudflareAuth();
+        const headers = {
+          "Content-Type": "application/json"
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token.trim()}`;
+        } else if (email && globalKey) {
+          headers["X-Auth-Email"] = email.trim();
+          headers["X-Auth-Key"] = globalKey.trim();
+        } else {
+          throw new Error("Cloudflare credentials not configured. Please enter your API Token or Global Key.");
+        }
+        const res = await fetch(`https://api.cloudflare.com/client/v4${endpoint}`, {
+          ...options,
+          headers: { ...headers, ...options.headers }
+        });
+        const data = await res.json();
+        if (!res.ok || data.success === false) {
+          const errDetail = data.errors?.map((e) => e.message).join(", ") || res.statusText;
+          throw new Error(`Cloudflare API error: ${errDetail}`);
+        }
+        return data;
+      }
+      async listCloudflareZones() {
+        const data = await this.cfFetch("/zones?per_page=50");
+        return (data.result || []).map((z2) => ({
+          id: z2.id,
+          name: z2.name,
+          status: z2.status,
+          paused: z2.paused,
+          name_servers: z2.name_servers
+        }));
+      }
+      async listDnsRecords(zoneId) {
+        const data = await this.cfFetch(`/zones/${zoneId}/dns_records?per_page=100`);
+        return (data.result || []).map((r) => ({
+          id: r.id,
+          type: r.type,
+          name: r.name,
+          content: r.content,
+          proxiable: r.proxiable,
+          proxied: r.proxied,
+          ttl: r.ttl,
+          priority: r.priority,
+          comment: r.comment
+        }));
+      }
+      async createOrUpdateDnsRecord(zoneId, record) {
+        const existingRecords = await this.listDnsRecords(zoneId);
+        const recordNameLower = record.name.toLowerCase().trim();
+        const existing = existingRecords.find(
+          (r) => r.type.toUpperCase() === record.type.toUpperCase() && r.name.toLowerCase().trim() === recordNameLower
+        );
+        const body = {
+          type: record.type.toUpperCase(),
+          name: record.name,
+          content: record.content,
+          ttl: record.ttl || 1,
+          // 1 = Auto
+          proxied: !!record.proxied,
+          comment: record.comment || "Managed by Shopeefy Domain Automation"
+        };
+        if (record.priority !== void 0 && record.type.toUpperCase() === "MX") {
+          body.priority = record.priority;
+        }
+        if (existing && existing.id) {
+          return await this.cfFetch(`/zones/${zoneId}/dns_records/${existing.id}`, {
+            method: "PUT",
+            body: JSON.stringify(body)
+          });
+        } else {
+          return await this.cfFetch(`/zones/${zoneId}/dns_records`, {
+            method: "POST",
+            body: JSON.stringify(body)
+          });
+        }
+      }
+      async deleteDnsRecord(zoneId, recordId) {
+        return await this.cfFetch(`/zones/${zoneId}/dns_records/${recordId}`, {
+          method: "DELETE"
+        });
+      }
+      // --- RESEND API METHODS ---
+      async resendFetch(endpoint, options = {}) {
+        const apiKey = await this.getResendApiKey();
+        if (!apiKey) {
+          throw new Error("Resend API Key not configured. Please enter your Resend API Key (starts with re_).");
+        }
+        const res = await fetch(`https://api.resend.com${endpoint}`, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey.trim()}`,
+            ...options.headers
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = data.message || data.error || res.statusText;
+          throw new Error(`Resend API error: ${err}`);
+        }
+        return data;
+      }
+      async listResendDomains() {
+        const data = await this.resendFetch("/domains");
+        return data.data || [];
+      }
+      async getResendDomain(domainId) {
+        return await this.resendFetch(`/domains/${domainId}`);
+      }
+      async createResendDomain(name, region = "us-east-1") {
+        return await this.resendFetch("/domains", {
+          method: "POST",
+          body: JSON.stringify({ name: name.trim().toLowerCase(), region })
+        });
+      }
+      async verifyResendDomain(domainId) {
+        return await this.resendFetch(`/domains/${domainId}/verify`, {
+          method: "POST"
+        });
+      }
+      async deleteResendDomain(domainId) {
+        return await this.resendFetch(`/domains/${domainId}`, {
+          method: "DELETE"
+        });
+      }
+      async sendTestEmail(toEmail, fromEmail) {
+        const savedFrom = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value;
+        const defaultFrom = fromEmail || savedFrom || "Shopeefy <onboarding@resend.dev>";
+        return await this.resendFetch("/emails", {
+          method: "POST",
+          body: JSON.stringify({
+            from: defaultFrom,
+            to: [toEmail.trim()],
+            subject: "\u{1F680} Shopeefy Cloudflare & Resend Test Email",
+            html: `
+          <div style="font-family: Arial, sans-serif; padding: 24px; background: #f9f9fc; border-radius: 12px;">
+            <h2 style="color: #6c5ce7; margin-bottom: 8px;">Domain & Email System Online!</h2>
+            <p style="color: #4b5563; line-height: 1.6;">
+              Congratulations! Your Resend.com and Cloudflare DNS automation is working perfectly.
+            </p>
+            <div style="background: white; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e5e7eb;">
+              <strong>Configured Sender:</strong> ${defaultFrom}<br />
+              <strong>Delivered To:</strong> ${toEmail}<br />
+              <strong>Timestamp:</strong> ${(/* @__PURE__ */ new Date()).toISOString()}
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 20px;">
+              Powered by Shopeefy Automated Domain & DNS Infrastructure.
+            </p>
+          </div>
+        `
+          })
+        });
+      }
+      // --- AUTOMATED 1-CLICK ALL-IN-ONE CONFIGURATION ---
+      async autoConfigureDomain(params) {
+        const cleanDomain = params.domainName.trim().toLowerCase();
+        const serverIp = await this.getServerIp();
+        const subdomainsToCreate = params.subdomains && params.subdomains.length > 0 ? params.subdomains : ["api"];
+        const results = [];
+        let zoneId = params.zoneId;
+        if (!zoneId) {
+          const zones = await this.listCloudflareZones();
+          const matched = zones.find(
+            (z2) => z2.name.toLowerCase() === cleanDomain || cleanDomain.endsWith(z2.name.toLowerCase())
+          );
+          if (!matched) {
+            throw new Error(
+              `Cloudflare Zone for "${cleanDomain}" not found. Please ensure the domain is added to your Cloudflare account.`
+            );
+          }
+          zoneId = matched.id;
+        }
+        for (const sub of subdomainsToCreate) {
+          const subClean = sub.trim().toLowerCase();
+          const fullName = subClean === "@" || subClean === "" ? cleanDomain : `${subClean}.${cleanDomain}`;
+          const isProxied = params.proxyApiSubdomain !== false;
+          try {
+            await this.createOrUpdateDnsRecord(zoneId, {
+              type: "A",
+              name: fullName,
+              content: serverIp,
+              proxied: isProxied,
+              ttl: 1,
+              comment: `Shopeefy ${subClean} endpoint`
+            });
+            results.push({
+              type: "A",
+              name: fullName,
+              content: `${serverIp} (${isProxied ? "Cloudflare Proxied \u{1F6E1}\uFE0F" : "DNS Only \u{1F310}"})`,
+              status: "configured"
+            });
+          } catch (err) {
+            results.push({
+              type: "A",
+              name: fullName,
+              content: serverIp,
+              status: `error: ${err.message}`
+            });
+          }
+        }
+        let resendStatus = "skipped";
+        if (params.setupResend !== false) {
+          try {
+            const apiKey = await this.getResendApiKey();
+            if (apiKey) {
+              const resendDomains = await this.listResendDomains();
+              let resendDomain = resendDomains.find((d) => d.name.toLowerCase() === cleanDomain);
+              if (!resendDomain) {
+                console.log(`[Resend Auto-Config] Creating domain ${cleanDomain} in Resend...`);
+                resendDomain = await this.createResendDomain(cleanDomain);
+              }
+              const domainDetails = await this.getResendDomain(resendDomain.id);
+              const recordsToSync = domainDetails.records || [];
+              for (const rec of recordsToSync) {
+                try {
+                  await this.createOrUpdateDnsRecord(zoneId, {
+                    type: rec.type,
+                    name: rec.name,
+                    content: rec.value,
+                    priority: rec.priority,
+                    proxied: false,
+                    ttl: 1,
+                    comment: `Resend Email ${rec.record || rec.type}`
+                  });
+                  results.push({
+                    type: rec.type,
+                    name: rec.name,
+                    content: rec.value.length > 50 ? `${rec.value.slice(0, 50)}...` : rec.value,
+                    status: "resend_dns_synced"
+                  });
+                } catch (err) {
+                  results.push({
+                    type: rec.type,
+                    name: rec.name,
+                    content: rec.value,
+                    status: `error: ${err.message}`
+                  });
+                }
+              }
+              await this.verifyResendDomain(resendDomain.id);
+              resendStatus = "synced_and_verification_requested";
+            }
+          } catch (err) {
+            console.warn("[Resend Auto-Sync Error]", err);
+            resendStatus = `failed: ${err.message}`;
+          }
+        }
+        const primaryApiSub = subdomainsToCreate.includes("api") ? `api.${cleanDomain}` : cleanDomain;
+        const apiBaseUrl = `https://${primaryApiSub}`;
+        await storage.setSetting("API_BASE_URL", apiBaseUrl);
+        await storage.setSetting("LAST_AUTOMATED_DOMAIN", cleanDomain);
+        return {
+          success: true,
+          domain: cleanDomain,
+          serverIp,
+          cloudflareZoneId: zoneId,
+          recordsCreated: results,
+          resendStatus,
+          apiBaseUrl
+        };
+      }
+    };
+    domainAutomationService = new DomainAutomationService();
+  }
+});
+
 // shared/routes.ts
 var errorSchemas, api;
 var init_routes = __esm({
@@ -54642,6 +54933,157 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
       res.status(500).json({ message: err.message || "Failed to fetch orders" });
     }
   });
+  app2.get("/api/admin/domain-automation/settings", isAuth, async (req, res) => {
+    try {
+      const cloudflareToken = (await storage.getSetting("CLOUDFLARE_API_TOKEN"))?.value || "";
+      const cloudflareEmail = (await storage.getSetting("CLOUDFLARE_EMAIL"))?.value || "";
+      const cloudflareGlobalKey = (await storage.getSetting("CLOUDFLARE_GLOBAL_KEY"))?.value || "";
+      const resendApiKey = (await storage.getSetting("RESEND_API_KEY"))?.value || "";
+      const resendFromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || "Shopeefy <onboarding@resend.dev>";
+      const targetServerIp = await domainAutomationService.getServerIp();
+      const lastDomain = (await storage.getSetting("LAST_AUTOMATED_DOMAIN"))?.value || "youuhost.com";
+      const apiBaseUrl = (await storage.getSetting("API_BASE_URL"))?.value || `https://api.${lastDomain}`;
+      res.json({
+        cloudflareToken,
+        cloudflareEmail,
+        cloudflareGlobalKey,
+        resendApiKey,
+        resendFromEmail,
+        targetServerIp,
+        lastDomain,
+        apiBaseUrl
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to load domain automation settings" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/settings", isAuth, async (req, res) => {
+    try {
+      const {
+        cloudflareToken,
+        cloudflareEmail,
+        cloudflareGlobalKey,
+        resendApiKey,
+        resendFromEmail,
+        targetServerIp,
+        lastDomain
+      } = req.body;
+      if (cloudflareToken !== void 0) await storage.setSetting("CLOUDFLARE_API_TOKEN", cloudflareToken.trim());
+      if (cloudflareEmail !== void 0) await storage.setSetting("CLOUDFLARE_EMAIL", cloudflareEmail.trim());
+      if (cloudflareGlobalKey !== void 0) await storage.setSetting("CLOUDFLARE_GLOBAL_KEY", cloudflareGlobalKey.trim());
+      if (resendApiKey !== void 0) await storage.setSetting("RESEND_API_KEY", resendApiKey.trim());
+      if (resendFromEmail !== void 0) await storage.setSetting("RESEND_FROM_EMAIL", resendFromEmail.trim());
+      if (targetServerIp !== void 0) await storage.setSetting("SERVER_TARGET_IP", targetServerIp.trim());
+      if (lastDomain !== void 0) {
+        await storage.setSetting("LAST_AUTOMATED_DOMAIN", lastDomain.trim().toLowerCase());
+        await storage.setSetting("API_BASE_URL", `https://api.${lastDomain.trim().toLowerCase()}`);
+      }
+      res.json({ success: true, message: "Domain automation settings saved successfully!" });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to save domain automation settings" });
+    }
+  });
+  app2.get("/api/admin/domain-automation/cloudflare/zones", isAuth, async (req, res) => {
+    try {
+      const zones = await domainAutomationService.listCloudflareZones();
+      res.json(zones);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to fetch Cloudflare zones" });
+    }
+  });
+  app2.get("/api/admin/domain-automation/cloudflare/records", isAuth, async (req, res) => {
+    try {
+      const { zoneId } = req.query;
+      if (!zoneId) return res.status(400).json({ message: "Zone ID is required" });
+      const records = await domainAutomationService.listDnsRecords(zoneId);
+      res.json(records);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to fetch DNS records" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/cloudflare/record", isAuth, async (req, res) => {
+    try {
+      const { zoneId, record } = req.body;
+      if (!zoneId || !record) return res.status(400).json({ message: "Zone ID and record are required" });
+      const result = await domainAutomationService.createOrUpdateDnsRecord(zoneId, record);
+      res.json({ success: true, result });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to save DNS record" });
+    }
+  });
+  app2.delete("/api/admin/domain-automation/cloudflare/record", isAuth, async (req, res) => {
+    try {
+      const { zoneId, recordId } = req.body;
+      if (!zoneId || !recordId) return res.status(400).json({ message: "Zone ID and Record ID are required" });
+      await domainAutomationService.deleteDnsRecord(zoneId, recordId);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to delete DNS record" });
+    }
+  });
+  app2.get("/api/admin/domain-automation/resend/domains", isAuth, async (req, res) => {
+    try {
+      const domains = await domainAutomationService.listResendDomains();
+      res.json(domains);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to list Resend domains" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/resend/domain", isAuth, async (req, res) => {
+    try {
+      const { name, region = "us-east-1" } = req.body;
+      if (!name) return res.status(400).json({ message: "Domain name is required" });
+      const domain = await domainAutomationService.createResendDomain(name, region);
+      res.json(domain);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to create Resend domain" });
+    }
+  });
+  app2.get("/api/admin/domain-automation/resend/domain/:id", isAuth, async (req, res) => {
+    try {
+      const domain = await domainAutomationService.getResendDomain(req.params.id);
+      res.json(domain);
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to get Resend domain details" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/resend/verify", isAuth, async (req, res) => {
+    try {
+      const { domainId } = req.body;
+      if (!domainId) return res.status(400).json({ message: "Domain ID is required" });
+      const result = await domainAutomationService.verifyResendDomain(domainId);
+      res.json({ success: true, result });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to trigger domain verification" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/resend/test-email", isAuth, async (req, res) => {
+    try {
+      const { toEmail, fromEmail } = req.body;
+      if (!toEmail) return res.status(400).json({ message: "Recipient email is required" });
+      const result = await domainAutomationService.sendTestEmail(toEmail, fromEmail);
+      res.json({ success: true, message: `Test email sent to ${toEmail}!`, result });
+    } catch (err) {
+      res.status(500).json({ message: err.message || "Failed to send test email" });
+    }
+  });
+  app2.post("/api/admin/domain-automation/auto-configure", isAuth, async (req, res) => {
+    try {
+      const { domainName, zoneId, subdomains, setupResend, proxyApiSubdomain } = req.body;
+      if (!domainName) return res.status(400).json({ message: "Domain name is required" });
+      const result = await domainAutomationService.autoConfigureDomain({
+        domainName,
+        zoneId,
+        subdomains,
+        setupResend,
+        proxyApiSubdomain
+      });
+      res.json(result);
+    } catch (err) {
+      console.error("[Auto-Configure Domain Error]:", err);
+      res.status(500).json({ message: err.message || "Failed to auto-configure domain" });
+    }
+  });
   app2.post("/api/admin/audit-and-fix", isAuth, async (req, res) => {
     try {
       const allUsers = await storage.getAllTelegramUsers();
@@ -63336,6 +63778,7 @@ var init_routes2 = __esm({
     init_storage();
     init_n1panel_service();
     init_sandromania_service();
+    init_domain_automation_service();
     init_routes();
     init_api_v1();
     init_openapi();
