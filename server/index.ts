@@ -121,6 +121,11 @@ async function startServer() {
     const { initPushNotifications } = await import("./push-notifications");
     await initPushNotifications();
 
+    // Init Store Mesh Federation Database
+    console.log("[SERVER] Initializing store mesh federation...");
+    const { initMeshDatabase } = await import("./mesh-service");
+    await initMeshDatabase();
+
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";

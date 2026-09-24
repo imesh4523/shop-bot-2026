@@ -13471,10 +13471,10 @@ var require_disk = __commonJS({
     var fs5 = require("fs");
     var os2 = require("os");
     var path5 = require("path");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var mkdirp = require_mkdirp();
     function getFilename(req, file, cb) {
-      crypto5.randomBytes(16, function(err, raw) {
+      crypto6.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -29138,6 +29138,9 @@ __export(schema_exports, {
   insertSmmOrderSchema: () => insertSmmOrderSchema,
   insertSmmServiceSchema: () => insertSmmServiceSchema,
   insertSpecialOfferSchema: () => insertSpecialOfferSchema,
+  insertStoreMeshLogSchema: () => insertStoreMeshLogSchema,
+  insertStoreMeshNodeSchema: () => insertStoreMeshNodeSchema,
+  insertStoreMeshPairCodeSchema: () => insertStoreMeshPairCodeSchema,
   insertSupportTicketSchema: () => insertSupportTicketSchema,
   insertTelegramUserSchema: () => insertTelegramUserSchema,
   insertUserSchema: () => insertUserSchema,
@@ -29169,12 +29172,15 @@ __export(schema_exports, {
   smmServicesRelations: () => smmServicesRelations,
   specialOffers: () => specialOffers2,
   specialOffersRelations: () => specialOffersRelations,
+  storeMeshLogs: () => storeMeshLogs,
+  storeMeshNodes: () => storeMeshNodes,
+  storeMeshPairCodes: () => storeMeshPairCodes,
   supportTickets: () => supportTickets,
   telegramUsers: () => telegramUsers,
   telegramUsersRelations: () => telegramUsersRelations,
   users: () => users2
 });
-var users2, insertUserSchema, products, credentials, telegramUsers, settings, payments, productsRelations, credentialsRelations, telegramUsersRelations, apiKeys2, apiKeysRelations, orders, referrals, ordersRelations, paymentsRelations, insertProductSchema, insertCredentialSchema, insertOrderSchema, insertTelegramUserSchema, insertPaymentSchema, insertApiKeySchema, broadcastChannels, broadcastMessages, insertBroadcastChannelSchema, insertBroadcastMessageSchema, pushSubscriptions, pushSubscriptionsRelations, insertPushSubscriptionSchema, reviews, insertReviewSchema, supportTickets, insertSupportTicketSchema, awsAccounts, awsActivities, awsAccountsRelations, awsActivitiesRelations, insertAwsAccountSchema, insertAwsActivitySchema, specialOffers2, specialOffersRelations, insertSpecialOfferSchema, backupConfigs, backupLogs, insertBackupConfigSchema, insertBackupLogSchema, promoCodes, promoCodeRedemptions, promoCodesRelations, promoCodeRedemptionsRelations, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, broadcastLogs, insertBroadcastLogSchema, preorders2, preordersRelations, insertPreorderSchema, smmServices, smmOrders, smmServicesRelations, smmOrdersRelations, insertSmmServiceSchema, insertSmmOrderSchema, sandromaniaProducts, sandromaniaOrders, sandromaniaProductsRelations, sandromaniaOrdersRelations, insertSandromaniaProductSchema, insertSandromaniaOrderSchema;
+var users2, insertUserSchema, products, credentials, telegramUsers, settings, payments, productsRelations, credentialsRelations, telegramUsersRelations, apiKeys2, apiKeysRelations, orders, referrals, ordersRelations, paymentsRelations, insertProductSchema, insertCredentialSchema, insertOrderSchema, insertTelegramUserSchema, insertPaymentSchema, insertApiKeySchema, broadcastChannels, broadcastMessages, insertBroadcastChannelSchema, insertBroadcastMessageSchema, pushSubscriptions, pushSubscriptionsRelations, insertPushSubscriptionSchema, reviews, insertReviewSchema, supportTickets, insertSupportTicketSchema, awsAccounts, awsActivities, awsAccountsRelations, awsActivitiesRelations, insertAwsAccountSchema, insertAwsActivitySchema, specialOffers2, specialOffersRelations, insertSpecialOfferSchema, backupConfigs, backupLogs, insertBackupConfigSchema, insertBackupLogSchema, promoCodes, promoCodeRedemptions, promoCodesRelations, promoCodeRedemptionsRelations, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, broadcastLogs, insertBroadcastLogSchema, preorders2, preordersRelations, insertPreorderSchema, smmServices, smmOrders, smmServicesRelations, smmOrdersRelations, insertSmmServiceSchema, insertSmmOrderSchema, sandromaniaProducts, sandromaniaOrders, sandromaniaProductsRelations, sandromaniaOrdersRelations, insertSandromaniaProductSchema, insertSandromaniaOrderSchema, storeMeshNodes, storeMeshPairCodes, storeMeshLogs, insertStoreMeshNodeSchema, insertStoreMeshPairCodeSchema, insertStoreMeshLogSchema;
 var init_schema2 = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -29664,6 +29670,47 @@ var init_schema2 = __esm({
     }));
     insertSandromaniaProductSchema = createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
     insertSandromaniaOrderSchema = createInsertSchema(sandromaniaOrders).omit({ id: true, createdAt: true });
+    storeMeshNodes = pgTable("store_mesh_nodes", {
+      id: serial("id").primaryKey(),
+      nodeName: text("node_name").notNull(),
+      nodeUrl: text("node_url").notNull(),
+      fingerprint: text("fingerprint").notNull(),
+      sharedSecret: text("shared_secret").notNull(),
+      authToken: text("auth_token").notNull(),
+      status: text("status").notNull().default("online"),
+      // online, offline, pending, error, revoked
+      description: text("description"),
+      syncCatalog: boolean("sync_catalog").notNull().default(true),
+      syncOrders: boolean("sync_orders").notNull().default(false),
+      priceMarkupPct: integer("price_markup_pct").notNull().default(0),
+      lastPingAt: timestamp("last_ping_at"),
+      lastSyncAt: timestamp("last_sync_at"),
+      latencyMs: integer("latency_ms").default(0),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    storeMeshPairCodes = pgTable("store_mesh_pair_codes", {
+      id: serial("id").primaryKey(),
+      code: text("code").unique().notNull(),
+      hostUrl: text("host_url").notNull(),
+      secretKey: text("secret_key").notNull(),
+      expiresAt: timestamp("expires_at").notNull(),
+      used: boolean("used").notNull().default(false),
+      createdAt: timestamp("created_at").defaultNow()
+    });
+    storeMeshLogs = pgTable("store_mesh_logs", {
+      id: serial("id").primaryKey(),
+      nodeId: integer("node_id"),
+      eventType: text("event_type").notNull(),
+      // handshake, ping, sync_catalog, forward_order, error, security_reject
+      message: text("message").notNull(),
+      ip: text("ip"),
+      detailsJson: text("details_json"),
+      createdAt: timestamp("created_at").defaultNow()
+    });
+    insertStoreMeshNodeSchema = createInsertSchema(storeMeshNodes).omit({ id: true, createdAt: true, updatedAt: true });
+    insertStoreMeshPairCodeSchema = createInsertSchema(storeMeshPairCodes).omit({ id: true, createdAt: true });
+    insertStoreMeshLogSchema = createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
   }
 });
 
@@ -31037,7 +31084,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "node_modules/pg/lib/crypto/sasl.js"(exports2, module2) {
     "use strict";
-    var crypto5 = require_utils3();
+    var crypto6 = require_utils3();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function startSession(mechanisms, stream4) {
       const candidates = ["SCRAM-SHA-256"];
@@ -31049,7 +31096,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream4.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto5.randomBytes(18).toString("base64");
+      const clientNonce = crypto6.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream4 ? "y" : "n";
       return {
         mechanism,
@@ -31084,20 +31131,20 @@ var require_sasl = __commonJS({
         const peerCert = stream4.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto5.hashByName(hashName, peerCert);
+        const certHash = await crypto6.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto5.deriveKey(password, saltBytes, sv.iteration);
-      const clientKey = await crypto5.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto5.sha256(clientKey);
-      const clientSignature = await crypto5.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto6.deriveKey(password, saltBytes, sv.iteration);
+      const clientKey = await crypto6.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto6.sha256(clientKey);
+      const clientSignature = await crypto6.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto5.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto5.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto6.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto6.hmacSha256(serverKey, authMessage);
       session2.message = "SASLResponse";
       session2.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session2.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -33233,7 +33280,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults3 = require_defaults();
     var Connection2 = require_connection();
-    var crypto5 = require_utils3();
+    var crypto6 = require_utils3();
     var Client2 = class extends EventEmitter2 {
       constructor(config) {
         super();
@@ -33428,7 +33475,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._checkPgPass(async () => {
           try {
-            const hashedPassword = await crypto5.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto6.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -37404,7 +37451,7 @@ var require_form_data = __commonJS({
     var parseUrl = require("url").parse;
     var fs5 = require("fs");
     var Stream = require("stream").Stream;
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
@@ -37610,7 +37657,7 @@ var require_form_data = __commonJS({
       return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
     };
     FormData5.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto5.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto6.randomBytes(12).toString("hex");
     };
     FormData5.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -43076,6 +43123,399 @@ var init_domain_automation_service = __esm({
   }
 });
 
+// server/mesh-service.ts
+var mesh_service_exports = {};
+__export(mesh_service_exports, {
+  connectToRemoteStore: () => connectToRemoteStore,
+  deleteMeshNode: () => deleteMeshNode,
+  generatePairCode: () => generatePairCode,
+  getAllMeshNodes: () => getAllMeshNodes,
+  getLocalFingerprint: () => getLocalFingerprint,
+  getMeshLogs: () => getMeshLogs,
+  handleIncomingHandshake: () => handleIncomingHandshake,
+  initMeshDatabase: () => initMeshDatabase,
+  logMeshEvent: () => logMeshEvent,
+  pingPeerNode: () => pingPeerNode,
+  sendSignedMeshRequest: () => sendSignedMeshRequest,
+  syncPeerCatalog: () => syncPeerCatalog,
+  updateMeshNode: () => updateMeshNode,
+  verifyIncomingMeshRequest: () => verifyIncomingMeshRequest
+});
+async function initMeshDatabase() {
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS store_mesh_nodes (
+        id SERIAL PRIMARY KEY,
+        node_name TEXT NOT NULL,
+        node_url TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        shared_secret TEXT NOT NULL,
+        auth_token TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'online',
+        description TEXT,
+        sync_catalog BOOLEAN NOT NULL DEFAULT TRUE,
+        sync_orders BOOLEAN NOT NULL DEFAULT FALSE,
+        price_markup_pct INTEGER NOT NULL DEFAULT 0,
+        last_ping_at TIMESTAMP,
+        last_sync_at TIMESTAMP,
+        latency_ms INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS store_mesh_pair_codes (
+        id SERIAL PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        host_url TEXT NOT NULL,
+        secret_key TEXT NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS store_mesh_logs (
+        id SERIAL PRIMARY KEY,
+        node_id INTEGER,
+        event_type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        ip TEXT,
+        details_json TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log("[MESH] store_mesh_nodes, pair_codes, logs verified/created");
+  } catch (err) {
+    console.error("[MESH] Failed to init mesh tables:", err);
+  }
+}
+function getLocalFingerprint() {
+  if (cachedLocalFingerprint) return cachedLocalFingerprint;
+  const machineSeed = process.env.SESSION_SECRET || "SHOPEEFY_ENTERPRISE_MESH_SEED_2026";
+  cachedLocalFingerprint = "MESH-" + import_crypto3.default.createHash("sha256").update(machineSeed).digest("hex").slice(0, 16).toUpperCase();
+  return cachedLocalFingerprint;
+}
+async function logMeshEvent(eventType, message2, nodeId, ip, details) {
+  try {
+    await db.insert(storeMeshLogs).values({
+      nodeId: nodeId || null,
+      eventType,
+      message: message2,
+      ip: ip || "internal",
+      detailsJson: details ? JSON.stringify(details) : null
+    });
+  } catch (err) {
+    console.error("[MESH LOG ERROR]", err);
+  }
+}
+async function generatePairCode(hostUrl) {
+  try {
+    await db.execute(sql`DELETE FROM store_mesh_pair_codes WHERE expires_at < NOW() OR used = TRUE`);
+  } catch (e) {
+  }
+  const rawRandom = import_crypto3.default.randomBytes(4).toString("hex").toUpperCase();
+  const code = `MESH-${rawRandom.slice(0, 4)}-${rawRandom.slice(4, 8)}`;
+  const secretKey = import_crypto3.default.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1e3);
+  const cleanHostUrl = hostUrl.replace(/\/+$/, "");
+  await db.insert(storeMeshPairCodes).values({
+    code,
+    hostUrl: cleanHostUrl,
+    secretKey,
+    expiresAt,
+    used: false
+  });
+  const connectString = `${cleanHostUrl}|${code}`;
+  await logMeshEvent("pair_code_generated", `Generated pair code ${code} valid for 15 mins`, null, "admin", { hostUrl: cleanHostUrl, code });
+  return {
+    code,
+    hostUrl: cleanHostUrl,
+    expiresAt,
+    connectString
+  };
+}
+async function handleIncomingHandshake(data) {
+  const { code, clientUrl, clientName, clientFingerprint, clientChallenge, ip } = data;
+  if (!code || !clientUrl || !clientFingerprint) {
+    await logMeshEvent("security_reject", "Handshake rejected: missing required handshake parameters", null, ip);
+    throw new Error("Missing required handshake parameters");
+  }
+  const [pairRecord] = await db.select().from(storeMeshPairCodes).where(and(eq(storeMeshPairCodes.code, code.toUpperCase().trim()), eq(storeMeshPairCodes.used, false)));
+  if (!pairRecord) {
+    await logMeshEvent("security_reject", `Handshake rejected: Invalid or already used pair code ${code}`, null, ip);
+    throw new Error("Invalid or expired pair code");
+  }
+  if (/* @__PURE__ */ new Date() > new Date(pairRecord.expiresAt)) {
+    await logMeshEvent("security_reject", `Handshake rejected: Expired pair code ${code}`, null, ip);
+    throw new Error("Pair code has expired. Please generate a fresh code.");
+  }
+  await db.update(storeMeshPairCodes).set({ used: true }).where(eq(storeMeshPairCodes.id, pairRecord.id));
+  const sharedSecret = import_crypto3.default.randomBytes(32).toString("hex");
+  const authToken = "MTK_" + import_crypto3.default.randomBytes(24).toString("hex");
+  const [existingNode] = await db.select().from(storeMeshNodes).where(eq(storeMeshNodes.fingerprint, clientFingerprint));
+  let savedNodeId;
+  if (existingNode) {
+    await db.update(storeMeshNodes).set({
+      nodeName: clientName || existingNode.nodeName,
+      nodeUrl: clientUrl.replace(/\/+$/, ""),
+      sharedSecret,
+      authToken,
+      status: "online",
+      lastPingAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(storeMeshNodes.id, existingNode.id));
+    savedNodeId = existingNode.id;
+  } else {
+    const [inserted] = await db.insert(storeMeshNodes).values({
+      nodeName: clientName || `Store Peer (${clientFingerprint.slice(0, 8)})`,
+      nodeUrl: clientUrl.replace(/\/+$/, ""),
+      fingerprint: clientFingerprint,
+      sharedSecret,
+      authToken,
+      status: "online",
+      description: `Paired via Host Code ${code}`,
+      syncCatalog: true,
+      syncOrders: false,
+      priceMarkupPct: 0,
+      lastPingAt: /* @__PURE__ */ new Date()
+    }).returning();
+    savedNodeId = inserted.id;
+  }
+  await logMeshEvent("handshake_success", `Successfully paired with incoming peer store [${clientName || clientFingerprint}]`, savedNodeId, ip, {
+    clientUrl,
+    clientFingerprint
+  });
+  return {
+    success: true,
+    nodeName: "Host Shopeefy Store",
+    serverUrl: pairRecord.hostUrl,
+    fingerprint: getLocalFingerprint(),
+    sharedSecret,
+    authToken
+  };
+}
+async function connectToRemoteStore(params) {
+  const cleanRemoteUrl = params.remoteUrl.trim().replace(/\/+$/, "");
+  const cleanCode = params.pairCode.trim().toUpperCase();
+  const cleanMyUrl = params.myServerUrl.trim().replace(/\/+$/, "");
+  const clientFingerprint = getLocalFingerprint();
+  const clientChallenge = import_crypto3.default.randomBytes(16).toString("hex");
+  const handshakeEndpoint = `${cleanRemoteUrl}/api/mesh/handshake/initiate`;
+  let response;
+  try {
+    response = await axios_default.post(
+      handshakeEndpoint,
+      {
+        code: cleanCode,
+        clientUrl: cleanMyUrl,
+        clientName: params.nodeName || "Shopeefy Client Store",
+        clientFingerprint,
+        clientChallenge
+      },
+      {
+        timeout: 1e4,
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "ShopeefyMeshEngine/2.0"
+        }
+      }
+    );
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.message || "Failed to reach remote store";
+    await logMeshEvent("handshake_failed", `Failed to connect to remote store ${cleanRemoteUrl}: ${errorMsg}`, null, "internal");
+    throw new Error(`Connection to peer failed: ${errorMsg}`);
+  }
+  const { success, nodeName: remoteName, fingerprint: remoteFingerprint, sharedSecret, authToken } = response.data;
+  if (!success || !sharedSecret || !remoteFingerprint) {
+    throw new Error("Remote peer returned an invalid handshake response");
+  }
+  const [existing] = await db.select().from(storeMeshNodes).where(eq(storeMeshNodes.fingerprint, remoteFingerprint));
+  let savedNode;
+  if (existing) {
+    const [updated] = await db.update(storeMeshNodes).set({
+      nodeName: params.nodeName || remoteName || existing.nodeName,
+      nodeUrl: cleanRemoteUrl,
+      sharedSecret,
+      authToken,
+      status: "online",
+      description: params.description || existing.description,
+      syncCatalog: params.syncCatalog ?? existing.syncCatalog,
+      syncOrders: params.syncOrders ?? existing.syncOrders,
+      priceMarkupPct: params.priceMarkupPct ?? existing.priceMarkupPct,
+      lastPingAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(storeMeshNodes.id, existing.id)).returning();
+    savedNode = updated;
+  } else {
+    const [inserted] = await db.insert(storeMeshNodes).values({
+      nodeName: params.nodeName || remoteName || `Remote Peer (${cleanRemoteUrl})`,
+      nodeUrl: cleanRemoteUrl,
+      fingerprint: remoteFingerprint,
+      sharedSecret,
+      authToken,
+      status: "online",
+      description: params.description || `Connected via Pair Code ${cleanCode}`,
+      syncCatalog: params.syncCatalog ?? true,
+      syncOrders: params.syncOrders ?? false,
+      priceMarkupPct: params.priceMarkupPct ?? 0,
+      lastPingAt: /* @__PURE__ */ new Date()
+    }).returning();
+    savedNode = inserted;
+  }
+  await logMeshEvent("node_connected", `Peer connection established with [${savedNode.nodeName}] at ${cleanRemoteUrl}`, savedNode.id, "admin");
+  return savedNode;
+}
+async function sendSignedMeshRequest(node, endpoint, method = "GET", bodyData = null) {
+  const timestamp2 = Math.floor(Date.now() / 1e3).toString();
+  const nonce = import_crypto3.default.randomBytes(12).toString("hex");
+  const localFingerprint = getLocalFingerprint();
+  const bodyString = bodyData ? JSON.stringify(bodyData) : "";
+  const payloadToSign = `${method.toUpperCase()}:${endpoint}:${timestamp2}:${nonce}:${bodyString}`;
+  const signature = import_crypto3.default.createHmac("sha256", node.sharedSecret).update(payloadToSign).digest("hex");
+  const url2 = `${node.nodeUrl.replace(/\/+$/, "")}${endpoint}`;
+  const headers = {
+    "X-Mesh-Node-Id": localFingerprint,
+    "X-Mesh-Timestamp": timestamp2,
+    "X-Mesh-Nonce": nonce,
+    "X-Mesh-Signature": signature,
+    "Authorization": `Bearer ${node.authToken}`,
+    "Content-Type": "application/json",
+    "User-Agent": "ShopeefyMeshEngine/2.0"
+  };
+  const response = await axios_default({
+    url: url2,
+    method,
+    headers,
+    data: bodyData || void 0,
+    timeout: 1e4
+  });
+  return response.data;
+}
+async function verifyIncomingMeshRequest(req) {
+  const senderFingerprint = req.headers["x-mesh-node-id"];
+  const timestampStr = req.headers["x-mesh-timestamp"];
+  const nonce = req.headers["x-mesh-nonce"];
+  const signature = req.headers["x-mesh-signature"];
+  if (!senderFingerprint || !timestampStr || !nonce || !signature) {
+    return { valid: false, error: "Missing cryptographic mesh headers" };
+  }
+  const timestamp2 = parseInt(timestampStr, 10);
+  const now = Math.floor(Date.now() / 1e3);
+  if (Math.abs(now - timestamp2) > 120) {
+    return { valid: false, error: "Mesh request timestamp expired or clock desynchronized" };
+  }
+  if (nonceCache.has(nonce)) {
+    return { valid: false, error: "Replay attack detected: Nonce has already been processed" };
+  }
+  nonceCache.set(nonce, Date.now());
+  const [node] = await db.select().from(storeMeshNodes).where(and(eq(storeMeshNodes.fingerprint, senderFingerprint), eq(storeMeshNodes.status, "online")));
+  if (!node) {
+    return { valid: false, error: "Unrecognized or revoked peer store node" };
+  }
+  const rawBody = req.rawBody || (req.body ? JSON.stringify(req.body) : "");
+  const payloadToSign = `${req.method.toUpperCase()}:${req.path}:${timestampStr}:${nonce}:${rawBody}`;
+  const expectedSignature = import_crypto3.default.createHmac("sha256", node.sharedSecret).update(payloadToSign).digest("hex");
+  if (!import_crypto3.default.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    return { valid: false, error: "Cryptographic signature verification failed" };
+  }
+  return { valid: true, node };
+}
+async function pingPeerNode(id) {
+  const [node] = await db.select().from(storeMeshNodes).where(eq(storeMeshNodes.id, id));
+  if (!node) throw new Error("Store node not found");
+  const start = Date.now();
+  try {
+    const result = await sendSignedMeshRequest(node, "/api/mesh/peer/ping", "GET");
+    const latencyMs = Date.now() - start;
+    await db.update(storeMeshNodes).set({
+      status: "online",
+      lastPingAt: /* @__PURE__ */ new Date(),
+      latencyMs,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(storeMeshNodes.id, id));
+    await logMeshEvent("ping_success", `Peer ping successful (${latencyMs}ms)`, id, "admin", { latencyMs, result });
+    return { success: true, latencyMs, status: "online", nodeName: node.nodeName };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    await db.update(storeMeshNodes).set({
+      status: "offline",
+      lastPingAt: /* @__PURE__ */ new Date(),
+      latencyMs,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(storeMeshNodes.id, id));
+    await logMeshEvent("ping_failed", `Peer ping failed: ${err.message}`, id, "admin", { error: err.message });
+    return { success: false, latencyMs, status: "offline", nodeName: node.nodeName };
+  }
+}
+async function syncPeerCatalog(id) {
+  const [node] = await db.select().from(storeMeshNodes).where(eq(storeMeshNodes.id, id));
+  if (!node) throw new Error("Store node not found");
+  if (!node.syncCatalog) throw new Error("Catalog sync is disabled for this store node");
+  try {
+    const data = await sendSignedMeshRequest(node, "/api/mesh/peer/products", "GET");
+    const remoteProducts = data.products || [];
+    await db.update(storeMeshNodes).set({
+      lastSyncAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(storeMeshNodes.id, id));
+    await logMeshEvent("catalog_synced", `Synced ${remoteProducts.length} items from peer [${node.nodeName}] with ${node.priceMarkupPct}% markup`, id, "admin", {
+      count: remoteProducts.length,
+      markup: node.priceMarkupPct
+    });
+    return {
+      success: true,
+      productCount: remoteProducts.length,
+      syncedAt: /* @__PURE__ */ new Date()
+    };
+  } catch (err) {
+    await logMeshEvent("sync_failed", `Failed to sync products from peer [${node.nodeName}]: ${err.message}`, id, "admin");
+    throw new Error(`Catalog sync failed: ${err.message}`);
+  }
+}
+async function getAllMeshNodes() {
+  return await db.select().from(storeMeshNodes).orderBy(desc(storeMeshNodes.createdAt));
+}
+async function updateMeshNode(id, data) {
+  const [updated] = await db.update(storeMeshNodes).set({
+    ...data,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(storeMeshNodes.id, id)).returning();
+  if (!updated) throw new Error("Store node not found");
+  await logMeshEvent("node_updated", `Updated configuration for peer node [${updated.nodeName}]`, id, "admin", data);
+  return updated;
+}
+async function deleteMeshNode(id) {
+  const [node] = await db.select().from(storeMeshNodes).where(eq(storeMeshNodes.id, id));
+  if (!node) return;
+  await db.delete(storeMeshNodes).where(eq(storeMeshNodes.id, id));
+  await logMeshEvent("node_unpaired", `Unpaired and revoked link with [${node.nodeName}] (${node.nodeUrl})`, id, "admin");
+}
+async function getMeshLogs(limit = 30) {
+  return await db.select().from(storeMeshLogs).orderBy(desc(storeMeshLogs.createdAt)).limit(limit);
+}
+var import_crypto3, cachedLocalFingerprint, nonceCache;
+var init_mesh_service = __esm({
+  "server/mesh-service.ts"() {
+    "use strict";
+    import_crypto3 = __toESM(require("crypto"), 1);
+    init_db2();
+    init_schema2();
+    init_drizzle_orm();
+    init_axios2();
+    cachedLocalFingerprint = null;
+    nonceCache = /* @__PURE__ */ new Map();
+    setInterval(() => {
+      const now = Date.now();
+      for (const [nonce, ts] of nonceCache.entries()) {
+        if (now - ts > 10 * 60 * 1e3) {
+          nonceCache.delete(nonce);
+        }
+      }
+    }, 5 * 60 * 1e3);
+  }
+});
+
 // shared/routes.ts
 var errorSchemas, api;
 var init_routes = __esm({
@@ -44619,7 +45059,7 @@ var require_form_data2 = __commonJS({
     var https2 = require("https");
     var parseUrl = require("url").parse;
     var fs5 = require("fs");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var hasOwn = require_hasown();
@@ -44828,7 +45268,7 @@ var require_form_data2 = __commonJS({
       return Buffer2.concat([dataBuffer, Buffer2.from(this._lastBoundary())]);
     };
     FormData5.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto5.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto6.randomBytes(12).toString("hex");
     };
     FormData5.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -52385,7 +52825,7 @@ async function verifyDepositViaBinance(txId, networkType, walletAddress) {
     }
     const timestamp2 = Date.now();
     const queryStr = `coin=USDT&timestamp=${timestamp2}`;
-    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto4.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -52450,7 +52890,7 @@ async function verifyBinancePaymentLive(orderOrTxId, expectedAmount) {
   try {
     const timestamp2 = Date.now();
     const queryStr = `timestamp=${timestamp2}`;
-    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto4.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -52473,7 +52913,7 @@ async function verifyBinancePaymentLive(orderOrTxId, expectedAmount) {
   try {
     const timestamp2 = Date.now();
     const queryStr = `coin=USDT&status=1&timestamp=${timestamp2}`;
-    const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+    const signature = import_crypto4.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
     const res = await axios_default.get(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryStr}&signature=${signature}`, {
       headers: {
         "X-MBX-APIKEY": apiKey,
@@ -53020,8 +53460,8 @@ async function registerRoutes(httpServer2, app2, io2) {
       const hash = urlParams.get("hash");
       urlParams.delete("hash");
       const sortedParams = Array.from(urlParams.entries()).map(([key, value]) => `${key}=${value}`).sort().join("\n");
-      const secretKey = import_crypto3.default.createHmac("sha256", "WebAppData").update(botToken).digest();
-      const calculatedHash = import_crypto3.default.createHmac("sha256", secretKey).update(sortedParams).digest("hex");
+      const secretKey = import_crypto4.default.createHmac("sha256", "WebAppData").update(botToken).digest();
+      const calculatedHash = import_crypto4.default.createHmac("sha256", secretKey).update(sortedParams).digest("hex");
       if (calculatedHash !== hash) {
         return res.status(401).json({ message: "Invalid Telegram authentication hash" });
       }
@@ -53601,8 +54041,8 @@ ${extraInstructions}
     }
   });
   app2.get("/api/mini/products", verifyMiniAppAuth, async (req, res) => {
-    const products4 = await storage.getProducts();
-    const activeProducts = await Promise.all(products4.map(async (p) => {
+    const products5 = await storage.getProducts();
+    const activeProducts = await Promise.all(products5.map(async (p) => {
       const stock = await storage.getCredentialsByProduct(p.id);
       return {
         ...p,
@@ -53759,7 +54199,7 @@ ${extraInstructions}
       const orderId2 = `DEP_${Date.now()}_${Math.floor(Math.random() * 1e3)}`;
       const baseUrl = await getAppBaseUrl();
       const callbackUrl = `${baseUrl}/api/payments/webhook`;
-      const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify({
+      const sign = import_crypto4.default.createHash("md5").update(Buffer.from(JSON.stringify({
         amount: numAmount.toFixed(2),
         currency: "USD",
         order_id: orderId2,
@@ -53809,7 +54249,7 @@ ${extraInstructions}
       if (!telegramUserId) {
         return res.status(400).json({ message: "telegramUserId is required" });
       }
-      const keyStr = "ric_" + import_crypto3.default.randomBytes(20).toString("hex");
+      const keyStr = "ric_" + import_crypto4.default.randomBytes(20).toString("hex");
       const created = await storage.createApiKey(Number(telegramUserId), keyStr);
       res.json(created);
     } catch (err) {
@@ -55139,7 +55579,7 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
           );
         }
         await tx.update(telegramUsers).set({ balance: sql`${telegramUsers.balance} - ${totalCents}` }).where(eq(telegramUsers.id, user.id));
-        const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${import_crypto3.default.randomBytes(6).toString("hex")}`;
+        const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${import_crypto4.default.randomBytes(6).toString("hex")}`;
         let partnerOrderRes = null;
         try {
           partnerOrderRes = await SandromaniaService.createOrder(
@@ -55918,8 +56358,8 @@ Enjoy your premium bundle! <tg-emoji emoji-id="5456343263340405032">\u{1F6CD}\uF
   });
   app2.post("/api/broadcast/availability", isAuth, async (req, res) => {
     try {
-      const products4 = await storage.getProducts();
-      const availableProducts = products4.filter((p) => p.status === "available");
+      const products5 = await storage.getProducts();
+      const availableProducts = products5.filter((p) => p.status === "available");
       const groupedProducts = {};
       for (const p of availableProducts) {
         const stockCount = (await storage.getCredentialsByProduct(p.id)).filter((c) => c.status === "available").length;
@@ -56830,9 +57270,9 @@ ID: <code>${userToDisplay.telegramId}</code>
     const userLang = tgUser?.selectedLanguage || "en";
     const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
     const showOutOfStock = showOutOfStockSetting?.value === "true";
-    const products4 = await storage.getProducts();
+    const products5 = await storage.getProducts();
     const categoryMap = /* @__PURE__ */ new Map();
-    for (const p of products4) {
+    for (const p of products5) {
       if (p.status !== "available") continue;
       const stock = (await storage.getCredentialsByProduct(p.id)).filter((c) => c.status === "available").length;
       let availableQuota = 0;
@@ -58342,7 +58782,7 @@ ${createdDateStr}
         if (existingPending) {
           return targetBot2.sendMessage(chatId, `\u26A0\uFE0F You already have a pending $${amount} payment. Please pay that one first or wait for it to expire (1 hour).`);
         }
-        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify({
+        const sign = import_crypto4.default.createHash("md5").update(Buffer.from(JSON.stringify({
           amount: amount.toString(),
           currency: "USD",
           order_id: orderId,
@@ -58440,7 +58880,7 @@ You must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b
         return;
       }
       try {
-        const orderId2 = "bep20_" + import_crypto3.default.randomBytes(8).toString("hex");
+        const orderId2 = "bep20_" + import_crypto4.default.randomBytes(8).toString("hex");
         const baseUrl = await getAppBaseUrl();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
@@ -58451,7 +58891,7 @@ You must transfer the exact requested amount (<b>${expectedCryptoAmount} USDT</b
           order_id: orderId2,
           url_callback: callbackUrl
         };
-        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto4.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment", payload, {
           headers: {
             "merchant": merchantId,
@@ -58517,7 +58957,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         if (orderId2) payload.order_id = orderId2;
         if (!uuid2 && !orderId2) return null;
         const serialized = JSON.stringify(payload);
-        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(serialized).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto4.default.createHash("md5").update(Buffer.from(serialized).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment/info", payload, {
           headers: {
             "merchant": merchantId,
@@ -58549,7 +58989,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         if (txid && !txid.startsWith("0x") && txid.length > 20) {
           queryString += `&txId=${encodeURIComponent(txid.trim())}`;
         }
-        const signature = import_crypto3.default.createHmac("sha256", apiSecret).update(queryString).digest("hex");
+        const signature = import_crypto4.default.createHmac("sha256", apiSecret).update(queryString).digest("hex");
         const fullUrl = `https://api.binance.com/sapi/v1/capital/deposit/hisrec?${queryString}&signature=${signature}`;
         const response = await axios_default.get(fullUrl, {
           headers: { "X-MBX-APIKEY": apiKey }
@@ -58651,7 +59091,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
         return;
       }
       try {
-        const orderId2 = "trc20_" + import_crypto3.default.randomBytes(8).toString("hex");
+        const orderId2 = "trc20_" + import_crypto4.default.randomBytes(8).toString("hex");
         const baseUrl = await getAppBaseUrl();
         const callbackUrl = `${baseUrl}/api/payments/webhook`;
         const payload = {
@@ -58662,7 +59102,7 @@ You must transfer the exact requested amount (<b>${amount.toFixed(0)} USDT</b>).
           order_id: orderId2,
           url_callback: callbackUrl
         };
-        const sign = import_crypto3.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
+        const sign = import_crypto4.default.createHash("md5").update(Buffer.from(JSON.stringify(payload)).toString("base64") + apiKey).digest("hex");
         const response = await axios_default.post("https://api.cryptomus.com/v1/payment", payload, {
           headers: {
             "merchant": merchantId,
@@ -58882,7 +59322,7 @@ You exceeded maximum allowed requests (${timestamps.length}/${maxReqPerMin} per 
           return;
         }
         if (data === "create_api_key") {
-          const newKeyStr = "ric_" + import_crypto3.default.randomBytes(20).toString("hex");
+          const newKeyStr = "ric_" + import_crypto4.default.randomBytes(20).toString("hex");
           await storage.createApiKey(tgUser.id, newKeyStr);
           await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
           return;
@@ -59926,8 +60366,8 @@ It will be ready in a few minutes.`);
           const category = data.substring(4);
           const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
           const showOutOfStock = showOutOfStockSetting?.value === "true";
-          const products4 = await storage.getProducts();
-          const categoryProducts = products4.filter((p) => p.type === category && p.status === "available");
+          const products5 = await storage.getProducts();
+          const categoryProducts = products5.filter((p) => p.type === category && p.status === "available");
           const userCurrency = tgUser?.selectedCurrency || "USD";
           const keyboard = [];
           let validProductCount = 0;
@@ -62295,7 +62735,7 @@ Please notify the admin to configure BINANCE_API_KEY in Admin Settings or contac
             try {
               const timestamp2 = Date.now();
               const queryStr = `timestamp=${timestamp2}`;
-              const signature = import_crypto3.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
+              const signature = import_crypto4.default.createHmac("sha256", secretKey).update(queryStr).digest("hex");
               const res = await axios_default.get(`https://api.binance.com/sapi/v1/pay/transactions?${queryStr}&signature=${signature}`, {
                 headers: {
                   "X-MBX-APIKEY": apiKey,
@@ -62503,9 +62943,9 @@ Amount: $${amount}`,
         if (normalizedText === "\u{1F4CB} Availability") {
           const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
           const showOutOfStock = showOutOfStockSetting?.value === "true";
-          const products4 = await storage.getProducts();
+          const products5 = await storage.getProducts();
           const availableProducts = [];
-          for (const p of products4) {
+          for (const p of products5) {
             if (p.status !== "available") continue;
             const stock = (await storage.getCredentialsByProduct(p.id)).filter((c) => c.status === "available");
             const isPreorder = p.isPreorderEnabled && (p.preorderQuota || 0) > 0;
@@ -63589,8 +64029,8 @@ Or tap <b>Catalog</b> below to browse products.</blockquote>`,
       }
       const rawStr = JSON.stringify(data);
       const escapedStr = rawStr.replace(/\//g, "\\/");
-      const sign1 = import_crypto3.default.createHash("md5").update(Buffer.from(rawStr).toString("base64") + apiKey).digest("hex");
-      const sign2 = import_crypto3.default.createHash("md5").update(Buffer.from(escapedStr).toString("base64") + apiKey).digest("hex");
+      const sign1 = import_crypto4.default.createHash("md5").update(Buffer.from(rawStr).toString("base64") + apiKey).digest("hex");
+      const sign2 = import_crypto4.default.createHash("md5").update(Buffer.from(escapedStr).toString("base64") + apiKey).digest("hex");
       if (sign1 !== sign && sign2 !== sign) {
         console.warn("[Cryptomus Webhook] Signature verification mismatch.", { sign1, sign2, sign });
         return res.status(400).json({ message: "Invalid signature" });
@@ -63680,8 +64120,8 @@ Or tap <b>Catalog</b> below to browse products.</blockquote>`,
         return res.status(400).json({ message: "Missing signature header" });
       }
       const rawBody = req.rawBody ? req.rawBody.toString("utf-8") : typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-      const secret = import_crypto3.default.createHash("sha256").update(apiToken).digest();
-      const checkSignature = import_crypto3.default.createHmac("sha256", secret).update(rawBody).digest("hex");
+      const secret = import_crypto4.default.createHash("sha256").update(apiToken).digest();
+      const checkSignature = import_crypto4.default.createHmac("sha256", secret).update(rawBody).digest("hex");
       if (checkSignature !== signature) {
         console.warn("[CryptoBot Webhook] Signature verification failed.");
         return res.status(400).json({ message: "Invalid signature" });
@@ -64084,12 +64524,178 @@ Your support request regarding <b>${escapeHTML3(updated.issueType)}</b> has been
       res.status(500).json({ message: err.message });
     }
   });
+  app2.get("/api/mesh/node-info", isAuth, async (req, res) => {
+    try {
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const detectedUrl = `${proto}://${host}`;
+      const fingerprint = getLocalFingerprint();
+      const nodes = await getAllMeshNodes();
+      res.json({
+        success: true,
+        fingerprint,
+        detectedUrl,
+        totalNodes: nodes.length,
+        onlineNodes: nodes.filter((n) => n.status === "online").length,
+        securityModel: "HMAC-SHA256 Signed + Anti-Replay Nonce Engine"
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.get("/api/mesh/nodes", isAuth, async (req, res) => {
+    try {
+      const nodes = await getAllMeshNodes();
+      res.json(nodes);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.post("/api/mesh/pair/generate", isAuth, async (req, res) => {
+    try {
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const hostUrl = req.body.hostUrl || `${proto}://${host}`;
+      const pairData = await generatePairCode(hostUrl);
+      res.json({ success: true, ...pairData });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.post("/api/mesh/pair/connect", isAuth, async (req, res) => {
+    try {
+      const { remoteUrl, pairCode, nodeName, description, syncCatalog, syncOrders, priceMarkupPct } = req.body;
+      if (!remoteUrl || !pairCode) {
+        return res.status(400).json({ message: "Remote Store URL and Pair Code are required" });
+      }
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const myServerUrl = req.body.myServerUrl || `${proto}://${host}`;
+      const connectedNode = await connectToRemoteStore({
+        remoteUrl,
+        pairCode,
+        nodeName,
+        description,
+        syncCatalog: syncCatalog !== false,
+        syncOrders: !!syncOrders,
+        priceMarkupPct: Number(priceMarkupPct) || 0,
+        myServerUrl
+      });
+      res.json({ success: true, node: connectedNode });
+    } catch (err) {
+      console.error("[MESH CONNECT ERROR]", err);
+      res.status(400).json({ message: err.message });
+    }
+  });
+  app2.put("/api/mesh/nodes/:id", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { nodeName, description, syncCatalog, syncOrders, priceMarkupPct, status } = req.body;
+      const updated = await updateMeshNode(id, {
+        ...nodeName && { nodeName },
+        ...description !== void 0 && { description },
+        ...syncCatalog !== void 0 && { syncCatalog: !!syncCatalog },
+        ...syncOrders !== void 0 && { syncOrders: !!syncOrders },
+        ...priceMarkupPct !== void 0 && { priceMarkupPct: Number(priceMarkupPct) },
+        ...status && { status }
+      });
+      res.json({ success: true, node: updated });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+  app2.delete("/api/mesh/nodes/:id", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      await deleteMeshNode(id);
+      res.json({ success: true, message: "Store node unpaired successfully" });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.post("/api/mesh/nodes/:id/ping", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await pingPeerNode(id);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.post("/api/mesh/nodes/:id/sync", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await syncPeerCatalog(id);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.get("/api/mesh/logs", isAuth, async (req, res) => {
+    try {
+      const logs = await getMeshLogs(50);
+      res.json(logs);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  app2.post("/api/mesh/handshake/initiate", async (req, res) => {
+    try {
+      const clientIp = req.headers["cf-connecting-ip"] || req.ip || "unknown";
+      const result = await handleIncomingHandshake({
+        ...req.body,
+        ip: clientIp
+      });
+      res.json(result);
+    } catch (err) {
+      console.warn("[HANDSHAKE REJECTED]", err.message);
+      res.status(400).json({ success: false, message: err.message });
+    }
+  });
+  app2.get("/api/mesh/peer/ping", async (req, res) => {
+    const auth = await verifyIncomingMeshRequest(req);
+    if (!auth.valid) {
+      return res.status(401).json({ success: false, message: auth.error || "Cryptographic verification failed" });
+    }
+    res.json({
+      success: true,
+      pong: true,
+      serverTime: Date.now(),
+      nodeFingerprint: getLocalFingerprint(),
+      peerName: auth.node?.nodeName
+    });
+  });
+  app2.get("/api/mesh/peer/products", async (req, res) => {
+    const auth = await verifyIncomingMeshRequest(req);
+    if (!auth.valid) {
+      return res.status(401).json({ success: false, message: auth.error || "Cryptographic verification failed" });
+    }
+    try {
+      const productList = await storage.getAvailableProducts();
+      const sanitized = productList.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        price: p.price,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        category: p.category
+      }));
+      res.json({
+        success: true,
+        nodeFingerprint: getLocalFingerprint(),
+        products: sanitized
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
   console.log("[REGISTER ROUTES] Calling initBot()...");
   await initBot().catch((err) => console.error("Initial bot setup failed:", err));
   initAdminBotController().catch((err) => console.error("Admin bot setup failed:", err));
   return httpServer2;
 }
-var import_express2, import_path3, import_fs2, import_multer, import_node_telegram_bot_api3, import_crypto3, import_form_data3, import_bcryptjs2, import_express_session, import_connect_pg_simple, autoFulfillFn, triggerAutoFulfillPreorders, formatSriLankaTime, customerOtpStore, activeSpecialOfferTimers, storage_disk, upload;
+var import_express2, import_path3, import_fs2, import_multer, import_node_telegram_bot_api3, import_crypto4, import_form_data3, import_bcryptjs2, import_express_session, import_connect_pg_simple, autoFulfillFn, triggerAutoFulfillPreorders, formatSriLankaTime, customerOtpStore, activeSpecialOfferTimers, storage_disk, upload;
 var init_routes2 = __esm({
   "server/routes.ts"() {
     "use strict";
@@ -64105,6 +64711,7 @@ var init_routes2 = __esm({
     init_sandromania_service();
     init_domain_automation_service();
     init_security_shield();
+    init_mesh_service();
     init_routes();
     init_api_v1();
     init_openapi();
@@ -64112,7 +64719,7 @@ var init_routes2 = __esm({
     init_aws_service();
     init_backup_service();
     import_node_telegram_bot_api3 = __toESM(require("node-telegram-bot-api"), 1);
-    import_crypto3 = __toESM(require("crypto"), 1);
+    import_crypto4 = __toESM(require("crypto"), 1);
     init_axios2();
     import_form_data3 = __toESM(require_form_data2(), 1);
     init_push_notifications();
@@ -64286,6 +64893,9 @@ async function startServer() {
     console.log("[SERVER] Initializing push notifications...");
     const { initPushNotifications: initPushNotifications2 } = await Promise.resolve().then(() => (init_push_notifications(), push_notifications_exports));
     await initPushNotifications2();
+    console.log("[SERVER] Initializing store mesh federation...");
+    const { initMeshDatabase: initMeshDatabase2 } = await Promise.resolve().then(() => (init_mesh_service(), mesh_service_exports));
+    await initMeshDatabase2();
     app.use((err, _req, res, _next) => {
       const status = err.status || err.statusCode || 500;
       const message2 = err.message || "Internal Server Error";

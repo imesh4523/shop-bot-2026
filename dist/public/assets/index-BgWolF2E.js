@@ -11405,6 +11405,12 @@ const ArrowLeft = createLucideIcon("ArrowLeft", [
   ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
   ["path", { d: "M19 12H5", key: "x3x0zl" }]
 ]);
+const ArrowRightLeft = createLucideIcon("ArrowRightLeft", [
+  ["path", { d: "m16 3 4 4-4 4", key: "1x1c3m" }],
+  ["path", { d: "M20 7H4", key: "zbl0bi" }],
+  ["path", { d: "m8 21-4-4 4-4", key: "h9nckh" }],
+  ["path", { d: "M4 17h16", key: "g4d7ey" }]
+]);
 const ArrowRight = createLucideIcon("ArrowRight", [
   ["path", { d: "M5 12h14", key: "1ays0h" }],
   ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
@@ -11424,6 +11430,38 @@ const Bot = createLucideIcon("Bot", [
   ["path", { d: "M20 14h2", key: "4cs60a" }],
   ["path", { d: "M15 13v2", key: "1xurst" }],
   ["path", { d: "M9 13v2", key: "rq6x2g" }]
+]);
+const Boxes = createLucideIcon("Boxes", [
+  [
+    "path",
+    {
+      d: "M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z",
+      key: "lc1i9w"
+    }
+  ],
+  ["path", { d: "m7 16.5-4.74-2.85", key: "1o9zyk" }],
+  ["path", { d: "m7 16.5 5-3", key: "va8pkn" }],
+  ["path", { d: "M7 16.5v5.17", key: "jnp8gn" }],
+  [
+    "path",
+    {
+      d: "M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z",
+      key: "8zsnat"
+    }
+  ],
+  ["path", { d: "m17 16.5-5-3", key: "8arw3v" }],
+  ["path", { d: "m17 16.5 4.74-2.85", key: "8rfmw" }],
+  ["path", { d: "M17 16.5v5.17", key: "k6z78m" }],
+  [
+    "path",
+    {
+      d: "M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z",
+      key: "1xygjf"
+    }
+  ],
+  ["path", { d: "M12 8 7.26 5.15", key: "1vbdud" }],
+  ["path", { d: "m12 8 4.74-2.85", key: "3rx089" }],
+  ["path", { d: "M12 13.5V8", key: "1io7kd" }]
 ]);
 const Calendar = createLucideIcon("Calendar", [
   ["path", { d: "M8 2v4", key: "1cmpym" }],
@@ -11719,6 +11757,13 @@ const Minus = createLucideIcon("Minus", [["path", { d: "M5 12h14", key: "1ays0h"
 const Moon = createLucideIcon("Moon", [
   ["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z", key: "a7tn18" }]
 ]);
+const Network = createLucideIcon("Network", [
+  ["rect", { x: "16", y: "16", width: "6", height: "6", rx: "1", key: "4q2zg0" }],
+  ["rect", { x: "2", y: "16", width: "6", height: "6", rx: "1", key: "8cvhb9" }],
+  ["rect", { x: "9", y: "2", width: "6", height: "6", rx: "1", key: "1egb70" }],
+  ["path", { d: "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3", key: "1jsf9p" }],
+  ["path", { d: "M12 12V8", key: "2874zd" }]
+]);
 const PackageCheck = createLucideIcon("PackageCheck", [
   ["path", { d: "m16 16 2 2 4-4", key: "gfu2re" }],
   [
@@ -11743,6 +11788,16 @@ const Package = createLucideIcon("Package", [
   ["path", { d: "M12 22V12", key: "d0xqtd" }],
   ["path", { d: "m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7", key: "yx3hmr" }],
   ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
+]);
+const PenLine = createLucideIcon("PenLine", [
+  ["path", { d: "M12 20h9", key: "t2du7b" }],
+  [
+    "path",
+    {
+      d: "M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z",
+      key: "1ykcvy"
+    }
+  ]
 ]);
 const Pen = createLucideIcon("Pen", [
   [
@@ -11861,6 +11916,15 @@ const ShieldCheck = createLucideIcon("ShieldCheck", [
     }
   ],
   ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+]);
+const Shield = createLucideIcon("Shield", [
+  [
+    "path",
+    {
+      d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+      key: "oel41y"
+    }
+  ]
 ]);
 const ShoppingBag = createLucideIcon("ShoppingBag", [
   ["path", { d: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z", key: "hou9p0" }],
@@ -20133,6 +20197,7 @@ function LayoutShell({ children }) {
     { name: "Dashboard", href: "/imeshadmindashbord", icon: LayoutDashboard },
     { name: "API Keys", href: "/imeshadmindashbord/api-keys", icon: Key },
     { name: "Cloudflare & Resend", href: "/imeshadmindashbord/domain-automation", icon: Globe },
+    { name: "Store Mesh Connect", href: "/imeshadmindashbord/store-mesh", icon: Network },
     { name: "Pre-Orders", href: "/imeshadmindashbord/preorders", icon: Clock },
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
     { name: "Broadcast", href: "/imeshadmindashbord/broadcast", icon: Megaphone },
@@ -30654,6 +30719,47 @@ const sandromaniaOrders = pgTable("sandromania_orders", {
 });
 createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
 createInsertSchema(sandromaniaOrders).omit({ id: true, createdAt: true });
+const storeMeshNodes = pgTable("store_mesh_nodes", {
+  id: serial("id").primaryKey(),
+  nodeName: text("node_name").notNull(),
+  nodeUrl: text("node_url").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  sharedSecret: text("shared_secret").notNull(),
+  authToken: text("auth_token").notNull(),
+  status: text("status").notNull().default("online"),
+  // online, offline, pending, error, revoked
+  description: text("description"),
+  syncCatalog: boolean("sync_catalog").notNull().default(true),
+  syncOrders: boolean("sync_orders").notNull().default(false),
+  priceMarkupPct: integer("price_markup_pct").notNull().default(0),
+  lastPingAt: timestamp("last_ping_at"),
+  lastSyncAt: timestamp("last_sync_at"),
+  latencyMs: integer("latency_ms").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+const storeMeshPairCodes = pgTable("store_mesh_pair_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  hostUrl: text("host_url").notNull(),
+  secretKey: text("secret_key").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});
+const storeMeshLogs = pgTable("store_mesh_logs", {
+  id: serial("id").primaryKey(),
+  nodeId: integer("node_id"),
+  eventType: text("event_type").notNull(),
+  // handshake, ping, sync_catalog, forward_order, error, security_reject
+  message: text("message").notNull(),
+  ip: text("ip"),
+  detailsJson: text("details_json"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+createInsertSchema(storeMeshNodes).omit({ id: true, createdAt: true, updatedAt: true });
+createInsertSchema(storeMeshPairCodes).omit({ id: true, createdAt: true });
+createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
 ({
   validation: z$1.object({
     message: z$1.string(),
@@ -73306,7 +73412,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-D7zsXO6V.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BUMCwyc6.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -98140,6 +98246,933 @@ function DomainAutomationPage() {
     ] }) })
   ] });
 }
+function StoreMeshPage() {
+  const { toast: toast2 } = useToast();
+  const queryClient2 = useQueryClient();
+  const [activeTab, setActiveTab] = reactExports.useState("nodes");
+  const [customHostUrl, setCustomHostUrl] = reactExports.useState("");
+  const [generatedPair, setGeneratedPair] = reactExports.useState(null);
+  const [remoteUrl, setRemoteUrl] = reactExports.useState("");
+  const [pairCode, setPairCode] = reactExports.useState("");
+  const [nodeAlias, setNodeAlias] = reactExports.useState("");
+  const [nodeDescription, setNodeDescription] = reactExports.useState("");
+  const [syncCatalog, setSyncCatalog] = reactExports.useState(true);
+  const [syncOrders, setSyncOrders] = reactExports.useState(false);
+  const [priceMarkup, setPriceMarkup] = reactExports.useState("10");
+  const [editingNode, setEditingNode] = reactExports.useState(null);
+  const [editName, setEditName] = reactExports.useState("");
+  const [editDesc, setEditDesc] = reactExports.useState("");
+  const [editSyncCatalog, setEditSyncCatalog] = reactExports.useState(true);
+  const [editSyncOrders, setEditSyncOrders] = reactExports.useState(false);
+  const [editMarkup, setEditMarkup] = reactExports.useState("0");
+  const [copiedKey, setCopiedKey] = reactExports.useState(null);
+  const handleCopy = (text2, keyId) => {
+    navigator.clipboard.writeText(text2);
+    setCopiedKey(keyId);
+    toast2({ title: "Copied!", description: "Copied to clipboard." });
+    setTimeout(() => setCopiedKey(null), 2e3);
+  };
+  const { data: nodeInfo, isLoading: isInfoLoading } = useQuery({
+    queryKey: ["/api/mesh/node-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/mesh/node-info");
+      if (!res.ok) throw new Error("Failed to fetch node info");
+      return res.json();
+    },
+    refetchInterval: 1e4
+  });
+  const { data: nodes = [], isLoading: isNodesLoading } = useQuery({
+    queryKey: ["/api/mesh/nodes"],
+    queryFn: async () => {
+      const res = await fetch("/api/mesh/nodes");
+      if (!res.ok) throw new Error("Failed to fetch mesh nodes");
+      return res.json();
+    },
+    refetchInterval: 8e3
+  });
+  const { data: logs = [], isLoading: isLogsLoading } = useQuery({
+    queryKey: ["/api/mesh/logs"],
+    queryFn: async () => {
+      const res = await fetch("/api/mesh/logs");
+      if (!res.ok) throw new Error("Failed to fetch logs");
+      return res.json();
+    },
+    refetchInterval: 6e3
+  });
+  const generateMutation = useMutation({
+    mutationFn: async (hostUrl) => {
+      const res = await fetch("/api/mesh/pair/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hostUrl: hostUrl || void 0 })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to generate pairing code");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setGeneratedPair(data);
+      toast2({
+        title: "Pairing Code Generated",
+        description: `Code ${data.code} is active for 15 minutes.`
+      });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Generation Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/mesh/pair/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          remoteUrl,
+          pairCode,
+          nodeName: nodeAlias || void 0,
+          description: nodeDescription || void 0,
+          syncCatalog,
+          syncOrders,
+          priceMarkupPct: parseInt(priceMarkup, 10) || 0
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to connect to remote store");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "Peer Connection Established! 🚀",
+        description: `Paired securely with [${data.node?.nodeName}].`
+      });
+      setRemoteUrl("");
+      setPairCode("");
+      setNodeAlias("");
+      setNodeDescription("");
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+      setActiveTab("nodes");
+    },
+    onError: (err) => {
+      toast2({
+        title: "Connection Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
+  const pingMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await fetch(`/api/mesh/nodes/${id2}/ping`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Ping failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: data.success ? "🟢 Peer Node Online" : "🔴 Peer Node Unreachable",
+        description: data.success ? `${data.nodeName} responded with ${data.latencyMs}ms latency.` : `Could not reach ${data.nodeName}.`,
+        variant: data.success ? "default" : "destructive"
+      });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+    },
+    onError: (err) => {
+      toast2({ title: "Ping Error", description: err.message, variant: "destructive" });
+    }
+  });
+  const syncMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await fetch(`/api/mesh/nodes/${id2}/sync`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Sync failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "Catalog Synced Successfully! 📦",
+        description: `Fetched ${data.productCount} available products from peer store.`
+      });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+    },
+    onError: (err) => {
+      toast2({ title: "Sync Error", description: err.message, variant: "destructive" });
+    }
+  });
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingNode) return;
+      const res = await fetch(`/api/mesh/nodes/${editingNode.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nodeName: editName,
+          description: editDesc,
+          syncCatalog: editSyncCatalog,
+          syncOrders: editSyncOrders,
+          priceMarkupPct: parseInt(editMarkup, 10) || 0
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update node");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast2({ title: "Store Node Updated", description: "Settings saved successfully." });
+      setEditingNode(null);
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+    },
+    onError: (err) => {
+      toast2({ title: "Update Failed", description: err.message, variant: "destructive" });
+    }
+  });
+  const deleteMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await fetch(`/api/mesh/nodes/${id2}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to unpair node");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast2({ title: "Node Unpaired", description: "The peer connection has been revoked." });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+    },
+    onError: (err) => {
+      toast2({ title: "Unpair Failed", description: err.message, variant: "destructive" });
+    }
+  });
+  const openEditModal = (node) => {
+    setEditingNode(node);
+    setEditName(node.nodeName);
+    setEditDesc(node.description || "");
+    setEditSyncCatalog(node.syncCatalog);
+    setEditSyncOrders(node.syncOrders);
+    setEditMarkup((node.priceMarkupPct || 0).toString());
+  };
+  const handleQuickPasteConnectString = (val) => {
+    if (val.includes("|")) {
+      const parts2 = val.split("|");
+      setRemoteUrl(parts2[0].trim());
+      setPairCode(parts2[1].trim());
+    } else {
+      setPairCode(val);
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in fade-in-50 duration-500 pb-16", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-white/10 pb-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20 border border-white/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Network, { className: "w-6 h-6 text-white" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black text-white tracking-tight flex items-center gap-3", children: [
+            "Store Mesh Connect",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs px-2 py-0.5 font-mono", children: "HMAC-SHA256 Encrypted" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm", children: "Peer-to-Peer Inter-Store Cryptographic Federation & Multi-Store Synchronizer" })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => {
+              queryClient2.invalidateQueries({ queryKey: ["/api/mesh/nodes"] });
+              queryClient2.invalidateQueries({ queryKey: ["/api/mesh/logs"] });
+              queryClient2.invalidateQueries({ queryKey: ["/api/mesh/node-info"] });
+              toast2({ title: "Refreshed", description: "Mesh network status updated." });
+            },
+            variant: "outline",
+            className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl gap-2 font-bold",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-4 h-4" }),
+              "Refresh Mesh"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => setActiveTab("connect"),
+            className: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl gap-2 font-bold shadow-lg shadow-purple-600/30",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
+              "Connect New Store"
+            ]
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/80 border-white/10 backdrop-blur-xl relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
+            "Local Node Identity",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Shield, { className: "w-4 h-4 text-purple-400" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-lg font-mono font-black text-purple-300 truncate", children: nodeInfo?.fingerprint || "MESH-LOCAL-001" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: () => handleCopy(nodeInfo?.fingerprint || "", "fp"),
+            className: "text-xs text-white/50 hover:text-white flex items-center gap-1.5 transition-colors font-mono",
+            children: [
+              copiedKey === "fp" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3.5 h-3.5 text-emerald-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3.5 h-3.5" }),
+              "Click to Copy Fingerprint"
+            ]
+          }
+        ) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/80 border-white/10 backdrop-blur-xl relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
+            "Active Paired Nodes",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4 text-indigo-400" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-3xl font-black text-white", children: [
+            nodes.filter((n2) => n2.status === "online").length,
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-normal text-white/40 ml-2", children: [
+              "/ ",
+              nodes.length,
+              " connected"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-emerald-400 flex items-center gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
+          "Live Mutual Handshake Ready"
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/80 border-white/10 backdrop-blur-xl relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
+            "Anti-Spoof Defense",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-emerald-400" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-base font-bold text-white", children: "Zero-Trust Replay Shield" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50", children: "Expiring Nonce + HMAC Verification on every sync request." }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/80 border-white/10 backdrop-blur-xl relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
+            "Cross-Sync Engine",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowRightLeft, { className: "w-4 h-4 text-pink-400" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-base font-bold text-white", children: "Catalog & Margin Markup" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50", children: "Automated multi-store product inventory federation." }) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, className: "space-y-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-[#130d24] border border-white/10 p-1.5 rounded-2xl grid grid-cols-2 md:grid-cols-4 w-full h-auto gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          TabsTrigger,
+          {
+            value: "nodes",
+            className: "rounded-xl py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white text-white/60 font-bold text-sm gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Boxes, { className: "w-4 h-4" }),
+              "Paired Stores (",
+              nodes.length,
+              ")"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          TabsTrigger,
+          {
+            value: "host",
+            className: "rounded-xl py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white text-white/60 font-bold text-sm gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-4 h-4" }),
+              "Host Mode (Pair Key)"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          TabsTrigger,
+          {
+            value: "connect",
+            className: "rounded-xl py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white text-white/60 font-bold text-sm gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { className: "w-4 h-4" }),
+              "Connect Remote Store"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          TabsTrigger,
+          {
+            value: "logs",
+            className: "rounded-xl py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white text-white/60 font-bold text-sm gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Activity, { className: "w-4 h-4" }),
+              "Mesh Audit Logs"
+            ]
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "nodes", className: "space-y-6", children: isNodesLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-16 text-center text-white/40 flex items-center justify-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-5 h-5 animate-spin text-purple-400" }),
+        "Loading connected store nodes..."
+      ] }) : nodes.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/60 border-white/10 text-center py-16 px-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 text-purple-400 shadow-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Network, { className: "w-10 h-10" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-black text-white mb-2", children: "No Connected Stores Yet" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm max-w-md mx-auto mb-6", children: "Connect your store with another Shopeefy instance or partner shop to sync products, share stock, and enable cross-store order routing." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-center gap-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              onClick: () => setActiveTab("host"),
+              variant: "outline",
+              className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl gap-2 font-bold",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-4 h-4 text-purple-400" }),
+                "Generate My Pair Key"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              onClick: () => setActiveTab("connect"),
+              className: "bg-purple-600 hover:bg-purple-500 text-white rounded-xl gap-2 font-bold",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { className: "w-4 h-4" }),
+                "Connect to a Store"
+              ]
+            }
+          )
+        ] })
+      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6", children: nodes.map((node) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        Card,
+        {
+          className: "bg-[#130d24]/90 border border-white/10 hover:border-purple-500/40 transition-all duration-300 rounded-3xl overflow-hidden shadow-2xl group relative",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-3 border-b border-white/5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10 flex items-center justify-center text-purple-300 font-black text-lg shadow-inner", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-6 h-6" }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-lg font-black text-white group-hover:text-purple-300 transition-colors flex items-center gap-2", children: node.nodeName }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "a",
+                    {
+                      href: node.nodeUrl,
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      className: "text-xs text-white/40 hover:text-purple-400 flex items-center gap-1 font-mono transition-colors",
+                      children: [
+                        node.nodeUrl,
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Badge,
+                {
+                  className: `font-mono text-xs px-2.5 py-1 ${node.status === "online" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" : "bg-red-500/20 text-red-400 border-red-500/40"}`,
+                  children: node.status === "online" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-400 animate-ping" }),
+                    node.latencyMs ? `${node.latencyMs}ms` : "Online"
+                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-red-400" }),
+                    "Offline"
+                  ] })
+                }
+              )
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "pt-4 space-y-4", children: [
+              node.description && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/70 bg-white/5 p-3 rounded-xl border border-white/5", children: node.description }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 text-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/[0.02] p-2.5 rounded-xl border border-white/5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 block mb-1", children: "Catalog Sync:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white flex items-center gap-1.5", children: node.syncCatalog ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-400 flex items-center gap-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5" }),
+                    " Active"
+                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white/40 flex items-center gap-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3.5 h-3.5" }),
+                    " Disabled"
+                  ] }) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/[0.02] p-2.5 rounded-xl border border-white/5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 block mb-1", children: "Price Markup:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold text-purple-300 font-mono", children: [
+                    "+",
+                    node.priceMarkupPct || 0,
+                    "% Profit Margin"
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] text-white/40 flex items-center justify-between font-mono pt-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "Node FP: ",
+                  node.fingerprint.slice(0, 16),
+                  "..."
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "Last Ping: ",
+                  node.lastPingAt ? new Date(node.lastPingAt).toLocaleTimeString() : "Never"
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(CardFooter, { className: "pt-2 border-t border-white/5 flex items-center justify-between gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "outline",
+                    onClick: () => pingMutation.mutate(node.id),
+                    disabled: pingMutation.isPending,
+                    className: "border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs h-9 rounded-xl font-bold gap-1.5",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Radio, { className: `w-3.5 h-3.5 text-indigo-400 ${pingMutation.isPending ? "animate-spin" : ""}` }),
+                      "Test Ping"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "outline",
+                    onClick: () => syncMutation.mutate(node.id),
+                    disabled: syncMutation.isPending || !node.syncCatalog,
+                    className: "border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs h-9 rounded-xl font-bold gap-1.5",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 text-emerald-400 ${syncMutation.isPending ? "animate-spin" : ""}` }),
+                      "Sync Products"
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Button,
+                  {
+                    size: "icon",
+                    variant: "ghost",
+                    onClick: () => openEditModal(node),
+                    className: "h-9 w-9 text-white/60 hover:text-white hover:bg-white/10 rounded-xl",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(PenLine, { className: "w-4 h-4" })
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Button,
+                  {
+                    size: "icon",
+                    variant: "ghost",
+                    onClick: () => {
+                      if (confirm(`Are you sure you want to unpair from ${node.nodeName}?`)) {
+                        deleteMutation.mutate(node.id);
+                      }
+                    },
+                    className: "h-9 w-9 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 rounded-xl",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-4 h-4" })
+                  }
+                )
+              ] })
+            ] })
+          ]
+        },
+        node.id
+      )) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "host", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "lg:col-span-2 bg-[#130d24]/90 border-white/10 backdrop-blur-xl rounded-3xl p-6", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "px-0 pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-5 h-5" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl font-black text-white", children: "Generate Host Pairing Key" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/50 text-xs", children: "Create an ephemeral, high-entropy cryptographic token for another store admin to link with your store." })
+            ] })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "px-0 space-y-6", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-white/70 text-xs font-bold uppercase tracking-wider", children: "Your Server Domain / Public Base URL (Auto-Detected)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: nodeInfo?.detectedUrl || "https://your-store.com",
+                  value: customHostUrl,
+                  onChange: (e) => setCustomHostUrl(e.target.value),
+                  className: "bg-white/5 border-white/10 text-white rounded-xl font-mono text-sm"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/40", children: [
+                "The connecting store will send handshake payloads to this endpoint. (e.g. ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "https://youuhost.com" }),
+                ")"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                onClick: () => generateMutation.mutate(customHostUrl || nodeInfo?.detectedUrl || ""),
+                disabled: generateMutation.isPending,
+                className: "w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-6 rounded-2xl gap-2 shadow-xl shadow-purple-600/20 text-base",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: `w-5 h-5 ${generateMutation.isPending ? "animate-spin" : ""}` }),
+                  generateMutation.isPending ? "Generating Cryptographic Token..." : "Generate Secure 1-Time Pair Key"
+                ]
+              }
+            ),
+            generatedPair && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-br from-purple-950/60 to-indigo-950/60 border border-purple-500/40 rounded-3xl p-6 space-y-4 relative overflow-hidden animate-in zoom-in-95 duration-300", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-4 h-4 animate-spin text-purple-400" }),
+                  "Valid for 15 Minutes"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs", children: "Ready for Handshake" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-4 bg-black/40 rounded-2xl border border-white/10", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40 block mb-1", children: "PAIR CODE" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-3xl sm:text-4xl font-mono font-black text-white tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-indigo-200", children: generatedPair.code })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/60", children: "1-Click Full Connection String (Share with partner store):" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      readOnly: true,
+                      value: generatedPair.connectString,
+                      className: "bg-black/50 border-white/10 text-purple-300 font-mono text-xs rounded-xl"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      onClick: () => handleCopy(generatedPair.connectString, "connStr"),
+                      className: "bg-purple-600 hover:bg-purple-500 text-white rounded-xl gap-1.5 shrink-0 font-bold",
+                      children: [
+                        copiedKey === "connStr" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-4 h-4" }),
+                        "Copy String"
+                      ]
+                    }
+                  )
+                ] })
+              ] })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/60 border-white/10 rounded-3xl p-6 flex flex-col justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-lg font-black text-white mb-3 flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Shield, { className: "w-5 h-5 text-emerald-400" }),
+              "How Pairing Works"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "space-y-4 text-xs text-white/70", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex gap-3 items-start", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold flex items-center justify-center shrink-0", children: "1" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "Click ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Generate Secure 1-Time Pair Key" }),
+                  ". A single-use 256-bit token is created on your server."
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex gap-3 items-start", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold flex items-center justify-center shrink-0", children: "2" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "Copy and send the ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Connection String" }),
+                  " to the other store owner."
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { className: "flex gap-3 items-start", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold flex items-center justify-center shrink-0", children: "3" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "They paste it into their ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Connect Remote Store" }),
+                  " tab. Both servers perform an automated mutual HMAC cryptographic exchange."
+                ] })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-6 p-4 rounded-2xl bg-purple-950/30 border border-purple-500/20 text-xs text-purple-300", children: [
+            "🔒 ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Zero Hacker Exposure:" }),
+            " The Pair Code self-destructs immediately upon successful handshake or 15-minute timeout."
+          ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "connect", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "max-w-3xl mx-auto bg-[#130d24]/90 border-white/10 backdrop-blur-xl rounded-3xl p-6 sm:p-8", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "px-0 pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { className: "w-6 h-6" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-2xl font-black text-white", children: "Connect to Remote Store Node" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/50 text-sm", children: "Enter the remote store's server URL and pairing code to establish a secure peer federation." })
+          ] })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "px-0 space-y-6", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 bg-white/[0.02] p-4 rounded-2xl border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-purple-300 flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3.5 h-3.5 text-purple-400" }),
+              "Quick Paste Connection String:"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                placeholder: "Paste URL|CODE here (e.g. https://partner-store.com|MESH-8291-3810)",
+                onChange: (e) => handleQuickPasteConnectString(e.target.value),
+                className: "bg-white/5 border-white/10 text-white rounded-xl font-mono text-xs"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase", children: "Remote Server URL *" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "https://partner-store.com",
+                  value: remoteUrl,
+                  onChange: (e) => setRemoteUrl(e.target.value),
+                  className: "bg-white/5 border-white/10 text-white rounded-xl font-mono text-sm"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase", children: "Pairing Code *" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "MESH-XXXX-XXXX",
+                  value: pairCode,
+                  onChange: (e) => setPairCode(e.target.value.toUpperCase()),
+                  className: "bg-white/5 border-white/10 text-white rounded-xl font-mono text-sm uppercase tracking-wider"
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase", children: "Friendly Store Alias (Optional)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "e.g. VIP Branch Store #2",
+                  value: nodeAlias,
+                  onChange: (e) => setNodeAlias(e.target.value),
+                  className: "bg-white/5 border-white/10 text-white rounded-xl text-sm"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase", children: "Profit Margin Markup %" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "number",
+                    placeholder: "10",
+                    value: priceMarkup,
+                    onChange: (e) => setPriceMarkup(e.target.value),
+                    className: "bg-white/5 border-white/10 text-white rounded-xl text-sm pl-4 pr-12 font-mono"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/40 font-bold", children: "% Markup" })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase", children: "Store Notes / Description" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                placeholder: "Notes about products, supplier terms, or contact information for this peer store...",
+                value: nodeDescription,
+                onChange: (e) => setNodeDescription(e.target.value),
+                className: "bg-white/5 border-white/10 text-white rounded-xl text-xs h-20"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-sm font-bold text-white block", children: "Auto Sync Products & Catalog" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Import active inventory items from this partner store with your custom profit markup." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: syncCatalog, onCheckedChange: setSyncCatalog })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-3 border-t border-white/5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-sm font-bold text-white block", children: "Cross-Store Order Routing" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Forward customer fulfillment requests directly to this peer store." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: syncOrders, onCheckedChange: setSyncOrders })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              onClick: () => connectMutation.mutate(),
+              disabled: connectMutation.isPending || !remoteUrl || !pairCode,
+              className: "w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-6 rounded-2xl gap-2 shadow-2xl shadow-indigo-600/30 text-base",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Network, { className: `w-5 h-5 ${connectMutation.isPending ? "animate-spin" : ""}` }),
+                connectMutation.isPending ? "Performing Cryptographic Handshake..." : "🚀 Establish Secure Peer Link"
+              ]
+            }
+          )
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "logs", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-[#130d24]/90 border-white/10 backdrop-blur-xl rounded-3xl p-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "px-0 pt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-black text-white flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Activity, { className: "w-5 h-5 text-indigo-400" }),
+              "Cryptographic Mesh Defense & Sync Ledger"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/50 text-xs", children: "Real-time audit log of mutual peer authentication handshakes, HMAC verifications, and sync events." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-purple-500/20 text-purple-300 border-purple-500/30 font-mono text-xs", children: [
+            logs.length,
+            " Logged Events"
+          ] })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "px-0", children: isLogsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-12 text-center text-white/40 flex items-center justify-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-4 h-4 animate-spin text-purple-400" }),
+          "Loading logs..."
+        ] }) : logs.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "py-12 text-center text-white/40 text-xs", children: "No mesh events recorded yet." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "rounded-2xl border border-white/5 overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-[500px] overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs font-mono", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-white/5 text-white/40 sticky top-0 backdrop-blur-md", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Time" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Event" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Details" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "IP" })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-white/5", children: logs.map((log2) => {
+            const isSuccess = log2.eventType.includes("success") || log2.eventType.includes("connected") || log2.eventType.includes("synced");
+            const isReject = log2.eventType.includes("reject") || log2.eventType.includes("failed") || log2.eventType.includes("unpair");
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-white/[0.02] transition-colors", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 text-white/40 whitespace-nowrap", children: log2.createdAt ? new Date(log2.createdAt).toLocaleTimeString() : "-" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 whitespace-nowrap", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Badge,
+                {
+                  className: `text-[10px] px-2 py-0.5 ${isSuccess ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : isReject ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-purple-500/20 text-purple-300 border-purple-500/30"}`,
+                  children: log2.eventType
+                }
+              ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 text-white/80 font-sans", children: log2.message }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 text-white/40 whitespace-nowrap", children: log2.ip || "internal" })
+            ] }, log2.id);
+          }) })
+        ] }) }) }) })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!editingNode, onOpenChange: (open2) => !open2 && setEditingNode(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "bg-[#130d24] border-white/10 text-white rounded-3xl max-w-lg", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-xl font-black flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(PenLine, { className: "w-5 h-5 text-purple-400" }),
+          "Edit Paired Store Node"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogDescription, { className: "text-white/50 text-xs", children: [
+          "Update alias, profit margin markup, and sync rules for [",
+          editingNode?.nodeName,
+          "]."
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 py-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70", children: "Store Friendly Name" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              value: editName,
+              onChange: (e) => setEditName(e.target.value),
+              className: "bg-white/5 border-white/10 text-white rounded-xl"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70", children: "Profit Markup %" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "number",
+              value: editMarkup,
+              onChange: (e) => setEditMarkup(e.target.value),
+              className: "bg-white/5 border-white/10 text-white rounded-xl font-mono"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70", children: "Description / Notes" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Textarea,
+            {
+              value: editDesc,
+              onChange: (e) => setEditDesc(e.target.value),
+              className: "bg-white/5 border-white/10 text-white rounded-xl text-xs h-20"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white block", children: "Sync Products" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Import products into active catalog" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editSyncCatalog, onCheckedChange: setEditSyncCatalog })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-2 border-t border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white block", children: "Order Routing" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Forward customer fulfillment requests" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editSyncOrders, onCheckedChange: setEditSyncOrders })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogFooter, { className: "gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Button,
+          {
+            variant: "outline",
+            onClick: () => setEditingNode(null),
+            className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold",
+            children: "Cancel"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Button,
+          {
+            onClick: () => updateMutation.mutate(),
+            disabled: updateMutation.isPending,
+            className: "bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold",
+            children: updateMutation.isPending ? "Saving..." : "Save Changes"
+          }
+        )
+      ] })
+    ] }) })
+  ] });
+}
 function NotFound() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex items-center justify-center bg-gray-50", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "w-full max-w-md mx-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "pt-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex mb-4 gap-2", children: [
@@ -98237,6 +99270,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: Dashboard }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/api-keys", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: AdminApiKeysPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: DomainAutomationPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/store-mesh", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: StoreMeshPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/customer-tracker", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CustomerTrackerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/preorders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PreordersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/products", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ProductsPage }) }),

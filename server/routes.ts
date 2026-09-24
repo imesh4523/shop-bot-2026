@@ -14,6 +14,19 @@ import { N1PanelService } from "./n1panel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { domainAutomationService } from "./domain-automation-service";
 import { getSecurityShieldStatus, unbanJailedIp } from "./security-shield";
+import { 
+  generatePairCode, 
+  handleIncomingHandshake, 
+  connectToRemoteStore, 
+  getAllMeshNodes, 
+  updateMeshNode, 
+  deleteMeshNode, 
+  pingPeerNode, 
+  syncPeerCatalog, 
+  getMeshLogs, 
+  getLocalFingerprint,
+  verifyIncomingMeshRequest 
+} from "./mesh-service";
 import { initBot, getBroadcastBot } from "./telegram";
 import { setupAuth } from "./replit_integrations/auth";
 import { api } from "@shared/routes";
@@ -13550,6 +13563,213 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
     } catch (err: any) {
       console.error("Error sending reply to support ticket:", err);
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  // =========================================================================
+  // STORE MESH & INTER-STORE FEDERATION API (Admin & Mutual Cryptographic Peer)
+  // =========================================================================
+
+  // Get local node info & stats
+  app.get("/api/mesh/node-info", isAuth, async (req, res) => {
+    try {
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const detectedUrl = `${proto}://${host}`;
+      const fingerprint = getLocalFingerprint();
+      const nodes = await getAllMeshNodes();
+      
+      res.json({
+        success: true,
+        fingerprint,
+        detectedUrl,
+        totalNodes: nodes.length,
+        onlineNodes: nodes.filter(n => n.status === "online").length,
+        securityModel: "HMAC-SHA256 Signed + Anti-Replay Nonce Engine",
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // List all paired store nodes
+  app.get("/api/mesh/nodes", isAuth, async (req, res) => {
+    try {
+      const nodes = await getAllMeshNodes();
+      res.json(nodes);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Generate 1-time expiring Pair Code (Host Mode)
+  app.post("/api/mesh/pair/generate", isAuth, async (req, res) => {
+    try {
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const hostUrl = req.body.hostUrl || `${proto}://${host}`;
+      
+      const pairData = await generatePairCode(hostUrl);
+      res.json({ success: true, ...pairData });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Connect / Pair with a Remote Store (Client Mode)
+  app.post("/api/mesh/pair/connect", isAuth, async (req, res) => {
+    try {
+      const { remoteUrl, pairCode, nodeName, description, syncCatalog, syncOrders, priceMarkupPct } = req.body;
+      if (!remoteUrl || !pairCode) {
+        return res.status(400).json({ message: "Remote Store URL and Pair Code are required" });
+      }
+
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.get("host") || "localhost:5000";
+      const myServerUrl = req.body.myServerUrl || `${proto}://${host}`;
+
+      const connectedNode = await connectToRemoteStore({
+        remoteUrl,
+        pairCode,
+        nodeName,
+        description,
+        syncCatalog: syncCatalog !== false,
+        syncOrders: !!syncOrders,
+        priceMarkupPct: Number(priceMarkupPct) || 0,
+        myServerUrl,
+      });
+
+      res.json({ success: true, node: connectedNode });
+    } catch (err: any) {
+      console.error("[MESH CONNECT ERROR]", err);
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Update a paired node configuration
+  app.put("/api/mesh/nodes/:id", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { nodeName, description, syncCatalog, syncOrders, priceMarkupPct, status } = req.body;
+      const updated = await updateMeshNode(id, {
+        ...(nodeName && { nodeName }),
+        ...(description !== undefined && { description }),
+        ...(syncCatalog !== undefined && { syncCatalog: !!syncCatalog }),
+        ...(syncOrders !== undefined && { syncOrders: !!syncOrders }),
+        ...(priceMarkupPct !== undefined && { priceMarkupPct: Number(priceMarkupPct) }),
+        ...(status && { status }),
+      });
+      res.json({ success: true, node: updated });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Delete / Unpair a store node
+  app.delete("/api/mesh/nodes/:id", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      await deleteMeshNode(id);
+      res.json({ success: true, message: "Store node unpaired successfully" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Health Ping a paired store
+  app.post("/api/mesh/nodes/:id/ping", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await pingPeerNode(id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Sync Products from a paired store
+  app.post("/api/mesh/nodes/:id/sync", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await syncPeerCatalog(id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Fetch Mesh Audit Logs
+  app.get("/api/mesh/logs", isAuth, async (req, res) => {
+    try {
+      const logs = await getMeshLogs(50);
+      res.json(logs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // =========================================================================
+  // PUBLIC / PEER-TO-PEER CRYPTOGRAPHIC MESH ENDPOINTS
+  // =========================================================================
+
+  // Incoming Handshake Endpoint (Peer is connecting to us using our pair code)
+  app.post("/api/mesh/handshake/initiate", async (req, res) => {
+    try {
+      const clientIp = (req.headers["cf-connecting-ip"] as string) || req.ip || "unknown";
+      const result = await handleIncomingHandshake({
+        ...req.body,
+        ip: clientIp,
+      });
+      res.json(result);
+    } catch (err: any) {
+      console.warn("[HANDSHAKE REJECTED]", err.message);
+      res.status(400).json({ success: false, message: err.message });
+    }
+  });
+
+  // Peer Ping endpoint (Signed with HMAC)
+  app.get("/api/mesh/peer/ping", async (req, res) => {
+    const auth = await verifyIncomingMeshRequest(req);
+    if (!auth.valid) {
+      return res.status(401).json({ success: false, message: auth.error || "Cryptographic verification failed" });
+    }
+
+    res.json({
+      success: true,
+      pong: true,
+      serverTime: Date.now(),
+      nodeFingerprint: getLocalFingerprint(),
+      peerName: auth.node?.nodeName,
+    });
+  });
+
+  // Peer Products Catalog endpoint (Signed with HMAC)
+  app.get("/api/mesh/peer/products", async (req, res) => {
+    const auth = await verifyIncomingMeshRequest(req);
+    if (!auth.valid) {
+      return res.status(401).json({ success: false, message: auth.error || "Cryptographic verification failed" });
+    }
+
+    try {
+      const productList = await storage.getAvailableProducts();
+      // Clean sensitive server data before returning to peer
+      const sanitized = productList.map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        price: p.price,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        category: p.category,
+      }));
+
+      res.json({
+        success: true,
+        nodeFingerprint: getLocalFingerprint(),
+        products: sanitized,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
     }
   });
 

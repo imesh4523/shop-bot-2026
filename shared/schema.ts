@@ -581,6 +581,56 @@ export const insertSandromaniaOrderSchema = createInsertSchema(sandromaniaOrders
 export type SandromaniaOrder = typeof sandromaniaOrders.$inferSelect;
 export type InsertSandromaniaOrder = z.infer<typeof insertSandromaniaOrderSchema>;
 
+// ==========================================
+// Store Mesh & Inter-Store Peer Federation
+// ==========================================
+export const storeMeshNodes = pgTable("store_mesh_nodes", {
+  id: serial("id").primaryKey(),
+  nodeName: text("node_name").notNull(),
+  nodeUrl: text("node_url").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  sharedSecret: text("shared_secret").notNull(),
+  authToken: text("auth_token").notNull(),
+  status: text("status").notNull().default("online"), // online, offline, pending, error, revoked
+  description: text("description"),
+  syncCatalog: boolean("sync_catalog").notNull().default(true),
+  syncOrders: boolean("sync_orders").notNull().default(false),
+  priceMarkupPct: integer("price_markup_pct").notNull().default(0),
+  lastPingAt: timestamp("last_ping_at"),
+  lastSyncAt: timestamp("last_sync_at"),
+  latencyMs: integer("latency_ms").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
+export const storeMeshPairCodes = pgTable("store_mesh_pair_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  hostUrl: text("host_url").notNull(),
+  secretKey: text("secret_key").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
+export const storeMeshLogs = pgTable("store_mesh_logs", {
+  id: serial("id").primaryKey(),
+  nodeId: integer("node_id"),
+  eventType: text("event_type").notNull(), // handshake, ping, sync_catalog, forward_order, error, security_reject
+  message: text("message").notNull(),
+  ip: text("ip"),
+  detailsJson: text("details_json"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
+export const insertStoreMeshNodeSchema = createInsertSchema(storeMeshNodes).omit({ id: true, createdAt: true, updatedAt: true });
+export type StoreMeshNode = typeof storeMeshNodes.$inferSelect;
+export type InsertStoreMeshNode = z.infer<typeof insertStoreMeshNodeSchema>;
+
+export const insertStoreMeshPairCodeSchema = createInsertSchema(storeMeshPairCodes).omit({ id: true, createdAt: true });
+export type StoreMeshPairCode = typeof storeMeshPairCodes.$inferSelect;
+export type InsertStoreMeshPairCode = z.infer<typeof insertStoreMeshPairCodeSchema>;
+
+export const insertStoreMeshLogSchema = createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
+export type StoreMeshLog = typeof storeMeshLogs.$inferSelect;
+export type InsertStoreMeshLog = z.infer<typeof insertStoreMeshLogSchema>;
