@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Save, Loader2, Sparkles, CheckCircle2, XCircle, Activity, Link2, ExternalLink, ShieldCheck, Zap } from "lucide-react";
+import { CreditCard, Save, Loader2, Sparkles, CheckCircle2, XCircle, Activity, Link2, ExternalLink, ShieldCheck, Zap, RefreshCw } from "lucide-react";
 
 export default function PayHereGatewayPage() {
   const { toast } = useToast();
@@ -22,55 +22,31 @@ export default function PayHereGatewayPage() {
   const [pingLoading, setPingLoading] = useState(false);
   const [pingResult, setPingResult] = useState<{ success: boolean; latencyMs?: number; message?: string } | null>(null);
 
-  const { data: payhereEnabledSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_ENABLED"],
-  });
-  const { data: payhereGatewayUrlSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"],
-  });
-  const { data: payhereMerchantIdSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"],
-  });
-  const { data: payhereMerchantSecretSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"],
-  });
-  const { data: payhereSandboxSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_SANDBOX_MODE"],
-  });
-  const { data: payhereStatusSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_STATUS"],
-  });
-  const { data: payherePairedAtSetting } = useQuery<{ key: string, value: string }>({
-    queryKey: ["/api/settings/PAYHERE_PAIRED_AT"],
+  // Live Status Query (Refetches every 4 seconds)
+  const { data: liveStatus, refetch: refetchStatus } = useQuery<{
+    status: string;
+    gatewayUrl: string;
+    pairedAt: string;
+    enabled: boolean;
+    sandboxMode: boolean;
+    merchantId: string;
+    hasSecret: boolean;
+    isConnected: boolean;
+  }>({
+    queryKey: ["/api/payhere/status"],
+    refetchInterval: 4000,
   });
 
   useEffect(() => {
-    if (payhereEnabledSetting?.value !== undefined) setPayhereEnabled(payhereEnabledSetting.value === "true");
-  }, [payhereEnabledSetting]);
-
-  useEffect(() => {
-    if (payhereGatewayUrlSetting?.value !== undefined) setPayhereGatewayUrl(payhereGatewayUrlSetting.value);
-  }, [payhereGatewayUrlSetting]);
-
-  useEffect(() => {
-    if (payhereMerchantIdSetting?.value !== undefined) setPayhereMerchantId(payhereMerchantIdSetting.value);
-  }, [payhereMerchantIdSetting]);
-
-  useEffect(() => {
-    if (payhereMerchantSecretSetting?.value !== undefined) setPayhereMerchantSecret(payhereMerchantSecretSetting.value);
-  }, [payhereMerchantSecretSetting]);
-
-  useEffect(() => {
-    if (payhereSandboxSetting?.value !== undefined) setPayhereSandboxMode(payhereSandboxSetting.value !== "false");
-  }, [payhereSandboxSetting]);
-
-  useEffect(() => {
-    if (payhereStatusSetting?.value !== undefined) setPayhereStatus(payhereStatusSetting.value);
-  }, [payhereStatusSetting]);
-
-  useEffect(() => {
-    if (payherePairedAtSetting?.value !== undefined) setPayherePairedAt(payherePairedAtSetting.value);
-  }, [payherePairedAtSetting]);
+    if (liveStatus) {
+      setPayhereStatus(liveStatus.status || "disconnected");
+      setPayhereGatewayUrl(liveStatus.gatewayUrl || "");
+      setPayherePairedAt(liveStatus.pairedAt || "");
+      setPayhereEnabled(liveStatus.enabled);
+      setPayhereSandboxMode(liveStatus.sandboxMode);
+      if (liveStatus.merchantId) setPayhereMerchantId(liveStatus.merchantId);
+    }
+  }, [liveStatus]);
 
   const togglePaymentMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
@@ -78,7 +54,7 @@ export default function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/settings/${variables.key}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast({
         title: "Setting Saved",
         description: `${variables.key} updated successfully.`,
@@ -95,7 +71,7 @@ export default function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast({
         title: "PayHere Merchant ID Saved",
         description: "Merchant ID updated successfully.",
@@ -112,7 +88,7 @@ export default function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast({
         title: "PayHere Merchant Secret Saved",
         description: "Merchant Secret updated securely.",
@@ -126,20 +102,17 @@ export default function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
       if (data.gatewayUrl) setPayhereGatewayUrl(data.gatewayUrl);
-      if (data.merchantId) setPayhereMerchantId(data.merchantId);
-      if (data.merchantSecret) setPayhereMerchantSecret(data.merchantSecret);
       setPayhereStatus("connected");
       setPayherePairingUrl("");
       toast({
-        title: "⚡ PayHere Host Connected Successfully!",
-        description: `Paired with ${data.gatewayUrl || "host"} (${data.latencyMs ? data.latencyMs + "ms" : "online"})`,
+        title: "⚡ PayHere Gateway Connected Successfully!",
+        description: `Connected to ${data.gatewayUrl || "host proxy"}. Gateway is now Live & Active.`,
       });
+      handleTestPing();
     },
     onError: (err: any) => {
       toast({
@@ -156,9 +129,7 @@ export default function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       setPayhereGatewayUrl("");
       setPayhereStatus("disconnected");
       setPingResult(null);
@@ -173,13 +144,13 @@ export default function PayHereGatewayPage() {
     try {
       setPingLoading(true);
       setPingResult(null);
-      const res = await apiRequest("GET", "/api/payhere/test-ping");
+      const res = await apiRequest("POST", "/api/payhere/test-ping", {});
       const data = await res.json();
       setPingResult(data);
       if (data.success) {
         toast({
-          title: "Ping Successful",
-          description: `Host responded in ${data.latencyMs}ms. Status: Online`,
+          title: "Ping Successful 📡",
+          description: `Host responded in ${data.latencyMs}ms. Status: Online & Healthy`,
         });
       } else {
         toast({
@@ -215,28 +186,41 @@ export default function PayHereGatewayPage() {
             Approved domain proxy configuration for zero-detection LKR checkout and instant deposits
           </p>
         </div>
-        <div className="glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20 self-start md:self-auto">
-          <span className={`inline-block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.8)]' : 'bg-amber-400'}`} />
-          {isConnected ? "Gateway Connected" : "Not Paired"}
+
+        {/* Dynamic Status Pill */}
+        <div className={`px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold shadow-lg border transition-all ${
+          isConnected 
+            ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+            : 'bg-red-950/80 border-red-500/40 text-red-300'
+        }`}>
+          <span className={`inline-block w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse shadow-[0_0_15px_rgba(52,211,153,1)]' : 'bg-red-500'}`} />
+          {isConnected ? "🟢 GATEWAY CONNECTED" : "🔴 DISCONNECTED"}
         </div>
       </div>
 
       <div className="max-w-4xl space-y-8">
-        {/* Main Pairing Card */}
-        <Card className="glass-card border-0 bg-gradient-to-br from-emerald-950/40 via-background/90 to-teal-950/30 border border-emerald-500/20 shadow-2xl overflow-hidden">
+        {/* Main Status & Pairing Card */}
+        <Card className={`glass-card border transition-all duration-500 ${
+          isConnected
+            ? 'bg-gradient-to-br from-emerald-950/40 via-background/95 to-teal-950/30 border-emerald-500/30 shadow-2xl'
+            : 'bg-gradient-to-br from-purple-950/30 via-background/95 to-background border-white/10 shadow-xl'
+        }`}>
           <CardHeader className="pb-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-black flex items-center gap-2 text-white">
-                  <Zap className="w-6 h-6 text-emerald-400 animate-pulse" />
-                  1-Click Gateway Pairing
+                  <Zap className={`w-6 h-6 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-purple-400'}`} />
+                  Gateway Connection & Status
                 </CardTitle>
                 <CardDescription className="text-white/60">
-                  Connect your standalone approved host (e.g. <code>http://localhost:3000</code> or your verified domain)
+                  {isConnected 
+                    ? `Live checkout proxy paired with ${payhereGatewayUrl}`
+                    : "Pair with your standalone approved host (e.g. https://imhosteepay.online or http://localhost:3000)"
+                  }
                 </CardDescription>
               </div>
 
-              {/* Status Badge & Mode Controls */}
+              {/* Status Controls */}
               <div className="flex items-center gap-3">
                 <Button
                   variant={payhereSandboxMode ? "default" : "outline"}
@@ -268,19 +252,83 @@ export default function PayHereGatewayPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Live Connection Banner */}
+            {isConnected ? (
+              <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 space-y-4 shadow-lg shadow-emerald-950/40">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-400">Connected Proxy Gateway</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">ONLINE</span>
+                      </div>
+                      <code className="text-base font-black text-white font-mono">{payhereGatewayUrl}</code>
+                      {payherePairedAt && (
+                        <p className="text-[11px] text-white/40 mt-0.5">Paired at: {new Date(payherePairedAt).toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestPing}
+                      disabled={pingLoading}
+                      className="h-10 px-4 text-xs font-bold border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 bg-emerald-950/40"
+                    >
+                      {pingLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Activity className="w-4 h-4 mr-1.5" />}
+                      Test Ping
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => payhereDisconnectMutation.mutate()}
+                      disabled={payhereDisconnectMutation.isPending}
+                      className="h-10 px-3 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                </div>
+
+                {pingResult && (
+                  <div className={`p-3.5 rounded-xl text-xs flex items-center justify-between font-bold ${
+                    pingResult.success ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-200" : "bg-red-500/20 border border-red-500/40 text-red-200"
+                  }`}>
+                    <span>{pingResult.success ? `✅ Ping Response Received! Latency: ${pingResult.latencyMs}ms (Online)` : `❌ Ping failed: ${pingResult.message}`}</span>
+                    {pingResult.latencyMs && <span className="font-mono bg-black/40 px-2 py-1 rounded text-emerald-300">{pingResult.latencyMs} ms</span>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/20 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <XCircle className="w-5 h-5 text-red-400" />
+                  <div>
+                    <p className="text-sm font-bold text-red-300">Gateway is Disconnected</p>
+                    <p className="text-xs text-white/50">Paste a pairing link below to link your host instance.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Instant Pairing Input Box */}
-            <div className="space-y-3 p-5 rounded-2xl bg-black/60 border border-emerald-500/30 shadow-inner">
+            <div className="space-y-3 p-5 rounded-2xl bg-black/60 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-black text-emerald-300 uppercase tracking-widest flex items-center gap-2">
                   <Link2 className="w-4 h-4" />
-                  Paste Pairing Link from Host Instance
+                  {isConnected ? "Re-Pair or Update Gateway Link" : "Paste Pairing Link from Host Instance"}
                 </Label>
                 <span className="text-xs text-emerald-400/80 font-mono">imhost /pair</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input
-                  placeholder="Paste URL e.g. http://localhost:3000/pair/pair_12345678 or domain URL"
+                  placeholder="Paste URL e.g. https://imhosteepay.online/pair/pair_12345... or domain URL"
                   className="glass-panel border-white/20 bg-white/5 text-white h-12 text-sm font-mono flex-1 focus:border-emerald-400"
                   value={payherePairingUrl}
                   onChange={(e) => setPayherePairingUrl(e.target.value)}
@@ -301,73 +349,29 @@ export default function PayHereGatewayPage() {
                   className="h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-black text-sm shadow-lg shadow-emerald-500/20"
                 >
                   {payherePairMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
-                  Connect Gateway
+                  {isConnected ? "Update Link" : "Connect Gateway"}
                 </Button>
               </div>
 
               <div className="flex flex-wrap items-center justify-between pt-1 text-xs text-white/50">
                 <p>
-                  1. Run <code>node server.js</code> in <code>imhost-main</code> (Port 3000).<br />
-                  2. Open <code>/pair</code>, copy the code/URL and click <b>Connect Gateway</b>.
+                  1. Open <code>/pair</code> on your PayHere host instance (Auto-refreshes every 10 mins).<br />
+                  2. Copy the active link and click <b>Connect Gateway</b>.
                 </p>
-                <a
-                  href="http://localhost:3000/pair"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-emerald-400 hover:underline mt-2 sm:mt-0"
-                >
-                  Open imhost /pair <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-
-            {/* Connection Status Box */}
-            {payhereGatewayUrl && (
-              <div className="p-4 rounded-xl bg-white/5 border border-emerald-500/20 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-white/40 uppercase font-bold">Connected Proxy URL</p>
-                      <code className="text-sm font-black text-emerald-300 font-mono">{payhereGatewayUrl}</code>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleTestPing}
-                      disabled={pingLoading}
-                      className="h-9 px-4 text-xs font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
-                    >
-                      {pingLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Activity className="w-3.5 h-3.5 mr-1.5" />}
-                      Test Ping
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => payhereDisconnectMutation.mutate()}
-                      disabled={payhereDisconnectMutation.isPending}
-                      className="h-9 px-3 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      Disconnect
-                    </Button>
-                  </div>
-                </div>
-
-                {pingResult && (
-                  <div className={`p-3 rounded-xl text-xs flex items-center justify-between ${
-                    pingResult.success ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200" : "bg-red-500/10 border border-red-500/30 text-red-200"
-                  }`}>
-                    <span>{pingResult.success ? `✅ Ping successful! Response latency: ${pingResult.latencyMs}ms` : `❌ Ping failed: ${pingResult.message}`}</span>
-                    {pingResult.latencyMs && <span className="font-mono font-bold">{pingResult.latencyMs} ms</span>}
-                  </div>
+                {payhereGatewayUrl ? (
+                  <a
+                    href={`${payhereGatewayUrl}/pair`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-emerald-400 hover:underline mt-2 sm:mt-0"
+                  >
+                    Open {payhereGatewayUrl}/pair <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <span className="text-white/40">Open /pair on your host instance</span>
                 )}
               </div>
-            )}
+            </div>
 
             {/* Merchant ID & Secret Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

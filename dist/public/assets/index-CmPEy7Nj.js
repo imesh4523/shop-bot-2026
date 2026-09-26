@@ -73741,7 +73741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-C0e1a3Hh.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DwvWiBZS.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -99514,55 +99514,27 @@ function PayHereGatewayPage() {
   const [payherePairedAt, setPayherePairedAt] = reactExports.useState("");
   const [pingLoading, setPingLoading] = reactExports.useState(false);
   const [pingResult, setPingResult] = reactExports.useState(null);
-  const { data: payhereEnabledSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_ENABLED"]
-  });
-  const { data: payhereGatewayUrlSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"]
-  });
-  const { data: payhereMerchantIdSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"]
-  });
-  const { data: payhereMerchantSecretSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"]
-  });
-  const { data: payhereSandboxSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_SANDBOX_MODE"]
-  });
-  const { data: payhereStatusSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_STATUS"]
-  });
-  const { data: payherePairedAtSetting } = useQuery({
-    queryKey: ["/api/settings/PAYHERE_PAIRED_AT"]
+  const { data: liveStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ["/api/payhere/status"],
+    refetchInterval: 4e3
   });
   reactExports.useEffect(() => {
-    if (payhereEnabledSetting?.value !== void 0) setPayhereEnabled(payhereEnabledSetting.value === "true");
-  }, [payhereEnabledSetting]);
-  reactExports.useEffect(() => {
-    if (payhereGatewayUrlSetting?.value !== void 0) setPayhereGatewayUrl(payhereGatewayUrlSetting.value);
-  }, [payhereGatewayUrlSetting]);
-  reactExports.useEffect(() => {
-    if (payhereMerchantIdSetting?.value !== void 0) setPayhereMerchantId(payhereMerchantIdSetting.value);
-  }, [payhereMerchantIdSetting]);
-  reactExports.useEffect(() => {
-    if (payhereMerchantSecretSetting?.value !== void 0) setPayhereMerchantSecret(payhereMerchantSecretSetting.value);
-  }, [payhereMerchantSecretSetting]);
-  reactExports.useEffect(() => {
-    if (payhereSandboxSetting?.value !== void 0) setPayhereSandboxMode(payhereSandboxSetting.value !== "false");
-  }, [payhereSandboxSetting]);
-  reactExports.useEffect(() => {
-    if (payhereStatusSetting?.value !== void 0) setPayhereStatus(payhereStatusSetting.value);
-  }, [payhereStatusSetting]);
-  reactExports.useEffect(() => {
-    if (payherePairedAtSetting?.value !== void 0) setPayherePairedAt(payherePairedAtSetting.value);
-  }, [payherePairedAtSetting]);
+    if (liveStatus) {
+      setPayhereStatus(liveStatus.status || "disconnected");
+      setPayhereGatewayUrl(liveStatus.gatewayUrl || "");
+      setPayherePairedAt(liveStatus.pairedAt || "");
+      setPayhereEnabled(liveStatus.enabled);
+      setPayhereSandboxMode(liveStatus.sandboxMode);
+      if (liveStatus.merchantId) setPayhereMerchantId(liveStatus.merchantId);
+    }
+  }, [liveStatus]);
   const togglePaymentMutation = useMutation({
     mutationFn: async ({ key, value: value2 }) => {
       const res = await apiRequest("POST", "/api/settings", { key, value: value2 });
       return res.json();
     },
     onSuccess: (_2, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/settings/${variables.key}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast2({
         title: "Setting Saved",
         description: `${variables.key} updated successfully.`
@@ -99578,7 +99550,7 @@ function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast2({
         title: "PayHere Merchant ID Saved",
         description: "Merchant ID updated successfully."
@@ -99594,7 +99566,7 @@ function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       toast2({
         title: "PayHere Merchant Secret Saved",
         description: "Merchant Secret updated securely."
@@ -99607,20 +99579,17 @@ function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
       if (data.gatewayUrl) setPayhereGatewayUrl(data.gatewayUrl);
-      if (data.merchantId) setPayhereMerchantId(data.merchantId);
-      if (data.merchantSecret) setPayhereMerchantSecret(data.merchantSecret);
       setPayhereStatus("connected");
       setPayherePairingUrl("");
       toast2({
-        title: "⚡ PayHere Host Connected Successfully!",
-        description: `Paired with ${data.gatewayUrl || "host"} (${data.latencyMs ? data.latencyMs + "ms" : "online"})`
+        title: "⚡ PayHere Gateway Connected Successfully!",
+        description: `Connected to ${data.gatewayUrl || "host proxy"}. Gateway is now Live & Active.`
       });
+      handleTestPing();
     },
     onError: (err) => {
       toast2({
@@ -99636,9 +99605,7 @@ function PayHereGatewayPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payhere/status"] });
       setPayhereGatewayUrl("");
       setPayhereStatus("disconnected");
       setPingResult(null);
@@ -99652,13 +99619,13 @@ function PayHereGatewayPage() {
     try {
       setPingLoading(true);
       setPingResult(null);
-      const res = await apiRequest("GET", "/api/payhere/test-ping");
+      const res = await apiRequest("POST", "/api/payhere/test-ping", {});
       const data = await res.json();
       setPingResult(data);
       if (data.success) {
         toast2({
-          title: "Ping Successful",
-          description: `Host responded in ${data.latencyMs}ms. Status: Online`
+          title: "Ping Successful 📡",
+          description: `Host responded in ${data.latencyMs}ms. Status: Online & Healthy`
         });
       } else {
         toast2({
@@ -99688,23 +99655,19 @@ function PayHereGatewayPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 mt-1 font-medium", children: "Approved domain proxy configuration for zero-detection LKR checkout and instant deposits" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20 self-start md:self-auto", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `inline-block w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.8)]" : "bg-amber-400"}` }),
-        isConnected ? "Gateway Connected" : "Not Paired"
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold shadow-lg border transition-all ${isConnected ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]" : "bg-red-950/80 border-red-500/40 text-red-300"}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `inline-block w-3 h-3 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse shadow-[0_0_15px_rgba(52,211,153,1)]" : "bg-red-500"}` }),
+        isConnected ? "🟢 GATEWAY CONNECTED" : "🔴 DISCONNECTED"
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-4xl space-y-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-gradient-to-br from-emerald-950/40 via-background/90 to-teal-950/30 border border-emerald-500/20 shadow-2xl overflow-hidden", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-4xl space-y-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: `glass-card border transition-all duration-500 ${isConnected ? "bg-gradient-to-br from-emerald-950/40 via-background/95 to-teal-950/30 border-emerald-500/30 shadow-2xl" : "bg-gradient-to-br from-purple-950/30 via-background/95 to-background border-white/10 shadow-xl"}`, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black flex items-center gap-2 text-white", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-6 h-6 text-emerald-400 animate-pulse" }),
-            "1-Click Gateway Pairing"
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: `w-6 h-6 ${isConnected ? "text-emerald-400 animate-pulse" : "text-purple-400"}` }),
+            "Gateway Connection & Status"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/60", children: [
-            "Connect your standalone approved host (e.g. ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "http://localhost:3000" }),
-            " or your verified domain)"
-          ] })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: isConnected ? `Live checkout proxy paired with ${payhereGatewayUrl}` : "Pair with your standalone approved host (e.g. https://imhosteepay.online or http://localhost:3000)" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -99738,11 +99701,69 @@ function PayHereGatewayPage() {
         ] })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-6", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-5 rounded-2xl bg-black/60 border border-emerald-500/30 shadow-inner", children: [
+        isConnected ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 space-y-4 shadow-lg shadow-emerald-950/40", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-6 h-6" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black uppercase tracking-wider text-emerald-400", children: "Connected Proxy Gateway" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30", children: "ONLINE" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-base font-black text-white font-mono", children: payhereGatewayUrl }),
+                payherePairedAt && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/40 mt-0.5", children: [
+                  "Paired at: ",
+                  new Date(payherePairedAt).toLocaleString()
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  variant: "outline",
+                  size: "sm",
+                  onClick: handleTestPing,
+                  disabled: pingLoading,
+                  className: "h-10 px-4 text-xs font-bold border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 bg-emerald-950/40",
+                  children: [
+                    pingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin mr-1.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Activity, { className: "w-4 h-4 mr-1.5" }),
+                    "Test Ping"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "sm",
+                  onClick: () => payhereDisconnectMutation.mutate(),
+                  disabled: payhereDisconnectMutation.isPending,
+                  className: "h-10 px-3 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300",
+                  children: "Disconnect"
+                }
+              )
+            ] })
+          ] }),
+          pingResult && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `p-3.5 rounded-xl text-xs flex items-center justify-between font-bold ${pingResult.success ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-200" : "bg-red-500/20 border border-red-500/40 text-red-200"}`, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: pingResult.success ? `✅ Ping Response Received! Latency: ${pingResult.latencyMs}ms (Online)` : `❌ Ping failed: ${pingResult.message}` }),
+            pingResult.latencyMs && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-mono bg-black/40 px-2 py-1 rounded text-emerald-300", children: [
+              pingResult.latencyMs,
+              " ms"
+            ] })
+          ] })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 rounded-xl bg-red-950/20 border border-red-500/20 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-5 h-5 text-red-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-bold text-red-300", children: "Gateway is Disconnected" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50", children: "Paste a pairing link below to link your host instance." })
+          ] })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-5 rounded-2xl bg-black/60 border border-white/10 shadow-inner", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-sm font-black text-emerald-300 uppercase tracking-widest flex items-center gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { className: "w-4 h-4" }),
-              "Paste Pairing Link from Host Instance"
+              isConnected ? "Re-Pair or Update Gateway Link" : "Paste Pairing Link from Host Instance"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-emerald-400/80 font-mono", children: "imhost /pair" })
           ] }),
@@ -99750,7 +99771,7 @@ function PayHereGatewayPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Input,
               {
-                placeholder: "Paste URL e.g. http://localhost:3000/pair/pair_12345678 or domain URL",
+                placeholder: "Paste URL e.g. https://imhosteepay.online/pair/pair_12345... or domain URL",
                 className: "glass-panel border-white/20 bg-white/5 text-white h-12 text-sm font-mono flex-1 focus:border-emerald-400",
                 value: payherePairingUrl,
                 onChange: (e) => setPayherePairingUrl(e.target.value)
@@ -99774,83 +99795,36 @@ function PayHereGatewayPage() {
                 className: "h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-black text-sm shadow-lg shadow-emerald-500/20",
                 children: [
                   payherePairMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-5 h-5 mr-2" }),
-                  "Connect Gateway"
+                  isConnected ? "Update Link" : "Connect Gateway"
                 ]
               }
             )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between pt-1 text-xs text-white/50", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
-              "1. Run ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "node server.js" }),
-              " in ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "imhost-main" }),
-              " (Port 3000).",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
-              "2. Open ",
+              "1. Open ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "/pair" }),
-              ", copy the code/URL and click ",
+              " on your PayHere host instance (Auto-refreshes every 10 mins).",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+              "2. Copy the active link and click ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Connect Gateway" }),
               "."
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            payhereGatewayUrl ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "a",
               {
-                href: "http://localhost:3000/pair",
+                href: `${payhereGatewayUrl}/pair`,
                 target: "_blank",
                 rel: "noreferrer",
                 className: "inline-flex items-center gap-1 text-emerald-400 hover:underline mt-2 sm:mt-0",
                 children: [
-                  "Open imhost /pair ",
+                  "Open ",
+                  payhereGatewayUrl,
+                  "/pair ",
                   /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
                 ]
               }
-            )
-          ] })
-        ] }),
-        payhereGatewayUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-white/5 border border-emerald-500/20 space-y-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-5 h-5" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/40 uppercase font-bold", children: "Connected Proxy URL" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-sm font-black text-emerald-300 font-mono", children: payhereGatewayUrl })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  variant: "outline",
-                  size: "sm",
-                  onClick: handleTestPing,
-                  disabled: pingLoading,
-                  className: "h-9 px-4 text-xs font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10",
-                  children: [
-                    pingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin mr-1.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Activity, { className: "w-3.5 h-3.5 mr-1.5" }),
-                    "Test Ping"
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Button,
-                {
-                  variant: "ghost",
-                  size: "sm",
-                  onClick: () => payhereDisconnectMutation.mutate(),
-                  disabled: payhereDisconnectMutation.isPending,
-                  className: "h-9 px-3 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300",
-                  children: "Disconnect"
-                }
-              )
-            ] })
-          ] }),
-          pingResult && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `p-3 rounded-xl text-xs flex items-center justify-between ${pingResult.success ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200" : "bg-red-500/10 border border-red-500/30 text-red-200"}`, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: pingResult.success ? `✅ Ping successful! Response latency: ${pingResult.latencyMs}ms` : `❌ Ping failed: ${pingResult.message}` }),
-            pingResult.latencyMs && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-mono font-bold", children: [
-              pingResult.latencyMs,
-              " ms"
-            ] })
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Open /pair on your host instance" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6 pt-2", children: [

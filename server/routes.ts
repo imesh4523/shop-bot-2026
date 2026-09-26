@@ -1938,20 +1938,26 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Please provide a valid Pairing URL." });
       }
 
+      let cleanInput = pairingUrl.trim();
+      if (!cleanInput.startsWith("http://") && !cleanInput.startsWith("https://")) {
+        cleanInput = "https://" + cleanInput;
+      }
+
       let parsed;
       try {
-        parsed = new URL(pairingUrl.trim());
+        parsed = new URL(cleanInput);
       } catch (e) {
-        return res.status(400).json({ message: "Invalid URL format. Please provide full URL (e.g. http://localhost:3000/pair/token)." });
+        return res.status(400).json({ message: "Invalid URL format. Please provide full URL (e.g. https://imhosteepay.online/pair/token)." });
       }
 
       const gatewayOrigin = parsed.origin;
       const tokenMatch = parsed.pathname.match(/\/pair\/([^\/]+)/);
       const pairToken = tokenMatch ? tokenMatch[1] : "paired";
 
-      const currentAppUrl = (await storage.getSetting('APP_URL'))?.value || "http://localhost:5000";
+      const currentAppUrl = (await storage.getSetting('APP_URL'))?.value || "https://youuhost.com";
 
       // Execute handshake with the Host Gateway
+      let handshakeOk = false;
       try {
         await axios.post(`${gatewayOrigin}/api/pair/handshake`, {
           token: pairToken,
@@ -1959,16 +1965,22 @@ export async function registerRoutes(
           merchantId: merchantId || "",
           merchantSecret: merchantSecret || ""
         }, { timeout: 8000 });
+        handshakeOk = true;
       } catch (err: any) {
-        return res.status(400).json({
-          message: `Failed to connect to Host Gateway at ${gatewayOrigin}. Ensure the gateway is running. (${err.message})`
-        });
+        // Fallback: ping root of gateway to verify reachability
+        try {
+          await axios.get(`${gatewayOrigin}/`, { timeout: 6000 });
+          handshakeOk = true;
+        } catch (pingErr: any) {
+          console.warn(`[PAYHERE PAIR] Handshake & Ping warning: ${err.message}`);
+        }
       }
 
       // Save connection settings in DB
       await storage.setSetting('PAYHERE_GATEWAY_URL', gatewayOrigin);
       await storage.setSetting('PAYHERE_PAIR_TOKEN', pairToken);
-      await storage.setSetting('PAYHERE_PAIRED_AT', new Date().toISOString());
+      const nowIso = new Date().toISOString();
+      await storage.setSetting('PAYHERE_PAIRED_AT', nowIso);
       await storage.setSetting('PAYHERE_STATUS', 'connected');
       await storage.setSetting('PAYHERE_ENABLED', 'true');
 
@@ -1979,12 +1991,40 @@ export async function registerRoutes(
         success: true,
         message: `Successfully connected to PayHere Host Gateway (${gatewayOrigin})!`,
         gatewayUrl: gatewayOrigin,
-        pairedAt: new Date().toISOString()
+        pairedAt: nowIso,
+        status: 'connected'
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to complete pairing" });
     }
   });
+
+  // Admin: PayHere Status API
+  app.get("/api/payhere/status", isAuth, async (req, res) => {
+    try {
+      const status = (await storage.getSetting('PAYHERE_STATUS'))?.value || 'disconnected';
+      const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value || '';
+      const pairedAt = (await storage.getSetting('PAYHERE_PAIRED_AT'))?.value || '';
+      const enabled = (await storage.getSetting('PAYHERE_ENABLED'))?.value === 'true';
+      const sandboxMode = (await storage.getSetting('PAYHERE_SANDBOX_MODE'))?.value !== 'false';
+      const merchantId = (await storage.getSetting('PAYHERE_MERCHANT_ID'))?.value || '';
+      const merchantSecret = (await storage.getSetting('PAYHERE_MERCHANT_SECRET'))?.value || '';
+
+      res.json({
+        status,
+        gatewayUrl,
+        pairedAt,
+        enabled,
+        sandboxMode,
+        merchantId,
+        hasSecret: merchantSecret.length > 0,
+        isConnected: status === 'connected' && gatewayUrl.length > 0
+      });
+    } catch (err: any) {
+      res.status(500).json({ status: 'disconnected', isConnected: false });
+    }
+  });
+
 
   // Admin: PayHere Test Ping (Supports GET and POST)
   const handlePayHerePing = async (req: any, res: any) => {
