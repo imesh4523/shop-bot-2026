@@ -12,6 +12,7 @@ import { db, pool } from "./db";
 import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
 import { SandromaniaService } from "./sandromania-service";
+import { CssxService } from "./cssx-service";
 import { domainAutomationService } from "./domain-automation-service";
 import { getSecurityShieldStatus, unbanJailedIp } from "./security-shield";
 import { 
@@ -3712,6 +3713,156 @@ app.get("/api/admin/sandromania/orders", isAuth, async (req, res) => {
     res.json(allOrders);
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// --- CSxStore Reseller / Developer API Routes ---
+
+// 1. Get CSxStore Settings & Live Balance
+app.get("/api/admin/cssx/settings", isAuth, async (req, res) => {
+  try {
+    const creds = await CssxService.getCredentials();
+    let meInfo: any = null;
+    let statsInfo: any = { orders: 0, successful: 0 };
+    let isConnected = false;
+
+    if (creds.apiKey) {
+      try {
+        meInfo = await CssxService.getMe();
+        isConnected = true;
+      } catch (err: any) {
+        console.warn("[CSSX API] getMe failed:", err.message);
+      }
+
+      try {
+        statsInfo = await CssxService.getStats();
+      } catch (err: any) {
+        console.warn("[CSSX API] getStats failed:", err.message);
+      }
+    }
+
+    res.json({
+      apiKey: creds.apiKey,
+      maskedApiKey: creds.apiKey ? `${creds.apiKey.substring(0, 4)}••••••••${creds.apiKey.slice(-4)}` : "",
+      baseUrl: creds.baseUrl,
+      status: isConnected ? "connected" : (creds.apiKey ? "error" : "no_key"),
+      statusMessage: isConnected ? "Active & Connected" : (creds.apiKey ? "Connection Error" : "No active key"),
+      walletUsdt: meInfo?.wallet_usdt ?? meInfo?.balance_usdt ?? meInfo?.balance ?? 0,
+      account: meInfo,
+      stats: {
+        orders: statsInfo?.orders ?? 0,
+        successful: statsInfo?.successful ?? 0,
+        spent_usdt: statsInfo?.spent_usdt ?? 0,
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load CSxStore settings" });
+  }
+});
+
+// 2. Save CSxStore Settings
+app.post("/api/admin/cssx/settings", isAuth, async (req, res) => {
+  try {
+    const { apiKey, baseUrl } = req.body;
+    if (typeof apiKey !== "string") {
+      return res.status(400).json({ message: "API Key must be provided" });
+    }
+
+    await CssxService.saveCredentials(apiKey, baseUrl);
+
+    let meInfo: any = null;
+    let isConnected = false;
+    let errorMsg = "";
+
+    if (apiKey.trim()) {
+      try {
+        meInfo = await CssxService.getMe();
+        isConnected = true;
+      } catch (err: any) {
+        errorMsg = err.message;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: isConnected ? "CSxStore API connected successfully!" : (apiKey.trim() ? `Saved, but connection test failed: ${errorMsg}` : "API key cleared."),
+      status: isConnected ? "connected" : (apiKey.trim() ? "error" : "no_key"),
+      walletUsdt: meInfo?.wallet_usdt ?? meInfo?.balance_usdt ?? meInfo?.balance ?? 0,
+      account: meInfo
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save CSxStore settings" });
+  }
+});
+
+// 3. Get /api/v1/me
+app.get("/api/admin/cssx/me", isAuth, async (req, res) => {
+  try {
+    const me = await CssxService.getMe();
+    res.json(me);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch account profile" });
+  }
+});
+
+// 4. Get /api/v1/stats
+app.get("/api/admin/cssx/stats", isAuth, async (req, res) => {
+  try {
+    const stats = await CssxService.getStats();
+    res.json(stats);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch stats" });
+  }
+});
+
+// 5. Get /api/v1/products
+app.get("/api/admin/cssx/products", isAuth, async (req, res) => {
+  try {
+    const products = await CssxService.getProducts();
+    res.json(products);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch products" });
+  }
+});
+
+// 6. Post /api/v1/order
+app.post("/api/admin/cssx/order", isAuth, async (req, res) => {
+  try {
+    const orderResult = await CssxService.createOrder(req.body);
+    res.json({ success: true, order: orderResult });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to create order" });
+  }
+});
+
+// 7. Post /api/v1/batch-order
+app.post("/api/admin/cssx/batch-order", isAuth, async (req, res) => {
+  try {
+    const ordersList = req.body.orders || req.body;
+    const batchResult = await CssxService.createBatchOrder(ordersList);
+    res.json({ success: true, result: batchResult });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to create batch order" });
+  }
+});
+
+// 8. Get /api/v1/orders
+app.get("/api/admin/cssx/orders", isAuth, async (req, res) => {
+  try {
+    const orders = await CssxService.getOrders();
+    res.json(orders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// 9. Get /api/v1/orders/:id
+app.get("/api/admin/cssx/orders/:id", isAuth, async (req, res) => {
+  try {
+    const order = await CssxService.getOrderById(req.params.id);
+    res.json(order);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch order details" });
   }
 });
 
