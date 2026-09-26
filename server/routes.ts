@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs } from "@shared/schema";
-import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, TransactionEmailProps, CustomEmailProps } from "./email-template";
+import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps } from "./email-template";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
@@ -610,7 +610,7 @@ async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ su
   }
 }
 
-// Global Luxury Email Dispatcher with DB Logging
+// Global Luxury Email Dispatcher with DB Logging & PDF Attachment Support
 export async function sendLuxuryEmail({
   toEmail,
   recipientName,
@@ -618,6 +618,7 @@ export async function sendLuxuryEmail({
   html,
   templateType = "transaction_receipt",
   metadata = null,
+  attachments = [],
 }: {
   toEmail: string;
   recipientName?: string;
@@ -625,6 +626,7 @@ export async function sendLuxuryEmail({
   html: string;
   templateType?: string;
   metadata?: any;
+  attachments?: { filename: string; content: Buffer | string; contentType?: string }[];
 }): Promise<{ success: boolean; error?: string; logId?: number }> {
   let logStatus = "sent";
   let errorMessage: string | undefined;
@@ -657,9 +659,10 @@ export async function sendLuxuryEmail({
       to: toEmail,
       subject,
       html,
+      attachments: attachments && attachments.length > 0 ? attachments : undefined,
     });
 
-    console.log(`[Email Hub] Email "${subject}" successfully sent to ${toEmail}`);
+    console.log(`[Email Hub] Email "${subject}" successfully sent to ${toEmail} with ${attachments?.length || 0} attachments`);
   } catch (err: any) {
     logStatus = "failed";
     errorMessage = err?.message || String(err);
@@ -696,23 +699,40 @@ export async function sendLuxuryEmail({
   }
 }
 
-// Quick Helper: Send Payment Successful Verified Receipt Email
+// Quick Helper: Send Payment Successful Verified Receipt Email with PDF Invoice
 export async function sendLuxuryReceiptEmail(props: TransactionEmailProps): Promise<{ success: boolean; error?: string }> {
   const html = buildPaymentSuccessEmailHtml(props);
   const subject = props.subject || `Payment Successful - YouuHost Receipt (${props.referenceId})`;
+  
+  // Generate real PDF Invoice
+  let attachments: { filename: string; content: Buffer; contentType: string }[] = [];
+  try {
+    const pdfBuf = generateInvoicePdf(props);
+    const cleanId = (props.referenceId || "INV").replace(/[^a-zA-Z0-9_-]/g, "_");
+    attachments.push({
+      filename: `invoice_${cleanId}.pdf`,
+      content: pdfBuf,
+      contentType: "application/pdf",
+    });
+  } catch (pdfErr: any) {
+    console.error("[Email Hub] PDF generation notice:", pdfErr.message);
+  }
+
   return await sendLuxuryEmail({
     toEmail: props.toEmail,
     recipientName: props.recipientName,
     subject,
     html,
-    templateType: "transaction_receipt",
+    templateType: "payment_success",
     metadata: {
       amount: props.amount,
       secondaryAmount: props.secondaryAmount,
       referenceId: props.referenceId,
       paymentMethod: props.paymentMethod,
       planTitle: props.planTitle,
+      billingCycle: props.billingCycle,
     },
+    attachments,
   });
 }
 
@@ -15187,6 +15207,327 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
       });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // =========================================================================
+  // EMAIL HUB & DISPATCHER API ENDPOINTS
+  // =========================================================================
+
+  // 1. Get Email Logs & Metrics
+  app.get("/api/admin/emails/logs", async (_req, res) => {
+    try {
+      const logs = await db.select().from(emailLogs).orderBy(desc(emailLogs.id)).limit(200);
+      
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const total = logs.length;
+      const sent = logs.filter(l => l.status === "sent").length;
+      const failed = logs.filter(l => l.status === "failed").length;
+      const sentToday = logs.filter(l => l.createdAt && new Date(l.createdAt) >= todayStart).length;
+
+      res.json({
+        success: true,
+        logs,
+        counts: { total, sent, failed, sentToday },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2. Get registered users for recipient picker & broadcast
+  app.get("/api/admin/emails/users", async (_req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const sanitized = allUsers
+        .filter(u => u.email && u.email.includes("@"))
+        .map(u => ({
+          id: u.id,
+          username: u.username,
+          email: u.email!,
+          fullName: u.fullName || u.username,
+        }));
+      res.json({ success: true, count: sanitized.length, users: sanitized });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 3. Live Email HTML Preview
+  app.post("/api/admin/emails/preview", async (req, res) => {
+    try {
+      const {
+        templateType = "payment_success",
+        toEmail = "customer@example.com",
+        recipientName = "Test User",
+        subject = "Payment Successful - Your Transaction Invoice",
+        amount = "LKR 14,990.00",
+        planName = "Enterprise AI Plan",
+        billingCycle = "Monthly",
+        paymentMethod = "mastercard",
+        invoiceNumber = "INV-2026-812010",
+        bodyHeading = "Payment Successful",
+        bodyMessage = "Your subscription invoice for your plan has been processed successfully. Thank you for your business!",
+        ctaText = "Manage Subscription",
+        ctaUrl = "https://youuhost.com/userdashbord/dashboard",
+      } = req.body;
+
+      let html = "";
+      if (templateType === "payment_success") {
+        html = buildPaymentSuccessEmailHtml({
+          toEmail,
+          recipientName,
+          subject,
+          amount,
+          planTitle: planName,
+          billingCycle,
+          paymentMethod,
+          referenceId: invoiceNumber,
+          ctaText,
+          ctaUrl,
+        });
+      } else {
+        html = buildCustomEmailHtml({
+          toEmail,
+          recipientName,
+          subject,
+          heading: bodyHeading,
+          message: bodyMessage,
+          ctaText,
+          ctaUrl,
+        });
+      }
+
+      res.json({ success: true, html });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 4. Download / Preview Generated PDF Invoice
+  app.post("/api/admin/emails/download-pdf", async (req, res) => {
+    try {
+      const {
+        toEmail = "customer@example.com",
+        recipientName = "Test User",
+        amount = "LKR 14,990.00",
+        planName = "Enterprise AI Plan",
+        billingCycle = "Monthly",
+        paymentMethod = "mastercard",
+        invoiceNumber = "INV-2026-812010",
+      } = req.body;
+
+      const pdfBuf = generateInvoicePdf({
+        toEmail,
+        recipientName,
+        amount,
+        planTitle: planName,
+        billingCycle,
+        paymentMethod,
+        referenceId: invoiceNumber,
+      });
+
+      const filename = `invoice_${(invoiceNumber || "2026").replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(pdfBuf);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 5. Send Single or Broadcast Emails
+  app.post("/api/admin/emails/send", async (req, res) => {
+    try {
+      const {
+        templateType = "payment_success",
+        recipientMode = "single",
+        toEmail,
+        recipientName,
+        subject = "Payment Successful - Your Transaction Invoice",
+        amount = "LKR 14,990.00",
+        planName = "Enterprise AI Plan",
+        billingCycle = "Monthly",
+        paymentMethod = "mastercard",
+        invoiceNumber = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        bodyHeading = "Payment Successful",
+        bodyMessage = "Your subscription invoice for your plan has been processed successfully.",
+        ctaText = "Manage Subscription",
+        ctaUrl = "https://youuhost.com/userdashbord/dashboard",
+      } = req.body;
+
+      if (recipientMode === "broadcast") {
+        const allUsers = await storage.getAllUsers();
+        const validUsers = allUsers.filter(u => u.email && u.email.includes("@"));
+
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const u of validUsers) {
+          const uName = u.fullName || u.username;
+          let emailHtml = "";
+          let attachments: any[] = [];
+
+          if (templateType === "payment_success") {
+            const userInv = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+            emailHtml = buildPaymentSuccessEmailHtml({
+              toEmail: u.email!,
+              recipientName: uName,
+              subject,
+              amount,
+              planTitle: planName,
+              billingCycle,
+              paymentMethod,
+              referenceId: userInv,
+              ctaText,
+              ctaUrl,
+            });
+            try {
+              const pdfBuf = generateInvoicePdf({
+                toEmail: u.email!,
+                recipientName: uName,
+                amount,
+                planTitle: planName,
+                billingCycle,
+                paymentMethod,
+                referenceId: userInv,
+              });
+              attachments.push({
+                filename: `invoice_${userInv}.pdf`,
+                content: pdfBuf,
+                contentType: "application/pdf",
+              });
+            } catch (pErr) {}
+          } else {
+            emailHtml = buildCustomEmailHtml({
+              toEmail: u.email!,
+              recipientName: uName,
+              subject,
+              heading: bodyHeading,
+              message: bodyMessage,
+              ctaText,
+              ctaUrl,
+            });
+          }
+
+          const result = await sendLuxuryEmail({
+            toEmail: u.email!,
+            recipientName: uName,
+            subject,
+            html: emailHtml,
+            templateType,
+            metadata: { amount, planName, invoiceNumber },
+            attachments,
+          });
+
+          if (result.success) sentCount++;
+          else failedCount++;
+        }
+
+        return res.json({ success: true, sentCount, failedCount });
+      }
+
+      // Single Recipient
+      if (!toEmail) {
+        return res.status(400).json({ success: false, error: "Recipient email is required." });
+      }
+
+      let emailHtml = "";
+      let attachments: any[] = [];
+
+      if (templateType === "payment_success") {
+        emailHtml = buildPaymentSuccessEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Test User",
+          subject,
+          amount,
+          planTitle: planName,
+          billingCycle,
+          paymentMethod,
+          referenceId: invoiceNumber,
+          ctaText,
+          ctaUrl,
+        });
+
+        try {
+          const pdfBuf = generateInvoicePdf({
+            toEmail,
+            recipientName: recipientName || "Test User",
+            amount,
+            planTitle: planName,
+            billingCycle,
+            paymentMethod,
+            referenceId: invoiceNumber,
+          });
+          attachments.push({
+            filename: `invoice_${invoiceNumber}.pdf`,
+            content: pdfBuf,
+            contentType: "application/pdf",
+          });
+        } catch (pdfErr: any) {
+          console.error("[Email Hub] PDF Error:", pdfErr.message);
+        }
+      } else {
+        emailHtml = buildCustomEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Valued Customer",
+          subject,
+          heading: bodyHeading,
+          message: bodyMessage,
+          ctaText,
+          ctaUrl,
+        });
+      }
+
+      const result = await sendLuxuryEmail({
+        toEmail,
+        recipientName,
+        subject,
+        html: emailHtml,
+        templateType,
+        metadata: { amount, planName, invoiceNumber, paymentMethod },
+        attachments,
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 6. Test SMTP Relay Connection
+  app.post("/api/admin/emails/test-smtp", async (_req, res) => {
+    try {
+      const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+      const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+      const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+      const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+
+      if (!smtpHost || !smtpUser || !smtpPass) {
+        return res.json({
+          success: false,
+          error: "SMTP credentials not configured. Please enter SMTP_HOST, SMTP_USER, and SMTP_PASS in Settings.",
+        });
+      }
+
+      const nodemailerMod = await import("nodemailer");
+      const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      await transporter.verify();
+      res.json({ success: true, message: `Successfully connected & verified with ${smtpHost}:${smtpPort}` });
+    } catch (err: any) {
+      res.json({ success: false, error: err.message });
     }
   });
 

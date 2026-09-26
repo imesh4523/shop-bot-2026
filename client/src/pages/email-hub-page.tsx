@@ -580,18 +580,58 @@ export default function EmailHubPage() {
                     Mobile & Desktop Responsive
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const blob = new Blob([previewHtml], { type: "text/html" });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank");
-                  }}
-                  className="text-xs h-7 text-cyan-400 hover:text-cyan-300"
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" /> Open in New Tab
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const payload = {
+                          toEmail: toEmail || "customer@youuhost.com",
+                          recipientName: recipientName || "Test User",
+                          amount,
+                          planName,
+                          billingCycle,
+                          paymentMethod,
+                          invoiceNumber,
+                        };
+                        const res = await fetch("/api/admin/emails/download-pdf", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(payload),
+                        });
+                        if (!res.ok) throw new Error("Failed to generate PDF");
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `invoice_${invoiceNumber || "2026"}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        toast({ title: "PDF Invoice Downloaded", description: `Saved as invoice_${invoiceNumber || "2026"}.pdf` });
+                      } catch (err: any) {
+                        toast({ title: "Download Failed", description: err.message, variant: "destructive" });
+                      }
+                    }}
+                    className="text-xs h-7 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                  >
+                    <FileCheck className="h-3 w-3 mr-1" /> Download PDF Invoice
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const blob = new Blob([previewHtml], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank");
+                    }}
+                    className="text-xs h-7 text-cyan-400 hover:text-cyan-300"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" /> Open in New Tab
+                  </Button>
+                </div>
               </div>
 
               {/* Mobile/Tablet Preview Container */}

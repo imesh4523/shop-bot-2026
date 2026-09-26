@@ -73790,7 +73790,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BYVyeEf8.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DeZlFHo3.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102765,23 +102765,68 @@ function EmailHubPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold text-white", children: "Live Email Rendering Sandbox" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] text-muted-foreground border-white/10", children: "Mobile & Desktop Responsive" })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                variant: "ghost",
-                size: "sm",
-                onClick: () => {
-                  const blob = new Blob([previewHtml], { type: "text/html" });
-                  const url2 = URL.createObjectURL(blob);
-                  window.open(url2, "_blank");
-                },
-                className: "text-xs h-7 text-cyan-400 hover:text-cyan-300",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "h-3 w-3 mr-1" }),
-                  " Open in New Tab"
-                ]
-              }
-            )
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  variant: "outline",
+                  size: "sm",
+                  onClick: async () => {
+                    try {
+                      const payload = {
+                        toEmail: toEmail || "customer@youuhost.com",
+                        recipientName: recipientName || "Test User",
+                        amount,
+                        planName,
+                        billingCycle,
+                        paymentMethod,
+                        invoiceNumber
+                      };
+                      const res = await fetch("/api/admin/emails/download-pdf", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                      });
+                      if (!res.ok) throw new Error("Failed to generate PDF");
+                      const blob = await res.blob();
+                      const url2 = window.URL.createObjectURL(blob);
+                      const a2 = document.createElement("a");
+                      a2.href = url2;
+                      a2.download = `invoice_${invoiceNumber || "2026"}.pdf`;
+                      document.body.appendChild(a2);
+                      a2.click();
+                      a2.remove();
+                      window.URL.revokeObjectURL(url2);
+                      toast2({ title: "PDF Invoice Downloaded", description: `Saved as invoice_${invoiceNumber || "2026"}.pdf` });
+                    } catch (err) {
+                      toast2({ title: "Download Failed", description: err.message, variant: "destructive" });
+                    }
+                  },
+                  className: "text-xs h-7 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(FileCheck, { className: "h-3 w-3 mr-1" }),
+                    " Download PDF Invoice"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "sm",
+                  onClick: () => {
+                    const blob = new Blob([previewHtml], { type: "text/html" });
+                    const url2 = URL.createObjectURL(blob);
+                    window.open(url2, "_blank");
+                  },
+                  className: "text-xs h-7 text-cyan-400 hover:text-cyan-300",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "h-3 w-3 mr-1" }),
+                    " Open in New Tab"
+                  ]
+                }
+              )
+            ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900 to-slate-950 p-4 shadow-2xl flex justify-center items-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full max-w-[480px] bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 transition-all", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between text-slate-700", children: [
