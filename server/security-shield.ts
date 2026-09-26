@@ -159,6 +159,9 @@ function jailIp(ip: string, reason: string, durationMinutes: number = 30) {
 // --- MAIN SECURITY SHIELD MIDDLEWARE ---
 export function securityShieldMiddleware(req: Request, res: Response, next: NextFunction) {
   const ip = getClientIp(req);
+  if (ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || ip === "::ffff:127.0.0.1") {
+    return next();
+  }
   const now = Date.now();
   const url = req.originalUrl || req.url;
   const userAgent = (req.headers["user-agent"] as string) || "";
