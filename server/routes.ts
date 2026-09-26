@@ -1880,9 +1880,18 @@ export async function registerRoutes(
   app.post("/api/mini/deposit/payhere", verifyMiniAppAuth, async (req, res) => {
     try {
       const { amount, currency = "USD" } = req.body;
-      const numAmount = parseFloat(amount);
-      if (isNaN(numAmount) || numAmount < 1) {
-        return res.status(400).json({ message: "Invalid amount. Minimum is 1." });
+      let numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return res.status(400).json({ message: "Invalid amount." });
+      }
+
+      const cleanCurr = (currency || "USD").toUpperCase();
+      if (cleanCurr === "LKR") {
+        // Enforce exact 50 LKR multiples rounding:
+        // e.g. 59 -> 50, 75 -> 100, 80 -> 100, 120 -> 100, 130 -> 150
+        numAmount = Math.max(50, Math.round(numAmount / 50) * 50);
+      } else {
+        if (numAmount < 1) numAmount = 1;
       }
 
       const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;

@@ -885,14 +885,20 @@ export default function MiniAppShopModern() {
     return parseFloat(val.toFixed(2));
   }, [cryptomusAmount, selectedCurrency, lkrRate]);
 
+  const payhereEffectiveLkr = useMemo(() => {
+    const rawAmt = parseFloat(payhereAmount || "50");
+    if (isNaN(rawAmt) || rawAmt <= 0) return 50;
+    return Math.max(50, Math.round(rawAmt / 50) * 50);
+  }, [payhereAmount]);
+
   const payhereCalculatedUsd = useMemo(() => {
     const val = parseFloat(payhereAmount || "0");
     if (isNaN(val) || val <= 0) return 0;
     if (selectedCurrency === "LKR") {
-      return parseFloat((val / lkrRate).toFixed(2));
+      return parseFloat((payhereEffectiveLkr / lkrRate).toFixed(2));
     }
     return parseFloat(val.toFixed(2));
-  }, [payhereAmount, selectedCurrency, lkrRate]);
+  }, [payhereAmount, payhereEffectiveLkr, selectedCurrency, lkrRate]);
 
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1130,18 +1136,19 @@ export default function MiniAppShopModern() {
 
   const handlePayHerePay = async () => {
     const rawAmt = parseFloat(payhereAmount);
-    if (isNaN(rawAmt) || rawAmt < (selectedCurrency === "LKR" ? 100 : 1)) {
+    if (isNaN(rawAmt) || rawAmt <= 0) {
       toast({
         title: "Invalid Amount",
-        description: selectedCurrency === "LKR" ? "Minimum deposit is Rs. 100" : "Minimum deposit is $1.00",
+        description: selectedCurrency === "LKR" ? "Minimum deposit is Rs. 50" : "Minimum deposit is $1.00",
         variant: "destructive"
       });
       return;
     }
+    const finalAmt = selectedCurrency === "LKR" ? Math.max(50, Math.round(rawAmt / 50) * 50) : rawAmt;
     setIsCreatingPayHere(true);
     try {
       const res = await miniApiRequest("POST", "/api/mini/deposit/payhere", {
-        amount: rawAmt,
+        amount: finalAmt,
         currency: selectedCurrency
       });
       const data = await res.json();
@@ -2678,9 +2685,9 @@ export default function MiniAppShopModern() {
                       </span>
                     )}
                   </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
-                    {(selectedCurrency === "LKR" ? ["500", "1000", "2500", "5000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
-                      const isSelected = payhereAmount === amt;
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
                       return (
                         <button
                           key={amt}
@@ -2703,18 +2710,23 @@ export default function MiniAppShopModern() {
                     </span>
                     <input
                       type="number"
-                      min={selectedCurrency === "LKR" ? "100" : "1"}
-                      step={selectedCurrency === "LKR" ? "100" : "1"}
+                      min={selectedCurrency === "LKR" ? "50" : "1"}
+                      step={selectedCurrency === "LKR" ? "50" : "1"}
                       value={payhereAmount}
                       onChange={(e) => setPayhereAmount(e.target.value)}
-                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 1500)" : "Custom Amount in USD (e.g. 20)"}
+                      onBlur={() => {
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(payhereEffectiveLkr.toString());
+                        }
+                      }}
+                      placeholder={selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)"}
                       className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
                     />
                   </div>
                   {selectedCurrency === "LKR" && (
                     <div className="mt-1.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 rounded-xl text-[10.5px] font-bold text-blue-900 flex items-center justify-between">
-                      <span>Card Charge: <b className="text-blue-700">Rs. {parseFloat(payhereAmount || "0").toLocaleString()} LKR</b> (≈ ${payhereCalculatedUsd.toFixed(2)} USD)</span>
-                      <span className="text-[9.5px] text-blue-600/80 font-normal">Direct PayHere Gateway</span>
+                      <span>Card Charge: <b className="text-blue-700">Rs. {payhereEffectiveLkr.toLocaleString()} LKR</b> ({payhereEffectiveLkr / 50} API Key Validations • ≈ ${payhereCalculatedUsd.toFixed(2)} USD)</span>
+                      <span className="text-[9.5px] text-blue-600/80 font-normal">Rs. 50/unit</span>
                     </div>
                   )}
                 </div>
@@ -2744,7 +2756,7 @@ export default function MiniAppShopModern() {
                       <CreditCard className="w-4 h-4" />
                       <span>
                         {selectedCurrency === "LKR"
-                          ? `Pay Rs. ${parseFloat(payhereAmount || "0").toLocaleString()} with Card (PayHere)`
+                          ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card (${payhereEffectiveLkr / 50} Keys)`
                           : `Pay $${payhereAmount || "0"} via PayHere Card Gateway`}
                       </span>
                       <ExternalLink className="w-3.5 h-3.5" />
