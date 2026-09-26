@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Globe,
   Network,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Dashboard', href: '/imeshadmindashbord', icon: LayoutDashboard },
     { name: 'API Keys', href: '/imeshadmindashbord/api-keys', icon: Key },
     { name: 'Cloudflare & Resend', href: '/imeshadmindashbord/domain-automation', icon: Globe },
+    { name: 'PayHere Gateway', href: '/imeshadmindashbord/payhere', icon: CreditCard },
     { name: 'Store Mesh Connect', href: '/imeshadmindashbord/store-mesh', icon: Network },
     { name: 'Pre-Orders', href: '/imeshadmindashbord/preorders', icon: Clock },
     { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },

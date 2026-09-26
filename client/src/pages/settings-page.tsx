@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package } from "lucide-react";
+import { Link } from "wouter";
+import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package, CreditCard, ArrowRight } from "lucide-react";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -1038,6 +1038,25 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-6">
+        {/* PayHere Quick Link Banner */}
+        <Link href="/imeshadmindashbord/payhere">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white flex items-center gap-2">
+                  PayHere Host Gateway & Pairing Center
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">1-Click Setup</span>
+                </p>
+                <p className="text-xs text-white/50">Manage PayHere Merchant ID, Secret & pair with <code>imhost</code> approved domain</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
         {/* Storefront Theme Selector Card */}
         <Card className="glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background/80 to-purple-900/20 border border-purple-500/20 shadow-2xl">
           <CardHeader>

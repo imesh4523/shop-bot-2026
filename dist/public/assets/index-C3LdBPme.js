@@ -9925,7 +9925,7 @@ function toast({ ...props }) {
     update
   };
 }
-function useToast() {
+function useToast$1() {
   const [state, setState] = reactExports.useState(memoryState);
   reactExports.useEffect(() => {
     listeners.push(setState);
@@ -14658,7 +14658,7 @@ const ToastDescription = reactExports.forwardRef(({ className, ...props }, ref) 
 ));
 ToastDescription.displayName = Description$1.displayName;
 function Toaster() {
-  const { toasts } = useToast();
+  const { toasts } = useToast$1();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(ToastProvider, { swipeDirection: "up", children: [
     toasts.map(function({ id: id2, title, description, action, ...props }) {
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(Toast, { ...props, children: [
@@ -20197,6 +20197,7 @@ function LayoutShell({ children }) {
     { name: "Dashboard", href: "/imeshadmindashbord", icon: LayoutDashboard },
     { name: "API Keys", href: "/imeshadmindashbord/api-keys", icon: Key },
     { name: "Cloudflare & Resend", href: "/imeshadmindashbord/domain-automation", icon: Globe },
+    { name: "PayHere Gateway", href: "/imeshadmindashbord/payhere", icon: CreditCard },
     { name: "Store Mesh Connect", href: "/imeshadmindashbord/store-mesh", icon: Network },
     { name: "Pre-Orders", href: "/imeshadmindashbord/preorders", icon: Clock },
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
@@ -23663,7 +23664,7 @@ function urlBase64ToUint8Array(base64String) {
   }
 }
 function AdminNotifier() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const { user } = useAuth();
   reactExports.useEffect(() => {
     if (!user) return;
@@ -55832,7 +55833,7 @@ function useProducts() {
 }
 function useCreateProduct() {
   const queryClient2 = useQueryClient();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   return useMutation({
     mutationFn: async (product) => {
       const res = await fetch(api.products.create.path, {
@@ -55869,7 +55870,7 @@ function useCreateProduct() {
 }
 function useDeleteProduct() {
   const queryClient2 = useQueryClient();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   return useMutation({
     mutationFn: async (id2) => {
       const url2 = buildUrl(api.products.delete.path, { id: id2 });
@@ -59203,7 +59204,7 @@ function ProductsPage() {
   const { data: products2, isLoading } = useProducts();
   const [search, setSearch] = reactExports.useState("");
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [isCustomBroadcastOpen, setIsCustomBroadcastOpen] = reactExports.useState(false);
   const broadcastMutation = useMutation({
     mutationFn: async () => {
@@ -59381,7 +59382,7 @@ function EditProductDialog({
   open: open2,
   onOpenChange
 }) {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [customType2, setCustomType] = reactExports.useState(
     ["AWS", "DigitalOcean", "Google Cloud", "Azure", "Linode", "Other"].includes(product.type) ? "" : product.type
   );
@@ -59582,7 +59583,7 @@ function CustomBroadcastDialog({
   open: open2,
   onOpenChange
 }) {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [message2, setMessage] = reactExports.useState("");
   const broadcastMutation = useMutation({
     mutationFn: async (content) => {
@@ -59850,7 +59851,7 @@ function CreateProductDialog({ open: open2, onOpenChange }) {
   ] });
 }
 function InventoryPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: products2 } = useProducts();
   const [selectedProductId, setSelectedProductId] = reactExports.useState("all");
@@ -60134,7 +60135,7 @@ function EditCredentialForm({
 function OrdersPage() {
   const { data: orders2, isLoading } = useOrders();
   const [search, setSearch] = reactExports.useState("");
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [copiedId, setCopiedId] = reactExports.useState(null);
   const copyToClipboard = (text2, id2) => {
     navigator.clipboard.writeText(text2);
@@ -61383,6 +61384,23 @@ function SettingsPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-2xl space-y-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-5 h-5" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-black text-white flex items-center gap-2", children: [
+              "PayHere Host Gateway & Pairing Center",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30", children: "1-Click Setup" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-white/50", children: [
+              "Manage PayHere Merchant ID, Secret & pair with ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "imhost" }),
+              " approved domain"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowRight, { className: "w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" })
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background/80 to-purple-900/20 border border-purple-500/20 shadow-2xl", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
@@ -73723,7 +73741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Brx0bX2K.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-ClCE9Oz4.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -76317,7 +76335,7 @@ try {
   console.error("Could not apply autoTable plugin", error);
 }
 function AwsCheckerPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [search, setSearch] = reactExports.useState("");
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
   const [editingAccount, setEditingAccount] = reactExports.useState(null);
@@ -76835,7 +76853,7 @@ function AccountDialog({
   onOpenChange,
   editingAccount
 }) {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const form = useForm({
     resolver: t(insertAwsAccountSchema),
     values: editingAccount ? {
@@ -76948,7 +76966,7 @@ function AccountDialog({
   ] }) });
 }
 function BroadcastPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [message2, setMessage] = reactExports.useState("");
   const [imageUrl, setImageUrl] = reactExports.useState("");
   const [buttonText, setButtonText] = reactExports.useState("");
@@ -85161,7 +85179,7 @@ const loginSchema = z$1.object({
 });
 function LoginPage() {
   const { user, isLoading, login, isLoggingIn } = useAuth();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const form = useForm({
     resolver: t(loginSchema),
     defaultValues: {
@@ -85363,7 +85381,7 @@ function SpecialOffersPage() {
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
   const [editingOffer, setEditingOffer] = reactExports.useState(null);
   const [deletingOffer, setDeletingOffer] = reactExports.useState(null);
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const deleteMutation = useMutation({
     mutationFn: async (id2) => {
       await apiRequest("DELETE", `/api/special-offers/${id2}`);
@@ -85528,7 +85546,7 @@ function SpecialOffersPage() {
 }
 function CreateOfferDialog({ open: open2, onOpenChange }) {
   const { data: products2 } = useProducts();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const form = useForm({
     resolver: t(specialOfferFormSchema),
     defaultValues: {
@@ -85713,7 +85731,7 @@ function CreateOfferDialog({ open: open2, onOpenChange }) {
 }
 function EditOfferDialog({ offer, onOpenChange }) {
   const { data: products2 } = useProducts();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const form = useForm({
     resolver: t(specialOfferFormSchema),
     defaultValues: {
@@ -85908,7 +85926,7 @@ function EditOfferDialog({ offer, onOpenChange }) {
   ] }) });
 }
 function PromoCodesPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [code, setCode] = reactExports.useState("");
@@ -86258,7 +86276,7 @@ function PromoCodesPage() {
 }
 const PAGE_SIZE = 20;
 function TelegramUsersPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [editingId, setEditingId] = reactExports.useState(null);
   const [editBalance, setEditBalance] = reactExports.useState(0);
   const [search, setSearch] = reactExports.useState("");
@@ -86607,7 +86625,7 @@ function TelegramUsersPage() {
   ] });
 }
 function ReferralsPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
@@ -86879,7 +86897,7 @@ function ReferralsPage() {
   ] });
 }
 function SpamProtectorPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [search, setSearch] = reactExports.useState("");
   const [activeTab, setActiveTab] = reactExports.useState("all");
   const [currentPage, setCurrentPage] = reactExports.useState(1);
@@ -87402,7 +87420,7 @@ function SpamProtectorPage() {
   ] });
 }
 function TelegramInspectorPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [copiedId, setCopiedId] = reactExports.useState(null);
   const { data: traces = [], isLoading, refetch } = useQuery({
@@ -87747,7 +87765,7 @@ function TelegramInspectorPage() {
   ] });
 }
 function TelegramClientPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [phone, setPhone] = reactExports.useState("");
   const [apiId, setApiId] = reactExports.useState("");
@@ -88703,7 +88721,7 @@ function TelegramClientPage() {
   ] });
 }
 function BackupPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const consoleEndRef = reactExports.useRef(null);
   const [formData, setFormData] = reactExports.useState({
     dbUrl: "",
@@ -88974,7 +88992,7 @@ function BackupPage() {
   ] });
 }
 function ForwardPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [showToken, setShowToken] = reactExports.useState(false);
   const [botToken, setBotToken] = reactExports.useState("");
@@ -89671,7 +89689,7 @@ const QUICK_REPLIES = [
   "👍 Your issue has been resolved. Thank you!"
 ];
 function SupportTicketsPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
@@ -90075,7 +90093,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
   ] });
 }
 function CustomerTrackerPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [selectedUserId, setSelectedUserId] = reactExports.useState(null);
   const { data: users2 = [], isLoading: loadingUsers } = useQuery({
@@ -90258,7 +90276,7 @@ function CustomerTrackerPage() {
   ] });
 }
 function PreordersPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: preorders2 = [], isLoading } = useQuery({
     queryKey: ["/api/preorders"]
@@ -90901,7 +90919,7 @@ function LiveTOTP$1({ secret, onCopy }) {
 }
 function MiniAppShop$1() {
   const { theme } = useTheme();
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const isDarkMode = theme === "dark" || theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   if (typeof window !== "undefined") {
     const bg = isDarkMode ? "#121212" : "#f8f7ff";
@@ -92337,7 +92355,7 @@ function LiveTOTP({ secret, onCopy }) {
   ] });
 }
 function MiniAppShopModern() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [activeTab, setActiveTab] = reactExports.useState("home");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
@@ -94926,7 +94944,7 @@ function ApiDocsPage() {
   ) });
 }
 function AdminApiKeysPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
   const [copiedKeyId, setCopiedKeyId] = reactExports.useState(null);
@@ -95412,7 +95430,7 @@ function AdminApiKeysPage() {
   ] });
 }
 function N1PanelPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [activeTab, setActiveTab] = reactExports.useState("services");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
@@ -96185,7 +96203,7 @@ const PRESET_CATEGORIES = [
   { id: "general", label: "General / Other" }
 ];
 function SandromaniaPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [activeTab, setActiveTab] = reactExports.useState("products");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
@@ -97091,7 +97109,7 @@ function SandromaniaPage() {
   ] });
 }
 function DomainAutomationPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const [selectedTab, setSelectedTab] = reactExports.useState("auto-config");
   const { data: settingsData, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
     queryKey: ["/api/admin/domain-automation/settings"]
@@ -98558,7 +98576,7 @@ function DomainAutomationPage() {
   ] });
 }
 function StoreMeshPage() {
-  const { toast: toast2 } = useToast();
+  const { toast: toast2 } = useToast$1();
   const queryClient2 = useQueryClient();
   const [activeTab, setActiveTab] = reactExports.useState("nodes");
   const [customHostUrl, setCustomHostUrl] = reactExports.useState("");
@@ -99484,6 +99502,435 @@ function StoreMeshPage() {
     ] }) })
   ] });
 }
+function PayHereGatewayPage() {
+  const { toast: toast2 } = useToast$1();
+  const [payhereEnabled, setPayhereEnabled] = reactExports.useState(false);
+  const [payhereGatewayUrl, setPayhereGatewayUrl] = reactExports.useState("");
+  const [payhereMerchantId, setPayhereMerchantId] = reactExports.useState("");
+  const [payhereMerchantSecret, setPayhereMerchantSecret] = reactExports.useState("");
+  const [payhereSandboxMode, setPayhereSandboxMode] = reactExports.useState(true);
+  const [payherePairingUrl, setPayherePairingUrl] = reactExports.useState("");
+  const [payhereStatus, setPayhereStatus] = reactExports.useState("disconnected");
+  const [payherePairedAt, setPayherePairedAt] = reactExports.useState("");
+  const [pingLoading, setPingLoading] = reactExports.useState(false);
+  const [pingResult, setPingResult] = reactExports.useState(null);
+  const { data: payhereEnabledSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_ENABLED"]
+  });
+  const { data: payhereGatewayUrlSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"]
+  });
+  const { data: payhereMerchantIdSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"]
+  });
+  const { data: payhereMerchantSecretSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"]
+  });
+  const { data: payhereSandboxSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_SANDBOX_MODE"]
+  });
+  const { data: payhereStatusSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_STATUS"]
+  });
+  const { data: payherePairedAtSetting } = useQuery({
+    queryKey: ["/api/settings/PAYHERE_PAIRED_AT"]
+  });
+  reactExports.useEffect(() => {
+    if (payhereEnabledSetting?.value !== void 0) setPayhereEnabled(payhereEnabledSetting.value === "true");
+  }, [payhereEnabledSetting]);
+  reactExports.useEffect(() => {
+    if (payhereGatewayUrlSetting?.value !== void 0) setPayhereGatewayUrl(payhereGatewayUrlSetting.value);
+  }, [payhereGatewayUrlSetting]);
+  reactExports.useEffect(() => {
+    if (payhereMerchantIdSetting?.value !== void 0) setPayhereMerchantId(payhereMerchantIdSetting.value);
+  }, [payhereMerchantIdSetting]);
+  reactExports.useEffect(() => {
+    if (payhereMerchantSecretSetting?.value !== void 0) setPayhereMerchantSecret(payhereMerchantSecretSetting.value);
+  }, [payhereMerchantSecretSetting]);
+  reactExports.useEffect(() => {
+    if (payhereSandboxSetting?.value !== void 0) setPayhereSandboxMode(payhereSandboxSetting.value !== "false");
+  }, [payhereSandboxSetting]);
+  reactExports.useEffect(() => {
+    if (payhereStatusSetting?.value !== void 0) setPayhereStatus(payhereStatusSetting.value);
+  }, [payhereStatusSetting]);
+  reactExports.useEffect(() => {
+    if (payherePairedAtSetting?.value !== void 0) setPayherePairedAt(payherePairedAtSetting.value);
+  }, [payherePairedAtSetting]);
+  const togglePaymentMutation = useMutation({
+    mutationFn: async ({ key, value: value2 }) => {
+      const res = await apiRequest("POST", "/api/settings", { key, value: value2 });
+      return res.json();
+    },
+    onSuccess: (_2, variables) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/settings/${variables.key}`] });
+      toast2({
+        title: "Setting Saved",
+        description: `${variables.key} updated successfully.`
+      });
+    }
+  });
+  const payhereMerchantIdMutation = useMutation({
+    mutationFn: async (value2) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "PAYHERE_MERCHANT_ID",
+        value: value2
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      toast2({
+        title: "PayHere Merchant ID Saved",
+        description: "Merchant ID updated successfully."
+      });
+    }
+  });
+  const payhereMerchantSecretMutation = useMutation({
+    mutationFn: async (value2) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "PAYHERE_MERCHANT_SECRET",
+        value: value2
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      toast2({
+        title: "PayHere Merchant Secret Saved",
+        description: "Merchant Secret updated securely."
+      });
+    }
+  });
+  const payherePairMutation = useMutation({
+    mutationFn: async (data) => {
+      const res = await apiRequest("POST", "/api/payhere/pair", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      if (data.gatewayUrl) setPayhereGatewayUrl(data.gatewayUrl);
+      if (data.merchantId) setPayhereMerchantId(data.merchantId);
+      if (data.merchantSecret) setPayhereMerchantSecret(data.merchantSecret);
+      setPayhereStatus("connected");
+      setPayherePairingUrl("");
+      toast2({
+        title: "⚡ PayHere Host Connected Successfully!",
+        description: `Paired with ${data.gatewayUrl || "host"} (${data.latencyMs ? data.latencyMs + "ms" : "online"})`
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Pairing Failed",
+        description: err.message || "Failed to pair with the host URL.",
+        variant: "destructive"
+      });
+    }
+  });
+  const payhereDisconnectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/payhere/disconnect", {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      setPayhereGatewayUrl("");
+      setPayhereStatus("disconnected");
+      setPingResult(null);
+      toast2({
+        title: "Host Disconnected",
+        description: "PayHere gateway proxy has been unlinked."
+      });
+    }
+  });
+  const handleTestPing = async () => {
+    try {
+      setPingLoading(true);
+      setPingResult(null);
+      const res = await apiRequest("GET", "/api/payhere/test-ping");
+      const data = await res.json();
+      setPingResult(data);
+      if (data.success) {
+        toast2({
+          title: "Ping Successful",
+          description: `Host responded in ${data.latencyMs}ms. Status: Online`
+        });
+      } else {
+        toast2({
+          title: "Ping Failed",
+          description: data.message || "Host did not respond",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      setPingResult({ success: false, message: err.message });
+      toast2({
+        title: "Ping Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setPingLoading(false);
+    }
+  };
+  const isConnected = payhereStatus === "connected" && !!payhereGatewayUrl;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10 animate-in", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-4xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-10 h-10 text-emerald-400" }),
+          "PayHere Host Gateway"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 mt-1 font-medium", children: "Approved domain proxy configuration for zero-detection LKR checkout and instant deposits" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20 self-start md:self-auto", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `inline-block w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse shadow-[0_0_15px_rgba(52,211,153,0.8)]" : "bg-amber-400"}` }),
+        isConnected ? "Gateway Connected" : "Not Paired"
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-4xl space-y-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-gradient-to-br from-emerald-950/40 via-background/90 to-teal-950/30 border border-emerald-500/20 shadow-2xl overflow-hidden", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black flex items-center gap-2 text-white", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-6 h-6 text-emerald-400 animate-pulse" }),
+            "1-Click Gateway Pairing"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/60", children: [
+            "Connect your standalone approved host (e.g. ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "http://localhost:3000" }),
+            " or your verified domain)"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              variant: payhereSandboxMode ? "default" : "outline",
+              size: "sm",
+              onClick: () => {
+                const newValue = !payhereSandboxMode;
+                setPayhereSandboxMode(newValue);
+                togglePaymentMutation.mutate({ key: "PAYHERE_SANDBOX_MODE", value: newValue.toString() });
+              },
+              className: payhereSandboxMode ? "bg-amber-500 hover:bg-amber-600 text-xs text-black font-bold" : "border-white/20 text-xs text-white/60",
+              children: payhereSandboxMode ? "Sandbox Mode" : "Live Mode"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              variant: payhereEnabled ? "default" : "outline",
+              size: "sm",
+              onClick: () => {
+                const newValue = !payhereEnabled;
+                setPayhereEnabled(newValue);
+                togglePaymentMutation.mutate({ key: "PAYHERE_ENABLED", value: newValue.toString() });
+              },
+              className: payhereEnabled ? "bg-emerald-500 hover:bg-emerald-600 text-black font-bold" : "border-white/20",
+              children: payhereEnabled ? "Enabled" : "Disabled"
+            }
+          )
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-5 rounded-2xl bg-black/60 border border-emerald-500/30 shadow-inner", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-sm font-black text-emerald-300 uppercase tracking-widest flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Link2, { className: "w-4 h-4" }),
+              "Paste Pairing Link from Host Instance"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-emerald-400/80 font-mono", children: "imhost /pair" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                placeholder: "Paste URL e.g. http://localhost:3000/pair/pair_12345678 or domain URL",
+                className: "glass-panel border-white/20 bg-white/5 text-white h-12 text-sm font-mono flex-1 focus:border-emerald-400",
+                value: payherePairingUrl,
+                onChange: (e) => setPayherePairingUrl(e.target.value)
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                onClick: () => {
+                  if (!payherePairingUrl.trim()) {
+                    toast2({ title: "Pairing URL Required", description: "Please enter the pairing URL from imhost /pair.", variant: "destructive" });
+                    return;
+                  }
+                  payherePairMutation.mutate({
+                    pairingUrl: payherePairingUrl.trim(),
+                    merchantId: payhereMerchantId.trim(),
+                    merchantSecret: payhereMerchantSecret.trim()
+                  });
+                },
+                disabled: payherePairMutation.isPending,
+                className: "h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-black text-sm shadow-lg shadow-emerald-500/20",
+                children: [
+                  payherePairMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-5 h-5 mr-2" }),
+                  "Connect Gateway"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between pt-1 text-xs text-white/50", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              "1. Run ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "node server.js" }),
+              " in ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "imhost-main" }),
+              " (Port 3000).",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+              "2. Open ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "/pair" }),
+              ", copy the code/URL and click ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Connect Gateway" }),
+              "."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "a",
+              {
+                href: "http://localhost:3000/pair",
+                target: "_blank",
+                rel: "noreferrer",
+                className: "inline-flex items-center gap-1 text-emerald-400 hover:underline mt-2 sm:mt-0",
+                children: [
+                  "Open imhost /pair ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
+                ]
+              }
+            )
+          ] })
+        ] }),
+        payhereGatewayUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-white/5 border border-emerald-500/20 space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-5 h-5" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/40 uppercase font-bold", children: "Connected Proxy URL" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-sm font-black text-emerald-300 font-mono", children: payhereGatewayUrl })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  variant: "outline",
+                  size: "sm",
+                  onClick: handleTestPing,
+                  disabled: pingLoading,
+                  className: "h-9 px-4 text-xs font-bold border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10",
+                  children: [
+                    pingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin mr-1.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Activity, { className: "w-3.5 h-3.5 mr-1.5" }),
+                    "Test Ping"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "sm",
+                  onClick: () => payhereDisconnectMutation.mutate(),
+                  disabled: payhereDisconnectMutation.isPending,
+                  className: "h-9 px-3 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300",
+                  children: "Disconnect"
+                }
+              )
+            ] })
+          ] }),
+          pingResult && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `p-3 rounded-xl text-xs flex items-center justify-between ${pingResult.success ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200" : "bg-red-500/10 border border-red-500/30 text-red-200"}`, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: pingResult.success ? `✅ Ping successful! Response latency: ${pingResult.latencyMs}ms` : `❌ Ping failed: ${pingResult.message}` }),
+            pingResult.latencyMs && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-mono font-bold", children: [
+              pingResult.latencyMs,
+              " ms"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6 pt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase tracking-wider", children: "PayHere Merchant ID" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "e.g. 1210000",
+                  className: "glass-panel border-white/10 bg-white/5 text-white h-11 text-xs",
+                  value: payhereMerchantId,
+                  onChange: (e) => setPayhereMerchantId(e.target.value)
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  onClick: () => payhereMerchantIdMutation.mutate(payhereMerchantId),
+                  disabled: payhereMerchantIdMutation.isPending,
+                  className: "h-11 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold",
+                  children: payhereMerchantIdMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "From your PayHere Merchant Portal ➔ Settings ➔ Domains & Credentials" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase tracking-wider", children: "PayHere Merchant Secret" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  type: "password",
+                  placeholder: "Paste Merchant Secret",
+                  className: "glass-panel border-white/10 bg-white/5 text-white h-11 text-xs",
+                  value: payhereMerchantSecret,
+                  onChange: (e) => setPayhereMerchantSecret(e.target.value)
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  onClick: () => payhereMerchantSecretMutation.mutate(payhereMerchantSecret),
+                  disabled: payhereMerchantSecretMutation.isPending,
+                  className: "h-11 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold",
+                  children: payhereMerchantSecretMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "Used for MD5 security hash generation on the proxy." })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-purple-300 font-bold text-sm", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4" }),
+            "Zero-Detection Architecture Active"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "text-xs text-white/60 space-y-1 list-disc list-inside", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "Referrer Policy: ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "strict-origin-when-cross-origin" }),
+              " (no leaks to PayHere)."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "Items Description: Generic ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: '"API Checking Service"' }),
+              " (never mentions hosting or bot)."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+              "Instant Balance Crediting: Instant IPN Webhook updates ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "telegram_users" }),
+              " balance automatically."
+            ] })
+          ] })
+        ] })
+      ] })
+    ] }) })
+  ] });
+}
 function NotFound() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex items-center justify-center bg-gray-50", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "w-full max-w-md mx-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "pt-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex mb-4 gap-2", children: [
@@ -99582,6 +100029,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/api-keys", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: AdminApiKeysPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: DomainAutomationPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/store-mesh", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: StoreMeshPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PayHereGatewayPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/customer-tracker", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CustomerTrackerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/preorders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PreordersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/products", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ProductsPage }) }),

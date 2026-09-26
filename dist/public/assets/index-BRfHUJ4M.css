@@ -2186,6 +2186,14 @@ h1, h2, h3, h4, h5, h6 {
   resize: none;
 }
 
+.list-inside{
+  list-style-position: inside;
+}
+
+.list-disc{
+  list-style-type: disc;
+}
+
 .list-none{
   list-style-type: none;
 }
@@ -2442,6 +2450,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .divide-white\/5 > :not([hidden]) ~ :not([hidden]){
   border-color: rgb(255 255 255 / 0.05);
+}
+
+.self-start{
+  align-self: flex-start;
 }
 
 .self-end{
@@ -3384,6 +3396,11 @@ h1, h2, h3, h4, h5, h6 {
   background-color: hsl(var(--accent) / var(--tw-bg-opacity, 1));
 }
 
+.bg-amber-400{
+  --tw-bg-opacity: 1;
+  background-color: rgb(251 191 36 / var(--tw-bg-opacity, 1));
+}
+
 .bg-amber-400\/20{
   background-color: rgb(251 191 36 / 0.2);
 }
@@ -3442,6 +3459,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .bg-black\/50{
   background-color: rgb(0 0 0 / 0.5);
+}
+
+.bg-black\/60{
+  background-color: rgb(0 0 0 / 0.6);
 }
 
 .bg-black\/70{
@@ -4237,6 +4258,12 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.from-emerald-950\/60{
+  --tw-gradient-from: rgb(2 44 34 / 0.6) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(2 44 34 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .from-gray-100\/70{
   --tw-gradient-from: rgb(243 244 246 / 0.7) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(243 244 246 / 0) var(--tw-gradient-to-position);
@@ -4500,6 +4527,11 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--background) / 0.8) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
+.via-background\/90{
+  --tw-gradient-to: hsl(var(--background) / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--background) / 0.9) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
 .via-black{
   --tw-gradient-to: rgb(0 0 0 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #000 var(--tw-gradient-via-position), var(--tw-gradient-to);
@@ -4568,6 +4600,11 @@ h1, h2, h3, h4, h5, h6 {
 .via-teal-500{
   --tw-gradient-to: rgb(20 184 166 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #14b8a6 var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
+.via-teal-950\/40{
+  --tw-gradient-to: rgb(4 47 46 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(4 47 46 / 0.4) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
 .via-transparent{
@@ -4830,6 +4867,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .to-teal-600{
   --tw-gradient-to: #0d9488 var(--tw-gradient-to-position);
+}
+
+.to-teal-950\/30{
+  --tw-gradient-to: rgb(4 47 46 / 0.3) var(--tw-gradient-to-position);
 }
 
 .to-transparent{
@@ -6358,6 +6399,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.shadow-\[0_0_15px_rgba\(52\2c 211\2c 153\2c 0\.8\)\]{
+  --tw-shadow: 0 0 15px rgba(52,211,153,0.8);
+  --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
 .shadow-\[0_0_15px_rgba\(74\2c 222\2c 128\2c 0\.6\)\]{
   --tw-shadow: 0 0 15px rgba(74,222,128,0.6);
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
@@ -7546,6 +7593,10 @@ body:has(.tg-mini-app) {
   border-color: rgb(59 130 246 / 0.4);
 }
 
+.hover\:border-emerald-400\/60:hover{
+  border-color: rgb(52 211 153 / 0.6);
+}
+
 .hover\:border-emerald-500\/40:hover{
   border-color: rgb(16 185 129 / 0.4);
 }
@@ -7982,6 +8033,10 @@ body:has(.tg-mini-app) {
   --tw-gradient-to: #7e22ce var(--tw-gradient-to-position);
 }
 
+.hover\:to-teal-600:hover{
+  --tw-gradient-to: #0d9488 var(--tw-gradient-to-position);
+}
+
 .hover\:to-teal-700:hover{
   --tw-gradient-to: #0f766e var(--tw-gradient-to-position);
 }
@@ -8185,6 +8240,11 @@ body:has(.tg-mini-app) {
 
 .focus\:border-cyan-500\/50:focus{
   border-color: rgb(6 182 212 / 0.5);
+}
+
+.focus\:border-emerald-400:focus{
+  --tw-border-opacity: 1;
+  border-color: rgb(52 211 153 / var(--tw-border-opacity, 1));
 }
 
 .focus\:border-emerald-500\/50:focus{
@@ -9764,6 +9824,10 @@ body:has(.tg-mini-app) {
     justify-content: space-between;
   }
 
+  .md\:self-auto{
+    align-self: auto;
+  }
+
   .md\:p-10{
     padding: 2.5rem;
   }
@@ -9775,6 +9839,11 @@ body:has(.tg-mini-app) {
   .md\:text-4xl{
     font-size: 2.25rem;
     line-height: 2.5rem;
+  }
+
+  .md\:text-5xl{
+    font-size: 3rem;
+    line-height: 1;
   }
 
   .md\:text-sm{

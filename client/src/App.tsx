@@ -37,6 +37,7 @@ import N1PanelPage from "@/pages/n1panel-page";
 import SandromaniaPage from "@/pages/sandromania-page";
 import DomainAutomationPage from "@/pages/domain-automation-page";
 import StoreMeshPage from "@/pages/store-mesh-page";
+import PayHereGatewayPage from "@/pages/payhere-gateway-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -134,6 +135,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/store-mesh">
         <ProtectedRoute component={StoreMeshPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/payhere">
+        <ProtectedRoute component={PayHereGatewayPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/customer-tracker">
