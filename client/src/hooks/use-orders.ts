@@ -8,7 +8,8 @@ export function useOrders() {
       const res = await fetch(api.orders.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
-      return api.orders.list.responses[200].parse(data);
+      const parsed = api.orders.list.responses[200].safeParse(data);
+      return parsed.success ? parsed.data : (Array.isArray(data) ? data : []);
     },
   });
 }

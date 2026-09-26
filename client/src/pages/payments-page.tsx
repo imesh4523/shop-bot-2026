@@ -32,9 +32,7 @@ export default function PaymentsPage() {
     );
   });
 
-  if (isLoading) {
-    return <div className="p-8">Loading payments...</div>;
-  }
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {

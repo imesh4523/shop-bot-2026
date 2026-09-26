@@ -30981,7 +30981,17 @@ function useStats() {
       const res = await fetch(api.stats.get.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch stats");
       const data = await res.json();
-      return api.stats.get.responses[200].parse(data);
+      const parsed = api.stats.get.responses[200].safeParse(data);
+      return parsed.success ? parsed.data : data || {
+        totalSales: 0,
+        dailySales: 0,
+        totalRevenue: 0,
+        dailyRevenue: 0,
+        availableProducts: 0,
+        totalUsers: 0,
+        monthlyUsers: 0,
+        activeUsersToday: 0
+      };
     }
   });
 }
@@ -30992,7 +31002,8 @@ function useOrders() {
       const res = await fetch(api.orders.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
-      return api.orders.list.responses[200].parse(data);
+      const parsed = api.orders.list.responses[200].safeParse(data);
+      return parsed.success ? parsed.data : Array.isArray(data) ? data : [];
     }
   });
 }
@@ -60260,9 +60271,6 @@ function PaymentsPage() {
     const method = payment.paymentMethod?.toLowerCase() || "";
     return username.includes(searchLower) || telegramId.includes(searchLower) || method.includes(searchLower);
   });
-  if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-8", children: "Loading payments..." });
-  }
   const getStatusBadge = (status) => {
     switch (status) {
       case "completed":
@@ -60711,7 +60719,6 @@ function SettingsPage() {
   const { data: payherePairedAtSetting } = useQuery({
     queryKey: ["/api/settings/PAYHERE_PAIRED_AT"]
   });
-  const isLoading = isTokenLoading || isBroadcastLoading || isSupportLoading || isCryptomusLoading || isMerchantLoading || isBinanceLoading || isBinanceApiLoading || isBinanceSecretLoading || isFaqLoading || isHowToBuyLoading || isHowToDepositLoading || isBinanceEnabledLoading || isCryptomusEnabledLoading || isAutomationEnabledLoading || isSpecialOffersEnabledLoading || isStoreNameLoading || isSupportUsernameLoading || isSupportBtnTextLoading || isLoadingTextLoading || isTrc20EnabledLoading || isAptosEnabledLoading || isTrc20WalletLoading || isAptosWalletLoading || isTrc20VerificationModeLoading || isAptosVerificationModeLoading || isGeminiLoading || isExtraInstructionsLoading || isVapidPublicLoading || isVapidPrivateLoading || isVapidSubjectLoading;
   const [binanceEnabled, setBinanceEnabled] = reactExports.useState(true);
   const [cryptomusEnabled, setCryptomusEnabled] = reactExports.useState(true);
   const [cryptomusWebBtnEnabled, setCryptomusWebBtnEnabled] = reactExports.useState(true);
@@ -61367,9 +61374,6 @@ function SettingsPage() {
       });
     }
   });
-  if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center min-h-[400px]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-purple-400" }) });
-  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10 animate-in", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Settings" }),
@@ -62140,7 +62144,7 @@ function SettingsPage() {
               "."
             ] })
           ] }),
-          payhereGatewayUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/60 uppercase", children: "PayHere Merchant ID" }),
@@ -62163,7 +62167,8 @@ function SettingsPage() {
                       children: /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4" })
                     }
                   )
-                ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: "From your PayHere Merchant Portal ➔ Settings ➔ Domains & Credentials" })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/60 uppercase", children: "PayHere Merchant Secret" }),
@@ -62187,10 +62192,11 @@ function SettingsPage() {
                       children: /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4" })
                     }
                   )
-                ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: "Used to generate MD5 security hash signatures." })
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs", children: [
+            payhereGatewayUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/50", children: "Active Host URL:" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-emerald-300 font-mono", children: payhereGatewayUrl })
@@ -73717,7 +73723,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CmcKR3MA.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Brx0bX2K.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
