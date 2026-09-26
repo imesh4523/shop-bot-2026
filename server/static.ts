@@ -20,7 +20,13 @@ export function serveStatic(app: Express) {
   // fall through to index.html for all frontend SPA GET routes
   app.use((req, res, next) => {
     if (req.method === "GET" && !req.path.startsWith("/api")) {
-      return res.sendFile(path.resolve(distPath, "index.html"));
+      const indexPath = path.resolve(distPath, "index.html");
+      return res.sendFile(indexPath, (err) => {
+        if (err && !res.headersSent) {
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.status(200).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>YouuHost</title></head><body><div id="root"></div></body></html>`);
+        }
+      });
     }
     next();
   });

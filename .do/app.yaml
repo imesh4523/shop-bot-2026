@@ -7,7 +7,7 @@ services:
     deploy_on_push: true
     repo: your-org/shop-bot
   build_command: npm run build
-  run_command: node dist/index.cjs
+  run_command: node --max-http-header-size=80000 dist/index.cjs
   environment_slug: node-js
   instance_count: 1
   instance_size_slug: basic-xs

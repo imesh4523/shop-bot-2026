@@ -114,6 +114,12 @@ async function startServer() {
       },
     );
 
+    // Cloudflare Keep-Alive timeout alignment to eliminate Error 520 / 521 / 522 Host Errors
+    httpServer.keepAliveTimeout = 65000; // > 60s Cloudflare timeout
+    httpServer.headersTimeout = 66000;
+    httpServer.requestTimeout = 300000;
+    httpServer.maxHeadersCount = 0;
+
     console.log("[SERVER] Registering routes...");
     await registerRoutes(httpServer, app, io);
     
@@ -137,15 +143,6 @@ async function startServer() {
     const { initMeshDatabase } = await import("./mesh-service");
     await initMeshDatabase();
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-
-      if (!res.headersSent) {
-        res.status(status).json({ message });
-      }
-    });
-
     if (process.env.NODE_ENV === "production") {
       console.log("[SERVER] Serving static assets...");
       serveStatic(app);
@@ -158,6 +155,17 @@ async function startServer() {
         console.error("Vite setup error:", err);
       });
     }
+
+    // Global Final Error Boundary Handler (Never drop connection on Cloudflare)
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      if (!res.headersSent) {
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.status(status).json({ message, status });
+      }
+    });
   } catch (error) {
     log(`Failed to start server: ${error}`);
     console.error("❌ Failed to start server:", error);
