@@ -5,7 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { log } from "./log";
 import { createServer } from "http";
-import { Server } from "socket.io/dist/index.js";
+import { Server } from "socket.io";
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("⚠️ [GLOBAL SAFETY] Unhandled Rejection caught (server will NOT crash):", reason);

@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import { storage } from "./storage";
-import { Server as SocketServer } from "socket.io/dist/index.js";
+import { Server as SocketServer } from "socket.io";
 import { log } from "./log";
 
 let forwardBot: TelegramBot | null = null;
