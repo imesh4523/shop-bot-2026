@@ -6075,6 +6075,11 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(59 7 100 / var(--tw-text-opacity, 1));
 }
 
+.text-red-200{
+  --tw-text-opacity: 1;
+  color: rgb(254 202 202 / var(--tw-text-opacity, 1));
+}
+
 .text-red-300{
   --tw-text-opacity: 1;
   color: rgb(252 165 165 / var(--tw-text-opacity, 1));
@@ -7638,12 +7643,21 @@ body:has(.tg-mini-app) {
   background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
 }
 
+.hover\:bg-emerald-500\/10:hover{
+  background-color: rgb(16 185 129 / 0.1);
+}
+
 .hover\:bg-emerald-500\/20:hover{
   background-color: rgb(16 185 129 / 0.2);
 }
 
 .hover\:bg-emerald-500\/30:hover{
   background-color: rgb(16 185 129 / 0.3);
+}
+
+.hover\:bg-emerald-600:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-emerald-700:hover{

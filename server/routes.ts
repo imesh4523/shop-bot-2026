@@ -1688,15 +1688,19 @@ export async function registerRoutes(
     }
   });
 
-  // Mini App Deposit Methods & Cryptomus Invoice
+  // Mini App Deposit Methods & Cryptomus/PayHere Invoice
   app.get("/api/mini/deposit/methods", async (req, res) => {
     try {
       const binancePayId = (await storage.getSetting('BINANCE_PAY_ID'))?.value || "410975578";
       const cryptomusEnabled = (await storage.getSetting('PAYMENT_CRYPTOMUS_ENABLED'))?.value !== "false";
+      const payhereEnabled = (await storage.getSetting('PAYHERE_ENABLED'))?.value === "true";
+      const payhereGatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value || "";
       const rates = await fetchLiveExchangeRates();
       res.json({
         binancePayId,
         cryptomusEnabled,
+        payhereEnabled,
+        payhereGatewayUrl,
         supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@rochana_imesh",
         rates,
         lkrRate: rates.LKR || 305.50
@@ -1705,6 +1709,8 @@ export async function registerRoutes(
       res.json({
         binancePayId: "410975578",
         cryptomusEnabled: true,
+        payhereEnabled: false,
+        payhereGatewayUrl: "",
         supportUsername: "@rochana_imesh",
         rates: getCachedRates(),
         lkrRate: 305.50
@@ -1867,6 +1873,154 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Cryptomus mini app error:", err.response?.data || err.message);
       res.status(500).json({ message: err.response?.data?.message || err.message || "Failed to create Cryptomus invoice" });
+    }
+  });
+
+  // PayHere Deposit for Mini App / Web Store
+  app.post("/api/mini/deposit/payhere", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const { amount, currency = "USD" } = req.body;
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount < 1) {
+        return res.status(400).json({ message: "Invalid amount. Minimum is 1." });
+      }
+
+      const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;
+      const payhereEnabled = (await storage.getSetting('PAYHERE_ENABLED'))?.value === "true";
+
+      if (!gatewayUrl || !payhereEnabled) {
+        return res.status(400).json({ message: "PayHere Host Gateway is not connected or is disabled by administrator." });
+      }
+
+      const tgUser = (req as any).tgUser;
+      let userId = tgUser?.id;
+      if (!userId || tgUser.isGuest) {
+        const guestDb = await storage.getTelegramUser("0");
+        userId = guestDb?.id || 1;
+      } else {
+        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
+        if (dbUser) userId = dbUser.id;
+      }
+
+      // Amount in cents (integer in DB)
+      const amountInCents = Math.round(numAmount * 100);
+
+      const payment = await storage.createPayment({
+        telegramUserId: userId,
+        amount: amountInCents,
+        currency: currency.toUpperCase(),
+        status: "pending",
+        paymentMethod: "payhere",
+        externalId: `PH_PENDING_${Date.now()}`
+      });
+
+      const cleanGatewayUrl = gatewayUrl.replace(/\/$/, "");
+      const checkoutUrl = `${cleanGatewayUrl}/checkout?payment_id=${payment.id}`;
+
+      res.json({
+        success: true,
+        paymentId: payment.id,
+        checkoutUrl,
+        amount: numAmount,
+        currency: currency.toUpperCase()
+      });
+    } catch (err: any) {
+      console.error("PayHere deposit error:", err);
+      res.status(500).json({ message: err.message || "Failed to create PayHere checkout session" });
+    }
+  });
+
+  // Admin: PayHere Host Gateway Pairing Handshake
+  app.post("/api/payhere/pair", isAuth, async (req, res) => {
+    try {
+      const { pairingUrl, merchantId, merchantSecret } = req.body;
+      if (!pairingUrl || typeof pairingUrl !== "string") {
+        return res.status(400).json({ message: "Please provide a valid Pairing URL." });
+      }
+
+      let parsed;
+      try {
+        parsed = new URL(pairingUrl.trim());
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid URL format. Please provide full URL (e.g. http://localhost:3000/pair/token)." });
+      }
+
+      const gatewayOrigin = parsed.origin;
+      const tokenMatch = parsed.pathname.match(/\/pair\/([^\/]+)/);
+      const pairToken = tokenMatch ? tokenMatch[1] : "paired";
+
+      const currentAppUrl = (await storage.getSetting('APP_URL'))?.value || "http://localhost:5000";
+
+      // Execute handshake with the Host Gateway
+      try {
+        await axios.post(`${gatewayOrigin}/api/pair/handshake`, {
+          token: pairToken,
+          mainAppUrl: currentAppUrl,
+          merchantId: merchantId || "",
+          merchantSecret: merchantSecret || ""
+        }, { timeout: 8000 });
+      } catch (err: any) {
+        return res.status(400).json({
+          message: `Failed to connect to Host Gateway at ${gatewayOrigin}. Ensure the gateway is running. (${err.message})`
+        });
+      }
+
+      // Save connection settings in DB
+      await storage.setSetting('PAYHERE_GATEWAY_URL', gatewayOrigin);
+      await storage.setSetting('PAYHERE_PAIR_TOKEN', pairToken);
+      await storage.setSetting('PAYHERE_PAIRED_AT', new Date().toISOString());
+      await storage.setSetting('PAYHERE_STATUS', 'connected');
+      await storage.setSetting('PAYHERE_ENABLED', 'true');
+
+      if (merchantId) await storage.setSetting('PAYHERE_MERCHANT_ID', merchantId);
+      if (merchantSecret) await storage.setSetting('PAYHERE_MERCHANT_SECRET', merchantSecret);
+
+      res.json({
+        success: true,
+        message: `Successfully connected to PayHere Host Gateway (${gatewayOrigin})!`,
+        gatewayUrl: gatewayOrigin,
+        pairedAt: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to complete pairing" });
+    }
+  });
+
+  // Admin: PayHere Test Ping
+  app.post("/api/payhere/test-ping", isAuth, async (req, res) => {
+    try {
+      const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;
+      if (!gatewayUrl) {
+        return res.status(400).json({ success: false, message: "No Host Gateway URL configured." });
+      }
+
+      const cleanGatewayUrl = gatewayUrl.replace(/\/$/, "");
+      const startTime = Date.now();
+      const response = await axios.get(`${cleanGatewayUrl}/api/ping`, { timeout: 6000 });
+      const latency = Date.now() - startTime;
+
+      res.json({
+        success: true,
+        latencyMs: latency,
+        gatewayData: response.data
+      });
+    } catch (err: any) {
+      res.status(400).json({
+        success: false,
+        message: `Host Gateway ping failed: ${err.message}`
+      });
+    }
+  });
+
+  // Admin: PayHere Disconnect
+  app.post("/api/payhere/disconnect", isAuth, async (req, res) => {
+    try {
+      await storage.setSetting('PAYHERE_STATUS', 'disconnected');
+      await storage.setSetting('PAYHERE_ENABLED', 'false');
+      await storage.setSetting('PAYHERE_GATEWAY_URL', '');
+      res.json({ success: true, message: "PayHere Host Gateway disconnected." });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

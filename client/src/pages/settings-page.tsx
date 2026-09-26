@@ -244,6 +244,40 @@ export default function SettingsPage() {
     queryKey: ["/api/settings/VAPID_SUBJECT"],
   });
 
+  // PayHere Host Gateway Queries & State
+  const [payhereEnabled, setPayhereEnabled] = useState(false);
+  const [payhereGatewayUrl, setPayhereGatewayUrl] = useState("");
+  const [payhereMerchantId, setPayhereMerchantId] = useState("");
+  const [payhereMerchantSecret, setPayhereMerchantSecret] = useState("");
+  const [payhereSandboxMode, setPayhereSandboxMode] = useState(true);
+  const [payherePairingUrl, setPayherePairingUrl] = useState("");
+  const [payhereStatus, setPayhereStatus] = useState("disconnected");
+  const [payherePairedAt, setPayherePairedAt] = useState("");
+  const [pingLoading, setPingLoading] = useState(false);
+  const [pingResult, setPingResult] = useState<{ success: boolean; latencyMs?: number; message?: string } | null>(null);
+
+  const { data: payhereEnabledSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_ENABLED"],
+  });
+  const { data: payhereGatewayUrlSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"],
+  });
+  const { data: payhereMerchantIdSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"],
+  });
+  const { data: payhereMerchantSecretSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"],
+  });
+  const { data: payhereSandboxSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_SANDBOX_MODE"],
+  });
+  const { data: payhereStatusSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_STATUS"],
+  });
+  const { data: payherePairedAtSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_PAIRED_AT"],
+  });
+
   const isLoading = isTokenLoading || isBroadcastLoading || isSupportLoading || isCryptomusLoading ||
     isMerchantLoading || isBinanceLoading || isBinanceApiLoading || isBinanceSecretLoading ||
     isFaqLoading || isHowToBuyLoading || isHowToDepositLoading || isBinanceEnabledLoading ||
@@ -374,6 +408,34 @@ export default function SettingsPage() {
   useEffect(() => {
     if (appUrlSetting?.value !== undefined) setAppUrl(appUrlSetting.value);
   }, [appUrlSetting]);
+
+  useEffect(() => {
+    if (payhereEnabledSetting?.value !== undefined) setPayhereEnabled(payhereEnabledSetting.value === "true");
+  }, [payhereEnabledSetting]);
+
+  useEffect(() => {
+    if (payhereGatewayUrlSetting?.value !== undefined) setPayhereGatewayUrl(payhereGatewayUrlSetting.value);
+  }, [payhereGatewayUrlSetting]);
+
+  useEffect(() => {
+    if (payhereMerchantIdSetting?.value !== undefined) setPayhereMerchantId(payhereMerchantIdSetting.value);
+  }, [payhereMerchantIdSetting]);
+
+  useEffect(() => {
+    if (payhereMerchantSecretSetting?.value !== undefined) setPayhereMerchantSecret(payhereMerchantSecretSetting.value);
+  }, [payhereMerchantSecretSetting]);
+
+  useEffect(() => {
+    if (payhereSandboxSetting?.value !== undefined) setPayhereSandboxMode(payhereSandboxSetting.value !== "false");
+  }, [payhereSandboxSetting]);
+
+  useEffect(() => {
+    if (payhereStatusSetting?.value !== undefined) setPayhereStatus(payhereStatusSetting.value);
+  }, [payhereStatusSetting]);
+
+  useEffect(() => {
+    if (payherePairedAtSetting?.value !== undefined) setPayherePairedAt(payherePairedAtSetting.value);
+  }, [payherePairedAtSetting]);
 
   useEffect(() => {
     if (binanceSetting?.value !== undefined) setBinancePayId(binanceSetting.value);
@@ -811,6 +873,83 @@ export default function SettingsPage() {
       });
     }
   });
+
+  const payherePairMutation = useMutation({
+    mutationFn: async (payload: { pairingUrl: string; merchantId?: string; merchantSecret?: string }) => {
+      const res = await apiRequest("POST", "/api/payhere/pair", payload);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_ENABLED"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      toast({
+        title: "Host Gateway Paired! 🟢",
+        description: data.message || "Connected to PayHere Host Gateway.",
+      });
+      setPayherePairingUrl("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Pairing Failed",
+        description: err.message || "Could not connect to Host Gateway.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const payhereDisconnectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/payhere/disconnect");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_ENABLED"] });
+      toast({
+        title: "Gateway Disconnected",
+        description: "PayHere Host Gateway disconnected.",
+      });
+    }
+  });
+
+  const payhereMerchantIdMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", { key: "PAYHERE_MERCHANT_ID", value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      toast({ title: "PayHere Merchant ID Saved", description: "Merchant ID updated." });
+    }
+  });
+
+  const payhereMerchantSecretMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", { key: "PAYHERE_MERCHANT_SECRET", value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      toast({ title: "PayHere Merchant Secret Saved", description: "Merchant Secret updated." });
+    }
+  });
+
+  const handleTestPing = async () => {
+    setPingLoading(true);
+    setPingResult(null);
+    try {
+      const res = await apiRequest("POST", "/api/payhere/test-ping");
+      const data = await res.json();
+      setPingResult({ success: true, latencyMs: data.latencyMs, message: "Gateway is Online & Healthy (200 OK)" });
+    } catch (err: any) {
+      setPingResult({ success: false, message: err.message || "Gateway unreachable" });
+    } finally {
+      setPingLoading(false);
+    }
+  };
 
   const adminCredentialsMutation = useMutation({
     mutationFn: async (data: { newEmail: string; newPassword: string }) => {
@@ -1600,6 +1739,181 @@ export default function SettingsPage() {
           </div>
 
           <CardContent className="p-8 space-y-12">
+            {/* PayHere Host Gateway (Approved Domain Proxy) Section */}
+            <div className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 space-y-6 relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">💳</span>
+                    <h3 className="text-lg font-bold text-emerald-400">PayHere Host Gateway</h3>
+                    <span className={`text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                      payhereStatus === "connected" && payhereGatewayUrl
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-red-500/20 text-red-300 border border-red-500/40"
+                    }`}>
+                      {payhereStatus === "connected" && payhereGatewayUrl ? "🟢 Connected" : "🔴 Disconnected"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Approved domain proxy running on <b>imhost</b> for automated checkout, IPN webhook & return redirects.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={payhereSandboxMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !payhereSandboxMode;
+                      setPayhereSandboxMode(newValue);
+                      togglePaymentMutation.mutate({ key: "PAYHERE_SANDBOX_MODE", value: newValue.toString() });
+                    }}
+                    className={payhereSandboxMode ? "bg-amber-500 hover:bg-amber-600 text-xs text-black font-bold" : "border-white/20 text-xs text-white/60"}
+                  >
+                    {payhereSandboxMode ? "Sandbox Mode" : "Live Mode"}
+                  </Button>
+
+                  <Button
+                    variant={payhereEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !payhereEnabled;
+                      setPayhereEnabled(newValue);
+                      togglePaymentMutation.mutate({ key: "PAYHERE_ENABLED", value: newValue.toString() });
+                    }}
+                    className={payhereEnabled ? "bg-emerald-500 hover:bg-emerald-600 text-black font-bold" : "border-white/20"}
+                  >
+                    {payhereEnabled ? "Enabled" : "Disabled"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Instant Pairing Box */}
+              <div className="space-y-3 p-4 rounded-xl bg-black/40 border border-white/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-emerald-300 uppercase tracking-widest">
+                    ⚡ Instant Gateway Pairing URL
+                  </Label>
+                  <span className="text-[10px] text-white/40">From <code>imhost-main/pair</code></span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste URL e.g. http://localhost:3000/pair/pair_12345..."
+                    className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                    value={payherePairingUrl}
+                    onChange={(e) => setPayherePairingUrl(e.target.value)}
+                  />
+                  <Button
+                    onClick={() => {
+                      if (!payherePairingUrl.trim()) {
+                        toast({ title: "Pairing URL Required", description: "Please enter the pairing URL from imhost-main.", variant: "destructive" });
+                        return;
+                      }
+                      payherePairMutation.mutate({
+                        pairingUrl: payherePairingUrl.trim(),
+                        merchantId: payhereMerchantId.trim(),
+                        merchantSecret: payhereMerchantSecret.trim()
+                      });
+                    }}
+                    disabled={payherePairMutation.isPending}
+                    className="h-11 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-black text-xs"
+                  >
+                    {payherePairMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : "⚡ Connect"}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-white/50">
+                  Open <code>/pair</code> on your PayHere host instance, copy the generated URL, and click <b>Connect</b>.
+                </p>
+              </div>
+
+              {/* PayHere Merchant ID & Secret Credentials Inputs */}
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-white/60 uppercase">PayHere Merchant ID</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. 1210000"
+                        className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                        value={payhereMerchantId}
+                        onChange={(e) => setPayhereMerchantId(e.target.value)}
+                      />
+                      <Button
+                        onClick={() => payhereMerchantIdMutation.mutate(payhereMerchantId)}
+                        disabled={payhereMerchantIdMutation.isPending}
+                        className="h-11 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
+                      >
+                        <Save className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-white/40">From your PayHere Merchant Portal ➔ Settings ➔ Domains & Credentials</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-white/60 uppercase">PayHere Merchant Secret</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Paste Merchant Secret"
+                        className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                        value={payhereMerchantSecret}
+                        onChange={(e) => setPayhereMerchantSecret(e.target.value)}
+                      />
+                      <Button
+                        onClick={() => payhereMerchantSecretMutation.mutate(payhereMerchantSecret)}
+                        disabled={payhereMerchantSecretMutation.isPending}
+                        className="h-11 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
+                      >
+                        <Save className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-white/40">Used to generate MD5 security hash signatures.</p>
+                  </div>
+                </div>
+
+                {payhereGatewayUrl && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/50">Active Host URL:</span>
+                      <code className="text-emerald-300 font-mono">{payhereGatewayUrl}</code>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTestPing}
+                        disabled={pingLoading}
+                        className="h-8 text-xs border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+                      >
+                        {pingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : "📡 Test Ping"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => payhereDisconnectMutation.mutate()}
+                        disabled={payhereDisconnectMutation.isPending}
+                        className="h-8 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {pingResult && (
+                  <div className={`p-3 rounded-lg text-xs flex items-center justify-between ${
+                    pingResult.success ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200" : "bg-red-500/10 border border-red-500/30 text-red-200"
+                  }`}>
+                    <span>{pingResult.message}</span>
+                    {pingResult.latencyMs !== undefined && <span className="font-mono font-bold">{pingResult.latencyMs}ms</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
             {/* CryptoBot Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">

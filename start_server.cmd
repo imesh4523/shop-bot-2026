@@ -9,4 +9,4 @@ set ADMIN_PASSWORD=admin123
 
 cd /d "c:\Users\Administrator\Downloads\shop-bot-2026-main\shop-bot-2026-main"
 echo [START] Starting ShopBot Server on port 5000...
-node dist/index.cjs
+node --max-old-space-size=4096 dist/index.cjs
