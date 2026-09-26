@@ -7264,7 +7264,7 @@ const Route = ({ path, nest, match: match2, ...renderProps }) => {
   const children = base ? reactExports.createElement(Router$1, { base }, h_route(renderProps, params)) : h_route(renderProps, params);
   return reactExports.createElement(ParamsCtx.Provider, { value: params, children });
 };
-const Link = reactExports.forwardRef((props, ref) => {
+const Link$1 = reactExports.forwardRef((props, ref) => {
   const router = useRouter();
   const [currentPath, navigate2] = useLocationFromRouter(router);
   const {
@@ -11401,6 +11401,10 @@ const Activity = createLucideIcon("Activity", [
     }
   ]
 ]);
+const ArrowDownLeft = createLucideIcon("ArrowDownLeft", [
+  ["path", { d: "M17 7 7 17", key: "15tmo1" }],
+  ["path", { d: "M17 17H7V7", key: "1org7z" }]
+]);
 const ArrowLeft = createLucideIcon("ArrowLeft", [
   ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
   ["path", { d: "M19 12H5", key: "x3x0zl" }]
@@ -11414,6 +11418,10 @@ const ArrowRightLeft = createLucideIcon("ArrowRightLeft", [
 const ArrowRight = createLucideIcon("ArrowRight", [
   ["path", { d: "M5 12h14", key: "1ays0h" }],
   ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
+]);
+const ArrowUpRight = createLucideIcon("ArrowUpRight", [
+  ["path", { d: "M7 7h10v10", key: "1tivn9" }],
+  ["path", { d: "M7 17 17 7", key: "1vkiza" }]
 ]);
 const AtSign = createLucideIcon("AtSign", [
   ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
@@ -11850,6 +11858,14 @@ const Radio = createLucideIcon("Radio", [
   ["circle", { cx: "12", cy: "12", r: "2", key: "1c9p78" }],
   ["path", { d: "M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5", key: "1j5fej" }],
   ["path", { d: "M19.1 4.9C23 8.8 23 15.1 19.1 19", key: "10b0cb" }]
+]);
+const Receipt = createLucideIcon("Receipt", [
+  [
+    "path",
+    { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z", key: "q3az6g" }
+  ],
+  ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8", key: "1h4pet" }],
+  ["path", { d: "M12 17.5v-11", key: "1jc1ny" }]
 ]);
 const RefreshCw = createLucideIcon("RefreshCw", [
   ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
@@ -20239,7 +20255,7 @@ function LayoutShell({ children }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto pb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "grid gap-3 px-4", children: navigation.map((item) => {
       const isActive = location2 === item.href;
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        Link,
+        Link$1,
         {
           href: item.href,
           className: `
@@ -61394,7 +61410,7 @@ function SettingsPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-2xl space-y-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Link$1, { href: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-5 h-5" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -73751,7 +73767,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BlOOmVit.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DuXRSwsA.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -92579,6 +92595,79 @@ function MiniAppShopModern() {
     }
   });
   const binancePayId = depositMethods?.binancePayId || "410975578";
+  const [profileSubTab, setProfileSubTab] = reactExports.useState("overview");
+  const [showApiKeySecret, setShowApiKeySecret] = reactExports.useState(false);
+  const [copiedApiKey, setCopiedApiKey] = reactExports.useState(false);
+  const [selectedApiKeyOrders, setSelectedApiKeyOrders] = reactExports.useState(null);
+  const [txSearchQuery, setTxSearchQuery] = reactExports.useState("");
+  const [txFilterType, setTxFilterType] = reactExports.useState("all");
+  const { data: apiKeysData, refetch: refetchApiKeys } = useQuery({
+    queryKey: ["/api/mini/api-keys"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/api-keys");
+        return res.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: activeTab === "profile"
+  });
+  const { data: transactionsList = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery({
+    queryKey: ["/api/mini/transactions"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/transactions");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "profile"
+  });
+  const { data: keyOrdersList = [], isLoading: isLoadingKeyOrders } = useQuery({
+    queryKey: [`/api/mini/api-keys/${selectedApiKeyOrders?.id}/orders`],
+    queryFn: async () => {
+      if (!selectedApiKeyOrders?.id) return [];
+      const res = await miniApiRequest("GET", `/api/mini/api-keys/${selectedApiKeyOrders.id}/orders`);
+      return res.json();
+    },
+    enabled: !!selectedApiKeyOrders?.id
+  });
+  const generateKeyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await miniApiRequest("POST", "/api/mini/api-keys/generate");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast2({ title: "API Key Generated! 🔑", description: "Your Developer API key is now active." });
+      refetchApiKeys();
+      setShowApiKeySecret(true);
+    },
+    onError: (err) => {
+      toast2({ title: "Failed to generate key", description: err.message, variant: "destructive" });
+    }
+  });
+  const revokeKeyMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await miniApiRequest("POST", `/api/mini/api-keys/${id2}/revoke`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast2({ title: "API Key Revoked 🚫" });
+      refetchApiKeys();
+    }
+  });
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await miniApiRequest("DELETE", `/api/mini/api-keys/${id2}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast2({ title: "API Key Deleted 🗑️" });
+      refetchApiKeys();
+    }
+  });
   const [selectedCurrency, setSelectedCurrency] = reactExports.useState(() => {
     return localStorage.getItem("app_currency") || "USD";
   });
@@ -94463,7 +94552,47 @@ function MiniAppShopModern() {
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-3 gap-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setProfileSubTab("overview"),
+                className: `py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${profileSubTab === "overview" ? "bg-white text-[#5B42F3] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5" }),
+                  " Overview"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setProfileSubTab("api"),
+                className: `py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${profileSubTab === "api" ? "bg-white text-[#5B42F3] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5" }),
+                  " Developer API",
+                  apiKeysData?.activeKey && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-500" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setProfileSubTab("transactions"),
+                className: `py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${profileSubTab === "transactions" ? "bg-white text-[#5B42F3] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-3.5 h-3.5" }),
+                  " Transactions",
+                  transactionsList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full", children: transactionsList.length })
+                ]
+              }
+            )
+          ] }),
+          profileSubTab === "overview" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
@@ -94495,6 +94624,43 @@ function MiniAppShopModern() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
+                onClick: () => setProfileSubTab("api"),
+                className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-4 h-4 text-amber-500" }),
+                    " Developer / Reseller API"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    apiKeysData?.activeKey ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full", children: "Active" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full", children: "Create Key" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-[#9490A8]" })
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: () => setProfileSubTab("transactions"),
+                className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-4 h-4 text-emerald-600" }),
+                    " Account Transactions Timeline"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10.5px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full", children: [
+                      transactionsList.length,
+                      " Events"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-[#9490A8]" })
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
                 onClick: () => setIsChatOpen(true),
                 className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
                 children: [
@@ -94520,6 +94686,247 @@ function MiniAppShopModern() {
                 ]
               }
             )
+          ] }),
+          profileSubTab === "api" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-3 border-b border-[#F5F4FC]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-sm font-black text-[#181432] flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-4 h-4 text-[#5B42F3]" }),
+                  " Developer & Reseller API"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998] mt-0.5", children: "Automate cloud purchases and balance queries." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/api-docs", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  variant: "outline",
+                  size: "sm",
+                  className: "h-8 text-[11px] font-black text-[#5B42F3] border-[#5B42F3]/20 hover:bg-[#5B42F3]/10 rounded-xl",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-3 h-3 mr-1" }),
+                    " API Docs"
+                  ]
+                }
+              ) })
+            ] }),
+            apiKeysData?.activeKey ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] space-y-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1", children: "🟢 Active API Key" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setShowApiKeySecret(!showApiKeySecret),
+                      className: "text-[11px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 px-1.5 py-0.5",
+                      children: [
+                        showApiKeySecret ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-3 h-3" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-3 h-3" }),
+                        showApiKeySecret ? "Hide" : "Show"
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => {
+                        navigator.clipboard.writeText(apiKeysData.activeKey.key);
+                        setCopiedApiKey(true);
+                        toast2({ title: "API Key Copied! 📋" });
+                        setTimeout(() => setCopiedApiKey(false), 2e3);
+                      },
+                      className: "text-[11px] font-bold text-[#181432] bg-white border border-[#ECEEF8] hover:bg-[#EDE9FE] px-2 py-1 rounded-lg flex items-center gap-1 shadow-2xs",
+                      children: [
+                        copiedApiKey ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3 h-3 text-emerald-500" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" }),
+                        copiedApiKey ? "Copied" : "Copy"
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  readOnly: true,
+                  type: showApiKeySecret ? "text" : "password",
+                  value: apiKeysData.activeKey.key,
+                  className: "w-full px-3 py-2.5 bg-white border border-[#ECEEF8] rounded-xl text-xs font-mono font-bold text-[#181432]"
+                }
+              ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998]", children: [
+                  "Header: ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-[#5B42F3] font-bold", children: "X-API-Key" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => revokeKeyMutation.mutate(apiKeysData.activeKey.id),
+                      disabled: revokeKeyMutation.isPending,
+                      className: "text-red-500 hover:underline font-bold",
+                      children: "Revoke"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => deleteKeyMutation.mutate(apiKeysData.activeKey.id),
+                      disabled: deleteKeyMutation.isPending,
+                      className: "text-neutral-400 hover:text-red-500 font-bold",
+                      children: "Delete"
+                    }
+                  )
+                ] })
+              ] })
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-5 rounded-2xl bg-[#F8F7FD] border border-dashed border-[#D8DCF0] text-center space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-8 h-8 text-[#5B42F3]/40 mx-auto" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-[#181432]", children: "No Active API Key" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998] max-w-xs mx-auto", children: "Generate your Developer Key to integrate automated cloud ordering with your bot or system." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  onClick: () => generateKeyMutation.mutate(),
+                  disabled: generateKeyMutation.isPending,
+                  className: "h-9 px-4 bg-gradient-to-r from-[#6C5CE7] to-[#5B42F3] text-white text-xs font-black rounded-xl shadow-sm mt-1",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3.5 h-3.5 mr-1" }),
+                    " Generate API Key"
+                  ]
+                }
+              )
+            ] }),
+            apiKeysData?.activeKey && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-2 pt-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold uppercase text-[#9490A8] block", children: "API Orders" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-base font-black text-[#181432]", children: apiKeysData.activeKey.totalOrders || 0 })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold uppercase text-emerald-600 block", children: "Success" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-base font-black text-emerald-600", children: apiKeysData.activeKey.successOrders || 0 })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold uppercase text-purple-600 block", children: "API Spend" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-base font-black text-purple-600", children: [
+                  "$",
+                  ((apiKeysData.activeKey.revenue || 0) / 100).toFixed(2)
+                ] })
+              ] })
+            ] }),
+            apiKeysData?.activeKey && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                onClick: () => generateKeyMutation.mutate(),
+                disabled: generateKeyMutation.isPending,
+                className: "w-full h-10 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#5B42F3] text-xs font-black rounded-2xl shadow-2xs flex items-center justify-center gap-1.5",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5" }),
+                  " Regenerate New API Key"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-2xl bg-[#181432] text-white font-mono text-[11px] space-y-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-white/50 font-sans uppercase font-bold flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-3 h-3 text-purple-400" }),
+                " Quick cURL Test"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "text-purple-300 overflow-x-auto text-[10.5px]", children: `curl -H "X-API-Key: ${apiKeysData?.activeKey?.key || "YOUR_KEY"}" \\
+  https://api.youuhost.com/api/v1/products` })
+            ] })
+          ] }) }),
+          profileSubTab === "transactions" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-3 border-b border-[#F5F4FC]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-sm font-black text-[#181432] flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-4 h-4 text-emerald-600" }),
+                  " Account Transactions"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998] mt-0.5", children: "Timeline of all deposits, store orders, and boosts." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "sm",
+                  onClick: () => {
+                    refetchTransactions();
+                    toast2({ title: "Transactions Refreshed 🔄" });
+                  },
+                  className: "h-8 text-xs font-bold text-[#5B42F3]",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 overflow-x-auto pb-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  onClick: () => setTxFilterType("all"),
+                  className: `px-3 py-1 text-[11px] font-black rounded-xl transition-all ${txFilterType === "all" ? "bg-[#5B42F3] text-white" : "bg-[#F8F7FD] text-[#7E7998] hover:bg-[#EDE9FE]"}`,
+                  children: [
+                    "All (",
+                    transactionsList.length,
+                    ")"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  onClick: () => setTxFilterType("deposit"),
+                  className: `px-3 py-1 text-[11px] font-black rounded-xl transition-all ${txFilterType === "deposit" ? "bg-emerald-600 text-white" : "bg-[#F8F7FD] text-[#7E7998] hover:bg-emerald-50"}`,
+                  children: [
+                    "Deposits (",
+                    transactionsList.filter((t3) => t3.type === "deposit").length,
+                    ")"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  onClick: () => setTxFilterType("purchase"),
+                  className: `px-3 py-1 text-[11px] font-black rounded-xl transition-all ${txFilterType === "purchase" ? "bg-blue-600 text-white" : "bg-[#F8F7FD] text-[#7E7998] hover:bg-blue-50"}`,
+                  children: [
+                    "Purchases (",
+                    transactionsList.filter((t3) => t3.type === "purchase").length,
+                    ")"
+                  ]
+                }
+              )
+            ] }),
+            isLoadingTransactions ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center text-xs text-[#7E7998]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mx-auto mb-2 text-[#5B42F3]" }),
+              "Loading transactions..."
+            ] }) : transactionsList.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-8 h-8 text-[#9490A8]/40 mx-auto" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-[#181432]", children: "No Transactions Yet" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998]", children: "Top up your wallet or purchase a service to see records here." })
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "divide-y divide-[#F5F4FC] max-h-96 overflow-y-auto", children: transactionsList.filter((t3) => txFilterType === "all" || t3.type === txFilterType).map((tx) => {
+              const isDeposit = tx.type === "deposit";
+              const statusLower = (tx.status || "").toLowerCase();
+              const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
+              const isPending = statusLower === "pending" || statusLower === "processing";
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-3 px-1 flex items-center justify-between gap-3 hover:bg-[#F8F7FD] rounded-2xl transition-colors", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 ${isDeposit ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-purple-50 text-[#5B42F3] border border-purple-100"}`, children: isDeposit ? /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDownLeft, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUpRight, { className: "w-4 h-4" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-black text-[#181432] truncate", children: tx.title }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-[#7E7998] flex items-center gap-1 font-mono", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: tx.reference })
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: tx.amountFormatted }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${isSuccess ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`, children: tx.status })
+                ] })
+              ] }, tx.id);
+            }) })
           ] })
         ] })
       ) })

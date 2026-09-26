@@ -39,7 +39,19 @@ import {
   KeyRound,
   LogOut,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Key,
+  Receipt,
+  Eye,
+  EyeOff,
+  Trash2,
+  Ban,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Code2,
+  Terminal,
+  Layers,
+  XCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
@@ -799,6 +811,91 @@ export default function MiniAppShopModern() {
   });
 
   const binancePayId = depositMethods?.binancePayId || "410975578";
+
+  // --- Profile Sub-Tab, Developer API & Transactions State ---
+  const [profileSubTab, setProfileSubTab] = useState<"overview" | "api" | "transactions">("overview");
+  const [showApiKeySecret, setShowApiKeySecret] = useState(false);
+  const [copiedApiKey, setCopiedApiKey] = useState(false);
+  const [selectedApiKeyOrders, setSelectedApiKeyOrders] = useState<any | null>(null);
+  const [txSearchQuery, setTxSearchQuery] = useState("");
+  const [txFilterType, setTxFilterType] = useState<"all" | "deposit" | "purchase" | "smm">("all");
+
+  // User API Keys Query
+  const { data: apiKeysData, refetch: refetchApiKeys } = useQuery<any>({
+    queryKey: ["/api/mini/api-keys"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/api-keys");
+        return res.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: activeTab === "profile",
+  });
+
+  // User Transactions Timeline Query
+  const { data: transactionsList = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useQuery<any[]>({
+    queryKey: ["/api/mini/transactions"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/transactions");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "profile",
+  });
+
+  // Specific Key Orders Query
+  const { data: keyOrdersList = [], isLoading: isLoadingKeyOrders } = useQuery<any[]>({
+    queryKey: [`/api/mini/api-keys/${selectedApiKeyOrders?.id}/orders`],
+    queryFn: async () => {
+      if (!selectedApiKeyOrders?.id) return [];
+      const res = await miniApiRequest("GET", `/api/mini/api-keys/${selectedApiKeyOrders.id}/orders`);
+      return res.json();
+    },
+    enabled: !!selectedApiKeyOrders?.id,
+  });
+
+  // API Key Mutations
+  const generateKeyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await miniApiRequest("POST", "/api/mini/api-keys/generate");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "API Key Generated! 🔑", description: "Your Developer API key is now active." });
+      refetchApiKeys();
+      setShowApiKeySecret(true);
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to generate key", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const revokeKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await miniApiRequest("POST", `/api/mini/api-keys/${id}/revoke`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "API Key Revoked 🚫" });
+      refetchApiKeys();
+    }
+  });
+
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await miniApiRequest("DELETE", `/api/mini/api-keys/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "API Key Deleted 🗑️" });
+      refetchApiKeys();
+    }
+  });
 
   // Currency State (USD / LKR)
   const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
@@ -2981,6 +3078,7 @@ export default function MiniAppShopModern() {
             ) : (
               // LOGGED IN USER PROFILE
               <div className="space-y-4">
+                {/* User Identity Card */}
                 <div className="bg-white rounded-3xl p-6 text-center shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" />
 
@@ -3032,51 +3130,394 @@ export default function MiniAppShopModern() {
                   </div>
                 </div>
 
-                {/* Profile navigation actions */}
-                <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
+                {/* Profile Sub-Tabs Navigation Pills */}
+                <div className="bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-3 gap-1">
                   <button
-                    onClick={() => setActiveTab("orders")}
-                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    type="button"
+                    onClick={() => setProfileSubTab("overview")}
+                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                      profileSubTab === "overview"
+                        ? "bg-white text-[#5B42F3] shadow-sm"
+                        : "text-[#7E7998] hover:text-[#181432]"
+                    }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <Package className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    <UserIcon className="w-3.5 h-3.5" /> Overview
                   </button>
-
                   <button
-                    onClick={() => setActiveTab("wallet")}
-                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    type="button"
+                    onClick={() => setProfileSubTab("api")}
+                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                      profileSubTab === "api"
+                        ? "bg-white text-[#5B42F3] shadow-sm"
+                        : "text-[#7E7998] hover:text-[#181432]"
+                    }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <Wallet className="w-4 h-4 text-[#D92078]" /> Wallet & Top-ups
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    <Key className="w-3.5 h-3.5" /> Developer API
+                    {apiKeysData?.activeKey && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    )}
                   </button>
-
                   <button
-                    onClick={() => setIsChatOpen(true)}
-                    className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    type="button"
+                    onClick={() => setProfileSubTab("transactions")}
+                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                      profileSubTab === "transactions"
+                        ? "bg-white text-[#5B42F3] shadow-sm"
+                        : "text-[#7E7998] hover:text-[#181432]"
+                    }`}
                   >
-                    <span className="flex items-center gap-2.5">
-                      <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 AI Concierge
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    <Receipt className="w-3.5 h-3.5" /> Transactions
+                    {transactionsList.length > 0 && (
+                      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full">
+                        {transactionsList.length}
+                      </span>
+                    )}
                   </button>
+                </div>
 
-                  {/* Sign Out Button (for web sessions) */}
-                  {!isTelegramUser && (
+                {/* SUBTAB 1: OVERVIEW */}
+                {profileSubTab === "overview" && (
+                  <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
                     <button
-                      onClick={handleLogout}
-                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-red-600 hover:bg-red-50/50 rounded-2xl transition-colors"
+                      onClick={() => setActiveTab("orders")}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <LogOut className="w-4 h-4 text-red-500" /> Sign Out
+                        <Package className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
                       </span>
-                      <ChevronRight className="w-4 h-4 text-red-300" />
+                      <ChevronRight className="w-4 h-4 text-[#9490A8]" />
                     </button>
-                  )}
-                </div>
+
+                    <button
+                      onClick={() => setActiveTab("wallet")}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Wallet className="w-4 h-4 text-[#D92078]" /> Wallet & Top-ups
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    </button>
+
+                    <button
+                      onClick={() => setProfileSubTab("api")}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Key className="w-4 h-4 text-amber-500" /> Developer / Reseller API
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {apiKeysData?.activeKey ? (
+                          <span className="text-[10.5px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Active</span>
+                        ) : (
+                          <span className="text-[10.5px] font-bold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">Create Key</span>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setProfileSubTab("transactions")}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Receipt className="w-4 h-4 text-emerald-600" /> Account Transactions Timeline
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10.5px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{transactionsList.length} Events</span>
+                        <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setIsChatOpen(true)}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 AI Concierge
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    </button>
+
+                    {/* Sign Out Button (for web sessions) */}
+                    {!isTelegramUser && (
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-red-600 hover:bg-red-50/50 rounded-2xl transition-colors"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <LogOut className="w-4 h-4 text-red-500" /> Sign Out
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-red-300" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* SUBTAB 2: DEVELOPER API MANAGEMENT */}
+                {profileSubTab === "api" && (
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-[#F5F4FC]">
+                        <div>
+                          <h4 className="text-sm font-black text-[#181432] flex items-center gap-1.5">
+                            <Key className="w-4 h-4 text-[#5B42F3]" /> Developer & Reseller API
+                          </h4>
+                          <p className="text-[11px] text-[#7E7998] mt-0.5">Automate cloud purchases and balance queries.</p>
+                        </div>
+                        <Link href="/api-docs">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[11px] font-black text-[#5B42F3] border-[#5B42F3]/20 hover:bg-[#5B42F3]/10 rounded-xl"
+                          >
+                            <Terminal className="w-3 h-3 mr-1" /> API Docs
+                          </Button>
+                        </Link>
+                      </div>
+
+                      {/* Active Key Box */}
+                      {apiKeysData?.activeKey ? (
+                        <div className="p-4 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              🟢 Active API Key
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowApiKeySecret(!showApiKeySecret)}
+                                className="text-[11px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 px-1.5 py-0.5"
+                              >
+                                {showApiKeySecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                {showApiKeySecret ? "Hide" : "Show"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(apiKeysData.activeKey.key);
+                                  setCopiedApiKey(true);
+                                  toast({ title: "API Key Copied! 📋" });
+                                  setTimeout(() => setCopiedApiKey(false), 2000);
+                                }}
+                                className="text-[11px] font-bold text-[#181432] bg-white border border-[#ECEEF8] hover:bg-[#EDE9FE] px-2 py-1 rounded-lg flex items-center gap-1 shadow-2xs"
+                              >
+                                {copiedApiKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                {copiedApiKey ? "Copied" : "Copy"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <input
+                              readOnly
+                              type={showApiKeySecret ? "text" : "password"}
+                              value={apiKeysData.activeKey.key}
+                              className="w-full px-3 py-2.5 bg-white border border-[#ECEEF8] rounded-xl text-xs font-mono font-bold text-[#181432]"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <span className="text-[#7E7998]">Header: <code className="text-[#5B42F3] font-bold">X-API-Key</code></span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => revokeKeyMutation.mutate(apiKeysData.activeKey.id)}
+                                disabled={revokeKeyMutation.isPending}
+                                className="text-red-500 hover:underline font-bold"
+                              >
+                                Revoke
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteKeyMutation.mutate(apiKeysData.activeKey.id)}
+                                disabled={deleteKeyMutation.isPending}
+                                className="text-neutral-400 hover:text-red-500 font-bold"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-5 rounded-2xl bg-[#F8F7FD] border border-dashed border-[#D8DCF0] text-center space-y-2">
+                          <Key className="w-8 h-8 text-[#5B42F3]/40 mx-auto" />
+                          <div className="text-xs font-bold text-[#181432]">No Active API Key</div>
+                          <p className="text-[11px] text-[#7E7998] max-w-xs mx-auto">
+                            Generate your Developer Key to integrate automated cloud ordering with your bot or system.
+                          </p>
+                          <Button
+                            onClick={() => generateKeyMutation.mutate()}
+                            disabled={generateKeyMutation.isPending}
+                            className="h-9 px-4 bg-gradient-to-r from-[#6C5CE7] to-[#5B42F3] text-white text-xs font-black rounded-xl shadow-sm mt-1"
+                          >
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Generate API Key
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* API Stats Metrics */}
+                      {apiKeysData?.activeKey && (
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
+                            <span className="text-[10px] font-bold uppercase text-[#9490A8] block">API Orders</span>
+                            <span className="text-base font-black text-[#181432]">{apiKeysData.activeKey.totalOrders || 0}</span>
+                          </div>
+                          <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
+                            <span className="text-[10px] font-bold uppercase text-emerald-600 block">Success</span>
+                            <span className="text-base font-black text-emerald-600">{apiKeysData.activeKey.successOrders || 0}</span>
+                          </div>
+                          <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
+                            <span className="text-[10px] font-bold uppercase text-purple-600 block">API Spend</span>
+                            <span className="text-base font-black text-purple-600">${((apiKeysData.activeKey.revenue || 0) / 100).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action to create new key if already has one */}
+                      {apiKeysData?.activeKey && (
+                        <Button
+                          onClick={() => generateKeyMutation.mutate()}
+                          disabled={generateKeyMutation.isPending}
+                          className="w-full h-10 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#5B42F3] text-xs font-black rounded-2xl shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Regenerate New API Key
+                        </Button>
+                      )}
+
+                      {/* Quick cURL Code */}
+                      <div className="p-3.5 rounded-2xl bg-[#181432] text-white font-mono text-[11px] space-y-1.5">
+                        <div className="text-[10px] text-white/50 font-sans uppercase font-bold flex items-center gap-1.5">
+                          <Terminal className="w-3 h-3 text-purple-400" /> Quick cURL Test
+                        </div>
+                        <pre className="text-purple-300 overflow-x-auto text-[10.5px]">
+{`curl -H "X-API-Key: ${apiKeysData?.activeKey?.key || "YOUR_KEY"}" \\
+  https://api.youuhost.com/api/v1/products`}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUBTAB 3: TRANSACTIONS TIMELINE */}
+                {profileSubTab === "transactions" && (
+                  <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#F5F4FC]">
+                      <div>
+                        <h4 className="text-sm font-black text-[#181432] flex items-center gap-1.5">
+                          <Receipt className="w-4 h-4 text-emerald-600" /> Account Transactions
+                        </h4>
+                        <p className="text-[11px] text-[#7E7998] mt-0.5">Timeline of all deposits, store orders, and boosts.</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          refetchTransactions();
+                          toast({ title: "Transactions Refreshed 🔄" });
+                        }}
+                        className="h-8 text-xs font-bold text-[#5B42F3]"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      <button
+                        onClick={() => setTxFilterType("all")}
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                          txFilterType === "all"
+                            ? "bg-[#5B42F3] text-white"
+                            : "bg-[#F8F7FD] text-[#7E7998] hover:bg-[#EDE9FE]"
+                        }`}
+                      >
+                        All ({transactionsList.length})
+                      </button>
+                      <button
+                        onClick={() => setTxFilterType("deposit")}
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                          txFilterType === "deposit"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-[#F8F7FD] text-[#7E7998] hover:bg-emerald-50"
+                        }`}
+                      >
+                        Deposits ({transactionsList.filter(t => t.type === "deposit").length})
+                      </button>
+                      <button
+                        onClick={() => setTxFilterType("purchase")}
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                          txFilterType === "purchase"
+                            ? "bg-blue-600 text-white"
+                            : "bg-[#F8F7FD] text-[#7E7998] hover:bg-blue-50"
+                        }`}
+                      >
+                        Purchases ({transactionsList.filter(t => t.type === "purchase").length})
+                      </button>
+                    </div>
+
+                    {/* Transactions List */}
+                    {isLoadingTransactions ? (
+                      <div className="p-8 text-center text-xs text-[#7E7998]">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#5B42F3]" />
+                        Loading transactions...
+                      </div>
+                    ) : transactionsList.length === 0 ? (
+                      <div className="p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]">
+                        <Receipt className="w-8 h-8 text-[#9490A8]/40 mx-auto" />
+                        <div className="text-xs font-bold text-[#181432]">No Transactions Yet</div>
+                        <p className="text-[11px] text-[#7E7998]">Top up your wallet or purchase a service to see records here.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#F5F4FC] max-h-96 overflow-y-auto">
+                        {transactionsList
+                          .filter(t => txFilterType === "all" || t.type === txFilterType)
+                          .map((tx) => {
+                            const isDeposit = tx.type === "deposit";
+                            const statusLower = (tx.status || "").toLowerCase();
+                            const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
+                            const isPending = statusLower === "pending" || statusLower === "processing";
+
+                            return (
+                              <div key={tx.id} className="py-3 px-1 flex items-center justify-between gap-3 hover:bg-[#F8F7FD] rounded-2xl transition-colors">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 ${
+                                    isDeposit
+                                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                      : "bg-purple-50 text-[#5B42F3] border border-purple-100"
+                                  }`}>
+                                    {isDeposit ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-black text-[#181432] truncate">{tx.title}</div>
+                                    <div className="text-[10px] text-[#7E7998] flex items-center gap-1 font-mono">
+                                      <span>{new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span>
+                                      <span>•</span>
+                                      <span className="truncate">{tx.reference}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <div className={`text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`}>
+                                    {tx.amountFormatted}
+                                  </div>
+                                  <span className={`text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${
+                                    isSuccess
+                                      ? "bg-emerald-50 text-emerald-600"
+                                      : isPending
+                                      ? "bg-amber-50 text-amber-600"
+                                      : "bg-red-50 text-red-600"
+                                  }`}>
+                                    {tx.status}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
