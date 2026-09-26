@@ -1757,7 +1757,7 @@ export async function registerRoutes(
         return res.status(401).json({ success: false, message: "Please sign in to generate an API key" });
       }
 
-      const keyStr = "ric_" + crypto.randomBytes(20).toString("hex");
+      const keyStr = "yh_" + crypto.randomBytes(20).toString("hex");
       const created = await storage.createApiKey(dbUser.id, keyStr);
 
       res.json({
@@ -2025,11 +2025,11 @@ export async function registerRoutes(
         const costLkr = Math.round(costUsd * lkrRate);
 
         return {
-          id: `SMM-${s.smm_orders.id}`,
+          id: `YH-${s.smm_orders.id}`,
           rawId: s.smm_orders.id,
           type: "smm" as const,
-          category: "SMM Social Boost",
-          title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+          category: "YouuHost Social Boost",
+          title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
           smmCategory: s.smm_services?.category || "Social Media",
           smmLink: s.smm_orders.link || "",
           smmQuantity: s.smm_orders.quantity || 0,
@@ -2042,8 +2042,8 @@ export async function registerRoutes(
           amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
-          status: s.smm_orders.status || "pending", // "completed", "processing", "pending", "canceled", "partial"
-          reference: `#SMM-${s.smm_orders.id}`,
+          status: s.smm_orders.status || "Pending", // "Completed", "In progress", "Pending", "Canceled", "Partial"
+          reference: `#YH-${s.smm_orders.id}`,
           details: `Target: ${s.smm_orders.link || "N/A"} (${s.smm_orders.quantity || 0} units)`,
           createdAt: s.smm_orders.createdAt || new Date(),
           updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()
@@ -2146,11 +2146,11 @@ export async function registerRoutes(
         const buyer = s.telegram_users ? (s.telegram_users.username ? `@${s.telegram_users.username}` : (s.telegram_users.email || `ID: ${s.telegram_users.telegramId}`)) : "Guest User";
 
         return {
-          id: `SMM-${s.smm_orders.id}`,
+          id: `YH-${s.smm_orders.id}`,
           rawId: s.smm_orders.id,
           orderType: "smm" as const,
-          typeLabel: "SMM Social Boost",
-          title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+          typeLabel: "YouuHost Social Boost",
+          title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
           category: s.smm_services?.category || "Social Media",
           buyer,
           buyerId: s.smm_orders.telegramUserId,
@@ -2636,7 +2636,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "telegramUserId is required" });
       }
 
-      const keyStr = "ric_" + crypto.randomBytes(20).toString("hex");
+      const keyStr = "yh_" + crypto.randomBytes(20).toString("hex");
       const created = await storage.createApiKey(Number(telegramUserId), keyStr);
       res.json(created);
     } catch (err: any) {
@@ -3931,7 +3931,7 @@ app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
   }
 });
 
-// Customer's SMM orders
+// Customer's SMM orders (with live N1Panel status check)
 app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
   const tgUser = (req as any).tgUser;
   if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
@@ -3942,6 +3942,45 @@ app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
     const user = await storage.getTelegramUser(tgUser.id.toString());
     if (!user) return res.json([]);
 
+    // 1. Check & Live sync active orders
+    const activeOrders = await db
+      .select()
+      .from(smmOrders)
+      .where(
+        and(
+          eq(smmOrders.telegramUserId, user.id),
+          sql`external_order_id IS NOT NULL`,
+          inArray(smmOrders.status, ["Pending", "In progress", "Processing", "In Progress", "pending", "in progress"])
+        )
+      );
+
+    if (activeOrders.length > 0) {
+      try {
+        const extIds = activeOrders.map(o => o.externalOrderId as string).filter(Boolean);
+        if (extIds.length > 0) {
+          const statuses = await N1PanelService.getMultiOrderStatus(extIds);
+          for (const ord of activeOrders) {
+            const extId = ord.externalOrderId as string;
+            const statusData = statuses[extId];
+            if (statusData && statusData.status) {
+              await db
+                .update(smmOrders)
+                .set({
+                  status: statusData.status,
+                  startCount: statusData.start_count || ord.startCount,
+                  remains: statusData.remains || ord.remains,
+                  updatedAt: new Date(),
+                })
+                .where(eq(smmOrders.id, ord.id));
+            }
+          }
+        }
+      } catch (syncErr: any) {
+        console.warn("[SMM Live Sync Warning]:", syncErr.message);
+      }
+    }
+
+    // 2. Return latest orders with startCount & remains
     const ordersList = await db
       .select({
         id: smmOrders.id,
@@ -3949,6 +3988,8 @@ app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
         link: smmOrders.link,
         quantity: smmOrders.quantity,
         charge: smmOrders.charge,
+        startCount: smmOrders.startCount,
+        remains: smmOrders.remains,
         status: smmOrders.status,
         createdAt: smmOrders.createdAt,
         serviceName: smmServices.name,
@@ -8702,7 +8743,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       }
 
       if (data === 'create_api_key') {
-        const newKeyStr = 'ric_' + crypto.randomBytes(20).toString('hex');
+        const newKeyStr = 'yh_' + crypto.randomBytes(20).toString('hex');
         await storage.createApiKey(tgUser.id, newKeyStr);
         await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
         return;

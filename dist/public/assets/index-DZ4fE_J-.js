@@ -73768,7 +73768,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DcNZtTHy.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CW6nEEIG.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -93571,7 +93571,7 @@ function MiniAppShopModern() {
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`, children: smmConf.tag }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5" }),
-                      " SMM"
+                      " YouuHost"
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
@@ -93595,7 +93595,7 @@ function MiniAppShopModern() {
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: rateFormatted }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "Live SMM" })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "YouuHost Boost" })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "button",
@@ -93777,7 +93777,7 @@ function MiniAppShopModern() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-xs font-black text-[#5B42F3] uppercase tracking-wider flex items-center gap-1.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3.5 h-3.5" }),
-              " Social SMM Orders (",
+              " YouuHost Social Boost Orders (",
               smmOrdersList.length,
               ")"
             ] }),
@@ -93795,7 +93795,7 @@ function MiniAppShopModern() {
           ] }),
           smmOrdersList.map((smmOrd) => {
             const smmService = smmOrd.smmService || smmServicesList.find((s2) => s2.id === smmOrd.smmServiceId);
-            const conf = getSmmPlatformConfig(smmService?.category || "", smmService?.name || "");
+            const conf = getSmmPlatformConfig(smmService?.category || smmOrd.serviceCategory || "", smmService?.name || smmOrd.serviceName || "");
             const status = (smmOrd.status || "Pending").toLowerCase();
             let statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200", children: "Pending" });
             if (status.includes("complete") || status.includes("success")) {
@@ -93807,6 +93807,7 @@ function MiniAppShopModern() {
             } else if (status.includes("partial")) {
               statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200", children: "Partial" });
             }
+            const orderChargeCents = smmOrd.charge || smmOrd.amountPaid || 0;
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "div",
               {
@@ -93815,18 +93816,18 @@ function MiniAppShopModern() {
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-[#7E7998]", children: [
-                        "#",
-                        smmOrd.externalOrderId || `SMM-${smmOrd.id}`
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.2 rounded-md", children: [
+                        "#YH-",
+                        smmOrd.id
                       ] })
                     ] }),
                     statusBadge
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] mb-1.5", children: smmService?.name || `SMM Service #${smmOrd.smmServiceId}` }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-2 rounded-2xl border border-[#ECEEF8] mb-2 flex items-center justify-between gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] mb-2", children: smmOrd.serviceName || smmService?.name || `YouuHost Service #${smmOrd.smmServiceId || smmOrd.id}` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 flex items-center justify-between gap-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 overflow-hidden flex-1", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3 text-[#5B42F3] shrink-0" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-mono text-[#5B42F3] truncate", children: smmOrd.link })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-mono text-[#5B42F3] truncate select-all", children: smmOrd.link })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "button",
@@ -93837,15 +93838,34 @@ function MiniAppShopModern() {
                       }
                     )
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-2 border-t border-[#F5F4FC]", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold text-[#181432]", children: [
-                        "Qty: ",
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-[#5B42F3]", children: smmOrd.quantity?.toLocaleString() })
-                      ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-2 bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 text-center", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-[#9490A8] uppercase block", children: "Quantity" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-[#181432] text-xs", children: smmOrd.quantity?.toLocaleString() })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-sky-600 uppercase block", children: "Start Count" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-sky-600 text-xs", children: smmOrd.startCount || "0" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-amber-600 uppercase block", children: "Remains" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-amber-600 text-xs", children: smmOrd.remains || "0" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold text-[#7E7998]", children: [
                         "Paid: ",
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-[#181432]", children: formatBalanceInCurrentCurrency(smmOrd.amountPaid || 0) })
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black font-mono text-[#181432]", children: formatBalanceInCurrentCurrency(orderChargeCents) })
+                      ] }),
+                      selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#9490A8] font-mono", children: [
+                        "($",
+                        (orderChargeCents / 100).toFixed(2),
+                        ")"
+                      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#9490A8] font-mono", children: [
+                        "(Rs. ",
+                        Math.round(orderChargeCents / 100 * lkrRate).toLocaleString(),
+                        ")"
                       ] })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-[#7E7998]", children: smmOrd.createdAt ? format(new Date(smmOrd.createdAt), "MMM d • HH:mm") : "Recent" })
@@ -95236,8 +95256,8 @@ function MiniAppShopModern() {
               const conf = getSmmPlatformConfig(detailSmmService.category, detailSmmService.name);
               return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#7E7998] bg-[#F5F4FC] px-2 py-0.5 rounded-full", children: [
-                  "Service #",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono", children: [
+                  "#YH-",
                   detailSmmService.id
                 ] })
               ] });
@@ -95414,10 +95434,10 @@ function MiniAppShopModern() {
               className: "w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
               children: isSmmPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
-                " Sign In to Order SMM"
+                " Sign In to Order Boost"
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4" }),
-                " Place SMM Order Now 🚀"
+                " Place Order Now 🚀"
               ] })
             }
           )
@@ -101951,7 +101971,7 @@ function AllOrdersPage() {
               " Total"
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-xs font-medium mt-0.5", children: "Consolidated master orders feed across Cloud Store, SMM Boosts, and Partner Goods." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-xs font-medium mt-0.5", children: "Consolidated master orders feed across Cloud Store, YouuHost Boosts, and Partner Goods." })
         ] })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -101981,7 +102001,7 @@ function AllOrdersPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-blue-300/80 font-medium", children: "Direct Store" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-card p-4 rounded-3xl border border-white/10 space-y-1", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold uppercase text-purple-400 tracking-wider", children: "SMM Boost Orders" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold uppercase text-purple-400 tracking-wider", children: "YouuHost Boosts" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: smmCount }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-purple-300/80 font-medium", children: "N1Panel API" })
       ] }),
@@ -102037,7 +102057,7 @@ function AllOrdersPage() {
               onClick: () => setSelectedType("smm"),
               className: `px-3 py-1.5 rounded-xl text-xs font-black transition-all ${selectedType === "smm" ? "bg-purple-600 text-white shadow-lg" : "glass-panel border-white/10 text-white/50 hover:text-white"}`,
               children: [
-                "🚀 SMM (",
+                "🚀 YouuHost (",
                 smmCount,
                 ")"
               ]

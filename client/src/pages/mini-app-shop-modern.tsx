@@ -1977,13 +1977,13 @@ export default function MiniAppShopModern() {
                       }}
                       className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
                     >
-                      {/* Top Action: SMM Badge & Platform Pill */}
+                      {/* Top Action: YouuHost Badge & Platform Pill */}
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`}>
                           {smmConf.tag}
                         </span>
                         <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                          <Zap className="w-2.5 h-2.5" /> SMM
+                          <Zap className="w-2.5 h-2.5" /> YouuHost
                         </span>
                       </div>
 
@@ -1997,7 +1997,7 @@ export default function MiniAppShopModern() {
                         </div>
                       </div>
 
-                      {/* SMM Service Details */}
+                      {/* YouuHost Service Details */}
                       <div className="mt-1">
                         <h4 className="text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight">
                           {smm.name}
@@ -2011,7 +2011,7 @@ export default function MiniAppShopModern() {
                       <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
                         <div>
                           <span className="text-xs font-black text-[#181432]">{rateFormatted}</span>
-                          <span className="text-[9px] text-[#7E7998] block">Live SMM</span>
+                          <span className="text-[9px] text-[#7E7998] block">YouuHost Boost</span>
                         </div>
 
                         <button
@@ -2217,12 +2217,12 @@ export default function MiniAppShopModern() {
               <span className="text-xs font-bold text-[#7E7998]">{orders.length + smmOrdersList.length} Total</span>
             </div>
 
-            {/* SMM SOCIAL ORDERS SECTION */}
+            {/* YOUUHOST SOCIAL BOOST ORDERS SECTION */}
             {smmOrdersList.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-[#5B42F3] uppercase tracking-wider flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5" /> Social SMM Orders ({smmOrdersList.length})
+                    <Zap className="w-3.5 h-3.5" /> YouuHost Social Boost Orders ({smmOrdersList.length})
                   </h3>
                   <button
                     onClick={() => refetchSmmOrders()}
@@ -2234,7 +2234,7 @@ export default function MiniAppShopModern() {
 
                 {smmOrdersList.map((smmOrd: any) => {
                   const smmService = smmOrd.smmService || smmServicesList.find((s) => s.id === smmOrd.smmServiceId);
-                  const conf = getSmmPlatformConfig(smmService?.category || "", smmService?.name || "");
+                  const conf = getSmmPlatformConfig(smmService?.category || smmOrd.serviceCategory || "", smmService?.name || smmOrd.serviceName || "");
                   const status = (smmOrd.status || "Pending").toLowerCase();
 
                   let statusBadge = (
@@ -2268,6 +2268,8 @@ export default function MiniAppShopModern() {
                     );
                   }
 
+                  const orderChargeCents = smmOrd.charge || smmOrd.amountPaid || 0;
+
                   return (
                     <div
                       key={`smm-ord-${smmOrd.id}`}
@@ -2278,22 +2280,22 @@ export default function MiniAppShopModern() {
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                             {conf.tag}
                           </span>
-                          <span className="text-[10px] font-mono text-[#7E7998]">
-                            #{smmOrd.externalOrderId || `SMM-${smmOrd.id}`}
+                          <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.2 rounded-md">
+                            #YH-{smmOrd.id}
                           </span>
                         </div>
                         {statusBadge}
                       </div>
 
-                      <h4 className="text-xs font-black text-[#181432] mb-1.5">
-                        {smmService?.name || `SMM Service #${smmOrd.smmServiceId}`}
+                      <h4 className="text-xs font-black text-[#181432] mb-2">
+                        {smmOrd.serviceName || smmService?.name || `YouuHost Service #${smmOrd.smmServiceId || smmOrd.id}`}
                       </h4>
 
                       {/* Target Link */}
-                      <div className="bg-[#F8F7FD] p-2 rounded-2xl border border-[#ECEEF8] mb-2 flex items-center justify-between gap-2">
+                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 overflow-hidden flex-1">
                           <ExternalLink className="w-3 h-3 text-[#5B42F3] shrink-0" />
-                          <span className="text-[10px] font-mono text-[#5B42F3] truncate">
+                          <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
                             {smmOrd.link}
                           </span>
                         </div>
@@ -2305,15 +2307,37 @@ export default function MiniAppShopModern() {
                         </button>
                       </div>
 
-                      {/* Quantity, Cost & Date */}
-                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#F5F4FC]">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-[#181432]">
-                            Qty: <span className="font-black text-[#5B42F3]">{smmOrd.quantity?.toLocaleString()}</span>
-                          </span>
+                      {/* Start Count, Remains & Quantity Metrics */}
+                      <div className="grid grid-cols-3 gap-2 bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 text-center">
+                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                          <span className="text-[9px] font-bold text-[#9490A8] uppercase block">Quantity</span>
+                          <span className="font-black text-[#181432] text-xs">{smmOrd.quantity?.toLocaleString()}</span>
+                        </div>
+                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                          <span className="text-[9px] font-bold text-sky-600 uppercase block">Start Count</span>
+                          <span className="font-black text-sky-600 text-xs">{smmOrd.startCount || "0"}</span>
+                        </div>
+                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                          <span className="text-[9px] font-bold text-amber-600 uppercase block">Remains</span>
+                          <span className="font-black text-amber-600 text-xs">{smmOrd.remains || "0"}</span>
+                        </div>
+                      </div>
+
+                      {/* Paid Amount & Date */}
+                      <div className="flex items-center justify-between text-[11px] pt-1">
+                        <div className="flex items-center gap-2">
                           <span className="font-bold text-[#7E7998]">
-                            Paid: <span className="font-black text-[#181432]">{formatBalanceInCurrentCurrency(smmOrd.amountPaid || 0)}</span>
+                            Paid: <span className="font-black font-mono text-[#181432]">{formatBalanceInCurrentCurrency(orderChargeCents)}</span>
                           </span>
+                          {selectedCurrency === "LKR" ? (
+                            <span className="text-[10px] text-[#9490A8] font-mono">
+                              (${(orderChargeCents / 100).toFixed(2)})
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#9490A8] font-mono">
+                              (Rs. {Math.round((orderChargeCents / 100) * lkrRate).toLocaleString()})
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] text-[#7E7998]">
                           {smmOrd.createdAt ? format(new Date(smmOrd.createdAt), "MMM d • HH:mm") : "Recent"}
@@ -3952,8 +3976,8 @@ export default function MiniAppShopModern() {
                       <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`}>
                         {conf.tag}
                       </span>
-                      <span className="text-[10px] font-bold text-[#7E7998] bg-[#F5F4FC] px-2 py-0.5 rounded-full">
-                        Service #{detailSmmService.id}
+                      <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono">
+                        #YH-{detailSmmService.id}
                       </span>
                     </div>
                   );
@@ -4160,11 +4184,11 @@ export default function MiniAppShopModern() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : !isCustomerLoggedIn ? (
                   <>
-                    <UserIcon className="w-4 h-4" /> Sign In to Order SMM
+                    <UserIcon className="w-4 h-4" /> Sign In to Order Boost
                   </>
                 ) : (
                   <>
-                    <Zap className="w-4 h-4" /> Place SMM Order Now 🚀
+                    <Zap className="w-4 h-4" /> Place Order Now 🚀
                   </>
                 )}
               </button>

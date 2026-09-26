@@ -138,7 +138,7 @@ export default function AllOrdersPage() {
                 </Badge>
               </h1>
               <p className="text-white/40 text-xs font-medium mt-0.5">
-                Consolidated master orders feed across Cloud Store, SMM Boosts, and Partner Goods.
+                Consolidated master orders feed across Cloud Store, YouuHost Boosts, and Partner Goods.
               </p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function AllOrdersPage() {
           <span className="text-[11px] text-blue-300/80 font-medium">Direct Store</span>
         </div>
         <div className="glass-card p-4 rounded-3xl border border-white/10 space-y-1">
-          <span className="text-[10px] font-extrabold uppercase text-purple-400 tracking-wider">SMM Boost Orders</span>
+          <span className="text-[10px] font-extrabold uppercase text-purple-400 tracking-wider">YouuHost Boosts</span>
           <div className="text-2xl font-black text-white">{smmCount}</div>
           <span className="text-[11px] text-purple-300/80 font-medium">N1Panel API</span>
         </div>
@@ -226,7 +226,7 @@ export default function AllOrdersPage() {
                   : "glass-panel border-white/10 text-white/50 hover:text-white"
               }`}
             >
-              🚀 SMM ({smmCount})
+              🚀 YouuHost ({smmCount})
             </button>
             <button
               onClick={() => setSelectedType("partner")}
