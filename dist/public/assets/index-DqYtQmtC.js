@@ -73741,7 +73741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CeGIjIe2.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-_I-GBvwI.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -94054,26 +94054,20 @@ function MiniAppShopModern() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-10 px-2.5 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-1.5 shadow-sm border border-[#0052CC]/15", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-3 w-auto", viewBox: "0 0 48 16", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-3.5 w-auto", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
-                  ] })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-[#181432]", children: "Visa / Mastercard" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998]", children: "Instant Credit & Debit Card Deposit" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-3.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-10 px-3 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-2 shadow-sm border border-[#0052CC]/15", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-3.5 w-auto", viewBox: "0 0 52 17", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-4 w-auto", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-extrabold text-[#0052CC] bg-[#0052CC]/10 px-2.5 py-1 rounded-full border border-[#0052CC]/20 flex items-center gap-1", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3 h-3" }),
-                " INSTANT CARD"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-[#181432]", children: "Visa / Mastercard" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998]", children: "Instant Credit & Debit Card Deposit" })
               ] })
-            ] }),
+            ] }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-3.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -94127,7 +94121,7 @@ function MiniAppShopModern() {
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998] mr-1", children: "Accepted:" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-2.5 w-auto", viewBox: "0 0 48 16", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-3 w-auto", viewBox: "0 0 52 17", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-3 w-auto", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
@@ -94136,17 +94130,17 @@ function MiniAppShopModern() {
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#181432]", children: "Mastercard" })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#582C83]/10 border border-[#582C83]/20 text-[#582C83] text-[9.5px] font-black", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#582C83]" }),
-                " FriMi"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-purple-200/80 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/frimi.png", alt: "FriMi", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#582C83]", children: "FriMi" })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#E31B23]/10 border border-[#E31B23]/20 text-[#E31B23] text-[9.5px] font-black", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#E31B23]" }),
-                " iPay"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-red-200/80 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/ipay.png", alt: "iPay", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#E31B23]", children: "iPay" })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0054A6]/10 border border-[#0054A6]/20 text-[#0054A6] text-[9.5px] font-black", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#ED1C24]" }),
-                " Q+ Payment"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/qplus.png", alt: "Q+ Payment", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#0054A6]", children: "Q+ Payment" })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
