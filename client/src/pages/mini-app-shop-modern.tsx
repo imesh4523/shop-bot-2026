@@ -2020,7 +2020,7 @@ export default function MiniAppShopModern() {
                   }}
                 >
                   {products.slice(0, 6).map((p, idx) => {
-                    const priceFormatted = formatPrice(p.price, p.currency);
+                    const priceFormatted = formatProductPrice(p);
                     const isFav = favorites.includes(p.id);
                     const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
                     const badgeLabel = (p as any).badge || badgeLabels[idx % badgeLabels.length];

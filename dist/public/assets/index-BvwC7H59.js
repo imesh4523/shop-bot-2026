@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BkNSEKSk.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es--LvOiA1O.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -104856,7 +104856,7 @@ function MiniAppShopModern() {
                 msOverflowStyle: "none"
               },
               children: products2.slice(0, 6).map((p2, idx) => {
-                const priceFormatted = formatPrice(p2.price, p2.currency);
+                const priceFormatted = formatProductPrice(p2);
                 const isFav = favorites.includes(p2.id);
                 const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
                 const badgeLabel = p2.badge || badgeLabels[idx % badgeLabels.length];
