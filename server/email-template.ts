@@ -2,6 +2,9 @@
  * YouuHost Luxury Email Templates & Dispatch Engine
  * Generates responsive, pixel-perfect HTML emails matching the official YouuHost invoice receipt design
  * and generates downloadable/attachable PDF invoices.
+ * 
+ * Uses email-client-safe rendering (table layout, inline styles, bulletproof verified badges & icons)
+ * so Gmail, Apple Mail, Outlook, iOS, and Android display 100% of the content without stripping.
  */
 
 import { jsPDF } from "jspdf";
@@ -39,7 +42,7 @@ export interface CustomEmailProps {
 }
 
 /**
- * Helper to get YouuHost Gradient Logo data URI or URL
+ * Helper to get YouuHost Transparent Gradient Logo data URI
  */
 function getLogoDataUri(): string {
   try {
@@ -119,7 +122,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   y += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(107, 114, 128); // gray
+  doc.setTextColor(107, 114, 128);
 
   doc.text(`Invoice No: ${invoiceNo}`, left, y);
   doc.setTextColor(17, 24, 39);
@@ -194,7 +197,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 }
 
 /**
- * Payment Method Icon Renderer for HTML Emails
+ * Payment Method Icon Renderer for HTML Emails (Email-Safe Table Layout)
  */
 function getPaymentMethodHtml(method: string, details?: string): { iconHtml: string; title: string; subtitle: string } {
   const m = (method || "").toLowerCase();
@@ -202,15 +205,15 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
   if (m.includes("master") || m.includes("card") || m.includes("payhere") || m.includes("visa")) {
     const isMaster = m.includes("master") || (!m.includes("visa"));
     
-    // Official Mastercard / Visa Dual Circles
+    // Official Mastercard / Visa Dual Circles (Bulletproof table)
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background: #0F172A; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 4px; border: 1px solid #1E293B;">
+          <td style="width: 38px; height: 26px; background-color: #0F172A; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 4px; border: 1px solid #1E293B;">
             <table cellpadding="0" cellspacing="0" border="0" align="center">
               <tr>
-                <td style="width: 13px; height: 13px; background: #EB001B; border-radius: 50%; opacity: 0.95;"></td>
-                <td style="width: 13px; height: 13px; background: #F79E1B; border-radius: 50%; margin-left: -6px; opacity: 0.95;"></td>
+                <td style="width: 13px; height: 13px; background-color: #EB001B; border-radius: 50%;"></td>
+                <td style="width: 13px; height: 13px; background-color: #F79E1B; border-radius: 50%; margin-left: -5px;"></td>
               </tr>
             </table>
           </td>
@@ -229,7 +232,7 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle;">
+          <td style="width: 38px; height: 26px; background-color: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle;">
             <span style="color: #12161C; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">BIN</span>
           </td>
         </tr>
@@ -246,7 +249,7 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background: #5B42F3; border-radius: 6px; text-align: center; vertical-align: middle;">
+          <td style="width: 38px; height: 26px; background-color: #5B42F3; border-radius: 6px; text-align: center; vertical-align: middle;">
             <span style="color: #FFFFFF; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">CR</span>
           </td>
         </tr>
@@ -263,8 +266,8 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
   const iconHtml = `
     <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
       <tr>
-        <td style="width: 38px; height: 26px; background: #10B981; border-radius: 6px; text-align: center; vertical-align: middle;">
-          <span style="color: #FFFFFF; font-weight: 900; font-size: 13px;">&#128179;</span>
+        <td style="width: 38px; height: 26px; background-color: #10B981; border-radius: 6px; text-align: center; vertical-align: middle;">
+          <span style="color: #FFFFFF; font-weight: 900; font-size: 14px;">&#128179;</span>
         </td>
       </tr>
     </table>
@@ -279,10 +282,10 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
 /**
  * Generate Luxury Transaction Verified / Payment Successful HTML Email
  * EXACT match to Image 3 reference:
- * - Real YouuHost Gradient Logo centered ABOVE the card
+ * - Real YouuHost Gradient Logo centered ABOVE the card with transparent background
  * - Payment Successful heading with official blue checkmark badge
- * - Green CTA button
- * - Transaction Details, Payment Method with authentic logo, Invoice Attachment
+ * - Green CTA button: Manage Orders
+ * - All 3 Sections: Transaction Details, Payment Method, Invoice Attachment
  * - Official footer with link
  */
 export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): string {
@@ -290,8 +293,8 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
   const plan = props.planTitle || "Enterprise AI Plan";
   const amount = props.amount || "LKR 14,990.00";
   const billingCycle = props.billingCycle || "Monthly";
-  const ctaText = props.ctaText || "Manage Subscription";
-  const ctaUrl = props.ctaUrl || "https://youuhost.com/userdashbord/dashboard";
+  const ctaText = props.ctaText || "Manage Orders";
+  const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
   const paymentInfo = getPaymentMethodHtml(props.paymentMethod, props.paymentMethodDetails);
   const logoUri = getLogoDataUri();
 
@@ -302,221 +305,65 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Subscription Invoice - YouuHost</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      color: #1E293B;
-    }
-    .wrapper {
-      width: 100%;
-      background-color: #F8FAFC;
-      padding: 40px 16px 48px 16px;
-      box-sizing: border-box;
-    }
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    /* TOP GRADIENT LOGO (ABOVE THE WHITE CARD) */
-    .top-logo-container {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .top-logo-img {
-      max-width: 175px;
-      height: auto;
-      display: inline-block;
-      vertical-align: middle;
-    }
-    /* MAIN WHITE CARD */
-    .main-card {
-      background-color: #FFFFFF;
-      border-radius: 28px;
-      padding: 38px 28px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
-      border: 1px solid #F1F5F9;
-    }
-    .title-heading {
-      text-align: center;
-      font-size: 24px;
-      font-weight: 800;
-      color: #0F172A;
-      margin: 0 0 16px 0;
-      letter-spacing: -0.5px;
-    }
-    .verified-blue-badge {
-      display: inline-block;
-      vertical-align: middle;
-      width: 22px;
-      height: 22px;
-      margin-left: 6px;
-    }
-    .greeting {
-      text-align: center;
-      font-size: 15px;
-      font-weight: 600;
-      color: #475569;
-      margin-bottom: 12px;
-    }
-    .description {
-      text-align: center;
-      font-size: 13.5px;
-      color: #64748B;
-      line-height: 1.6;
-      margin: 0 auto 26px auto;
-      max-width: 380px;
-    }
-    /* Green Manage Subscription CTA Button */
-    .cta-button-container {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .cta-button {
-      display: inline-block;
-      width: 100%;
-      max-width: 320px;
-      padding: 14px 24px;
-      background: #00C269;
-      color: #FFFFFF !important;
-      font-weight: 700;
-      font-size: 15px;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 9999px;
-      box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32);
-      box-sizing: border-box;
-    }
-    .sign-off {
-      text-align: center;
-      font-size: 13px;
-      color: #64748B;
-      line-height: 1.5;
-      margin-bottom: 28px;
-    }
-    .divider {
-      border: 0;
-      height: 1px;
-      background-color: #F1F5F9;
-      margin: 28px 0;
-    }
-    /* Detail Rows with Icon */
-    .detail-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    .detail-icon-td {
-      width: 44px;
-      vertical-align: top;
-      padding-right: 12px;
-    }
-    .icon-box-green {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: #ECFDF5;
-      color: #059669;
-      text-align: center;
-      vertical-align: middle;
-      font-size: 18px;
-    }
-    .detail-content-td {
-      vertical-align: middle;
-    }
-    .detail-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 3px;
-    }
-    .detail-subtitle {
-      font-size: 12.5px;
-      color: #64748B;
-      line-height: 1.5;
-    }
-    /* Footer outside card */
-    .footer-container {
-      text-align: center;
-      margin-top: 26px;
-      font-size: 11.5px;
-      color: #94A3B8;
-      line-height: 1.6;
-    }
-    .footer-link {
-      color: #3B82F6;
-      font-weight: 600;
-      text-decoration: underline;
-    }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="container">
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1E293B;">
+  <div style="width: 100%; background-color: #F8FAFC; padding: 40px 16px 48px 16px; box-sizing: border-box;">
+    <div style="max-width: 480px; margin: 0 auto;">
 
-      <!-- TOP YOUUHOST GRADIENT LOGO (ABOVE WHITE CARD) -->
-      <div class="top-logo-container">
-        <a href="https://youuhost.com" target="_blank" style="text-decoration: none;">
-          <img src="${logoUri}" alt="youuhost" class="top-logo-img" />
+      <!-- TOP YOUUHOST TRANSPARENT GRADIENT LOGO (ABOVE WHITE CARD) -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none; display: inline-block;">
+          <img src="${logoUri}" alt="youuhost" style="max-width: 180px; height: auto; display: block; border: 0; outline: none; background: transparent;" />
         </a>
       </div>
 
       <!-- MAIN WHITE CARD -->
-      <div class="main-card">
+      <div style="background-color: #FFFFFF; border-radius: 28px; padding: 38px 28px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); border: 1px solid #F1F5F9;">
         
-        <!-- Payment Successful + Verified Blue Badge -->
-        <h1 class="title-heading">
+        <!-- Payment Successful + Verified Blue Badge (Bulletproof HTML) -->
+        <h1 style="text-align: center; font-size: 24px; font-weight: 800; color: #0F172A; margin: 0 0 16px 0; letter-spacing: -0.5px;">
           Payment Successful
-          <svg class="verified-blue-badge" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10M12 2L14.7 3.9L18 3.6L19.2 6.7L22.2 8.1L21.7 11.4L23.4 14.2L21.3 16.8L21.5 20.1L18.2 20.7L16.4 23.4L13.3 22.4L10.7 24.4L8.1 22.4L5 23.4L3.2 20.7L0 20.1L0.2 16.8L-1.9 14.2L-0.2 11.4L-0.7 8.1L2.3 6.7L3.5 3.6L6.8 3.9L9.5 2H12Z" fill="#38BDF8"/>
-            <path d="M8.5 12L10.8 14.3L15.5 9.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <span style="display: inline-block; vertical-align: middle; width: 22px; height: 22px; background-color: #38BDF8; border-radius: 50%; color: #FFFFFF; font-size: 13px; font-weight: 900; line-height: 22px; text-align: center; margin-left: 6px; box-shadow: 0 2px 6px rgba(56, 189, 248, 0.35);">&#10003;</span>
         </h1>
 
         <!-- Personalized Greeting -->
-        <div class="greeting">Hello ${name},</div>
+        <div style="text-align: center; font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 12px;">Hello ${name},</div>
 
         <!-- Description text -->
-        <p class="description">
+        <p style="text-align: center; font-size: 13.5px; color: #64748B; line-height: 1.6; margin: 0 auto 26px auto; max-width: 380px;">
           Your subscription invoice for your plan has been processed successfully. Thank you for your business!
         </p>
 
-        <!-- Manage Subscription Button -->
-        <div class="cta-button-container">
-          <a href="${ctaUrl}" class="cta-button">
+        <!-- Manage Orders Button -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${ctaUrl}" style="display: inline-block; width: 100%; max-width: 320px; padding: 14px 24px; background-color: #00C269; color: #FFFFFF !important; font-weight: 700; font-size: 15px; text-align: center; text-decoration: none; border-radius: 9999px; box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32); box-sizing: border-box;">
             ${ctaText}
           </a>
         </div>
 
         <!-- Best Regards Sign-off -->
-        <div class="sign-off">
+        <div style="text-align: center; font-size: 13px; color: #64748B; line-height: 1.5; margin-bottom: 28px;">
           Best Regards,<br>
           <strong style="color: #0F172A;">YouuHost Team</strong>
         </div>
 
-        <hr class="divider">
+        <div style="border-top: 1px solid #F1F5F9; margin: 28px 0;"></div>
 
         <!-- SECTION 1: Transaction Details -->
-        <table class="detail-table" cellpadding="0" cellspacing="0">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
           <tr>
-            <td class="detail-icon-td">
-              <table cellpadding="0" cellspacing="0" border="0" class="icon-box-green" align="center">
+            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width: 38px; height: 38px; border-radius: 12px; background-color: #ECFDF5; text-align: center;">
                 <tr>
-                  <td align="center" valign="middle">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C269" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <line x1="2" y1="10" x2="22" y2="10" />
-                    </svg>
+                  <td align="center" valign="middle" style="font-size: 18px; color: #059669;">
+                    &#128179;
                   </td>
                 </tr>
               </table>
             </td>
-            <td class="detail-content-td">
-              <div class="detail-title">Transaction Details</div>
-              <div class="detail-subtitle">
+            <td style="vertical-align: middle;">
+              <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">Transaction Details</div>
+              <div style="font-size: 12.5px; color: #64748B; line-height: 1.5;">
                 Plan: ${plan} &bull; Amount: ${amount} &bull; Billing: ${billingCycle}
               </div>
             </td>
@@ -524,14 +371,14 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
         </table>
 
         <!-- SECTION 2: Payment Method -->
-        <table class="detail-table" cellpadding="0" cellspacing="0">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
           <tr>
-            <td class="detail-icon-td">
+            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
               ${paymentInfo.iconHtml}
             </td>
-            <td class="detail-content-td">
-              <div class="detail-title">Payment Method</div>
-              <div class="detail-subtitle">
+            <td style="vertical-align: middle;">
+              <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">Payment Method</div>
+              <div style="font-size: 12.5px; color: #64748B; line-height: 1.5;">
                 ${paymentInfo.subtitle}
               </div>
             </td>
@@ -539,26 +386,20 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
         </table>
 
         <!-- SECTION 3: Invoice Attachment -->
-        <table class="detail-table" cellpadding="0" cellspacing="0" style="margin-bottom: 0;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;" cellpadding="0" cellspacing="0">
           <tr>
-            <td class="detail-icon-td">
-              <table cellpadding="0" cellspacing="0" border="0" class="icon-box-green" align="center">
+            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width: 38px; height: 38px; border-radius: 12px; background-color: #ECFDF5; text-align: center;">
                 <tr>
-                  <td align="center" valign="middle">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C269" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
+                  <td align="center" valign="middle" style="font-size: 18px; color: #059669;">
+                    &#128196;
                   </td>
                 </tr>
               </table>
             </td>
-            <td class="detail-content-td">
-              <div class="detail-title">Invoice Attachment</div>
-              <div class="detail-subtitle">
+            <td style="vertical-align: middle;">
+              <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">Invoice Attachment</div>
+              <div style="font-size: 12.5px; color: #64748B; line-height: 1.5;">
                 A copy of your official PDF invoice has been attached to this email for your records.
               </div>
             </td>
@@ -568,9 +409,9 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
       </div>
 
       <!-- FOOTER (OUTSIDE CARD) -->
-      <div class="footer-container">
+      <div style="text-align: center; margin-top: 26px; font-size: 11.5px; color: #94A3B8; line-height: 1.6;">
         <p style="margin: 0 0 8px 0;">
-          <a href="https://www.youuhost.com" class="footer-link">www.youuhost.com</a>
+          <a href="https://www.youuhost.com" style="color: #3B82F6; font-weight: 600; text-decoration: underline;">www.youuhost.com</a>
         </p>
         <p style="margin: 0;">
           You received this automated email notification because you are a registered user of YouuHost. Please do not reply directly to this email.
@@ -589,9 +430,8 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
  */
 export function buildCustomEmailHtml(props: CustomEmailProps): string {
   const name = props.recipientName || "Valued Customer";
-  const ctaText = props.ctaText || "View Account";
-  const ctaUrl = props.ctaUrl || "https://youuhost.com";
-  const badge = props.badgeText || "OFFICIAL NOTICE";
+  const ctaText = props.ctaText || "Manage Orders";
+  const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
   const logoUri = getLogoDataUri();
 
   return `
@@ -601,109 +441,31 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${props.subject} - YouuHost</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #1E293B;
-    }
-    .wrapper {
-      width: 100%;
-      background-color: #F8FAFC;
-      padding: 40px 16px;
-    }
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    .top-logo {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .top-logo-img {
-      max-width: 175px;
-      height: auto;
-      display: inline-block;
-    }
-    .main-card {
-      background-color: #FFFFFF;
-      border-radius: 28px;
-      padding: 38px 28px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-      border: 1px solid #F1F5F9;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      background: #F1F5F9;
-      color: #475569;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    .title {
-      font-size: 22px;
-      font-weight: 800;
-      color: #0F172A;
-      margin: 0 0 16px 0;
-    }
-    .content {
-      font-size: 14px;
-      color: #475569;
-      line-height: 1.6;
-      margin-bottom: 24px;
-      white-space: pre-line;
-    }
-    .cta-btn {
-      display: inline-block;
-      width: 100%;
-      max-width: 320px;
-      padding: 14px 24px;
-      background: #00C269;
-      color: #FFFFFF !important;
-      font-weight: 700;
-      font-size: 15px;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 9999px;
-      box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32);
-      box-sizing: border-box;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 11.5px;
-      color: #94A3B8;
-    }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="top-logo">
-        <a href="https://youuhost.com" target="_blank" style="text-decoration: none;">
-          <img src="${logoUri}" alt="youuhost" class="top-logo-img" />
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B;">
+  <div style="width: 100%; background-color: #F8FAFC; padding: 40px 16px;">
+    <div style="max-width: 480px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none; display: inline-block;">
+          <img src="${logoUri}" alt="youuhost" style="max-width: 180px; height: auto; display: block; border: 0; outline: none; background: transparent;" />
         </a>
       </div>
-      <div class="main-card">
+      <div style="background-color: #FFFFFF; border-radius: 28px; padding: 38px 28px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); border: 1px solid #F1F5F9;">
         <div style="text-align: center;">
-          <span class="badge">${badge}</span>
-          <h1 class="title">${props.heading}</h1>
+          <h1 style="font-size: 22px; font-weight: 800; color: #0F172A; margin: 0 0 16px 0;">
+            ${props.heading}
+            <span style="display: inline-block; vertical-align: middle; width: 20px; height: 20px; background-color: #38BDF8; border-radius: 50%; color: #FFFFFF; font-size: 12px; font-weight: 900; line-height: 20px; text-align: center; margin-left: 6px;">&#10003;</span>
+          </h1>
           <p style="font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 12px;">Hello ${name},</p>
-          <div class="content">${props.message}</div>
-          <a href="${ctaUrl}" class="cta-btn">${ctaText}</a>
+          <div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px; white-space: pre-line;">${props.message}</div>
+          <a href="${ctaUrl}" style="display: inline-block; width: 100%; max-width: 320px; padding: 14px 24px; background-color: #00C269; color: #FFFFFF !important; font-weight: 700; font-size: 15px; text-align: center; text-decoration: none; border-radius: 9999px; box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32); box-sizing: border-box;">${ctaText}</a>
           <div style="margin-top: 28px; font-size: 13px; color: #64748B;">
             Best Regards,<br>
             <strong style="color: #0F172A;">YouuHost Team</strong>
           </div>
         </div>
       </div>
-      <div class="footer">
+      <div style="text-align: center; margin-top: 24px; font-size: 11.5px; color: #94A3B8;">
         <p><a href="https://www.youuhost.com" style="color: #3B82F6; text-decoration: underline;">www.youuhost.com</a></p>
         <p>You received this message from YouuHost. Please contact support if you have questions.</p>
       </div>

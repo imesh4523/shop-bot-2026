@@ -73790,7 +73790,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DeZlFHo3.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Cp6L4P-g.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102312,8 +102312,8 @@ function EmailHubPage() {
   const [invoiceNumber, setInvoiceNumber] = reactExports.useState(`INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
   const [bodyHeading, setBodyHeading] = reactExports.useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = reactExports.useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
-  const [ctaText, setCtaText] = reactExports.useState("Manage Subscription");
-  const [ctaUrl, setCtaUrl] = reactExports.useState("https://youuhost.com/userdashbord/dashboard");
+  const [ctaText, setCtaText] = reactExports.useState("Manage Orders");
+  const [ctaUrl, setCtaUrl] = reactExports.useState("https://youuhost.com/shop");
   const [previewHtml, setPreviewHtml] = reactExports.useState("");
   const [selectedLog, setSelectedLog] = reactExports.useState(null);
   const [viewEmailModal, setViewEmailModal] = reactExports.useState(false);

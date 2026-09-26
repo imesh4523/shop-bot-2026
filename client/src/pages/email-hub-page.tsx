@@ -75,8 +75,8 @@ export default function EmailHubPage() {
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-2026-${Math.floor(100000 + Math.random() * 900000)}`);
   const [bodyHeading, setBodyHeading] = useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
-  const [ctaText, setCtaText] = useState("Manage Subscription");
-  const [ctaUrl, setCtaUrl] = useState("https://youuhost.com/userdashbord/dashboard");
+  const [ctaText, setCtaText] = useState("Manage Orders");
+  const [ctaUrl, setCtaUrl] = useState("https://youuhost.com/shop");
 
   // Preview HTML state
   const [previewHtml, setPreviewHtml] = useState<string>("");
