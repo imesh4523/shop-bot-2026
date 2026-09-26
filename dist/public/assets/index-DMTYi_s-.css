@@ -3633,6 +3633,11 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
 }
 
+.bg-\[\#F4F2FA\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(244 242 250 / var(--tw-bg-opacity, 1));
+}
+
 .bg-\[\#F5F4FC\]{
   --tw-bg-opacity: 1;
   background-color: rgb(245 244 252 / var(--tw-bg-opacity, 1));
@@ -3973,6 +3978,11 @@ h1, h2, h3, h4, h5, h6 {
 .bg-gray-100{
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
+}
+
+.bg-gray-200{
+  --tw-bg-opacity: 1;
+  background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
 }
 
 .bg-gray-50\/70{
@@ -6589,6 +6599,11 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
 }
 
+.text-gray-700{
+  --tw-text-opacity: 1;
+  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
+}
+
 .text-green-400{
   --tw-text-opacity: 1;
   color: rgb(74 222 128 / var(--tw-text-opacity, 1));
@@ -7030,6 +7045,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .underline{
   text-decoration-line: underline;
+}
+
+.line-through{
+  text-decoration-line: line-through;
 }
 
 .antialiased{
@@ -7591,6 +7610,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .ring-purple-500\/50{
   --tw-ring-color: rgb(168 85 247 / 0.5);
+}
+
+.ring-purple-600{
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(147 51 234 / var(--tw-ring-opacity, 1));
 }
 
 .ring-ring{

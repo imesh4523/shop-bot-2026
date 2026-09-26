@@ -108,12 +108,14 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
 
 export default function CategoriesManagerPage() {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"categories" | "productBadges">("categories");
   const [categoriesList, setCategoriesList] = useState<CustomCategoryItem[]>(DEFAULT_CATEGORIES);
+  const [productBadges, setProductBadges] = useState<Record<string, { text: string; color: string; enabled: boolean }>>({});
   const [editingCat, setEditingCat] = useState<CustomCategoryItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [previewActiveId, setPreviewActiveId] = useState<string>("aws");
 
-  const { data: serverData, isLoading } = useQuery<{ categories: CustomCategoryItem[] | null }>({
+  const { data: serverData, isLoading } = useQuery<{ categories: CustomCategoryItem[] | null; productBadges?: Record<string, any> }>({
     queryKey: ["/api/admin/categories/config"],
     queryFn: async () => {
       const res = await fetch("/api/admin/categories/config");
@@ -121,29 +123,38 @@ export default function CategoriesManagerPage() {
     },
   });
 
+  const { data: allProducts = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+  });
+
   useEffect(() => {
-    if (serverData && serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
-      setCategoriesList(serverData.categories);
+    if (serverData) {
+      if (serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
+        setCategoriesList(serverData.categories);
+      }
+      if (serverData.productBadges && typeof serverData.productBadges === "object") {
+        setProductBadges(serverData.productBadges);
+      }
     }
   }, [serverData]);
 
   const saveMutation = useMutation({
-    mutationFn: async (updatedList: CustomCategoryItem[]) => {
+    mutationFn: async (payload: { categories: CustomCategoryItem[]; productBadges: Record<string, any> }) => {
       const res = await fetch("/api/admin/categories/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categories: updatedList }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save categories");
+      if (!res.ok) throw new Error(data.message || "Failed to save categories & badges");
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories/config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories/config"] });
       toast({
-        title: "Configuration Saved!",
-        description: "Category buttons and corner badge settings updated live across the Mini-App.",
+        title: "Configuration Saved! 🎉",
+        description: "Category buttons and corner angle badges updated live across the Mini-App.",
       });
     },
     onError: (err: any) => {
@@ -156,14 +167,24 @@ export default function CategoriesManagerPage() {
   });
 
   const handleSave = () => {
-    saveMutation.mutate(categoriesList);
+    saveMutation.mutate({ categories: categoriesList, productBadges });
   };
 
   const handleResetToDefault = () => {
     if (confirm("Reset all categories, badges and ordering to default?")) {
       setCategoriesList(DEFAULT_CATEGORIES);
-      saveMutation.mutate(DEFAULT_CATEGORIES);
+      setProductBadges({});
+      saveMutation.mutate({ categories: DEFAULT_CATEGORIES, productBadges: {} });
     }
+  };
+
+  const updateProductBadge = (productId: number | string, patch: Partial<{ text: string; color: string; enabled: boolean }>) => {
+    const key = String(productId);
+    const current = productBadges[key] || { text: "HOT DEAL", color: "red", enabled: true };
+    setProductBadges({
+      ...productBadges,
+      [key]: { ...current, ...patch },
+    });
   };
 
   const moveCategory = (index: number, direction: "up" | "down") => {
@@ -275,154 +296,291 @@ export default function CategoriesManagerPage() {
         </div>
       </div>
 
-      {/* Live Mini-App Preview Bar */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-sm font-black text-[#181432] uppercase tracking-wider">Live Mini-App Preview</h2>
-          </div>
-          <span className="text-xs text-[#7E7998] font-bold">Click any pill to test active state</span>
-        </div>
+      {/* Navigation Tabs: Categories vs Product Angle Badges */}
+      <div className="flex items-center gap-2 p-1.5 bg-[#F4F2FA] rounded-2xl w-fit border border-[#ECEEF8]">
+        <button
+          onClick={() => setActiveTab("categories")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            activeTab === "categories"
+              ? "bg-white text-[#181432] shadow-sm"
+              : "text-[#7E7998] hover:text-[#181432]"
+          }`}
+        >
+          <Layers className="w-4 h-4 text-purple-600" />
+          <span>Categories & Provider Tabs ({categoriesList.length})</span>
+        </button>
 
-        <div className="bg-[#F8F9FD] p-5 rounded-2xl border border-[#ECEEF8] overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-3 pt-3 pb-3">
-            {categoriesList
-              .filter((c) => c.enabled)
-              .map((cat) => {
-                const isActive = previewActiveId === cat.id;
-                const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setPreviewActiveId(cat.id)}
-                    className={`relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
-                      isActive
-                        ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105"
-                        : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"
-                    }`}
-                  >
-                    {/* Corner Angle Badge */}
-                    {cat.badgeEnabled && cat.badgeText && (
-                      <span
-                        className={`absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-10 border border-white/60 ${badgeStyle}`}
-                      >
-                        {cat.badgeText}
-                      </span>
-                    )}
-
-                    {/* Stock Counter Dummy */}
-                    <span
-                      className={`absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
-                        isActive ? "bg-white text-[#5B42F3] shadow-sm" : "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"
-                      }`}
-                    >
-                      5
-                    </span>
-
-                    <div className="h-7 w-7 flex items-center justify-center mb-1.5">
-                      {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl)}
-                    </div>
-                    <span className={`text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`}>
-                      {cat.label}
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab("productBadges")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            activeTab === "productBadges"
+              ? "bg-white text-[#181432] shadow-sm"
+              : "text-[#7E7998] hover:text-[#181432]"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#FF5E62]" />
+          <span>Product Angle Badges & Special Offers ({allProducts.length})</span>
+        </button>
       </div>
 
-      {/* Categories Grid / Manager List */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]">
-        <h2 className="text-base font-black text-[#181432] mb-4 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-purple-600" /> Configured Categories & Cloud Providers ({categoriesList.length})
-        </h2>
+      {activeTab === "categories" ? (
+        <>
+          {/* Live Mini-App Preview Bar */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h2 className="text-sm font-black text-[#181432] uppercase tracking-wider">Live Mini-App Preview</h2>
+              </div>
+              <span className="text-xs text-[#7E7998] font-bold">Click any pill to test active state</span>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categoriesList.map((cat, index) => {
-            const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
-            return (
-              <div
-                key={cat.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
-                  cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0">
-                      {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-[#181432]">{cat.label}</span>
+            <div className="bg-[#F8F9FD] p-5 rounded-2xl border border-[#ECEEF8] overflow-x-auto scrollbar-none">
+              <div className="flex items-center gap-3 pt-3 pb-3">
+                {categoriesList
+                  .filter((c) => c.enabled)
+                  .map((cat) => {
+                    const isActive = previewActiveId === cat.id;
+                    const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setPreviewActiveId(cat.id)}
+                        className={`relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
+                          isActive
+                            ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105"
+                            : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"
+                        }`}
+                      >
+                        {/* Corner Angle Badge */}
                         {cat.badgeEnabled && cat.badgeText && (
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`}>
+                          <span
+                            className={`absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-10 border border-white/60 ${badgeStyle}`}
+                          >
                             {cat.badgeText}
                           </span>
                         )}
+
+                        {/* Stock Counter Dummy */}
+                        <span
+                          className={`absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
+                            isActive ? "bg-white text-[#5B42F3] shadow-sm" : "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"
+                          }`}
+                        >
+                          5
+                        </span>
+
+                        <div className="h-7 w-7 flex items-center justify-center mb-1.5">
+                          {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl)}
+                        </div>
+                        <span className={`text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`}>
+                          {cat.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Categories Grid / Manager List */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]">
+            <h2 className="text-base font-black text-[#181432] mb-4 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-600" /> Configured Categories & Cloud Providers ({categoriesList.length})
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoriesList.map((cat, index) => {
+                const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+                return (
+                  <div
+                    key={cat.id}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                      cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0">
+                          {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-[#181432]">{cat.label}</span>
+                            {cat.badgeEnabled && cat.badgeText && (
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`}>
+                                {cat.badgeText}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-[#7E7998] font-semibold">ID: {cat.id}</span>
+                        </div>
                       </div>
-                      <span className="text-[11px] text-[#7E7998] font-semibold">ID: {cat.id}</span>
+
+                      <div className="flex items-center gap-1">
+                        <Switch
+                          checked={cat.enabled}
+                          onCheckedChange={(checked) => toggleCategoryEnabled(cat.id, checked)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 mt-3 border-t border-[#F0F2FA]">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={index === 0}
+                          onClick={() => moveCategory(index, "up")}
+                          className="h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600"
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={index === categoriesList.length - 1}
+                          onClick={() => moveCategory(index, "down")}
+                          className="h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(cat)}
+                          className="h-8 px-2.5 rounded-xl border-[#ECEEF8] text-xs font-bold text-[#181432] hover:bg-purple-50 hover:text-purple-600"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                        </Button>
+                        {cat.id !== "all" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => deleteCategory(cat.id)}
+                            className="h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* PRODUCT ANGLE BADGES & SPECIAL OFFERS TAB */
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8] space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#ECEEF8]">
+            <div>
+              <h2 className="text-base font-black text-[#181432] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#FF5E62]" /> Product Card Angle Badges & Special Offers ({allProducts.length})
+              </h2>
+              <p className="text-xs text-[#7E7998] font-semibold mt-0.5">
+                Customize the top-right corner angle label (e.g. 🔥 SPECIAL OFFER, ⚡ 20% OFF, 💎 PREMIUM) for any catalog product.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full w-fit">
+              Live Real-time Sync
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {allProducts.map((prod: any) => {
+              const badgeKey = String(prod.id);
+              const badge = productBadges[badgeKey] || { text: "HOT DEAL", color: "red", enabled: false };
+              const currentGrad = BADGE_COLOR_STYLES[badge.color || "red"] || BADGE_COLOR_STYLES.red;
+
+              return (
+                <div
+                  key={`prod-badge-${prod.id}`}
+                  className="bg-[#FDFCFE] rounded-2xl p-4 border border-[#ECEEF8] shadow-xs flex flex-col justify-between space-y-3 hover:border-purple-200 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                          {prod.type}
+                        </span>
+                        <span className="text-xs font-bold text-emerald-600 font-mono">
+                          ${(prod.price / 100).toFixed(2)}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-black text-[#181432] line-clamp-1 mt-1">{prod.name}</h4>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-[10px] text-gray-500 font-bold">Badge</Label>
+                      <Switch
+                        checked={badge.enabled}
+                        onCheckedChange={(checked) => updateProductBadge(prod.id, { enabled: checked })}
+                      />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <Switch
-                      checked={cat.enabled}
-                      onCheckedChange={(checked) => toggleCategoryEnabled(cat.id, checked)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 mt-3 border-t border-[#F0F2FA]">
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={index === 0}
-                      onClick={() => moveCategory(index, "up")}
-                      className="h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600"
+                  {/* Live Badge Preview Card Mini */}
+                  <div className="relative p-3 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#181432]">Live Card Tag:</span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-xs ${
+                        badge.enabled ? currentGrad : "bg-gray-200 text-gray-500 line-through"
+                      }`}
                     >
-                      <ArrowUp className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={index === categoriesList.length - 1}
-                      onClick={() => moveCategory(index, "down")}
-                      className="h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600"
-                    >
-                      <ArrowDown className="w-4 h-4" />
-                    </Button>
+                      {badge.text || "NO LABEL"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditDialog(cat)}
-                      className="h-8 px-2.5 rounded-xl border-[#ECEEF8] text-xs font-bold text-[#181432] hover:bg-purple-50 hover:text-purple-600"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                    </Button>
-                    {cat.id !== "all" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteCategory(cat.id)}
-                        className="h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
+                  {/* Badge Controls */}
+                  <div className="space-y-2 pt-1">
+                    <div>
+                      <Label className="text-[10px] font-bold text-[#7E7998]">Angle Badge Text</Label>
+                      <Input
+                        placeholder="e.g. SPECIAL OFFER, 20% OFF, ⚡ INSTANT"
+                        value={badge.text || ""}
+                        onChange={(e) => updateProductBadge(prod.id, { text: e.target.value.toUpperCase() })}
+                        className="mt-0.5 h-8 text-xs font-black rounded-lg border-[#ECEEF8]"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-[10px] font-bold text-[#7E7998] block mb-1">Color Gradient</Label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {[
+                          { id: "red", label: "Red Flame" },
+                          { id: "purple", label: "Purple Sunset" },
+                          { id: "pink", label: "Neon Pink" },
+                          { id: "emerald", label: "Emerald" },
+                          { id: "blue", label: "Cyan Blue" },
+                          { id: "amber", label: "Amber Gold" },
+                        ].map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => updateProductBadge(prod.id, { color: c.id })}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-all border ${
+                              (badge.color || "red") === c.id
+                                ? "ring-2 ring-purple-600 font-black border-transparent"
+                                : "opacity-70 hover:opacity-100 border-gray-200"
+                            } ${BADGE_COLOR_STYLES[c.id]}`}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Edit / Add Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

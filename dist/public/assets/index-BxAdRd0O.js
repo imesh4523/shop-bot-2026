@@ -30601,7 +30601,7 @@ const awsActivities = pgTable("aws_activities", {
 });
 const insertAwsAccountSchema = createInsertSchema(awsAccounts).omit({ id: true, createdAt: true });
 createInsertSchema(awsActivities).omit({ id: true });
-const specialOffers = pgTable("special_offers", {
+const specialOffers$1 = pgTable("special_offers", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull().references(() => products.id),
   name: text("name").notNull(),
@@ -30614,7 +30614,7 @@ const specialOffers = pgTable("special_offers", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow()
 });
-const insertSpecialOfferSchema = createInsertSchema(specialOffers, {
+const insertSpecialOfferSchema = createInsertSchema(specialOffers$1, {
   expiresAt: z$1.union([z$1.date(), z$1.string().transform((v2) => new Date(v2))]).optional().nullable()
 }).omit({ id: true, createdAt: true });
 const backupConfigs = pgTable("backup_configs", {
@@ -56068,7 +56068,7 @@ const DialogOverlay = reactExports.forwardRef(({ className, ...props }, ref) => 
   }
 ));
 DialogOverlay.displayName = Overlay.displayName;
-const DialogContent = reactExports.forwardRef(({ className, children, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogPortal, { children: [
+const DialogContent = reactExports.forwardRef(({ className, children, hideClose = false, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogPortal, { children: [
   /* @__PURE__ */ jsxRuntimeExports.jsx(DialogOverlay, {}),
   /* @__PURE__ */ jsxRuntimeExports.jsxs(
     Content$1,
@@ -56081,7 +56081,7 @@ const DialogContent = reactExports.forwardRef(({ className, children, ...props }
       ...props,
       children: [
         children,
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(Close, { className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground", children: [
+        !hideClose && /* @__PURE__ */ jsxRuntimeExports.jsxs(Close, { className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(X$1, { className: "h-4 w-4" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: "Close" })
         ] })
@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es--LvOiA1O.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-MEMCeDvf.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102550,138 +102550,6 @@ function PaymentProcessingModal({
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed", children: subtitle })
   ] }) });
 }
-function SlideToPurchase({
-  onComplete,
-  disabled = false,
-  isLoading = false,
-  text: text2 = "Slide to Confirm Purchase",
-  completedText = "Processing Order...",
-  className = ""
-}) {
-  const containerRef = reactExports.useRef(null);
-  const [sliderPosition, setSliderPosition] = reactExports.useState(0);
-  const [isDragging, setIsDragging] = reactExports.useState(false);
-  const [isCompleted, setIsCompleted] = reactExports.useState(false);
-  const handleStart = (clientX) => {
-    if (disabled || isLoading || isCompleted) return;
-    setIsDragging(true);
-  };
-  const handleMove = (clientX) => {
-    if (!isDragging || disabled || isLoading || isCompleted || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const handleWidth = 48;
-    const maxDrag = rect.width - handleWidth;
-    if (maxDrag <= 0) return;
-    const currentX = clientX - rect.left - handleWidth / 2;
-    const clamped = Math.max(0, Math.min(currentX, maxDrag));
-    const progress2 = clamped / maxDrag;
-    setSliderPosition(progress2);
-    if (progress2 >= 0.88) {
-      setIsDragging(false);
-      setSliderPosition(1);
-      setIsCompleted(true);
-      if (navigator.vibrate) {
-        try {
-          navigator.vibrate(50);
-        } catch (e) {
-        }
-      }
-      onComplete();
-    }
-  };
-  const handleEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (sliderPosition < 0.88) {
-      setSliderPosition(0);
-    }
-  };
-  const onTouchStart = (e) => {
-    handleStart(e.touches[0].clientX);
-  };
-  const onTouchMove = (e) => {
-    handleMove(e.touches[0].clientX);
-  };
-  const onTouchEnd = () => {
-    handleEnd();
-  };
-  const onMouseDown = (e) => {
-    handleStart(e.clientX);
-  };
-  reactExports.useEffect(() => {
-    const onMouseMove = (e) => {
-      handleMove(e.clientX);
-    };
-    const onMouseUp = () => {
-      handleEnd();
-    };
-    if (isDragging) {
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-    }
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-  }, [isDragging, sliderPosition]);
-  reactExports.useEffect(() => {
-    if (!isLoading && !disabled) {
-      setIsCompleted(false);
-      setSliderPosition(0);
-    }
-  }, [isLoading, disabled]);
-  const progressPercent = Math.round(sliderPosition * 100);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      ref: containerRef,
-      onTouchStart,
-      onTouchMove,
-      onTouchEnd,
-      onMouseDown,
-      className: `relative w-full h-14 rounded-2xl select-none overflow-hidden transition-all p-1 flex items-center ${disabled ? "bg-gray-100 border border-gray-200 opacity-60 cursor-not-allowed" : "bg-gradient-to-r from-[#F4F1FD] via-[#ECE8FC] to-[#E9E4FA] border border-[#D5CDF7] shadow-md shadow-[#6C5CE7]/10 cursor-grab active:cursor-grabbing"} ${className}`,
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: "absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] transition-all",
-            style: {
-              width: `${Math.max(sliderPosition * 100, isCompleted ? 100 : 0)}%`,
-              transition: isDragging ? "none" : "width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)"
-            }
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none px-12", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "span",
-          {
-            className: `text-xs sm:text-sm font-black tracking-tight transition-all duration-200 flex items-center gap-1.5 ${progressPercent > 45 || isCompleted ? "text-white" : "text-[#5B42F3]"}`,
-            children: isLoading || isCompleted ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-white" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: completedText })
-            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: text2 }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "opacity-70 text-[10px] tracking-widest font-black", children: "❯❯❯" })
-            ] })
-          }
-        ) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: `relative z-10 w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg border border-white/60 transition-transform ${isDragging ? "scale-105 shadow-xl" : ""}`,
-            style: {
-              transform: `translateX(${sliderPosition * ((containerRef.current?.offsetWidth || 300) - 56)}px)`,
-              transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)"
-            },
-            children: isLoading || isCompleted ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-5 h-5 text-emerald-600 font-black animate-bounce" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-center text-[#6C5CE7] font-black", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-5 h-5 -mr-2 text-[#FF5E62]" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-5 h-5 text-[#6C5CE7]" })
-            ] })
-          }
-        )
-      ]
-    }
-  );
-}
 const DEFAULT_CATEGORIES = [
   { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
   { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
@@ -102760,7 +102628,9 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
 };
 function CategoriesManagerPage() {
   const { toast: toast2 } = useToast();
+  const [activeTab, setActiveTab] = reactExports.useState("categories");
   const [categoriesList, setCategoriesList] = reactExports.useState(DEFAULT_CATEGORIES);
+  const [productBadges, setProductBadges] = reactExports.useState({});
   const [editingCat, setEditingCat] = reactExports.useState(null);
   const [isDialogOpen, setIsDialogOpen] = reactExports.useState(false);
   const [previewActiveId, setPreviewActiveId] = reactExports.useState("aws");
@@ -102771,28 +102641,36 @@ function CategoriesManagerPage() {
       return res.json();
     }
   });
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["/api/products"]
+  });
   reactExports.useEffect(() => {
-    if (serverData && serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
-      setCategoriesList(serverData.categories);
+    if (serverData) {
+      if (serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
+        setCategoriesList(serverData.categories);
+      }
+      if (serverData.productBadges && typeof serverData.productBadges === "object") {
+        setProductBadges(serverData.productBadges);
+      }
     }
   }, [serverData]);
   const saveMutation = useMutation({
-    mutationFn: async (updatedList) => {
+    mutationFn: async (payload) => {
       const res = await fetch("/api/admin/categories/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categories: updatedList })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save categories");
+      if (!res.ok) throw new Error(data.message || "Failed to save categories & badges");
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories/config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories/config"] });
       toast2({
-        title: "Configuration Saved!",
-        description: "Category buttons and corner badge settings updated live across the Mini-App."
+        title: "Configuration Saved! 🎉",
+        description: "Category buttons and corner angle badges updated live across the Mini-App."
       });
     },
     onError: (err) => {
@@ -102804,13 +102682,22 @@ function CategoriesManagerPage() {
     }
   });
   const handleSave = () => {
-    saveMutation.mutate(categoriesList);
+    saveMutation.mutate({ categories: categoriesList, productBadges });
   };
   const handleResetToDefault = () => {
     if (confirm("Reset all categories, badges and ordering to default?")) {
       setCategoriesList(DEFAULT_CATEGORIES);
-      saveMutation.mutate(DEFAULT_CATEGORIES);
+      setProductBadges({});
+      saveMutation.mutate({ categories: DEFAULT_CATEGORIES, productBadges: {} });
     }
+  };
+  const updateProductBadge = (productId, patch) => {
+    const key = String(productId);
+    const current = productBadges[key] || { text: "HOT DEAL", color: "red", enabled: true };
+    setProductBadges({
+      ...productBadges,
+      [key]: { ...current, ...patch }
+    });
   };
   const moveCategory = (index2, direction) => {
     const targetIndex = direction === "up" ? index2 - 1 : index2 + 1;
@@ -102922,138 +102809,268 @@ function CategoriesManagerPage() {
         )
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm font-black text-[#181432] uppercase tracking-wider", children: "Live Mini-App Preview" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-[#7E7998] font-bold", children: "Click any pill to test active state" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-[#F8F9FD] p-5 rounded-2xl border border-[#ECEEF8] overflow-x-auto scrollbar-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 pt-3 pb-3", children: categoriesList.filter((c2) => c2.enabled).map((cat) => {
-        const isActive = previewActiveId === cat.id;
-        const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: () => setPreviewActiveId(cat.id),
-            className: `relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${isActive ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105" : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"}`,
-            children: [
-              cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
-                {
-                  className: `absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-10 border border-white/60 ${badgeStyle}`,
-                  children: cat.badgeText
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
-                {
-                  className: `absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${isActive ? "bg-white text-[#5B42F3] shadow-sm" : "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"}`,
-                  children: "5"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-7 w-7 flex items-center justify-center mb-1.5", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`, children: cat.label })
-            ]
-          },
-          cat.id
-        );
-      }) }) })
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 p-1.5 bg-[#F4F2FA] rounded-2xl w-fit border border-[#ECEEF8]", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setActiveTab("categories"),
+          className: `px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${activeTab === "categories" ? "bg-white text-[#181432] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4 text-purple-600" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              "Categories & Provider Tabs (",
+              categoriesList.length,
+              ")"
+            ] })
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setActiveTab("productBadges"),
+          className: `px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${activeTab === "productBadges" ? "bg-white text-[#181432] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#FF5E62]" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              "Product Angle Badges & Special Offers (",
+              allProducts.length,
+              ")"
+            ] })
+          ]
+        }
+      )
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] mb-4 flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-5 h-5 text-purple-600" }),
-        " Configured Categories & Cloud Providers (",
-        categoriesList.length,
-        ")"
+    activeTab === "categories" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm font-black text-[#181432] uppercase tracking-wider", children: "Live Mini-App Preview" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-[#7E7998] font-bold", children: "Click any pill to test active state" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-[#F8F9FD] p-5 rounded-2xl border border-[#ECEEF8] overflow-x-auto scrollbar-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 pt-3 pb-3", children: categoriesList.filter((c2) => c2.enabled).map((cat) => {
+          const isActive = previewActiveId === cat.id;
+          const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => setPreviewActiveId(cat.id),
+              className: `relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${isActive ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105" : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"}`,
+              children: [
+                cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: `absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-10 border border-white/60 ${badgeStyle}`,
+                    children: cat.badgeText
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "span",
+                  {
+                    className: `absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${isActive ? "bg-white text-[#5B42F3] shadow-sm" : "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"}`,
+                    children: "5"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-7 w-7 flex items-center justify-center mb-1.5", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`, children: cat.label })
+              ]
+            },
+            cat.id
+          );
+        }) }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: categoriesList.map((cat, index2) => {
-        const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            className: `p-4 rounded-2xl border transition-all flex flex-col justify-between ${cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"}`,
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] mb-4 flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-5 h-5 text-purple-600" }),
+          " Configured Categories & Cloud Providers (",
+          categoriesList.length,
+          ")"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: categoriesList.map((cat, index2) => {
+          const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: `p-4 rounded-2xl border transition-all flex flex-col justify-between ${cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: cat.label }),
+                        cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`, children: cat.badgeText })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-semibold", children: [
+                        "ID: ",
+                        cat.id
+                      ] })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Switch,
+                    {
+                      checked: cat.enabled,
+                      onCheckedChange: (checked) => toggleCategoryEnabled(cat.id, checked)
+                    }
+                  ) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-4 mt-3 border-t border-[#F0F2FA]", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Button,
+                      {
+                        size: "sm",
+                        variant: "ghost",
+                        disabled: index2 === 0,
+                        onClick: () => moveCategory(index2, "up"),
+                        className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUp, { className: "w-4 h-4" })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Button,
+                      {
+                        size: "sm",
+                        variant: "ghost",
+                        disabled: index2 === categoriesList.length - 1,
+                        onClick: () => moveCategory(index2, "down"),
+                        className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDown, { className: "w-4 h-4" })
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      Button,
+                      {
+                        size: "sm",
+                        variant: "outline",
+                        onClick: () => openEditDialog(cat),
+                        className: "h-8 px-2.5 rounded-xl border-[#ECEEF8] text-xs font-bold text-[#181432] hover:bg-purple-50 hover:text-purple-600",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "w-3.5 h-3.5 mr-1" }),
+                          " Edit"
+                        ]
+                      }
+                    ),
+                    cat.id !== "all" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Button,
+                      {
+                        size: "sm",
+                        variant: "ghost",
+                        onClick: () => deleteCategory(cat.id),
+                        className: "h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-50",
+                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-3.5 h-3.5" })
+                      }
+                    )
+                  ] })
+                ] })
+              ]
+            },
+            cat.id
+          );
+        }) })
+      ] })
+    ] }) : (
+      /* PRODUCT ANGLE BADGES & SPECIAL OFFERS TAB */
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8] space-y-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#ECEEF8]", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-[#FF5E62]" }),
+              " Product Card Angle Badges & Special Offers (",
+              allProducts.length,
+              ")"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#7E7998] font-semibold mt-0.5", children: "Customize the top-right corner angle label (e.g. 🔥 SPECIAL OFFER, ⚡ 20% OFF, 💎 PREMIUM) for any catalog product." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full w-fit", children: "Live Real-time Sync" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5", children: allProducts.map((prod) => {
+          const badgeKey = String(prod.id);
+          const badge = productBadges[badgeKey] || { text: "HOT DEAL", color: "red", enabled: false };
+          const currentGrad = BADGE_COLOR_STYLES[badge.color || "red"] || BADGE_COLOR_STYLES.red;
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "bg-[#FDFCFE] rounded-2xl p-4 border border-[#ECEEF8] shadow-xs flex flex-col justify-between space-y-3 hover:border-purple-200 transition-all",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-2", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: cat.label }),
-                      cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`, children: cat.badgeText })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700", children: prod.type }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold text-emerald-600 font-mono", children: [
+                        "$",
+                        (prod.price / 100).toFixed(2)
+                      ] })
                     ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-semibold", children: [
-                      "ID: ",
-                      cat.id
-                    ] })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] line-clamp-1 mt-1", children: prod.name })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[10px] text-gray-500 font-bold", children: "Badge" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Switch,
+                      {
+                        checked: badge.enabled,
+                        onCheckedChange: (checked) => updateProductBadge(prod.id, { enabled: checked })
+                      }
+                    )
                   ] })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Switch,
-                  {
-                    checked: cat.enabled,
-                    onCheckedChange: (checked) => toggleCategoryEnabled(cat.id, checked)
-                  }
-                ) })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-4 mt-3 border-t border-[#F0F2FA]", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative p-3 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-[#181432]", children: "Live Card Tag:" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Button,
+                    "span",
                     {
-                      size: "sm",
-                      variant: "ghost",
-                      disabled: index2 === 0,
-                      onClick: () => moveCategory(index2, "up"),
-                      className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUp, { className: "w-4 h-4" })
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Button,
-                    {
-                      size: "sm",
-                      variant: "ghost",
-                      disabled: index2 === categoriesList.length - 1,
-                      onClick: () => moveCategory(index2, "down"),
-                      className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDown, { className: "w-4 h-4" })
+                      className: `px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-xs ${badge.enabled ? currentGrad : "bg-gray-200 text-gray-500 line-through"}`,
+                      children: badge.text || "NO LABEL"
                     }
                   )
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    Button,
-                    {
-                      size: "sm",
-                      variant: "outline",
-                      onClick: () => openEditDialog(cat),
-                      className: "h-8 px-2.5 rounded-xl border-[#ECEEF8] text-xs font-bold text-[#181432] hover:bg-purple-50 hover:text-purple-600",
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "w-3.5 h-3.5 mr-1" }),
-                        " Edit"
-                      ]
-                    }
-                  ),
-                  cat.id !== "all" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Button,
-                    {
-                      size: "sm",
-                      variant: "ghost",
-                      onClick: () => deleteCategory(cat.id),
-                      className: "h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-50",
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-3.5 h-3.5" })
-                    }
-                  )
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 pt-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[10px] font-bold text-[#7E7998]", children: "Angle Badge Text" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        placeholder: "e.g. SPECIAL OFFER, 20% OFF, ⚡ INSTANT",
+                        value: badge.text || "",
+                        onChange: (e) => updateProductBadge(prod.id, { text: e.target.value.toUpperCase() }),
+                        className: "mt-0.5 h-8 text-xs font-black rounded-lg border-[#ECEEF8]"
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[10px] font-bold text-[#7E7998] block mb-1", children: "Color Gradient" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5 flex-wrap", children: [
+                      { id: "red", label: "Red Flame" },
+                      { id: "purple", label: "Purple Sunset" },
+                      { id: "pink", label: "Neon Pink" },
+                      { id: "emerald", label: "Emerald" },
+                      { id: "blue", label: "Cyan Blue" },
+                      { id: "amber", label: "Amber Gold" }
+                    ].map((c2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => updateProductBadge(prod.id, { color: c2.id }),
+                        className: `px-2 py-0.5 rounded-md text-[9px] font-bold transition-all border ${(badge.color || "red") === c2.id ? "ring-2 ring-purple-600 font-black border-transparent" : "opacity-70 hover:opacity-100 border-gray-200"} ${BADGE_COLOR_STYLES[c2.id]}`,
+                        children: c2.label
+                      },
+                      c2.id
+                    )) })
+                  ] })
                 ] })
-              ] })
-            ]
-          },
-          cat.id
-        );
-      }) })
-    ] }),
+              ]
+            },
+            `prod-badge-${prod.id}`
+          );
+        }) })
+      ] })
+    ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isDialogOpen, onOpenChange: setIsDialogOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md rounded-3xl p-6 bg-white border border-[#ECEEF8]", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { className: "text-lg font-black text-[#181432]", children: editingCat?.id?.startsWith("custom_") ? "Add New Category / Provider" : `Edit Category: ${editingCat?.label}` }) }),
       editingCat && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 py-2", children: [
@@ -104350,6 +104367,24 @@ function MiniAppShopModern() {
     return DEFAULT_CATEGORIES.filter((c2) => c2.enabled !== false);
   }, [categoryConfigData]);
   const [agreedToTerms, setAgreedToTerms] = reactExports.useState(true);
+  const getProductBadge = (prod) => {
+    const productBadges = categoryConfigData?.productBadges;
+    const customBadge = productBadges?.[String(prod.id)] || productBadges?.[prod.id];
+    if (customBadge && customBadge.enabled !== false && customBadge.text) {
+      const grad = BADGE_COLOR_STYLES[customBadge.color] || BADGE_COLOR_STYLES.red;
+      return { text: customBadge.text, gradient: grad };
+    }
+    const isSpecialOffer = specialOffers.some((o2) => o2.productId === prod.id && o2.status === "active");
+    if (isSpecialOffer) {
+      return { text: "🔥 SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.red };
+    }
+    const catItem = categories.find((c2) => c2.id.toLowerCase() === prod.type.toLowerCase() || prod.name.toLowerCase().includes(c2.id.toLowerCase()));
+    if (catItem && catItem.badgeEnabled && catItem.badgeText) {
+      const grad = BADGE_COLOR_STYLES[catItem.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+      return { text: catItem.badgeText, gradient: grad };
+    }
+    return { text: "⚡ INSTANT", gradient: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" };
+  };
   const formatSmmRate = (rateCentsPer1000) => {
     const usd = rateCentsPer1000 / 100;
     if (selectedCurrency === "LKR") {
@@ -104515,12 +104550,19 @@ function MiniAppShopModern() {
       return;
     }
     setIsPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Instant Purchase...",
+      subtitle: "Connecting to automated delivery system & generating credentials..."
+    });
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/purchase", {
         productId: detailProduct.id,
         quantity
       });
-      await res.json();
+      const data = await res.json();
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 Purchase Successful!",
         description: "Your cloud credentials are ready in your Orders tab."
@@ -104530,6 +104572,7 @@ function MiniAppShopModern() {
       setDetailProduct(null);
       setActiveTab("orders");
     } catch (err) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "Order Notice",
         description: err.message || "Please complete purchase via the Telegram Bot.",
@@ -104537,6 +104580,7 @@ function MiniAppShopModern() {
       });
     } finally {
       setIsPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
   const handleSmmPurchase = async () => {
@@ -105047,7 +105091,7 @@ function MiniAppShopModern() {
           }),
           filteredProducts.map((prod) => {
             const conf = getProviderConfig(prod.name, prod.type);
-            const isFav = favorites.includes(prod.id);
+            favorites.includes(prod.id);
             const priceFormatted = formatProductPrice(prod);
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               motion.div,
@@ -105062,14 +105106,10 @@ function MiniAppShopModern() {
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        onClick: (e) => toggleFavorite(prod.id, e),
-                        className: "w-7 h-7 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#7E7998] hover:text-red-500 hover:bg-red-50 transition-colors",
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Heart, { className: `w-3.5 h-3.5 ${isFav ? "fill-red-500 text-red-500" : ""}` })
-                      }
-                    )
+                    (() => {
+                      const badge = getProductBadge(prod);
+                      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-2xs leading-none ${badge.gradient}`, children: badge.text });
+                    })()
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -106540,7 +106580,7 @@ function MiniAppShopModern() {
         )
       ] });
     })() }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!detailProduct, onOpenChange: (open2) => !open2 && setDetailProduct(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden", children: detailProduct && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!detailProduct, onOpenChange: (open2) => !open2 && setDetailProduct(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { hideClose: true, className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden", children: detailProduct && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
@@ -106645,13 +106685,21 @@ function MiniAppShopModern() {
           ]
         }
       ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-        SlideToPurchase,
+        "button",
         {
-          onComplete: handlePurchase,
+          onClick: handlePurchase,
           disabled: !agreedToTerms || isPurchasing,
-          isLoading: isPurchasing,
-          text: `Slide to Pay ${formatProductPrice(detailProduct, quantity)}`,
-          completedText: "Processing Order..."
+          className: "w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#6C5CE7]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group",
+          children: isPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-white" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Processing Order..." })
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              "Purchase Now • ",
+              formatProductPrice(detailProduct, quantity)
+            ] })
+          ] })
         }
       ) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]", children: [

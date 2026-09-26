@@ -3210,10 +3210,13 @@ export async function registerRoutes(
       if (setting && setting.value) {
         try {
           const parsed = JSON.parse(setting.value);
+          if (Array.isArray(parsed)) {
+            return res.json({ categories: parsed, productBadges: {} });
+          }
           return res.json(parsed);
         } catch (e) {}
       }
-      res.json({ categories: null });
+      res.json({ categories: null, productBadges: {} });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3222,13 +3225,18 @@ export async function registerRoutes(
   app.get("/api/admin/categories/config", isAuth, async (req, res) => {
     try {
       const setting = await storage.getSetting("CUSTOM_CATEGORIES_CONFIG");
-      let list = null;
+      let data: any = { categories: null, productBadges: {} };
       if (setting && setting.value) {
         try {
-          list = JSON.parse(setting.value);
+          const parsed = JSON.parse(setting.value);
+          if (Array.isArray(parsed)) {
+            data = { categories: parsed, productBadges: {} };
+          } else {
+            data = parsed;
+          }
         } catch (e) {}
       }
-      res.json({ categories: list });
+      res.json(data);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3236,12 +3244,18 @@ export async function registerRoutes(
 
   app.post("/api/admin/categories/config", isAuth, async (req, res) => {
     try {
-      const { categories } = req.body;
-      if (!Array.isArray(categories)) {
-        return res.status(400).json({ message: "Categories must be an array." });
+      const { categories, productBadges } = req.body;
+      let configToSave: any = {};
+      if (Array.isArray(categories)) {
+        configToSave.categories = categories;
+      } else if (Array.isArray(req.body)) {
+        configToSave.categories = req.body;
       }
-      await storage.setSetting("CUSTOM_CATEGORIES_CONFIG", JSON.stringify(categories));
-      res.json({ success: true, message: "Category configuration saved successfully.", categories });
+      if (productBadges && typeof productBadges === "object") {
+        configToSave.productBadges = productBadges;
+      }
+      await storage.setSetting("CUSTOM_CATEGORIES_CONFIG", JSON.stringify(configToSave));
+      res.json({ success: true, message: "Category and badge configuration saved successfully.", config: configToSave });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

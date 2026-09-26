@@ -1409,6 +1409,29 @@ export default function MiniAppShopModern() {
   // Terms & Conditions Agreement
   const [agreedToTerms, setAgreedToTerms] = useState(true);
 
+  // Helper to compute dynamic corner angle badge for any catalog product
+  const getProductBadge = (prod: Product) => {
+    const productBadges = (categoryConfigData as any)?.productBadges;
+    const customBadge = productBadges?.[String(prod.id)] || productBadges?.[prod.id as any];
+    if (customBadge && customBadge.enabled !== false && customBadge.text) {
+      const grad = BADGE_COLOR_STYLES[customBadge.color] || BADGE_COLOR_STYLES.red;
+      return { text: customBadge.text, gradient: grad };
+    }
+
+    const isSpecialOffer = specialOffers.some((o) => o.productId === prod.id && o.status === "active");
+    if (isSpecialOffer) {
+      return { text: "🔥 SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.red };
+    }
+
+    const catItem = categories.find((c) => c.id.toLowerCase() === prod.type.toLowerCase() || prod.name.toLowerCase().includes(c.id.toLowerCase()));
+    if (catItem && catItem.badgeEnabled && catItem.badgeText) {
+      const grad = BADGE_COLOR_STYLES[catItem.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+      return { text: catItem.badgeText, gradient: grad };
+    }
+
+    return { text: "⚡ INSTANT", gradient: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" };
+  };
+
   // SMM Price Formatters
   const formatSmmRate = (rateCentsPer1000: number) => {
     const usd = rateCentsPer1000 / 100;
@@ -1631,12 +1654,24 @@ export default function MiniAppShopModern() {
     }
 
     setIsPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Instant Purchase...",
+      subtitle: "Connecting to automated delivery system & generating credentials...",
+    });
+
     try {
+      // 2.4s animation delay for smooth premium checkout experience
+      await new Promise((resolve) => setTimeout(resolve, 2400));
+
       const res = await miniApiRequest("POST", "/api/mini/purchase", {
         productId: detailProduct.id,
         quantity,
       });
-      await res.json();
+      const data = await res.json();
+      
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      
       toast({
         title: "🎉 Purchase Successful!",
         description: "Your cloud credentials are ready in your Orders tab.",
@@ -1646,6 +1681,7 @@ export default function MiniAppShopModern() {
       setDetailProduct(null);
       setActiveTab("orders");
     } catch (err: any) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "Order Notice",
         description: err.message || "Please complete purchase via the Telegram Bot.",
@@ -1653,6 +1689,7 @@ export default function MiniAppShopModern() {
       });
     } finally {
       setIsPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -2270,17 +2307,19 @@ export default function MiniAppShopModern() {
                       }}
                       className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
                     >
-                      {/* Top Action: Provider Tag & Heart Favorite */}
+                      {/* Top Action: Provider Tag & Dynamic Angle Banner */}
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                           {conf.tag}
                         </span>
-                        <button
-                          onClick={(e) => toggleFavorite(prod.id, e)}
-                          className="w-7 h-7 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#7E7998] hover:text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
-                        </button>
+                        {(() => {
+                          const badge = getProductBadge(prod);
+                          return (
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-2xs leading-none ${badge.gradient}`}>
+                              {badge.text}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {/* Centered Image with Real Brand Icon and Organic Blob Background */}
@@ -4015,7 +4054,7 @@ export default function MiniAppShopModern() {
 
       {/* PRODUCT DETAIL MODAL */}
       <Dialog open={!!detailProduct} onOpenChange={(open) => !open && setDetailProduct(null)}>
-        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden">
+        <DialogContent hideClose={true} className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden">
           {detailProduct && (
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -4115,7 +4154,7 @@ export default function MiniAppShopModern() {
                 </label>
               </div>
 
-              {/* Slide to Purchase / Sign In Button */}
+              {/* Purchase Now / Sign In Button */}
               <div className="mb-4">
                 {!isCustomerLoggedIn ? (
                   <button
@@ -4125,13 +4164,23 @@ export default function MiniAppShopModern() {
                     <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
                   </button>
                 ) : (
-                  <SlideToPurchase
-                    onComplete={handlePurchase}
+                  <button
+                    onClick={handlePurchase}
                     disabled={!agreedToTerms || isPurchasing}
-                    isLoading={isPurchasing}
-                    text={`Slide to Pay ${formatProductPrice(detailProduct, quantity)}`}
-                    completedText="Processing Order..."
-                  />
+                    className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#6C5CE7]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
+                  >
+                    {isPurchasing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>Processing Order...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                        <span>Purchase Now • {formatProductPrice(detailProduct, quantity)}</span>
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
 
