@@ -1690,13 +1690,22 @@ export async function registerRoutes(
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
       }
       if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) {
         const adminId = (req.session as any)?.passport?.user;
         if (adminId) {
           dbUser = (await db.select().from(telegramUsers).limit(1))[0];
         }
       }
       if (!dbUser) {
-        return res.status(401).json({ success: false, message: "Authentication required", keys: [], activeKey: null });
+        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+      }
+      if (!dbUser) {
+        return res.json({ success: true, keys: [], activeKey: null, totalOrders: 0, successOrders: 0, failedOrders: 0, revenueCents: 0 });
       }
 
       const keys = await storage.getUserApiKeys(dbUser.id);
@@ -1718,7 +1727,7 @@ export async function registerRoutes(
       });
     } catch (err: any) {
       console.error("GET /api/mini/api-keys error:", err);
-      res.status(500).json({ success: false, message: err.message });
+      res.status(500).json({ success: false, message: err.message, keys: [], activeKey: null });
     }
   });
 
@@ -1730,10 +1739,19 @@ export async function registerRoutes(
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
       }
       if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) {
         const adminId = (req.session as any)?.passport?.user;
         if (adminId) {
           dbUser = (await db.select().from(telegramUsers).limit(1))[0];
         }
+      }
+      if (!dbUser) {
+        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
       }
       if (!dbUser) {
         return res.status(401).json({ success: false, message: "Please sign in to generate an API key" });
@@ -1764,23 +1782,33 @@ export async function registerRoutes(
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
       }
       if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) {
         const adminId = (req.session as any)?.passport?.user;
         if (adminId) {
           dbUser = (await db.select().from(telegramUsers).limit(1))[0];
         }
       }
       if (!dbUser) {
+        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+      }
+      if (!dbUser) {
         return res.status(401).json({ success: false, message: "Authentication required" });
       }
 
-      const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
-      if (!existing || existing.telegramUserId !== dbUser.id) {
-        return res.status(404).json({ success: false, message: "API Key not found or not owned by user" });
+      const key = await storage.getApiKeyById(id);
+      if (!key || key.userId !== dbUser.id) {
+        return res.status(404).json({ success: false, message: "API key not found" });
       }
 
-      const revoked = await storage.revokeApiKey(id);
-      res.json({ success: true, message: "API Key revoked successfully", key: revoked });
+      await storage.revokeApiKey(id);
+      res.json({ success: true, message: "API Key revoked" });
     } catch (err: any) {
+      console.error("POST /api/mini/api-keys/:id/revoke error:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   });
@@ -1886,44 +1914,92 @@ export async function registerRoutes(
 
       const userId = dbUser.id;
 
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
       // 1. Deposits (Payments)
       const userPayments = await storage.getPaymentsForUser(userId);
-      const deposits = userPayments.map(p => ({
-        id: `DEP-${p.id}`,
-        type: "deposit" as const,
-        category: "Wallet Top-up",
-        title: `${p.paymentMethod.replace(/_/g, ' ').toUpperCase()} Deposit`,
-        amountCents: p.amount,
-        amountFormatted: `+$${(p.amount / 100).toFixed(2)}`,
-        currency: p.currency || "USD",
-        method: p.paymentMethod,
-        status: p.status, // "completed", "pending", "failed", "cancelled"
-        reference: p.txid || p.externalId || p.cryptomusUuid || `#PAY-${p.id}`,
-        createdAt: p.createdAt || new Date(),
-        updatedAt: p.updatedAt || p.createdAt || new Date()
-      }));
+      const deposits = userPayments.map(p => {
+        const isCard = p.paymentMethod === "payhere" || p.paymentMethod === "card";
+        const isBinance = p.paymentMethod === "binance_pay" || p.paymentMethod === "binance";
+        const isCrypto = p.paymentMethod === "cryptomus" || p.paymentMethod === "crypto";
+
+        let title = "Wallet Deposit";
+        let cleanRef = `#TX-${p.id}`;
+        let cleanMethod = p.paymentMethod;
+
+        if (isCard) {
+          title = "Card Payment (Visa / Mastercard)";
+          cleanMethod = "card_payment";
+          cleanRef = `#CARD-${p.id}`;
+        } else if (isBinance) {
+          title = "Binance Pay Deposit";
+          cleanMethod = "binance_pay";
+          cleanRef = p.txid ? `#BN-${p.txid.substring(0, 8)}` : `#BN-${p.id}`;
+        } else if (isCrypto) {
+          title = "Cryptomus (USDT) Deposit";
+          cleanMethod = "cryptomus";
+          cleanRef = `#CRYPTO-${p.id}`;
+        }
+
+        const usdVal = (p.amount / 100);
+        const lkrVal = Math.round(usdVal * lkrRate);
+
+        return {
+          id: `DEP-${p.id}`,
+          rawId: p.id,
+          type: "deposit" as const,
+          category: "Wallet Deposit",
+          title,
+          amountCents: p.amount,
+          amountUsd: usdVal.toFixed(2),
+          amountLkr: lkrVal.toLocaleString(),
+          amountFormatted: `+$${usdVal.toFixed(2)} (Rs ${lkrVal.toLocaleString()})`,
+          currency: p.currency || "USD",
+          method: cleanMethod,
+          status: p.status, // "completed", "pending", "failed", "cancelled"
+          reference: cleanRef,
+          externalId: p.externalId || null,
+          txid: p.txid || null,
+          details: isCard ? "Paid via Visa / Mastercard Online Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
+          createdAt: p.createdAt || new Date(),
+          updatedAt: p.updatedAt || p.createdAt || new Date()
+        };
+      });
 
       // 2. Direct Store Purchases
       const userOrders = await db.select()
         .from(orders)
         .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id))
         .where(eq(orders.telegramUserId, userId))
         .orderBy(desc(orders.createdAt));
 
-      const purchases = userOrders.map(o => ({
-        id: `ORD-${o.orders.id}`,
-        type: "purchase" as const,
-        category: "Product Purchase",
-        title: o.products?.name || "Digital Item",
-        amountCents: -(o.products?.price || 0),
-        amountFormatted: `-$${((o.products?.price || 0) / 100).toFixed(2)}`,
-        currency: "USD",
-        method: "wallet_balance",
-        status: o.orders.status === "completed" ? "completed" : o.orders.status, // "completed", "refunded", "pending"
-        reference: `#ORD-${o.orders.id}`,
-        createdAt: o.orders.createdAt || new Date(),
-        updatedAt: o.orders.createdAt || new Date()
-      }));
+      const purchases = userOrders.map(o => {
+        const costUsd = ((o.products?.price || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+
+        return {
+          id: `ORD-${o.orders.id}`,
+          rawId: o.orders.id,
+          type: "purchase" as const,
+          category: "Cloud Account Purchase",
+          title: o.products?.name || "Digital Cloud Product",
+          productType: o.products?.type || "Standard",
+          amountCents: -(o.products?.price || 0),
+          amountUsd: costUsd.toFixed(2),
+          amountLkr: costLkr.toLocaleString(),
+          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          currency: "USD",
+          method: "wallet_balance",
+          status: o.orders.status === "completed" ? "completed" : o.orders.status, // "completed", "refunded", "pending"
+          reference: `#ORD-${o.orders.id}`,
+          deliveredContent: o.credentials?.content || null,
+          details: `Purchased: ${o.products?.name || "Product"}. Instant credentials delivered.`,
+          createdAt: o.orders.createdAt || new Date(),
+          updatedAt: o.orders.createdAt || new Date()
+        };
+      });
 
       // 3. SMM Boost Orders
       const userSmmOrders = await db.select()
@@ -1932,20 +2008,32 @@ export async function registerRoutes(
         .where(eq(smmOrders.telegramUserId, userId))
         .orderBy(desc(smmOrders.createdAt));
 
-      const smmTransactions = userSmmOrders.map(s => ({
-        id: `SMM-${s.smm_orders.id}`,
-        type: "smm" as const,
-        category: "SMM Social Boost",
-        title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
-        amountCents: -(s.smm_orders.charge || 0),
-        amountFormatted: `-$${((s.smm_orders.charge || 0) / 100).toFixed(2)}`,
-        currency: "USD",
-        method: "wallet_balance",
-        status: s.smm_orders.status || "pending", // "completed", "processing", "pending", "canceled", "partial"
-        reference: `#SMM-${s.smm_orders.id}`,
-        createdAt: s.smm_orders.createdAt || new Date(),
-        updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()
-      }));
+      const smmTransactions = userSmmOrders.map(s => {
+        const costUsd = ((s.smm_orders.charge || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+
+        return {
+          id: `SMM-${s.smm_orders.id}`,
+          rawId: s.smm_orders.id,
+          type: "smm" as const,
+          category: "SMM Social Boost",
+          title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+          smmCategory: s.smm_services?.category || "Social Media",
+          smmLink: s.smm_orders.link || "",
+          smmQuantity: s.smm_orders.quantity || 0,
+          amountCents: -(s.smm_orders.charge || 0),
+          amountUsd: costUsd.toFixed(2),
+          amountLkr: costLkr.toLocaleString(),
+          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          currency: "USD",
+          method: "wallet_balance",
+          status: s.smm_orders.status || "pending", // "completed", "processing", "pending", "canceled", "partial"
+          reference: `#SMM-${s.smm_orders.id}`,
+          details: `Target: ${s.smm_orders.link || "N/A"} (${s.smm_orders.quantity || 0} units)`,
+          createdAt: s.smm_orders.createdAt || new Date(),
+          updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()
+        };
+      });
 
       // 4. Sandromania Partner Orders
       const userSandromaniaOrders = await db.select()
@@ -1953,20 +2041,30 @@ export async function registerRoutes(
         .where(eq(sandromaniaOrders.telegramUserId, userId))
         .orderBy(desc(sandromaniaOrders.createdAt));
 
-      const partnerTransactions = userSandromaniaOrders.map(sp => ({
-        id: `PARTNER-${sp.id}`,
-        type: "partner" as const,
-        category: "Sandromania Partner Order",
-        title: sp.productTitle || "Partner Digital Goods",
-        amountCents: -(sp.amountPaid || 0),
-        amountFormatted: `-$${((sp.amountPaid || 0) / 100).toFixed(2)}`,
-        currency: "USD",
-        method: "wallet_balance",
-        status: sp.status === "approved" ? "completed" : sp.status,
-        reference: `#SM-${sp.id}`,
-        createdAt: sp.createdAt || new Date(),
-        updatedAt: sp.createdAt || new Date()
-      }));
+      const partnerTransactions = userSandromaniaOrders.map(sp => {
+        const costUsd = ((sp.amountPaid || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+
+        return {
+          id: `PARTNER-${sp.id}`,
+          rawId: sp.id,
+          type: "partner" as const,
+          category: "Sandromania Partner Order",
+          title: sp.productTitle || "Partner Digital Goods",
+          amountCents: -(sp.amountPaid || 0),
+          amountUsd: costUsd.toFixed(2),
+          amountLkr: costLkr.toLocaleString(),
+          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          currency: "USD",
+          method: "wallet_balance",
+          status: sp.status === "approved" ? "completed" : sp.status,
+          reference: `#SM-${sp.id}`,
+          deliveredContent: sp.deliveryText || null,
+          details: `Partner Order #${sp.externalOrderId || sp.id}: ${sp.productTitle}`,
+          createdAt: sp.createdAt || new Date(),
+          updatedAt: sp.createdAt || new Date()
+        };
+      });
 
       // Combine and sort by createdAt descending
       const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions].sort((a, b) => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { Link } from "wouter";
 import { generateTOTP, getRemainingSeconds } from "@/lib/totp";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product, TelegramUser, Order, Payment, SpecialOffer } from "@shared/schema";
@@ -176,6 +177,73 @@ const CryptomusLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
     />
   </svg>
 );
+
+const DualCardIcon = () => (
+  <div className="flex items-center -space-x-1.5 shrink-0">
+    <div className="w-5 h-5 rounded-md bg-white border border-[#ECEEF8] flex items-center justify-center shadow-2xs p-0.5">
+      <svg viewBox="0 0 48 32" className="w-full h-full">
+        <path fill="#1A1F71" d="M19.5 22.8l2.7-13.6h4.3l-2.7 13.6h-4.3zm16.8-13.2c-.9-.3-2.2-.6-3.8-.6-4.2 0-7.2 2.2-7.2 5.3 0 2.3 2.1 3.6 3.7 4.4 1.7.8 2.2 1.3 2.2 2 0 1.1-1.4 1.6-2.6 1.6-1.8 0-2.7-.3-4.2-.9l-.6-.3-.6 3.8c1 .5 2.8.9 4.7.9 4.5 0 7.4-2.2 7.4-5.5 0-1.8-1.1-3.2-3.6-4.4-1.5-.8-2.4-1.3-2.4-2.1 0-.7.8-1.5 2.5-1.5 1.4 0 2.5.3 3.3.7l.4.2.8-3.7zm10.5 0h-3.3c-1 0-1.8.3-2.2 1.4l-6.3 12.2h4.5l.9-2.5h5.5l.5 2.5h4l-3.5-13.6zm-5.3 8.3l1.7-4.6.9 4.6h-2.6zM15.4 9.6l-4 10.9-.4-2.1c-.7-2.4-2.9-5-5.4-6.3l3.5 10.7 4.6-.4 6.8-12.8h-5.1z" />
+        <path fill="#F7B600" d="M8.2 9.6H1.5L1.4 9.9c5.1 1.3 8.5 4.4 9.9 8.2l-1.4-7.2c-.3-1.1-.9-1.3-1.7-1.3z" />
+      </svg>
+    </div>
+    <div className="w-5 h-5 rounded-md bg-[#252525] border border-[#333] flex items-center justify-center shadow-2xs p-0.5">
+      <svg viewBox="0 0 36 24" className="w-full h-full">
+        <circle cx="13" cy="12" r="7" fill="#EB001B" />
+        <circle cx="23" cy="12" r="7" fill="#F79E1B" />
+        <path d="M18 6.8a6.96 6.96 0 0 1 2.6 5.2 6.96 6.96 0 0 1-2.6 5.2 6.96 6.96 0 0 1-2.6-5.2c0-2 1-3.9 2.6-5.2z" fill="#FF5F00" />
+      </svg>
+    </div>
+  </div>
+);
+
+const TransactionBrandIcon = ({ tx }: { tx: any }) => {
+  const method = (tx?.method || "").toLowerCase();
+  const type = (tx?.type || "").toLowerCase();
+  const title = (tx?.title || "").toLowerCase();
+
+  if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
+    return (
+      <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+        <DualCardIcon />
+      </div>
+    );
+  }
+  if (method.includes("binance") || title.includes("binance")) {
+    return (
+      <div className="w-8 h-8 rounded-xl bg-[#F3BA2F]/15 border border-[#F3BA2F]/30 flex items-center justify-center shrink-0">
+        <SiBinance className="w-4 h-4 text-[#E5A91E]" />
+      </div>
+    );
+  }
+  if (method.includes("cryptomus") || title.includes("cryptomus") || title.includes("usdt")) {
+    return (
+      <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
+        <CryptomusLogo className="w-4 h-4" />
+      </div>
+    );
+  }
+  if (type === "smm" || title.includes("smm") || tx?.category?.toLowerCase().includes("smm")) {
+    return (
+      <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
+        <BrandIcon name={tx?.title} type={tx?.smmCategory || "Social"} className="w-4 h-4" />
+      </div>
+    );
+  }
+  if (type === "partner" || type === "purchase") {
+    return (
+      <div className="w-8 h-8 rounded-xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0">
+        <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-4 h-4" />
+      </div>
+    );
+  }
+  return (
+    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+      (tx?.amountCents || 0) > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-purple-50 text-[#5B42F3] border border-purple-100"
+    }`}>
+      {(tx?.amountCents || 0) > 0 ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+    </div>
+  );
+};
 
 // Real Brand Visual Renderer
 const BrandIcon = ({
@@ -817,6 +885,7 @@ export default function MiniAppShopModern() {
   const [showApiKeySecret, setShowApiKeySecret] = useState(false);
   const [copiedApiKey, setCopiedApiKey] = useState(false);
   const [selectedApiKeyOrders, setSelectedApiKeyOrders] = useState<any | null>(null);
+  const [selectedTxDetail, setSelectedTxDetail] = useState<any | null>(null);
   const [txSearchQuery, setTxSearchQuery] = useState("");
   const [txFilterType, setTxFilterType] = useState<"all" | "deposit" | "purchase" | "smm">("all");
 
@@ -3199,23 +3268,6 @@ export default function MiniAppShopModern() {
                     </button>
 
                     <button
-                      onClick={() => setProfileSubTab("api")}
-                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Key className="w-4 h-4 text-amber-500" /> Developer / Reseller API
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {apiKeysData?.activeKey ? (
-                          <span className="text-[10.5px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Active</span>
-                        ) : (
-                          <span className="text-[10.5px] font-bold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">Create Key</span>
-                        )}
-                        <ChevronRight className="w-4 h-4 text-[#9490A8]" />
-                      </div>
-                    </button>
-
-                    <button
                       onClick={() => setProfileSubTab("transactions")}
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
@@ -3276,7 +3328,7 @@ export default function MiniAppShopModern() {
                       </div>
 
                       {/* Active Key Box */}
-                      {apiKeysData?.activeKey ? (
+                      {apiKeysData?.activeKey?.key ? (
                         <div className="p-4 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -3294,10 +3346,13 @@ export default function MiniAppShopModern() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(apiKeysData.activeKey.key);
-                                  setCopiedApiKey(true);
-                                  toast({ title: "API Key Copied! 📋" });
-                                  setTimeout(() => setCopiedApiKey(false), 2000);
+                                  const k = apiKeysData?.activeKey?.key;
+                                  if (k) {
+                                    navigator.clipboard.writeText(k);
+                                    setCopiedApiKey(true);
+                                    toast({ title: "API Key Copied! 📋" });
+                                    setTimeout(() => setCopiedApiKey(false), 2000);
+                                  }
                                 }}
                                 className="text-[11px] font-bold text-[#181432] bg-white border border-[#ECEEF8] hover:bg-[#EDE9FE] px-2 py-1 rounded-lg flex items-center gap-1 shadow-2xs"
                               >
@@ -3311,7 +3366,7 @@ export default function MiniAppShopModern() {
                             <input
                               readOnly
                               type={showApiKeySecret ? "text" : "password"}
-                              value={apiKeysData.activeKey.key}
+                              value={apiKeysData?.activeKey?.key || ""}
                               className="w-full px-3 py-2.5 bg-white border border-[#ECEEF8] rounded-xl text-xs font-mono font-bold text-[#181432]"
                             />
                           </div>
@@ -3321,7 +3376,7 @@ export default function MiniAppShopModern() {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => revokeKeyMutation.mutate(apiKeysData.activeKey.id)}
+                                onClick={() => apiKeysData?.activeKey?.id && revokeKeyMutation.mutate(apiKeysData.activeKey.id)}
                                 disabled={revokeKeyMutation.isPending}
                                 className="text-red-500 hover:underline font-bold"
                               >
@@ -3329,7 +3384,7 @@ export default function MiniAppShopModern() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => deleteKeyMutation.mutate(apiKeysData.activeKey.id)}
+                                onClick={() => apiKeysData?.activeKey?.id && deleteKeyMutation.mutate(apiKeysData.activeKey.id)}
                                 disabled={deleteKeyMutation.isPending}
                                 className="text-neutral-400 hover:text-red-500 font-bold"
                               >
@@ -3356,25 +3411,25 @@ export default function MiniAppShopModern() {
                       )}
 
                       {/* API Stats Metrics */}
-                      {apiKeysData?.activeKey && (
+                      {apiKeysData?.activeKey?.key && (
                         <div className="grid grid-cols-3 gap-2 pt-1">
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-[#9490A8] block">API Orders</span>
-                            <span className="text-base font-black text-[#181432]">{apiKeysData.activeKey.totalOrders || 0}</span>
+                            <span className="text-base font-black text-[#181432]">{apiKeysData?.activeKey?.totalOrders || 0}</span>
                           </div>
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-emerald-600 block">Success</span>
-                            <span className="text-base font-black text-emerald-600">{apiKeysData.activeKey.successOrders || 0}</span>
+                            <span className="text-base font-black text-emerald-600">{apiKeysData?.activeKey?.successOrders || 0}</span>
                           </div>
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-purple-600 block">API Spend</span>
-                            <span className="text-base font-black text-purple-600">${((apiKeysData.activeKey.revenue || 0) / 100).toFixed(2)}</span>
+                            <span className="text-base font-black text-purple-600">${(((apiKeysData?.activeKey?.revenue || 0)) / 100).toFixed(2)}</span>
                           </div>
                         </div>
                       )}
 
                       {/* Action to create new key if already has one */}
-                      {apiKeysData?.activeKey && (
+                      {apiKeysData?.activeKey?.key && (
                         <Button
                           onClick={() => generateKeyMutation.mutate()}
                           disabled={generateKeyMutation.isPending}
@@ -3406,7 +3461,7 @@ export default function MiniAppShopModern() {
                         <h4 className="text-sm font-black text-[#181432] flex items-center gap-1.5">
                           <Receipt className="w-4 h-4 text-emerald-600" /> Account Transactions
                         </h4>
-                        <p className="text-[11px] text-[#7E7998] mt-0.5">Timeline of all deposits, store orders, and boosts.</p>
+                        <p className="text-[11px] text-[#7E7998] mt-0.5">Click any record to inspect receipt & details.</p>
                       </div>
                       <Button
                         variant="ghost"
@@ -3451,7 +3506,7 @@ export default function MiniAppShopModern() {
                             : "bg-[#F8F7FD] text-[#7E7998] hover:bg-blue-50"
                         }`}
                       >
-                        Purchases ({transactionsList.filter(t => t.type === "purchase").length})
+                        Purchases ({transactionsList.filter(t => t.type === "purchase" || t.type === "partner" || t.type === "smm").length})
                       </button>
                     </div>
 
@@ -3470,29 +3525,30 @@ export default function MiniAppShopModern() {
                     ) : (
                       <div className="divide-y divide-[#F5F4FC] max-h-96 overflow-y-auto">
                         {transactionsList
-                          .filter(t => txFilterType === "all" || t.type === txFilterType)
+                          .filter(t => txFilterType === "all" || (txFilterType === "deposit" ? t.type === "deposit" : t.type !== "deposit"))
                           .map((tx) => {
                             const isDeposit = tx.type === "deposit";
                             const statusLower = (tx.status || "").toLowerCase();
                             const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
                             const isPending = statusLower === "pending" || statusLower === "processing";
+                            const isRefunded = statusLower === "refunded";
 
                             return (
-                              <div key={tx.id} className="py-3 px-1 flex items-center justify-between gap-3 hover:bg-[#F8F7FD] rounded-2xl transition-colors">
+                              <div
+                                key={tx.id}
+                                onClick={() => setSelectedTxDetail(tx)}
+                                className="py-3 px-2 flex items-center justify-between gap-3 hover:bg-[#F8F7FD] cursor-pointer rounded-2xl transition-all active:scale-[0.99]"
+                              >
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 ${
-                                    isDeposit
-                                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                      : "bg-purple-50 text-[#5B42F3] border border-purple-100"
-                                  }`}>
-                                    {isDeposit ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                                  </div>
+                                  <TransactionBrandIcon tx={tx} />
                                   <div className="min-w-0">
-                                    <div className="text-xs font-black text-[#181432] truncate">{tx.title}</div>
-                                    <div className="text-[10px] text-[#7E7998] flex items-center gap-1 font-mono">
+                                    <div className="text-xs font-black text-[#181432] truncate flex items-center gap-1.5">
+                                      <span>{tx.title}</span>
+                                    </div>
+                                    <div className="text-[10px] text-[#7E7998] flex items-center gap-1 font-mono mt-0.5">
                                       <span>{new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span>
                                       <span>•</span>
-                                      <span className="truncate">{tx.reference}</span>
+                                      <span className="truncate text-[#5B42F3] font-semibold">{tx.reference}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -3506,6 +3562,8 @@ export default function MiniAppShopModern() {
                                       ? "bg-emerald-50 text-emerald-600"
                                       : isPending
                                       ? "bg-amber-50 text-amber-600"
+                                      : isRefunded
+                                      ? "bg-sky-50 text-sky-600"
                                       : "bg-red-50 text-red-600"
                                   }`}>
                                     {tx.status}
@@ -3523,6 +3581,182 @@ export default function MiniAppShopModern() {
           </motion.div>
         )}
       </div>
+
+      {/* TRANSACTION DETAILS POPUP MODAL */}
+      <Dialog open={!!selectedTxDetail} onOpenChange={(open) => !open && setSelectedTxDetail(null)}>
+        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          {selectedTxDetail && (() => {
+            const isDeposit = selectedTxDetail.type === "deposit";
+            const statusLower = (selectedTxDetail.status || "").toLowerCase();
+            const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
+            const isPending = statusLower === "pending" || statusLower === "processing";
+            const isRefunded = statusLower === "refunded";
+
+            return (
+              <div className="space-y-4">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Transaction Details</DialogTitle>
+                  <DialogDescription>Overview and receipt of transaction</DialogDescription>
+                </DialogHeader>
+
+                {/* Top Action Header */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setSelectedTxDetail(null)}
+                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  <span className={`text-[10.5px] font-black uppercase px-3 py-1 rounded-full flex items-center gap-1.5 border shadow-2xs ${
+                    isSuccess
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                      : isPending
+                      ? "bg-amber-50 text-amber-600 border-amber-200"
+                      : isRefunded
+                      ? "bg-sky-50 text-sky-600 border-sky-200"
+                      : "bg-red-50 text-red-600 border-red-200"
+                  }`}>
+                    {isSuccess ? <CheckCircle2 className="w-3.5 h-3.5" /> : isPending ? <Clock className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    {selectedTxDetail.status}
+                  </span>
+                </div>
+
+                {/* Center Brand Visual & Amount */}
+                <div className="text-center py-2">
+                  <div className="w-16 h-16 rounded-3xl bg-white border border-[#ECEEF8] shadow-md mx-auto mb-3 flex items-center justify-center p-2">
+                    <TransactionBrandIcon tx={selectedTxDetail} />
+                  </div>
+                  <h3 className="text-base font-black text-[#181432]">
+                    {selectedTxDetail.title}
+                  </h3>
+                  <div className="text-[11px] font-bold text-[#7E7998] mt-0.5">
+                    {selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order")}
+                  </div>
+
+                  {/* Dual Currency Amount Card */}
+                  <div className={`mt-3 p-3.5 rounded-2xl border text-center ${
+                    isDeposit
+                      ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800"
+                      : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"
+                  }`}>
+                    <div className="text-2xl font-black font-mono">
+                      {isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD`}
+                    </div>
+                    <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
+                      ≈ Rs. {selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()} LKR
+                    </div>
+                  </div>
+                </div>
+
+                {/* Metadata Details List */}
+                <div className="bg-white p-4 rounded-2xl border border-[#ECEEF8] space-y-3 text-xs shadow-2xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
+                    <span className="text-[#9490A8] font-bold">Reference ID:</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}`);
+                        toast({ title: "Reference ID Copied! 📋" });
+                      }}
+                      className="font-mono font-black text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8]"
+                    >
+                      <span>{selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}`}</span>
+                      <Copy className="w-3 h-3 text-[#9490A8]" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
+                    <span className="text-[#9490A8] font-bold">Date & Time:</span>
+                    <span className="font-semibold text-[#181432]">
+                      {new Date(selectedTxDetail.createdAt).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
+                    <span className="text-[#9490A8] font-bold">Payment Method:</span>
+                    <span className="font-bold text-[#181432] flex items-center gap-1">
+                      {selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" ? (
+                        <span className="text-blue-600 flex items-center gap-1">💳 Card Payment (Visa / Mastercard)</span>
+                      ) : selectedTxDetail.method === "binance_pay" ? (
+                        <span className="text-amber-600 flex items-center gap-1">🟡 Binance Pay</span>
+                      ) : selectedTxDetail.method === "cryptomus" ? (
+                        <span className="text-purple-600 flex items-center gap-1">🟣 Cryptomus (USDT)</span>
+                      ) : (
+                        <span className="text-emerald-600 flex items-center gap-1">💰 Wallet Balance</span>
+                      )}
+                    </span>
+                  </div>
+
+                  {selectedTxDetail.details && (
+                    <div className="pt-1">
+                      <span className="text-[#9490A8] font-bold block mb-1">Details:</span>
+                      <p className="text-[#181432] bg-[#F8F7FD] p-2.5 rounded-xl border border-[#ECEEF8] leading-relaxed text-[11px]">
+                        {selectedTxDetail.details}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* SMM Target Link if applicable */}
+                  {selectedTxDetail.smmLink && (
+                    <div className="pt-1">
+                      <span className="text-[#9490A8] font-bold block mb-1">Target Link & Quantity:</span>
+                      <div className="bg-[#F8F7FD] p-2.5 rounded-xl border border-[#ECEEF8] text-[11px] space-y-1">
+                        <div className="font-mono text-[#5B42F3] truncate">{selectedTxDetail.smmLink}</div>
+                        <div className="text-[#7E7998] font-bold">Quantity: {selectedTxDetail.smmQuantity} units</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivered Credentials / License Key Box */}
+                  {selectedTxDetail.deliveredContent && (
+                    <div className="pt-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-emerald-700 font-extrabold flex items-center gap-1 text-[11.5px]">
+                          <Zap className="w-3.5 h-3.5 text-emerald-600" /> Delivered Account / License Key:
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedTxDetail.deliveredContent);
+                            toast({ title: "Account Info Copied! 📋" });
+                          }}
+                          className="text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1"
+                        >
+                          <Copy className="w-3 h-3" /> Copy Content
+                        </button>
+                      </div>
+                      <pre className="p-3 bg-[#181432] text-emerald-400 font-mono text-[10.5px] rounded-xl overflow-x-auto whitespace-pre-wrap select-all">
+                        {selectedTxDetail.deliveredContent}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Refund Notice */}
+                  {isRefunded && (
+                    <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-[11px] font-bold flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-sky-600 shrink-0" />
+                      <span>This order was refunded to your wallet balance.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Close Button */}
+                <Button
+                  onClick={() => setSelectedTxDetail(null)}
+                  className="w-full h-11 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] text-xs font-black rounded-2xl shadow-2xs transition-all"
+                >
+                  Close Receipt
+                </Button>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* PRODUCT DETAIL MODAL */}
       <Dialog open={!!detailProduct} onOpenChange={(open) => !open && setDetailProduct(null)}>
