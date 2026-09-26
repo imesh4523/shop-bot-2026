@@ -226,7 +226,8 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       const preorderItem = await storage.createPreorder({
         productId: prod.id,
         telegramUserId: user.id,
-        amount: totalCost,
+        quantity: qtyInt,
+        totalPrice: totalCost,
         status: "pending_fulfillment"
       });
 
@@ -441,9 +442,10 @@ apiV1Router.get("/pending/:id", async (req: AuthenticatedApiRequest, res: Respon
         id: item.id,
         product_id: item.productId,
         product_name: prod?.name || "Unknown Product",
-        amount_usd: (item.amount / 100).toFixed(2),
+        quantity: item.quantity,
+        amount_usd: (item.totalPrice / 100).toFixed(2),
         status: item.status,
-        delivered_content: item.deliveredCredentials || null,
+        delivered_content: item.fulfilledCredentialIds || null,
         fulfilled_at: item.fulfilledAt || null,
         created_at: item.createdAt
       }

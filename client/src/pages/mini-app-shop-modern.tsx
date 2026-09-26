@@ -112,26 +112,14 @@ const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </span>
 );
 
+const CAPCUT_IMG = "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.pZpm0Z4411CbphwIhfBM6AHaHa%3Fr%3D0%26pid%3DApi&f=1&ipt=eae86a3f91c99488278eef014b1f759c68adf46152c5d6d39388587032507959&ipo=images";
+
 const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="24" fill="#000000" />
-    <path
-      d="M16 18H40L64 46H40L16 18Z"
-      fill="#FFFFFF"
-    />
-    <path
-      d="M84 18H60L36 46H60L84 18Z"
-      fill="#FFFFFF"
-    />
-    <path
-      d="M16 82H40L64 54H40L16 82Z"
-      fill="#FFFFFF"
-    />
-    <path
-      d="M84 82H60L36 54H60L84 82Z"
-      fill="#FFFFFF"
-    />
-  </svg>
+  <img
+    src={CAPCUT_IMG}
+    alt="CapCut"
+    className={`${className} shrink-0 object-contain rounded-lg`}
+  />
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
@@ -168,46 +156,32 @@ const BinanceLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <SiBinance className={`${className} text-[#F3BA2F]`} />
 );
 
+const CRYPTOMUS_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4Dc5F7WV38gVL95M4xZR5UFU87Ovr4UeR40nKbJg6Gg&s=10";
+const TX_VISA_MASTER_IMG = "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.XLxva8A-P8lZLn8yuU-aYgHaGL%3Fr%3D0%26pid%3DApi&f=1&ipt=35062e222ce1c0d79eebcbb246f4653ebf70f185b2d048c79e4970ec07fa6de1&ipo=images";
+
 const CryptomusLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100" height="100" rx="24" fill="#5B42F3" />
-    <path
-      d="M50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80C61.0457 80 70.6863 74.0294 75.8361 65.1639L65.4426 59.1639C62.3527 64.4832 56.5685 68 50 68C40.0589 68 32 59.9411 32 50C32 40.0589 40.0589 32 50 32C56.5685 32 62.3527 35.5168 65.4426 40.8361L75.8361 34.8361C70.6863 25.9706 61.0457 20 50 20Z"
-      fill="#FFFFFF"
-    />
-  </svg>
+  <img
+    src={CRYPTOMUS_IMG}
+    alt="Cryptomus"
+    className={`${className} shrink-0 object-contain rounded-lg`}
+  />
 );
 
 const VisaMasterCardIcon = ({ className = "w-6 h-4.5" }: { className?: string }) => (
-  <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} shrink-0`}>
-    <rect width="40" height="28" rx="5" fill="url(#cardGrad)" />
-    <rect x="0.5" y="0.5" width="39" height="27" rx="4.5" stroke="#FFFFFF" strokeOpacity="0.18" />
-    {/* Metallic Chip */}
-    <rect x="4" y="5" width="6" height="4.5" rx="1" fill="#F1F5F9" />
-    <path d="M7 5v4.5M4 7.25h6" stroke="#94A3B8" strokeWidth="0.4" />
-    {/* VISA Logo Text */}
-    <path d="M4.5 19.5l1.3-4.8h1.2l-.8 4.8H4.5zm4.8-4.7c-.2-.1-.6-.2-1-.2-1.1 0-1.9.6-1.9 1.4 0 .6.5.9 1 .1.4.2.6.4.6.6 0 .3-.4.4-.7.4-.5 0-.8-.1-1.1-.3l-.2 1c.3.1.8.2 1.3.2 1.2 0 2-.6 2-1.5 0-.5-.3-.9-1-1.2-.4-.2-.6-.3-.6-.5 0-.2.2-.4.7-.4.4 0 .7.1.9.2l.2-.9zm2.7 0h-1c-.3 0-.5.1-.6.4l-1.8 4.3h1.3l.3-.7h1.5l.1.7h1.1l-1-4.7zm-1.5 2.8l.5-1.4.3 1.4h-.8z" fill="#FFFFFF" />
-    {/* Mastercard Intersecting Circles */}
-    <circle cx="28" cy="16.5" r="4.5" fill="#EB001B" />
-    <circle cx="33.5" cy="16.5" r="4.5" fill="#F79E1B" fillOpacity="0.92" />
-    <path d="M30.75 13a4.5 4.5 0 0 1 1.75 3.5 4.5 4.5 0 0 1-1.75 3.5 4.5 4.5 0 0 1-1.75-3.5c0-1.4.7-2.6 1.75-3.5z" fill="#FF5F00" />
-    <defs>
-      <linearGradient id="cardGrad" x1="0" y1="0" x2="40" y2="28" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#1E1B4B" />
-        <stop offset="1" stopColor="#3730A3" />
-      </linearGradient>
-    </defs>
-  </svg>
+  <img
+    src={TX_VISA_MASTER_IMG}
+    alt="Visa Mastercard"
+    className={`${className} shrink-0 object-contain`}
+  />
 );
 
 const DualCardIcon = ({ className = "h-4" }: { className?: string }) => (
   <div className={`inline-flex items-center gap-1 shrink-0 ${className}`}>
-    <div className="h-3.5 px-1 rounded-[3px] bg-white border border-[#CBD5E1] flex items-center justify-center shadow-3xs">
-      <SiVisa className="h-2 w-auto text-[#1A1F71]" />
-    </div>
-    <div className="h-3.5 px-1 rounded-[3px] bg-[#18181B] border border-zinc-700 flex items-center justify-center shadow-3xs">
-      <SiMastercard className="h-2 w-auto text-[#EB001B]" />
-    </div>
+    <img
+      src={TX_VISA_MASTER_IMG}
+      alt="Visa Mastercard"
+      className="h-4 w-auto object-contain rounded-sm"
+    />
   </div>
 );
 
@@ -219,8 +193,12 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return (
-      <div className={`${className} rounded-2xl bg-indigo-50/90 border border-indigo-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden`}>
-        <VisaMasterCardIcon className={isLarge ? "w-10 h-7" : "w-6 h-4.5"} />
+      <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src={TX_VISA_MASTER_IMG}
+          alt="Visa Mastercard"
+          className={isLarge ? "w-10 h-8 object-contain" : "w-7 h-5 object-contain"}
+        />
       </div>
     );
   }
@@ -2615,7 +2593,137 @@ export default function MiniAppShopModern() {
                 <CreditCard className="w-4 h-4 text-[#D92078]" /> PAYMENT METHODS
               </h3>
 
-              {/* 1. BINANCE PAY REAL GATEWAY */}
+              {/* 1. CARD PAYMENT (VISA / MASTERCARD) - AT THE TOP */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-10 px-3 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-2 shadow-sm border border-[#0052CC]/15">
+                      {/* Crisp Visa & Mastercard vector logos with full unclipped viewBox */}
+                      <svg className="h-3.5 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+                      </svg>
+                      <svg className="h-4 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+                        <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+                        <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Visa / Mastercard</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">Instant Credit & Debit Card Deposit</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount selection quick chips */}
+                <div className="mb-3.5">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
+                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
+                    {selectedCurrency === "LKR" ? (
+                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
+                      </span>
+                    ) : (
+                      <span className="text-blue-600 font-black text-[10px]">
+                        ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
+                      </span>
+                    )}
+                  </label>
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setPayhereAmount(amt)}
+                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                            isSelected
+                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
+                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                          }`}
+                        >
+                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
+                      {selectedCurrency === "LKR" ? "Rs." : "$"}
+                    </span>
+                    <input
+                      type="number"
+                      min={selectedCurrency === "LKR" ? "50" : "1"}
+                      step={selectedCurrency === "LKR" ? "50" : "1"}
+                      value={payhereAmount}
+                      onChange={(e) => setPayhereAmount(e.target.value)}
+                      onBlur={() => {
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(payhereEffectiveLkr.toString());
+                        }
+                      }}
+                      placeholder={selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)"}
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
+                    />
+                  </div>
+                </div>
+
+                {/* Accepted Cards & Wallets Badge row with Official Branded Logos */}
+                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
+                  <span className="text-[10px] font-bold text-[#7E7998] mr-1">Accepted:</span>
+                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs">
+                    <svg className="h-3 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+                    </svg>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs">
+                    <svg className="h-3 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+                      <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+                      <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+                    </svg>
+                    <span className="text-[9.5px] font-black text-[#181432]">Mastercard</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-purple-200/80 shadow-xs">
+                    <img src="/frimi.png" alt="FriMi" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[9.5px] font-black text-[#582C83]">FriMi</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-red-200/80 shadow-xs">
+                    <img src="/ipay.png" alt="iPay" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[9.5px] font-black text-[#E31B23]">iPay</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs">
+                    <img src="/qplus.png" alt="Q+ Payment" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayHerePay}
+                  disabled={isCreatingPayHere}
+                  className="w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isCreatingPayHere ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Secure Checkout...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        {selectedCurrency === "LKR"
+                          ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card`
+                          : `Pay $${payhereAmount || "0"} with Card`}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 2. BINANCE PAY REAL GATEWAY - IN THE MIDDLE */}
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
@@ -2750,148 +2858,38 @@ export default function MiniAppShopModern() {
                 </form>
 
                 {binanceSuccessMsg && (
-                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{binanceSuccessMsg}</span>
+                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="break-words">{binanceSuccessMsg}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBinanceSuccessMsg(null)}
+                      className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-600 hover:text-emerald-800 transition-colors shrink-0"
+                      title="Dismiss"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
 
                 {binanceErrorMsg && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold flex items-start gap-2 animate-in fade-in">
-                    <X className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <span className="leading-snug">{binanceErrorMsg}</span>
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold flex items-start justify-between gap-2 animate-in fade-in">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                      <span className="leading-snug break-words">{binanceErrorMsg}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBinanceErrorMsg(null)}
+                      className="p-1 hover:bg-red-100 rounded-lg text-red-500 hover:text-red-700 transition-colors shrink-0"
+                      title="Dismiss"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
-              </div>
-
-              {/* 2. CARD PAYMENT (VISA / MASTERCARD) - IN THE MIDDLE */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-10 px-3 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-2 shadow-sm border border-[#0052CC]/15">
-                      {/* Crisp Visa & Mastercard vector logos with full unclipped viewBox */}
-                      <svg className="h-3.5 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
-                      </svg>
-                      <svg className="h-4 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="9" cy="9" r="9" fill="#EB001B"/>
-                        <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
-                        <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-[#181432]">Visa / Mastercard</h4>
-                      <span className="text-[10px] font-bold text-[#7E7998]">Instant Credit & Debit Card Deposit</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Amount selection quick chips */}
-                <div className="mb-3.5">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
-                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
-                    {selectedCurrency === "LKR" ? (
-                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
-                      </span>
-                    ) : (
-                      <span className="text-blue-600 font-black text-[10px]">
-                        ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
-                      </span>
-                    )}
-                  </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
-                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
-                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
-                      return (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setPayhereAmount(amt)}
-                          className={`py-2 rounded-xl text-xs font-black transition-all ${
-                            isSelected
-                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
-                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
-                          }`}
-                        >
-                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
-                      {selectedCurrency === "LKR" ? "Rs." : "$"}
-                    </span>
-                    <input
-                      type="number"
-                      min={selectedCurrency === "LKR" ? "50" : "1"}
-                      step={selectedCurrency === "LKR" ? "50" : "1"}
-                      value={payhereAmount}
-                      onChange={(e) => setPayhereAmount(e.target.value)}
-                      onBlur={() => {
-                        if (selectedCurrency === "LKR") {
-                          setPayhereAmount(payhereEffectiveLkr.toString());
-                        }
-                      }}
-                      placeholder={selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)"}
-                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
-                    />
-                  </div>
-                </div>
-
-                {/* Accepted Cards & Wallets Badge row with Official Branded Logos */}
-                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
-                  <span className="text-[10px] font-bold text-[#7E7998] mr-1">Accepted:</span>
-                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs">
-                    <svg className="h-3 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
-                    </svg>
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs">
-                    <svg className="h-3 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="9" cy="9" r="9" fill="#EB001B"/>
-                      <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
-                      <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
-                    </svg>
-                    <span className="text-[9.5px] font-black text-[#181432]">Mastercard</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-purple-200/80 shadow-xs">
-                    <img src="/frimi.png" alt="FriMi" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#582C83]">FriMi</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-red-200/80 shadow-xs">
-                    <img src="/ipay.png" alt="iPay" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#E31B23]">iPay</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs">
-                    <img src="/qplus.png" alt="Q+ Payment" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePayHerePay}
-                  disabled={isCreatingPayHere}
-                  className="w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {isCreatingPayHere ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Secure Checkout...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-4 h-4" />
-                      <span>
-                        {selectedCurrency === "LKR"
-                          ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card`
-                          : `Pay $${payhereAmount || "0"} with Card`}
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
               </div>
 
               {/* 3. CRYPTOMUS GATEWAY - AT THE BOTTOM */}
@@ -2902,7 +2900,7 @@ export default function MiniAppShopModern() {
                       <CryptomusLogo className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-[#181432]">Cryptomus Auto-Pay</h4>
+                      <h4 className="text-sm font-black text-[#181432]">Cryptomus</h4>
                       <span className="text-[10px] font-bold text-[#7E7998]">USDT • TRC20 • BEP20 • TON • BTC</span>
                     </div>
                   </div>

@@ -81,8 +81,15 @@ function RootRouteHandler() {
     return <PageLoader />;
   }
 
-  // Check if accessing via custom admin subdomain (e.g. imeshmain2.youuhost.com or admin.youuhost.com)
   const host = window.location.hostname.toLowerCase();
+
+  // 1. Check if accessing via API subdomain (e.g. api.youuhost.com)
+  const isApiSubdomain = host.startsWith("api.") || host === "api.youuhost.com";
+  if (isApiSubdomain) {
+    return <ApiDocsPage />;
+  }
+
+  // 2. Check if accessing via custom admin subdomain (e.g. imeshmain2.youuhost.com or admin.youuhost.com)
   const isAdminSubdomain =
     host.startsWith("imesh") ||
     host.startsWith("admin") ||
@@ -108,6 +115,10 @@ function Router() {
     <Switch>
       {/* Public Pages */}
       <Route path="/docs">
+        <ApiDocsPage />
+      </Route>
+
+      <Route path="/api-docs">
         <ApiDocsPage />
       </Route>
 

@@ -632,37 +632,75 @@ export async function sendLuxuryEmail({
   let errorMessage: string | undefined;
 
   try {
-    const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
-    const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
-    const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
-    const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
-    const smtpFrom = (await storage.getSetting("SMTP_FROM"))?.value || process.env.SMTP_FROM || `"YouuHost" <no-reply@youuhost.store>`;
+    const resendApiKey = (await storage.getSetting("RESEND_API_KEY"))?.value || process.env.RESEND_API_KEY;
+    const fromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || (await storage.getSetting("SMTP_FROM"))?.value || `"YouuHost" <no-reply@youuhost.com>`;
 
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      throw new Error("SMTP is not configured in Settings. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS.");
+    if (resendApiKey && resendApiKey.startsWith("re_")) {
+      // 1. Send via Resend API (Transactional Engine)
+      const resendAttachments = attachments && attachments.length > 0
+        ? attachments.map((a) => {
+            const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content);
+            return {
+              filename: a.filename,
+              content: buf.toString("base64"),
+            };
+          })
+        : undefined;
+
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendApiKey.trim()}`,
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [toEmail.trim()],
+          subject,
+          html,
+          attachments: resendAttachments,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(`Resend Error: ${data.message || data.error || res.statusText}`);
+      }
+
+      console.log(`[Email Hub - Resend API] Sent "${subject}" to ${toEmail} from ${fromEmail} (ID: ${data.id})`);
+    } else {
+      // 2. Fallback: Send via SMTP
+      const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+      const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+      const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+      const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+
+      if (!smtpHost || !smtpUser || !smtpPass) {
+        throw new Error("Neither Resend API nor SMTP is configured. Please enter Resend API Key or SMTP credentials in Settings.");
+      }
+
+      const nodemailerMod = await import("nodemailer");
+      const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      await transporter.sendMail({
+        from: fromEmail,
+        to: toEmail,
+        subject,
+        html,
+        attachments: attachments && attachments.length > 0 ? attachments : undefined,
+      });
+
+      console.log(`[Email Hub - SMTP] Email "${subject}" sent to ${toEmail} from ${fromEmail}`);
     }
-
-    const nodemailerMod = await import("nodemailer");
-    const nodemailer = (nodemailerMod as any).default || nodemailerMod;
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
-
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: toEmail,
-      subject,
-      html,
-      attachments: attachments && attachments.length > 0 ? attachments : undefined,
-    });
-
-    console.log(`[Email Hub] Email "${subject}" successfully sent to ${toEmail} with ${attachments?.length || 0} attachments`);
   } catch (err: any) {
     logStatus = "failed";
     errorMessage = err?.message || String(err);
@@ -5141,7 +5179,15 @@ app.post("/api/admin/domain-automation/settings", isAuth, async (req, res) => {
       await storage.setSetting("API_BASE_URL", `https://api.${lastDomain.trim().toLowerCase()}`);
     }
 
-    res.json({ success: true, message: "Domain automation settings saved successfully!" });
+    // Auto-Trigger Background Orchestrator if tokens are configured
+    const currentToken = cloudflareToken || (await storage.getSetting("CLOUDFLARE_API_TOKEN"))?.value;
+    if (currentToken) {
+      domainAutomationService.runAutoPilotFix(lastDomain || "youuhost.com").catch((e) => {
+        console.warn("[Background Auto-Pilot on Settings Save]:", e.message);
+      });
+    }
+
+    res.json({ success: true, message: "Domain automation settings saved & auto-sync triggered successfully!" });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to save domain automation settings" });
   }
@@ -5304,6 +5350,50 @@ app.post("/api/admin/domain-automation/admin-subdomain", isAuth, async (req, res
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to configure admin subdomain" });
+  }
+});
+
+// 13b. Global DNS Propagation Multi-Node Checker
+app.post("/api/admin/domain-automation/dns-propagation", isAuth, async (req, res) => {
+  try {
+    const { domain, recordType } = req.body;
+    const result = await domainAutomationService.checkDnsPropagation(domain, recordType || "A");
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "DNS propagation check failed" });
+  }
+});
+
+// 13c. Real-Time Infrastructure Diagnostics & Terminal Stream
+app.post("/api/admin/domain-automation/diagnostics", isAuth, async (req, res) => {
+  try {
+    const { domainName, zoneId } = req.body;
+    const result = await domainAutomationService.runComprehensiveDiagnostics(domainName, zoneId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Diagnostics execution failed" });
+  }
+});
+
+// 13d. Unified Zero-Touch Infrastructure Status & Pipeline
+app.get("/api/admin/domain-automation/unified-status", isAuth, async (req, res) => {
+  try {
+    const { domain } = req.query;
+    const result = await domainAutomationService.getUnifiedInfrastructureStatus(domain as string | undefined);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load unified infrastructure status" });
+  }
+});
+
+// 13e. 1-Click Zero-Touch Auto-Pilot Fix / Provision
+app.post("/api/admin/domain-automation/auto-pilot-fix", isAuth, async (req, res) => {
+  try {
+    const { domain } = req.body;
+    const result = await domainAutomationService.runAutoPilotFix(domain);
+    res.json({ success: true, message: "100% Zero-Touch Auto-Pilot Provisioning Complete! 🚀", result });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Auto-pilot provisioning failed" });
   }
 });
 

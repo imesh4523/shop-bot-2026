@@ -60,7 +60,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Email Hub & Receipts', href: '/imeshadmindashbord/email-hub', icon: Mail },
     { name: 'All Orders', href: '/imeshadmindashbord/all-orders', icon: Layers },
     { name: 'API Keys', href: '/imeshadmindashbord/api-keys', icon: Key },
-    { name: 'Cloudflare & Resend', href: '/imeshadmindashbord/domain-automation', icon: Globe },
+    { name: 'Domain Automation', href: '/imeshadmindashbord/domain-automation', icon: Globe },
     { name: 'PayHere Gateway', href: '/imeshadmindashbord/payhere', icon: CreditCard },
     { name: 'Store Mesh Connect', href: '/imeshadmindashbord/store-mesh', icon: Network },
     { name: 'Pre-Orders', href: '/imeshadmindashbord/preorders', icon: Clock },
