@@ -5,6 +5,8 @@
  */
 
 import { jsPDF } from "jspdf";
+import fs from "fs";
+import path from "path";
 
 export interface TransactionEmailProps {
   toEmail: string;
@@ -37,6 +39,20 @@ export interface CustomEmailProps {
 }
 
 /**
+ * Helper to get YouuHost Gradient Logo data URI or URL
+ */
+function getLogoDataUri(): string {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "youuhost_gradient_logo.png");
+    if (fs.existsSync(logoPath)) {
+      const buf = fs.readFileSync(logoPath);
+      return `data:image/png;base64,${buf.toString("base64")}`;
+    }
+  } catch (e) {}
+  return "https://youuhost.com/youuhost_gradient_logo.png";
+}
+
+/**
  * Generate PDF Invoice matching Image 3 layout
  */
 export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
@@ -48,9 +64,9 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 
   const invoiceNo = props.referenceId || `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
   const dateStr = props.dateStr || new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const recipientName = props.recipientName || "Valued Customer";
+  const recipientName = props.recipientName || "Test User";
   const toEmail = props.toEmail || "customer@youuhost.com";
-  const plan = props.planTitle || "Enterprise Cloud & AI Bot Hosting";
+  const plan = props.planTitle || "Enterprise AI Plan";
   const billingCycle = props.billingCycle || "Monthly";
   const amount = props.amount || "LKR 14,990.00";
 
@@ -59,14 +75,26 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   const right = 190;
   let y = 30;
 
-  // Header Brand & Title
-  // Left: youuhost (brand in green/dark)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.setTextColor(0, 194, 105); // #00c269 brand green
-  doc.text("youu", left, y);
-  doc.setTextColor(17, 24, 39); // #111827 dark
-  doc.text("host", left + 17, y);
+  // Try embedding logo image in PDF if available
+  try {
+    const logoPath = path.join(process.cwd(), "public", "youuhost_gradient_logo.png");
+    if (fs.existsSync(logoPath)) {
+      const imgData = fs.readFileSync(logoPath);
+      doc.addImage(imgData, "PNG", left, y - 10, 48, 14);
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(0, 194, 105);
+      doc.text("youu", left, y);
+      doc.setTextColor(17, 24, 39);
+      doc.text("host", left + 17, y);
+    }
+  } catch (e) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(0, 194, 105);
+    doc.text("youuhost", left, y);
+  }
 
   // Right: INVOICE
   doc.setFontSize(16);
@@ -74,15 +102,15 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.setTextColor(17, 24, 39);
   doc.text("INVOICE", right, y, { align: "right" });
 
-  y += 12;
+  y += 14;
   doc.setDrawColor(241, 245, 249);
   doc.setLineWidth(0.5);
   doc.line(left, y, right, y);
 
-  y += 16;
+  y += 14;
 
   // 2 Columns: Invoice Details (Left) and Billed To (Right)
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(17, 24, 39);
   doc.text("Invoice Details:", left, y);
@@ -106,7 +134,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.text("Payment Status: ", left, y);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 194, 105); // PAID green
-  doc.text("PAID", left + 27, y);
+  doc.text("PAID", left + 26, y);
 
   y += 16;
 
@@ -154,7 +182,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.text(amount, right, y, { align: "right" });
 
   // Footer Message
-  y = 240;
+  y = 235;
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(156, 163, 175);
@@ -174,15 +202,15 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
   if (m.includes("master") || m.includes("card") || m.includes("payhere") || m.includes("visa")) {
     const isMaster = m.includes("master") || (!m.includes("visa"));
     
-    // Official Mastercard / Visa Logo
+    // Official Mastercard / Visa Dual Circles
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 36px; height: 24px; background: #111827; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 3px;">
+          <td style="width: 38px; height: 26px; background: #0F172A; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 4px; border: 1px solid #1E293B;">
             <table cellpadding="0" cellspacing="0" border="0" align="center">
               <tr>
-                <td style="width: 12px; height: 12px; background: #EB001B; border-radius: 50%; opacity: 0.95;"></td>
-                <td style="width: 12px; height: 12px; background: #F79E1B; border-radius: 50%; margin-left: -5px; opacity: 0.95;"></td>
+                <td style="width: 13px; height: 13px; background: #EB001B; border-radius: 50%; opacity: 0.95;"></td>
+                <td style="width: 13px; height: 13px; background: #F79E1B; border-radius: 50%; margin-left: -6px; opacity: 0.95;"></td>
               </tr>
             </table>
           </td>
@@ -201,8 +229,8 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 36px; height: 24px; background: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle;">
-            <span style="color: #12161C; font-weight: 900; font-size: 11px; font-family: sans-serif; letter-spacing: -0.5px;">BIN</span>
+          <td style="width: 38px; height: 26px; background: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle;">
+            <span style="color: #12161C; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">BIN</span>
           </td>
         </tr>
       </table>
@@ -218,8 +246,8 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 36px; height: 24px; background: #5B42F3; border-radius: 6px; text-align: center; vertical-align: middle;">
-            <span style="color: #FFFFFF; font-weight: 900; font-size: 11px; font-family: sans-serif;">CR</span>
+          <td style="width: 38px; height: 26px; background: #5B42F3; border-radius: 6px; text-align: center; vertical-align: middle;">
+            <span style="color: #FFFFFF; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">CR</span>
           </td>
         </tr>
       </table>
@@ -235,7 +263,7 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
   const iconHtml = `
     <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
       <tr>
-        <td style="width: 36px; height: 24px; background: #10B981; border-radius: 6px; text-align: center; vertical-align: middle;">
+        <td style="width: 38px; height: 26px; background: #10B981; border-radius: 6px; text-align: center; vertical-align: middle;">
           <span style="color: #FFFFFF; font-weight: 900; font-size: 13px;">&#128179;</span>
         </td>
       </tr>
@@ -250,8 +278,8 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
 
 /**
  * Generate Luxury Transaction Verified / Payment Successful HTML Email
- * Exact match to Image 2 reference:
- * - Logo outside/above card
+ * EXACT match to Image 3 reference:
+ * - Real YouuHost Gradient Logo centered ABOVE the card
  * - Payment Successful heading with official blue checkmark badge
  * - Green CTA button
  * - Transaction Details, Payment Method with authentic logo, Invoice Attachment
@@ -265,6 +293,7 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
   const ctaText = props.ctaText || "Manage Subscription";
   const ctaUrl = props.ctaUrl || "https://youuhost.com/userdashbord/dashboard";
   const paymentInfo = getPaymentMethodHtml(props.paymentMethod, props.paymentMethodDetails);
+  const logoUri = getLogoDataUri();
 
   return `
 <!DOCTYPE html>
@@ -272,7 +301,7 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Successful - YouuHost</title>
+  <title>Your Subscription Invoice - YouuHost</title>
   <style>
     body {
       margin: 0;
@@ -292,41 +321,18 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
       max-width: 480px;
       margin: 0 auto;
     }
-    /* Brand Logo ABOVE the White Card */
+    /* TOP GRADIENT LOGO (ABOVE THE WHITE CARD) */
     .top-logo-container {
       text-align: center;
       margin-bottom: 24px;
     }
-    .brand-logo-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      text-decoration: none;
-    }
-    .brand-icon-svg {
+    .top-logo-img {
+      max-width: 175px;
+      height: auto;
       display: inline-block;
       vertical-align: middle;
-      width: 32px;
-      height: 32px;
     }
-    .brand-title-badge {
-      display: inline-block;
-      vertical-align: middle;
-      font-size: 22px;
-      font-weight: 800;
-      color: #0F172A;
-      letter-spacing: -0.5px;
-      padding: 2px 6px;
-      border-radius: 6px;
-    }
-    .brand-title-highlight {
-      background: #FEF08A;
-      color: #713F12;
-      padding: 1px 6px;
-      border-radius: 4px;
-    }
-    /* White Center Card */
+    /* MAIN WHITE CARD */
     .main-card {
       background-color: #FFFFFF;
       border-radius: 28px;
@@ -342,7 +348,6 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
       margin: 0 0 16px 0;
       letter-spacing: -0.5px;
     }
-    /* Verified Blue Scalloped Badge */
     .verified-blue-badge {
       display: inline-block;
       vertical-align: middle;
@@ -402,7 +407,7 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
     .detail-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
     .detail-icon-td {
       width: 44px;
@@ -452,22 +457,11 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
   <div class="wrapper">
     <div class="container">
 
-      <!-- TOP BRAND LOGO (ABOVE WHITE CARD) -->
+      <!-- TOP YOUUHOST GRADIENT LOGO (ABOVE WHITE CARD) -->
       <div class="top-logo-container">
-        <table align="center" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="vertical-align: middle; padding-right: 8px;">
-              <!-- YouuHost Green Mascot/Cloud Icon -->
-              <svg width="34" height="34" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M38 34H14C9.58172 34 6 30.4183 6 26C6 21.8492 9.16723 18.4388 13.2081 18.0416C14.1505 11.2339 20.0076 6 27 6C34.808 6 41.2583 12.0298 41.9511 19.7042C45.3944 20.8988 48 24.1685 48 28C48 32.4183 44.4183 34 40 34" stroke="#00C269" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M22 22L28 28L36 18" stroke="#00C269" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </td>
-            <td style="vertical-align: middle;">
-              <span style="font-size: 24px; font-weight: 900; color: #00C269; letter-spacing: -0.5px;">youu</span><span style="font-size: 24px; font-weight: 900; color: #0F172A; letter-spacing: -0.5px;">host</span>
-            </td>
-          </tr>
-        </table>
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none;">
+          <img src="${logoUri}" alt="youuhost" class="top-logo-img" />
+        </a>
       </div>
 
       <!-- MAIN WHITE CARD -->
@@ -591,13 +585,14 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
 }
 
 /**
- * Custom Broadcast / Announcement Template
+ * Custom Broadcast / Announcement Template with Top Logo
  */
 export function buildCustomEmailHtml(props: CustomEmailProps): string {
   const name = props.recipientName || "Valued Customer";
   const ctaText = props.ctaText || "View Account";
   const ctaUrl = props.ctaUrl || "https://youuhost.com";
   const badge = props.badgeText || "OFFICIAL NOTICE";
+  const logoUri = getLogoDataUri();
 
   return `
 <!DOCTYPE html>
@@ -626,6 +621,11 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
     .top-logo {
       text-align: center;
       margin-bottom: 24px;
+    }
+    .top-logo-img {
+      max-width: 175px;
+      height: auto;
+      display: inline-block;
     }
     .main-card {
       background-color: #FFFFFF;
@@ -686,7 +686,9 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
   <div class="wrapper">
     <div class="container">
       <div class="top-logo">
-        <span style="font-size: 24px; font-weight: 900; color: #00C269;">youu</span><span style="font-size: 24px; font-weight: 900; color: #0F172A;">host</span>
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none;">
+          <img src="${logoUri}" alt="youuhost" class="top-logo-img" />
+        </a>
       </div>
       <div class="main-card">
         <div style="text-align: center;">
