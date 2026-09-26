@@ -47,8 +47,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
+      <Loader2 className="w-8 h-8 animate-spin text-[#6C5CE7]" />
     </div>
   );
 }
@@ -272,11 +272,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="shopeefy-theme">
+      <ThemeProvider defaultTheme="light" storageKey="youuhost-theme">
         <TooltipProvider>
           <Toaster />
           <AdminNotifier />
-          <Router />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

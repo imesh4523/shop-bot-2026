@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BXXIpGD9.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BkNSEKSk.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115247,7 +115247,7 @@ class ErrorBoundary extends reactExports.Component {
   }
 }
 function PageLoader() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center bg-background", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-primary" }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center bg-[#F8F9FD]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-[#6C5CE7]" }) });
 }
 function ProtectedRoute({ component: Component }) {
   const { user, isLoading } = useAuth();
@@ -115324,10 +115324,10 @@ function Router() {
   ] });
 }
 function App() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeProvider, { defaultTheme: "dark", storageKey: "shopeefy-theme", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TooltipProvider, { children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeProvider, { defaultTheme: "light", storageKey: "youuhost-theme", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TooltipProvider, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(Toaster, {}),
     /* @__PURE__ */ jsxRuntimeExports.jsx(AdminNotifier, {}),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Router, {})
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Router, {}) })
   ] }) }) });
 }
 window.addEventListener("error", (event) => {
