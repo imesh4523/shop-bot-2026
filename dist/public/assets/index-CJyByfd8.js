@@ -73768,7 +73768,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CW6nEEIG.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-GgWEa4fF.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90666,8 +90666,14 @@ function FaAws(props) {
 function SiVultr(props) {
   return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M8.36 2.172A1.194 1.194 0 007.348 1.6H1.2A1.2 1.2 0 000 2.8a1.211 1.211 0 00.182.64l11.6 18.4a1.206 1.206 0 002.035 0l3.075-4.874a1.229 1.229 0 00.182-.64 1.211 1.211 0 00-.182-.642zm10.349 8.68a1.206 1.206 0 002.035 0L21.8 9.178l2.017-3.2a1.211 1.211 0 00.183-.64 1.229 1.229 0 00-.183-.64l-1.6-2.526a1.206 1.206 0 00-1.016-.571h-6.148a1.2 1.2 0 00-1.201 1.2 1.143 1.143 0 00.188.64z" }, "child": [] }] })(props);
 }
+function SiVisa(props) {
+  return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M9.112 8.262L5.97 15.758H3.92L2.374 9.775c-.094-.368-.175-.503-.461-.658C1.447 8.864.677 8.627 0 8.479l.046-.217h3.3a.904.904 0 01.894.764l.817 4.338 2.018-5.102zm8.033 5.049c.008-1.979-2.736-2.088-2.717-2.972.006-.269.262-.555.822-.628a3.66 3.66 0 011.913.336l.34-1.59a5.207 5.207 0 00-1.814-.333c-1.917 0-3.266 1.02-3.278 2.479-.012 1.079.963 1.68 1.698 2.04.756.367 1.01.603 1.006.931-.005.504-.602.725-1.16.734-.975.015-1.54-.263-1.992-.473l-.351 1.642c.453.208 1.289.39 2.156.398 2.037 0 3.37-1.006 3.377-2.564m5.061 2.447H24l-1.565-7.496h-1.656a.883.883 0 00-.826.55l-2.909 6.946h2.036l.405-1.12h2.488zm-2.163-2.656l1.02-2.815.588 2.815zm-8.16-4.84l-1.603 7.496H8.34l1.605-7.496z" }, "child": [] }] })(props);
+}
 function SiOpenai(props) {
   return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" }, "child": [] }] })(props);
+}
+function SiMastercard(props) {
+  return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M11.343 18.031c.058.049.12.098.181.146-1.177.783-2.59 1.238-4.107 1.238C3.32 19.416 0 16.096 0 12c0-4.095 3.32-7.416 7.416-7.416 1.518 0 2.931.456 4.105 1.238-.06.051-.12.098-.165.15C9.6 7.489 8.595 9.688 8.595 12c0 2.311 1.001 4.51 2.748 6.031zm5.241-13.447c-1.52 0-2.931.456-4.105 1.238.06.051.12.098.165.15C14.4 7.489 15.405 9.688 15.405 12c0 2.31-1.001 4.507-2.748 6.031-.058.049-.12.098-.181.146 1.177.783 2.588 1.238 4.107 1.238C20.68 19.416 24 16.096 24 12c0-4.094-3.32-7.416-7.416-7.416zM12 6.174c-.096.075-.189.15-.28.231C10.156 7.764 9.169 9.765 9.169 12c0 2.236.987 4.236 2.551 5.595.09.08.185.158.28.232.096-.074.189-.152.28-.232 1.563-1.359 2.551-3.359 2.551-5.595 0-2.235-.987-4.236-2.551-5.595-.09-.08-.184-.156-.28-.231z" }, "child": [] }] })(props);
 }
 function SiHetzner(props) {
   return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M0 0v24h24V0H0zm4.602 4.025h2.244c.509 0 .716.215.716.717v5.64h8.883v-5.64c0-.509.215-.717.717-.717h2.229c.5 0 .71.23.724.717v14.516c0 .509-.215.717-.717.717h-2.23c-.51 0-.717-.215-.717-.717v-5.735H7.562v5.735c0 .516-.215.717-.716.717H4.602c-.51 0-.717-.208-.717-.717V4.742c0-.509.207-.717.717-.717z" }, "child": [] }] })(props);
@@ -92020,23 +92026,31 @@ const CryptomusLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeE
     }
   )
 ] });
-const DualCardIcon = ({ className = "" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `flex items-center gap-1 shrink-0 ${className}`, children: [
-  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-7 h-4.5 rounded bg-white border border-[#D8DCF0] flex items-center justify-center shadow-2xs px-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 48 32", className: "w-full h-full", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { fill: "#1A1F71", d: "M19.5 22.8l2.7-13.6h4.3l-2.7 13.6h-4.3zm16.8-13.2c-.9-.3-2.2-.6-3.8-.6-4.2 0-7.2 2.2-7.2 5.3 0 2.3 2.1 3.6 3.7 4.4 1.7.8 2.2 1.3 2.2 2 0 1.1-1.4 1.6-2.6 1.6-1.8 0-2.7-.3-4.2-.9l-.6-.3-.6 3.8c1 .5 2.8.9 4.7.9 4.5 0 7.4-2.2 7.4-5.5 0-1.8-1.1-3.2-3.6-4.4-1.5-.8-2.4-1.3-2.4-2.1 0-.7.8-1.5 2.5-1.5 1.4 0 2.5.3 3.3.7l.4.2.8-3.7zm10.5 0h-3.3c-1 0-1.8.3-2.2 1.4l-6.3 12.2h4.5l.9-2.5h5.5l.5 2.5h4l-3.5-13.6zm-5.3 8.3l1.7-4.6.9 4.6h-2.6zM15.4 9.6l-4 10.9-.4-2.1c-.7-2.4-2.9-5-5.4-6.3l3.5 10.7 4.6-.4 6.8-12.8h-5.1z" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { fill: "#F7B600", d: "M8.2 9.6H1.5L1.4 9.9c5.1 1.3 8.5 4.4 9.9 8.2l-1.4-7.2c-.3-1.1-.9-1.3-1.7-1.3z" })
-  ] }) }),
-  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-7 h-4.5 rounded bg-[#1A1A1A] border border-[#333] flex items-center justify-center shadow-2xs px-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 36 24", className: "w-full h-full", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "13", cy: "12", r: "7", fill: "#EB001B" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "23", cy: "12", r: "7", fill: "#F79E1B" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 6.8a6.96 6.96 0 0 1 2.6 5.2 6.96 6.96 0 0 1-2.6 5.2 6.96 6.96 0 0 1-2.6-5.2c0-2 1-3.9 2.6-5.2z", fill: "#FF5F00" })
+const VisaMasterCardIcon = ({ className = "w-6 h-4.5" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 40 28", fill: "none", xmlns: "http://www.w3.org/2000/svg", className: `${className} shrink-0`, children: [
+  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { width: "40", height: "28", rx: "5", fill: "url(#cardGrad)" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0.5", y: "0.5", width: "39", height: "27", rx: "4.5", stroke: "#FFFFFF", strokeOpacity: "0.18" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "4", y: "5", width: "6", height: "4.5", rx: "1", fill: "#F1F5F9" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M7 5v4.5M4 7.25h6", stroke: "#94A3B8", strokeWidth: "0.4" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4.5 19.5l1.3-4.8h1.2l-.8 4.8H4.5zm4.8-4.7c-.2-.1-.6-.2-1-.2-1.1 0-1.9.6-1.9 1.4 0 .6.5.9 1 .1.4.2.6.4.6.6 0 .3-.4.4-.7.4-.5 0-.8-.1-1.1-.3l-.2 1c.3.1.8.2 1.3.2 1.2 0 2-.6 2-1.5 0-.5-.3-.9-1-1.2-.4-.2-.6-.3-.6-.5 0-.2.2-.4.7-.4.4 0 .7.1.9.2l.2-.9zm2.7 0h-1c-.3 0-.5.1-.6.4l-1.8 4.3h1.3l.3-.7h1.5l.1.7h1.1l-1-4.7zm-1.5 2.8l.5-1.4.3 1.4h-.8z", fill: "#FFFFFF" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "28", cy: "16.5", r: "4.5", fill: "#EB001B" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "33.5", cy: "16.5", r: "4.5", fill: "#F79E1B", fillOpacity: "0.92" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M30.75 13a4.5 4.5 0 0 1 1.75 3.5 4.5 4.5 0 0 1-1.75 3.5 4.5 4.5 0 0 1-1.75-3.5c0-1.4.7-2.6 1.75-3.5z", fill: "#FF5F00" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("defs", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("linearGradient", { id: "cardGrad", x1: "0", y1: "0", x2: "40", y2: "28", gradientUnits: "userSpaceOnUse", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { stopColor: "#1E1B4B" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "1", stopColor: "#3730A3" })
   ] }) })
+] });
+const DualCardIcon = ({ className = "h-4" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `inline-flex items-center gap-1 shrink-0 ${className}`, children: [
+  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3.5 px-1 rounded-[3px] bg-white border border-[#CBD5E1] flex items-center justify-center shadow-3xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SiVisa, { className: "h-2 w-auto text-[#1A1F71]" }) }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3.5 px-1 rounded-[3px] bg-[#18181B] border border-zinc-700 flex items-center justify-center shadow-3xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SiMastercard, { className: "h-2 w-auto text-[#EB001B]" }) })
 ] });
 const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-blue-50/90 border border-blue-200/80 flex items-center justify-center shrink-0 p-1 shadow-2xs`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(DualCardIcon, {}) });
+    const isLarge = className.includes("w-16") || className.includes("w-12");
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-indigo-50/90 border border-indigo-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(VisaMasterCardIcon, { className: isLarge ? "w-10 h-7" : "w-6 h-4.5" }) });
   }
   if (method.includes("binance") || title.includes("binance")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F3BA2F]/15 border border-[#F3BA2F]/30 flex items-center justify-center shrink-0 shadow-2xs`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(SiBinance, { className: "w-5 h-5 text-[#E5A91E]" }) });

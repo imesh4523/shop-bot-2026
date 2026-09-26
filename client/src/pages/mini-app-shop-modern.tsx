@@ -56,7 +56,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
-import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude } from "react-icons/si";
+import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude, SiVisa, SiMastercard } from "react-icons/si";
 import { VscAzure } from "react-icons/vsc";
 import youuHostLogo from "@/assets/youuhost_logo.png";
 import { Button } from "@/components/ui/button";
@@ -178,20 +178,35 @@ const CryptomusLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const DualCardIcon = ({ className = "" }: { className?: string }) => (
-  <div className={`flex items-center gap-1 shrink-0 ${className}`}>
-    <div className="w-7 h-4.5 rounded bg-white border border-[#D8DCF0] flex items-center justify-center shadow-2xs px-1">
-      <svg viewBox="0 0 48 32" className="w-full h-full">
-        <path fill="#1A1F71" d="M19.5 22.8l2.7-13.6h4.3l-2.7 13.6h-4.3zm16.8-13.2c-.9-.3-2.2-.6-3.8-.6-4.2 0-7.2 2.2-7.2 5.3 0 2.3 2.1 3.6 3.7 4.4 1.7.8 2.2 1.3 2.2 2 0 1.1-1.4 1.6-2.6 1.6-1.8 0-2.7-.3-4.2-.9l-.6-.3-.6 3.8c1 .5 2.8.9 4.7.9 4.5 0 7.4-2.2 7.4-5.5 0-1.8-1.1-3.2-3.6-4.4-1.5-.8-2.4-1.3-2.4-2.1 0-.7.8-1.5 2.5-1.5 1.4 0 2.5.3 3.3.7l.4.2.8-3.7zm10.5 0h-3.3c-1 0-1.8.3-2.2 1.4l-6.3 12.2h4.5l.9-2.5h5.5l.5 2.5h4l-3.5-13.6zm-5.3 8.3l1.7-4.6.9 4.6h-2.6zM15.4 9.6l-4 10.9-.4-2.1c-.7-2.4-2.9-5-5.4-6.3l3.5 10.7 4.6-.4 6.8-12.8h-5.1z" />
-        <path fill="#F7B600" d="M8.2 9.6H1.5L1.4 9.9c5.1 1.3 8.5 4.4 9.9 8.2l-1.4-7.2c-.3-1.1-.9-1.3-1.7-1.3z" />
-      </svg>
+const VisaMasterCardIcon = ({ className = "w-6 h-4.5" }: { className?: string }) => (
+  <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} shrink-0`}>
+    <rect width="40" height="28" rx="5" fill="url(#cardGrad)" />
+    <rect x="0.5" y="0.5" width="39" height="27" rx="4.5" stroke="#FFFFFF" strokeOpacity="0.18" />
+    {/* Metallic Chip */}
+    <rect x="4" y="5" width="6" height="4.5" rx="1" fill="#F1F5F9" />
+    <path d="M7 5v4.5M4 7.25h6" stroke="#94A3B8" strokeWidth="0.4" />
+    {/* VISA Logo Text */}
+    <path d="M4.5 19.5l1.3-4.8h1.2l-.8 4.8H4.5zm4.8-4.7c-.2-.1-.6-.2-1-.2-1.1 0-1.9.6-1.9 1.4 0 .6.5.9 1 .1.4.2.6.4.6.6 0 .3-.4.4-.7.4-.5 0-.8-.1-1.1-.3l-.2 1c.3.1.8.2 1.3.2 1.2 0 2-.6 2-1.5 0-.5-.3-.9-1-1.2-.4-.2-.6-.3-.6-.5 0-.2.2-.4.7-.4.4 0 .7.1.9.2l.2-.9zm2.7 0h-1c-.3 0-.5.1-.6.4l-1.8 4.3h1.3l.3-.7h1.5l.1.7h1.1l-1-4.7zm-1.5 2.8l.5-1.4.3 1.4h-.8z" fill="#FFFFFF" />
+    {/* Mastercard Intersecting Circles */}
+    <circle cx="28" cy="16.5" r="4.5" fill="#EB001B" />
+    <circle cx="33.5" cy="16.5" r="4.5" fill="#F79E1B" fillOpacity="0.92" />
+    <path d="M30.75 13a4.5 4.5 0 0 1 1.75 3.5 4.5 4.5 0 0 1-1.75 3.5 4.5 4.5 0 0 1-1.75-3.5c0-1.4.7-2.6 1.75-3.5z" fill="#FF5F00" />
+    <defs>
+      <linearGradient id="cardGrad" x1="0" y1="0" x2="40" y2="28" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#1E1B4B" />
+        <stop offset="1" stopColor="#3730A3" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const DualCardIcon = ({ className = "h-4" }: { className?: string }) => (
+  <div className={`inline-flex items-center gap-1 shrink-0 ${className}`}>
+    <div className="h-3.5 px-1 rounded-[3px] bg-white border border-[#CBD5E1] flex items-center justify-center shadow-3xs">
+      <SiVisa className="h-2 w-auto text-[#1A1F71]" />
     </div>
-    <div className="w-7 h-4.5 rounded bg-[#1A1A1A] border border-[#333] flex items-center justify-center shadow-2xs px-1">
-      <svg viewBox="0 0 36 24" className="w-full h-full">
-        <circle cx="13" cy="12" r="7" fill="#EB001B" />
-        <circle cx="23" cy="12" r="7" fill="#F79E1B" />
-        <path d="M18 6.8a6.96 6.96 0 0 1 2.6 5.2 6.96 6.96 0 0 1-2.6 5.2 6.96 6.96 0 0 1-2.6-5.2c0-2 1-3.9 2.6-5.2z" fill="#FF5F00" />
-      </svg>
+    <div className="h-3.5 px-1 rounded-[3px] bg-[#18181B] border border-zinc-700 flex items-center justify-center shadow-3xs">
+      <SiMastercard className="h-2 w-auto text-[#EB001B]" />
     </div>
   </div>
 );
@@ -202,9 +217,10 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
   const title = (tx?.title || "").toLowerCase();
 
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
+    const isLarge = className.includes("w-16") || className.includes("w-12");
     return (
-      <div className={`${className} rounded-2xl bg-blue-50/90 border border-blue-200/80 flex items-center justify-center shrink-0 p-1 shadow-2xs`}>
-        <DualCardIcon />
+      <div className={`${className} rounded-2xl bg-indigo-50/90 border border-indigo-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden`}>
+        <VisaMasterCardIcon className={isLarge ? "w-10 h-7" : "w-6 h-4.5"} />
       </div>
     );
   }
