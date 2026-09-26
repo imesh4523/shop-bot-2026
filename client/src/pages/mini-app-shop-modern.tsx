@@ -2558,7 +2558,137 @@ export default function MiniAppShopModern() {
                 )}
               </div>
 
-              {/* 2. CRYPTOMUS GATEWAY */}
+              {/* 2. CARD PAYMENT (VISA / MASTERCARD) - IN THE MIDDLE */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-10 px-2.5 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-1.5 shadow-sm border border-[#0052CC]/15">
+                      {/* Crisp Visa & Mastercard vector logos */}
+                      <svg className="h-3 w-auto" viewBox="0 0 48 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+                      </svg>
+                      <svg className="h-3.5 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+                        <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+                        <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Visa / Mastercard</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">Instant Credit & Debit Card Deposit</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-[#0052CC] bg-[#0052CC]/10 px-2.5 py-1 rounded-full border border-[#0052CC]/20 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> INSTANT CARD
+                  </span>
+                </div>
+
+                {/* Amount selection quick chips */}
+                <div className="mb-3.5">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
+                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
+                    {selectedCurrency === "LKR" ? (
+                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
+                      </span>
+                    ) : (
+                      <span className="text-blue-600 font-black text-[10px]">
+                        ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
+                      </span>
+                    )}
+                  </label>
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setPayhereAmount(amt)}
+                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                            isSelected
+                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
+                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                          }`}
+                        >
+                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
+                      {selectedCurrency === "LKR" ? "Rs." : "$"}
+                    </span>
+                    <input
+                      type="number"
+                      min={selectedCurrency === "LKR" ? "50" : "1"}
+                      step={selectedCurrency === "LKR" ? "50" : "1"}
+                      value={payhereAmount}
+                      onChange={(e) => setPayhereAmount(e.target.value)}
+                      onBlur={() => {
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(payhereEffectiveLkr.toString());
+                        }
+                      }}
+                      placeholder={selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)"}
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
+                    />
+                  </div>
+                </div>
+
+                {/* Accepted Cards & Wallets Badge row */}
+                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
+                  <span className="text-[10px] font-bold text-[#7E7998] mr-1">Accepted:</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs">
+                    <svg className="h-2.5 w-auto" viewBox="0 0 48 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+                    </svg>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs">
+                    <svg className="h-3 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+                      <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+                      <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+                    </svg>
+                    <span className="text-[9.5px] font-black text-[#181432]">Mastercard</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#582C83]/10 border border-[#582C83]/20 text-[#582C83] text-[9.5px] font-black">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#582C83]"></span> FriMi
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#E31B23]/10 border border-[#E31B23]/20 text-[#E31B23] text-[9.5px] font-black">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E31B23]"></span> iPay
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0054A6]/10 border border-[#0054A6]/20 text-[#0054A6] text-[9.5px] font-black">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ED1C24]"></span> Q+ Payment
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayHerePay}
+                  disabled={isCreatingPayHere}
+                  className="w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isCreatingPayHere ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Secure Checkout...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        {selectedCurrency === "LKR"
+                          ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card`
+                          : `Pay $${payhereAmount || "0"} with Card`}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 3. CRYPTOMUS GATEWAY - AT THE BOTTOM */}
               <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
@@ -2647,117 +2777,6 @@ export default function MiniAppShopModern() {
                         {selectedCurrency === "LKR"
                           ? `Pay Rs. ${parseFloat(cryptomusAmount || "0").toLocaleString()} (≈ $${cryptomusCalculatedUsd.toFixed(2)} USD) via Cryptomus`
                           : `Pay $${cryptomusAmount || "0"} via Cryptomus Gateway`}
-                      </span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* 3. CARD PAYMENT / PAYHERE GATEWAY */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center shadow-sm">
-                      <CreditCard className="w-6 h-6 text-[#0052CC]" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-[#181432]">Visa / Mastercard / PayHere</h4>
-                      <span className="text-[10px] font-bold text-[#7E7998]">Credit & Debit Cards • Genie • LKR / USD</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-extrabold text-[#0052CC] bg-[#0052CC]/10 px-2.5 py-1 rounded-full border border-[#0052CC]/20 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> SECURE CARD
-                  </span>
-                </div>
-
-                {/* Amount selection quick chips */}
-                <div className="mb-3.5">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
-                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
-                    {selectedCurrency === "LKR" ? (
-                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
-                      </span>
-                    ) : (
-                      <span className="text-blue-600 font-black text-[10px]">
-                        ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
-                      </span>
-                    )}
-                  </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
-                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
-                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
-                      return (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setPayhereAmount(amt)}
-                          className={`py-2 rounded-xl text-xs font-black transition-all ${
-                            isSelected
-                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
-                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
-                          }`}
-                        >
-                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
-                      {selectedCurrency === "LKR" ? "Rs." : "$"}
-                    </span>
-                    <input
-                      type="number"
-                      min={selectedCurrency === "LKR" ? "50" : "1"}
-                      step={selectedCurrency === "LKR" ? "50" : "1"}
-                      value={payhereAmount}
-                      onChange={(e) => setPayhereAmount(e.target.value)}
-                      onBlur={() => {
-                        if (selectedCurrency === "LKR") {
-                          setPayhereAmount(payhereEffectiveLkr.toString());
-                        }
-                      }}
-                      placeholder={selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)"}
-                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
-                    />
-                  </div>
-                  {selectedCurrency === "LKR" && (
-                    <div className="mt-1.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 rounded-xl text-[10.5px] font-bold text-blue-900 flex items-center justify-between">
-                      <span>Card Charge: <b className="text-blue-700">Rs. {payhereEffectiveLkr.toLocaleString()} LKR</b> ({payhereEffectiveLkr / 50} API Key Validations • ≈ ${payhereCalculatedUsd.toFixed(2)} USD)</span>
-                      <span className="text-[9.5px] text-blue-600/80 font-normal">Rs. 50/unit</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accepted Cards Badge row */}
-                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
-                  <span className="text-[10px] font-bold text-[#7E7998]">Accepted:</span>
-                  <span className="text-[10px] font-extrabold text-[#1A1F71] bg-white px-2 py-0.5 rounded border border-neutral-200">VISA</span>
-                  <span className="text-[10px] font-extrabold text-[#EB001B] bg-white px-2 py-0.5 rounded border border-neutral-200">Mastercard</span>
-                  <span className="text-[10px] font-extrabold text-[#D92078] bg-white px-2 py-0.5 rounded border border-neutral-200">Genie</span>
-                  <span className="text-[10px] font-extrabold text-[#0089D6] bg-white px-2 py-0.5 rounded border border-neutral-200">FriMi</span>
-                  <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded border border-neutral-200">eZcash</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePayHerePay}
-                  disabled={isCreatingPayHere}
-                  className="w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {isCreatingPayHere ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Secure Checkout...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-4 h-4" />
-                      <span>
-                        {selectedCurrency === "LKR"
-                          ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card (${payhereEffectiveLkr / 50} Keys)`
-                          : `Pay $${payhereAmount || "0"} via PayHere Card Gateway`}
                       </span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </>

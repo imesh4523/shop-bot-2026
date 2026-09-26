@@ -73741,7 +73741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DwvWiBZS.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CeGIjIe2.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -92383,6 +92383,10 @@ function MiniAppShopModern() {
   const [catMoved, setCatMoved] = reactExports.useState(false);
   const [cryptomusAmount, setCryptomusAmount] = reactExports.useState("10");
   const [isCreatingCryptomus, setIsCreatingCryptomus] = reactExports.useState(false);
+  const [payhereAmount, setPayhereAmount] = reactExports.useState(() => {
+    return localStorage.getItem("app_currency") === "LKR" ? "1000" : "5";
+  });
+  const [isCreatingPayHere, setIsCreatingPayHere] = reactExports.useState(false);
   const handleCatMouseDown = (e) => {
     if (!catScrollRef.current) return;
     setIsCatDown(true);
@@ -92560,7 +92564,7 @@ function MiniAppShopModern() {
         const res = await fetch("/api/mini/deposit/methods");
         return res.json();
       } catch {
-        return { binancePayId: "284910485", cryptomusEnabled: true, supportUsername: "@rochana_imesh" };
+        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@rochana_imesh" };
       }
     }
   });
@@ -92594,9 +92598,11 @@ function MiniAppShopModern() {
     if (curr === "LKR") {
       setBinanceAmount("1000");
       setCryptomusAmount("1000");
+      setPayhereAmount("1000");
     } else {
       setBinanceAmount("5");
       setCryptomusAmount("10");
+      setPayhereAmount("5");
     }
   };
   const formatProductPrice = (prod, qty = 1) => {
@@ -92635,6 +92641,19 @@ function MiniAppShopModern() {
     }
     return parseFloat(val.toFixed(2));
   }, [cryptomusAmount, selectedCurrency, lkrRate]);
+  const payhereEffectiveLkr = reactExports.useMemo(() => {
+    const rawAmt = parseFloat(payhereAmount || "50");
+    if (isNaN(rawAmt) || rawAmt <= 0) return 50;
+    return Math.max(50, Math.round(rawAmt / 50) * 50);
+  }, [payhereAmount]);
+  const payhereCalculatedUsd = reactExports.useMemo(() => {
+    const val = parseFloat(payhereAmount || "0");
+    if (isNaN(val) || val <= 0) return 0;
+    if (selectedCurrency === "LKR") {
+      return parseFloat((payhereEffectiveLkr / lkrRate).toFixed(2));
+    }
+    return parseFloat(val.toFixed(2));
+  }, [payhereAmount, payhereEffectiveLkr, selectedCurrency, lkrRate]);
   const handleBinanceSubmit = async (e) => {
     if (e) e.preventDefault();
     const usdNum = binanceCalculatedUsd;
@@ -92847,6 +92866,40 @@ function MiniAppShopModern() {
       toast2({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
     } finally {
       setIsCreatingCryptomus(false);
+    }
+  };
+  const handlePayHerePay = async () => {
+    const rawAmt = parseFloat(payhereAmount);
+    if (isNaN(rawAmt) || rawAmt <= 0) {
+      toast2({
+        title: "Invalid Amount",
+        description: selectedCurrency === "LKR" ? "Minimum deposit is Rs. 50" : "Minimum deposit is $1.00",
+        variant: "destructive"
+      });
+      return;
+    }
+    const finalAmt = selectedCurrency === "LKR" ? Math.max(50, Math.round(rawAmt / 50) * 50) : rawAmt;
+    setIsCreatingPayHere(true);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/payhere", {
+        amount: finalAmt,
+        currency: selectedCurrency
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        toast2({ title: "Opening Checkout", description: "Redirecting to secure Card payment...", duration: 2500 });
+        if (window.Telegram?.WebApp?.openLink) {
+          window.Telegram.WebApp.openLink(data.checkoutUrl);
+        } else {
+          window.open(data.checkoutUrl, "_blank");
+        }
+      } else {
+        toast2({ title: "Payment Error", description: data.message || "Failed to create checkout session", variant: "destructive" });
+      }
+    } catch (err) {
+      toast2({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
+    } finally {
+      setIsCreatingPayHere(false);
     }
   };
   const categories = [
@@ -93999,6 +94052,120 @@ function MiniAppShopModern() {
               /* @__PURE__ */ jsxRuntimeExports.jsx(X$1, { className: "w-4 h-4 text-red-500 shrink-0 mt-0.5" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "leading-snug", children: binanceErrorMsg })
             ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-10 px-2.5 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-1.5 shadow-sm border border-[#0052CC]/15", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-3 w-auto", viewBox: "0 0 48 16", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-3.5 w-auto", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-[#181432]", children: "Visa / Mastercard" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998]", children: "Instant Credit & Debit Card Deposit" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-extrabold text-[#0052CC] bg-[#0052CC]/10 px-2.5 py-1 rounded-full border border-[#0052CC]/20 flex items-center gap-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3 h-3" }),
+                " INSTANT CARD"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-3.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "Select Card Deposit Amount (",
+                  selectedCurrency,
+                  ")"
+                ] }),
+                selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100", children: [
+                  "Credits: ≈ $",
+                  payhereCalculatedUsd.toFixed(2),
+                  " USD"
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-blue-600 font-black text-[10px]", children: [
+                  "≈ Rs. ",
+                  Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString(),
+                  " LKR"
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`, children: (selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
+                return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setPayhereAmount(amt),
+                    className: `py-2 rounded-xl text-xs font-black transition-all ${isSelected ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105" : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"}`,
+                    children: selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1e3 ? `${parseInt(amt) / 1e3}k` : amt}` : `$${amt}`
+                  },
+                  amt
+                );
+              }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]", children: selectedCurrency === "LKR" ? "Rs." : "$" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    type: "number",
+                    min: selectedCurrency === "LKR" ? "50" : "1",
+                    step: selectedCurrency === "LKR" ? "50" : "1",
+                    value: payhereAmount,
+                    onChange: (e) => setPayhereAmount(e.target.value),
+                    onBlur: () => {
+                      if (selectedCurrency === "LKR") {
+                        setPayhereAmount(payhereEffectiveLkr.toString());
+                      }
+                    },
+                    placeholder: selectedCurrency === "LKR" ? "Amount in Rs. 50 multiples (e.g. 150)" : "Custom Amount in USD (e.g. 20)",
+                    className: "w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998] mr-1", children: "Accepted:" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-2.5 w-auto", viewBox: "0 0 48 16", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-3 w-auto", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#181432]", children: "Mastercard" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#582C83]/10 border border-[#582C83]/20 text-[#582C83] text-[9.5px] font-black", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#582C83]" }),
+                " FriMi"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#E31B23]/10 border border-[#E31B23]/20 text-[#E31B23] text-[9.5px] font-black", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#E31B23]" }),
+                " iPay"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0054A6]/10 border border-[#0054A6]/20 text-[#0054A6] text-[9.5px] font-black", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-[#ED1C24]" }),
+                " Q+ Payment"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: handlePayHerePay,
+                disabled: isCreatingPayHere,
+                className: "w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50",
+                children: isCreatingPayHere ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
+                  " Preparing Secure Checkout..."
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: selectedCurrency === "LKR" ? `Pay Rs. ${payhereEffectiveLkr.toLocaleString()} with Card` : `Pay $${payhereAmount || "0"} with Card` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
+                ] })
+              }
+            )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
