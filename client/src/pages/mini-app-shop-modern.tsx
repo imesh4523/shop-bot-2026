@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product, TelegramUser, Order, Payment, SpecialOffer } from "@shared/schema";
 import { getTelegramInitData, expandTelegramWebApp } from "@/lib/telegram";
 import { queryClient } from "@/lib/queryClient";
-import { LottieLoader } from "@/components/lottie-loader";
+import { PaymentProcessingModal } from "@/components/lottie-loader";
 import {
   Loader2,
   ShoppingCart,
@@ -1061,6 +1061,111 @@ export default function MiniAppShopModern() {
     return parseFloat(val.toFixed(2));
   }, [payhereAmount, payhereEffectiveLkr, selectedCurrency, lkrRate]);
 
+  // Payment Processing Modal State (with aniamtion2.lottie)
+  const [paymentModal, setPaymentModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle: string;
+  }>({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+  });
+
+  // 1. Handle Card / PayHere Checkout with 3s Lottie Animation
+  const handlePayHerePay = async () => {
+    const rawAmt = parseFloat(payhereAmount || "50");
+    if (isNaN(rawAmt) || rawAmt <= 0) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid deposit amount.", variant: "destructive" });
+      return;
+    }
+    const finalAmount = selectedCurrency === "LKR" ? payhereEffectiveLkr : rawAmt;
+    setIsCreatingPayHere(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Connecting to Card Payment Gateway...",
+      subtitle: `Preparing secure checkout for ${selectedCurrency === "LKR" ? `Rs. ${finalAmount.toLocaleString()}` : `$${finalAmount}`}...`,
+    });
+
+    const startTime = Date.now();
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/payhere", {
+        amount: finalAmount,
+        currency: selectedCurrency,
+      });
+      const data = await res.json();
+      if (res.ok && data.checkoutUrl) {
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, 3000 - elapsed);
+        setTimeout(() => {
+          setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+          window.location.href = data.checkoutUrl;
+        }, delay);
+      } else {
+        throw new Error(data.message || "Failed to create card checkout session.");
+      }
+    } catch (err: any) {
+      setTimeout(() => {
+        setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+        setIsCreatingPayHere(false);
+        toast({
+          title: "Payment Error",
+          description: err.message || "Failed to initiate card deposit.",
+          variant: "destructive",
+        });
+      }, 1000);
+    }
+  };
+
+  // 2. Handle Cryptomus Checkout with 3s Lottie Animation
+  const handleCryptomusPay = async () => {
+    const rawAmt = parseFloat(cryptomusAmount || "10");
+    if (isNaN(rawAmt) || rawAmt <= 0) {
+      toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
+      return;
+    }
+    const effectiveUsd = cryptomusCalculatedUsd;
+    if (effectiveUsd < 1) {
+      toast({ title: "Invalid Amount", description: "Minimum Cryptomus top-up is $1.00 USD.", variant: "destructive" });
+      return;
+    }
+    setIsCreatingCryptomus(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Creating Cryptomus Invoice...",
+      subtitle: `Generating encrypted crypto invoice for $${effectiveUsd.toFixed(2)} USD...`,
+    });
+
+    const startTime = Date.now();
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", {
+        amount: effectiveUsd,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, 3000 - elapsed);
+        setTimeout(() => {
+          setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+          window.location.href = data.url;
+        }, delay);
+      } else {
+        throw new Error(data.message || "Failed to create Cryptomus payment invoice.");
+      }
+    } catch (err: any) {
+      setTimeout(() => {
+        setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+        setIsCreatingCryptomus(false);
+        toast({
+          title: "Gateway Error",
+          description: err.message || "Failed to initiate crypto deposit.",
+          variant: "destructive",
+        });
+      }, 1000);
+    }
+  };
+
+  // 3. Handle Binance Verification with 3s Lottie Animation
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const usdNum = binanceCalculatedUsd;
@@ -1084,6 +1189,13 @@ export default function MiniAppShopModern() {
     setIsVerifyingBinance(true);
     setBinanceSuccessMsg(null);
     setBinanceErrorMsg(null);
+    setPaymentModal({
+      isOpen: true,
+      title: "Verifying Binance Payment...",
+      subtitle: `Checking Binance Pay Order ID ${binanceTxId.trim()}...`,
+    });
+
+    const startTime = Date.now();
     try {
       const res = await miniApiRequest("POST", "/api/mini/deposit/binance", {
         amount: usdNum,
@@ -1091,34 +1203,46 @@ export default function MiniAppShopModern() {
         txId: binanceTxId.trim(),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setBinanceSuccessMsg(data.message);
-        toast({
-          title: "✅ Payment Verified!",
-          description: data.message,
-        });
-        setBinanceTxId("");
-        queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
-      } else {
-        const errorText = data.message || "Could not verify Binance Pay payment.";
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, 3000 - elapsed);
+
+      setTimeout(() => {
+        setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+        setIsVerifyingBinance(false);
+
+        if (res.ok && data.success) {
+          setBinanceSuccessMsg(data.message);
+          toast({
+            title: "✅ Payment Verified!",
+            description: data.message,
+          });
+          setBinanceTxId("");
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/payments"] });
+        } else {
+          const errorText = data.message || "Could not verify Binance Pay payment.";
+          setBinanceErrorMsg(errorText);
+          toast({
+            title: "Verification Failed",
+            description: errorText,
+            variant: "destructive",
+          });
+        }
+      }, delay);
+    } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, 3000 - elapsed);
+      setTimeout(() => {
+        setPaymentModal({ isOpen: false, title: "", subtitle: "" });
+        setIsVerifyingBinance(false);
+        const errorText = err.message || "Failed to submit Binance payment verification.";
         setBinanceErrorMsg(errorText);
         toast({
           title: "Verification Failed",
           description: errorText,
           variant: "destructive",
         });
-      }
-    } catch (err: any) {
-      const errorText = err.message || "Failed to submit Binance payment verification.";
-      setBinanceErrorMsg(errorText);
-      toast({
-        title: "Verification Failed",
-        description: errorText,
-        variant: "destructive",
-      });
-    } finally {
-      setIsVerifyingBinance(false);
+      }, delay);
     }
   };
 
@@ -1261,72 +1385,6 @@ export default function MiniAppShopModern() {
       refetchUser();
     } catch (err) {
       console.error("Logout error:", err);
-    }
-  };
-
-  const handleCryptomusPay = async () => {
-    const usdNum = cryptomusCalculatedUsd;
-    if (usdNum < 0.5) {
-      toast({
-        title: "Invalid Amount",
-        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 150" : "Minimum top-up is $0.50",
-        variant: "destructive"
-      });
-      return;
-    }
-    setIsCreatingCryptomus(true);
-    try {
-      const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", { amount: usdNum });
-      const data = await res.json();
-      if (data.url) {
-        toast({ title: "Invoice Created", description: "Opening Cryptomus checkout...", duration: 2500 });
-        if ((window as any).Telegram?.WebApp?.openLink) {
-          (window as any).Telegram.WebApp.openLink(data.url);
-        } else {
-          window.open(data.url, "_blank");
-        }
-      } else {
-        toast({ title: "Payment Error", description: data.message || "Failed to create invoice", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
-    } finally {
-      setIsCreatingCryptomus(false);
-    }
-  };
-
-  const handlePayHerePay = async () => {
-    const rawAmt = parseFloat(payhereAmount);
-    if (isNaN(rawAmt) || rawAmt <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: selectedCurrency === "LKR" ? "Minimum deposit is Rs. 50" : "Minimum deposit is $1.00",
-        variant: "destructive"
-      });
-      return;
-    }
-    const finalAmt = selectedCurrency === "LKR" ? Math.max(50, Math.round(rawAmt / 50) * 50) : rawAmt;
-    setIsCreatingPayHere(true);
-    try {
-      const res = await miniApiRequest("POST", "/api/mini/deposit/payhere", {
-        amount: finalAmt,
-        currency: selectedCurrency
-      });
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        toast({ title: "Opening Checkout", description: "Redirecting to secure Card payment...", duration: 2500 });
-        if ((window as any).Telegram?.WebApp?.openLink) {
-          (window as any).Telegram.WebApp.openLink(data.checkoutUrl);
-        } else {
-          window.open(data.checkoutUrl, "_blank");
-        }
-      } else {
-        toast({ title: "Payment Error", description: data.message || "Failed to create checkout session", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
-    } finally {
-      setIsCreatingPayHere(false);
     }
   };
 
@@ -1748,14 +1806,6 @@ export default function MiniAppShopModern() {
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };
-
-  if (productsLoading && products.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FD] p-6 select-none">
-        <LottieLoader size={180} />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#181432] font-sans antialiased pb-28 select-none">
@@ -4512,6 +4562,13 @@ export default function MiniAppShopModern() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Processing Lottie Animation Modal Overlay (~3s) */}
+      <PaymentProcessingModal
+        isOpen={paymentModal.isOpen}
+        title={paymentModal.title}
+        subtitle={paymentModal.subtitle}
+      />
     </div>
   );
 }

@@ -43,12 +43,11 @@ import AllOrdersPage from "@/pages/all-orders-page";
 import EmailHubPage from "@/pages/email-hub-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { LottieLoader } from "@/components/lottie-loader";
 
 function PageLoader() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background select-none">
-      <LottieLoader size={180} />
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
 }

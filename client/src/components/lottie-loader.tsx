@@ -1,54 +1,96 @@
 import { useEffect, useRef } from "react";
 import lottie from "lottie-web/build/player/lottie_light";
-import animationData from "@/assets/loading-animation.json";
+import animation404Data from "@/assets/animation-404.json";
+import animationPaymentData from "@/assets/animation-payment.json";
 
-interface LottieLoaderProps {
+interface LottiePlayerProps {
+  animationData: any;
   size?: number | string;
   className?: string;
-  text?: string;
+  loop?: boolean;
+  autoplay?: boolean;
 }
 
-export function LottieLoader({ size = 160, className = "", text }: LottieLoaderProps) {
+export function LottiePlayer({
+  animationData,
+  size = 180,
+  className = "",
+  loop = true,
+  autoplay = true,
+}: LottiePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !animationData) return;
 
     const anim = lottie.loadAnimation({
       container: containerRef.current,
       renderer: "svg",
-      loop: true,
-      autoplay: true,
-      animationData: animationData,
+      loop,
+      autoplay,
+      animationData,
     });
 
     return () => {
       anim.destroy();
     };
-  }, []);
+  }, [animationData, loop, autoplay]);
 
-  const sizeStyle = typeof size === "number" ? { width: `${size}px`, height: `${size}px` } : { width: size, height: size };
+  const sizeStyle =
+    typeof size === "number"
+      ? { width: `${size}px`, height: `${size}px` }
+      : { width: size, height: size };
 
   return (
-    <div className={`flex flex-col items-center justify-center ${className}`}>
-      <div ref={containerRef} style={sizeStyle} className="relative select-none pointer-events-none" />
-      {text && (
-        <p className="mt-2 text-xs font-bold text-[#7E7998] tracking-wide animate-pulse">
-          {text}
-        </p>
-      )}
-    </div>
+    <div
+      ref={containerRef}
+      style={sizeStyle}
+      className={`relative select-none pointer-events-none ${className}`}
+    />
   );
 }
 
-export function PageLottieLoader({ text }: { text?: string }) {
+/** 404 Animation Component */
+export function Lottie404({ size = 280, className = "" }: { size?: number | string; className?: string }) {
+  return <LottiePlayer animationData={animation404Data} size={size} className={className} />;
+}
+
+/** Payment / Checkout Processing Animation Component */
+export function LottiePayment({ size = 180, className = "" }: { size?: number | string; className?: string }) {
+  return <LottiePlayer animationData={animationPaymentData} size={size} className={className} />;
+}
+
+/** Fullscreen Payment Processing Modal Overlay with ~3s animation */
+export function PaymentProcessingModal({
+  isOpen,
+  title = "Processing Secure Payment...",
+  subtitle = "Please wait while we connect to the gateway",
+}: {
+  isOpen: boolean;
+  title?: string;
+  subtitle?: string;
+}) {
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F8F7FD]/90 backdrop-blur-md">
-      <div className="flex flex-col items-center justify-center p-8">
-        <LottieLoader size={180} text={text} />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-white/20 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+        <div className="my-2">
+          <LottiePayment size={180} />
+        </div>
+        <h3 className="text-base font-black text-[#181432] tracking-tight mt-1">
+          {title}
+        </h3>
+        <p className="text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed">
+          {subtitle}
+        </p>
+        <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+          <span className="w-2 h-2 rounded-full bg-purple-600 animate-ping" />
+          <span>Secure Encrypted Session</span>
+        </div>
       </div>
     </div>
   );
 }
 
-export default LottieLoader;
+export default LottiePlayer;
