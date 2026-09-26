@@ -1986,8 +1986,8 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: PayHere Test Ping
-  app.post("/api/payhere/test-ping", isAuth, async (req, res) => {
+  // Admin: PayHere Test Ping (Supports GET and POST)
+  const handlePayHerePing = async (req: any, res: any) => {
     try {
       const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;
       if (!gatewayUrl) {
@@ -1996,13 +1996,19 @@ export async function registerRoutes(
 
       const cleanGatewayUrl = gatewayUrl.replace(/\/$/, "");
       const startTime = Date.now();
-      const response = await axios.get(`${cleanGatewayUrl}/api/ping`, { timeout: 6000 });
+      let response;
+      try {
+        response = await axios.get(`${cleanGatewayUrl}/api/ping`, { timeout: 6000 });
+      } catch (e) {
+        // Fallback to root endpoint of the host
+        response = await axios.get(`${cleanGatewayUrl}/`, { timeout: 6000 });
+      }
       const latency = Date.now() - startTime;
 
       res.json({
         success: true,
         latencyMs: latency,
-        gatewayData: response.data
+        gatewayData: response.data || { status: "online" }
       });
     } catch (err: any) {
       res.status(400).json({
@@ -2010,7 +2016,11 @@ export async function registerRoutes(
         message: `Host Gateway ping failed: ${err.message}`
       });
     }
-  });
+  };
+
+  app.get("/api/payhere/test-ping", isAuth, handlePayHerePing);
+  app.post("/api/payhere/test-ping", isAuth, handlePayHerePing);
+
 
   // Admin: PayHere Disconnect
   app.post("/api/payhere/disconnect", isAuth, async (req, res) => {
