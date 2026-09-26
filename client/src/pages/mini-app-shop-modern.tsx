@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product, TelegramUser, Order, Payment, SpecialOffer } from "@shared/schema";
 import { getTelegramInitData, expandTelegramWebApp } from "@/lib/telegram";
 import { queryClient } from "@/lib/queryClient";
+import { LottieLoader } from "@/components/lottie-loader";
 import {
   Loader2,
   ShoppingCart,
@@ -1747,6 +1748,14 @@ export default function MiniAppShopModern() {
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };
+
+  if (productsLoading && products.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FD] p-6 select-none">
+        <LottieLoader size={180} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#181432] font-sans antialiased pb-28 select-none">

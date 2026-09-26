@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import MiniAppShopClassic from "./mini-app-shop-classic";
 import MiniAppShopModern from "./mini-app-shop-modern";
-import { Loader2 } from "lucide-react";
+import { LottieLoader } from "@/components/lottie-loader";
 
 export default function MiniAppShop() {
   const { data: themeSetting, isLoading } = useQuery<{ value: string }>({
@@ -10,8 +10,8 @@ export default function MiniAppShop() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8F4]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#2D4F38]" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FD] select-none">
+        <LottieLoader size={180} />
       </div>
     );
   }
