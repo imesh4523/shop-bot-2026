@@ -178,15 +178,15 @@ const CryptomusLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const DualCardIcon = () => (
-  <div className="flex items-center -space-x-1.5 shrink-0">
-    <div className="w-5 h-5 rounded-md bg-white border border-[#ECEEF8] flex items-center justify-center shadow-2xs p-0.5">
+const DualCardIcon = ({ className = "" }: { className?: string }) => (
+  <div className={`flex items-center gap-1 shrink-0 ${className}`}>
+    <div className="w-7 h-4.5 rounded bg-white border border-[#D8DCF0] flex items-center justify-center shadow-2xs px-1">
       <svg viewBox="0 0 48 32" className="w-full h-full">
         <path fill="#1A1F71" d="M19.5 22.8l2.7-13.6h4.3l-2.7 13.6h-4.3zm16.8-13.2c-.9-.3-2.2-.6-3.8-.6-4.2 0-7.2 2.2-7.2 5.3 0 2.3 2.1 3.6 3.7 4.4 1.7.8 2.2 1.3 2.2 2 0 1.1-1.4 1.6-2.6 1.6-1.8 0-2.7-.3-4.2-.9l-.6-.3-.6 3.8c1 .5 2.8.9 4.7.9 4.5 0 7.4-2.2 7.4-5.5 0-1.8-1.1-3.2-3.6-4.4-1.5-.8-2.4-1.3-2.4-2.1 0-.7.8-1.5 2.5-1.5 1.4 0 2.5.3 3.3.7l.4.2.8-3.7zm10.5 0h-3.3c-1 0-1.8.3-2.2 1.4l-6.3 12.2h4.5l.9-2.5h5.5l.5 2.5h4l-3.5-13.6zm-5.3 8.3l1.7-4.6.9 4.6h-2.6zM15.4 9.6l-4 10.9-.4-2.1c-.7-2.4-2.9-5-5.4-6.3l3.5 10.7 4.6-.4 6.8-12.8h-5.1z" />
         <path fill="#F7B600" d="M8.2 9.6H1.5L1.4 9.9c5.1 1.3 8.5 4.4 9.9 8.2l-1.4-7.2c-.3-1.1-.9-1.3-1.7-1.3z" />
       </svg>
     </div>
-    <div className="w-5 h-5 rounded-md bg-[#252525] border border-[#333] flex items-center justify-center shadow-2xs p-0.5">
+    <div className="w-7 h-4.5 rounded bg-[#1A1A1A] border border-[#333] flex items-center justify-center shadow-2xs px-1">
       <svg viewBox="0 0 36 24" className="w-full h-full">
         <circle cx="13" cy="12" r="7" fill="#EB001B" />
         <circle cx="23" cy="12" r="7" fill="#F79E1B" />
@@ -196,51 +196,51 @@ const DualCardIcon = () => (
   </div>
 );
 
-const TransactionBrandIcon = ({ tx }: { tx: any }) => {
+const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; className?: string }) => {
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
 
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     return (
-      <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+      <div className={`${className} rounded-2xl bg-blue-50/90 border border-blue-200/80 flex items-center justify-center shrink-0 p-1 shadow-2xs`}>
         <DualCardIcon />
       </div>
     );
   }
   if (method.includes("binance") || title.includes("binance")) {
     return (
-      <div className="w-8 h-8 rounded-xl bg-[#F3BA2F]/15 border border-[#F3BA2F]/30 flex items-center justify-center shrink-0">
-        <SiBinance className="w-4 h-4 text-[#E5A91E]" />
+      <div className={`${className} rounded-2xl bg-[#F3BA2F]/15 border border-[#F3BA2F]/30 flex items-center justify-center shrink-0 shadow-2xs`}>
+        <SiBinance className="w-5 h-5 text-[#E5A91E]" />
       </div>
     );
   }
   if (method.includes("cryptomus") || title.includes("cryptomus") || title.includes("usdt")) {
     return (
-      <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-        <CryptomusLogo className="w-4 h-4" />
+      <div className={`${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`}>
+        <CryptomusLogo className="w-5 h-5" />
       </div>
     );
   }
   if (type === "smm" || title.includes("smm") || tx?.category?.toLowerCase().includes("smm")) {
     return (
-      <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-        <BrandIcon name={tx?.title} type={tx?.smmCategory || "Social"} className="w-4 h-4" />
+      <div className={`${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`}>
+        <BrandIcon name={tx?.title} type={tx?.smmCategory || "Social"} className="w-5 h-5" />
       </div>
     );
   }
   if (type === "partner" || type === "purchase") {
     return (
-      <div className="w-8 h-8 rounded-xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0">
-        <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-4 h-4" />
+      <div className={`${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs`}>
+        <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-5 h-5" />
       </div>
     );
   }
   return (
-    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+    <div className={`${className} rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${
       (tx?.amountCents || 0) > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-purple-50 text-[#5B42F3] border border-purple-100"
     }`}>
-      {(tx?.amountCents || 0) > 0 ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+      {(tx?.amountCents || 0) > 0 ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
     </div>
   );
 };
@@ -3199,32 +3199,18 @@ export default function MiniAppShopModern() {
                   </div>
                 </div>
 
-                {/* Profile Sub-Tabs Navigation Pills */}
-                <div className="bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-3 gap-1">
+                {/* Profile Sub-Tabs Navigation Pills (2 Tabs) */}
+                <div className="bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-2 gap-1">
                   <button
                     type="button"
                     onClick={() => setProfileSubTab("overview")}
                     className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                      profileSubTab === "overview"
+                      profileSubTab === "overview" || profileSubTab === "api"
                         ? "bg-white text-[#5B42F3] shadow-sm"
                         : "text-[#7E7998] hover:text-[#181432]"
                     }`}
                   >
                     <UserIcon className="w-3.5 h-3.5" /> Overview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setProfileSubTab("api")}
-                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                      profileSubTab === "api"
-                        ? "bg-white text-[#5B42F3] shadow-sm"
-                        : "text-[#7E7998] hover:text-[#181432]"
-                    }`}
-                  >
-                    <Key className="w-3.5 h-3.5" /> Developer API
-                    {apiKeysData?.activeKey && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    )}
                   </button>
                   <button
                     type="button"
@@ -3237,7 +3223,7 @@ export default function MiniAppShopModern() {
                   >
                     <Receipt className="w-3.5 h-3.5" /> Transactions
                     {transactionsList.length > 0 && (
-                      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full">
+                      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full font-mono">
                         {transactionsList.length}
                       </span>
                     )}
@@ -3266,6 +3252,37 @@ export default function MiniAppShopModern() {
                       </span>
                       <ChevronRight className="w-4 h-4 text-[#9490A8]" />
                     </button>
+
+                    {/* Developer API Yellow / Amber Card */}
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        onClick={() => setProfileSubTab("api")}
+                        className="w-full px-3.5 py-3 flex items-center justify-between text-xs font-black text-amber-950 bg-gradient-to-r from-amber-100/90 via-yellow-50 to-amber-100/80 hover:from-amber-200/90 hover:to-yellow-100 rounded-2xl transition-all border border-amber-300 shadow-xs"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center shadow-xs">
+                            <Key className="w-4 h-4" />
+                          </div>
+                          <span className="text-left">
+                            <span className="block font-black text-amber-950">Developer / Reseller API</span>
+                            <span className="block text-[10px] font-semibold text-amber-800">Automate cloud & bot orders</span>
+                          </span>
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {apiKeysData?.activeKey?.key ? (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" /> Active
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-amber-900 bg-white/80 border border-amber-300 px-2 py-0.5 rounded-full">
+                              🔑 Create Key
+                            </span>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-amber-800" />
+                        </div>
+                      </button>
+                    </div>
 
                     <button
                       onClick={() => setProfileSubTab("transactions")}
@@ -3584,9 +3601,10 @@ export default function MiniAppShopModern() {
 
       {/* TRANSACTION DETAILS POPUP MODAL */}
       <Dialog open={!!selectedTxDetail} onOpenChange={(open) => !open && setSelectedTxDetail(null)}>
-        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md w-[92vw] sm:w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-8">
           {selectedTxDetail && (() => {
             const isDeposit = selectedTxDetail.type === "deposit";
+            const isLkrCurrency = (selectedTxDetail.currency || "").toUpperCase() === "LKR";
             const statusLower = (selectedTxDetail.status || "").toLowerCase();
             const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
             const isPending = statusLower === "pending" || statusLower === "processing";
@@ -3625,7 +3643,7 @@ export default function MiniAppShopModern() {
                 {/* Center Brand Visual & Amount */}
                 <div className="text-center py-2">
                   <div className="w-16 h-16 rounded-3xl bg-white border border-[#ECEEF8] shadow-md mx-auto mb-3 flex items-center justify-center p-2">
-                    <TransactionBrandIcon tx={selectedTxDetail} />
+                    <TransactionBrandIcon tx={selectedTxDetail} className="w-12 h-12" />
                   </div>
                   <h3 className="text-base font-black text-[#181432]">
                     {selectedTxDetail.title}
@@ -3634,18 +3652,31 @@ export default function MiniAppShopModern() {
                     {selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order")}
                   </div>
 
-                  {/* Dual Currency Amount Card */}
+                  {/* Currency Amount Card */}
                   <div className={`mt-3 p-3.5 rounded-2xl border text-center ${
                     isDeposit
                       ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800"
                       : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"
                   }`}>
-                    <div className="text-2xl font-black font-mono">
-                      {isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD`}
-                    </div>
-                    <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
-                      ≈ Rs. {selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()} LKR
-                    </div>
+                    {isLkrCurrency ? (
+                      <>
+                        <div className="text-2xl font-black font-mono text-emerald-700">
+                          +Rs. {selectedTxDetail.amountLkr || (selectedTxDetail.amountCents / 100).toLocaleString()} LKR
+                        </div>
+                        <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
+                          ≈ ${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents / 100) / lkrRate).toFixed(2)} USD
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-2xl font-black font-mono">
+                          {isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD`}
+                        </div>
+                        <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
+                          ≈ Rs. {selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()} LKR
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -3680,15 +3711,27 @@ export default function MiniAppShopModern() {
 
                   <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
                     <span className="text-[#9490A8] font-bold">Payment Method:</span>
-                    <span className="font-bold text-[#181432] flex items-center gap-1">
-                      {selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" ? (
-                        <span className="text-blue-600 flex items-center gap-1">💳 Card Payment (Visa / Mastercard)</span>
-                      ) : selectedTxDetail.method === "binance_pay" ? (
-                        <span className="text-amber-600 flex items-center gap-1">🟡 Binance Pay</span>
-                      ) : selectedTxDetail.method === "cryptomus" ? (
-                        <span className="text-purple-600 flex items-center gap-1">🟣 Cryptomus (USDT)</span>
+                    <span className="font-bold text-[#181432] flex items-center gap-1.5">
+                      {selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" || selectedTxDetail.method === "card" ? (
+                        <span className="text-blue-600 flex items-center gap-1.5 font-bold">
+                          <DualCardIcon />
+                          <span>Card Payment</span>
+                        </span>
+                      ) : selectedTxDetail.method === "binance_pay" || selectedTxDetail.method === "binance" ? (
+                        <span className="text-amber-600 flex items-center gap-1.5 font-bold">
+                          <SiBinance className="w-4 h-4 text-[#E5A91E]" />
+                          <span>Binance Pay</span>
+                        </span>
+                      ) : selectedTxDetail.method === "cryptomus" || selectedTxDetail.method === "crypto" ? (
+                        <span className="text-purple-600 flex items-center gap-1.5 font-bold">
+                          <CryptomusLogo className="w-4 h-4" />
+                          <span>Cryptomus</span>
+                        </span>
                       ) : (
-                        <span className="text-emerald-600 flex items-center gap-1">💰 Wallet Balance</span>
+                        <span className="text-emerald-600 flex items-center gap-1.5 font-bold">
+                          <Wallet className="w-4 h-4 text-emerald-600" />
+                          <span>Wallet Balance</span>
+                        </span>
                       )}
                     </span>
                   </div>
@@ -3702,13 +3745,34 @@ export default function MiniAppShopModern() {
                     </div>
                   )}
 
-                  {/* SMM Target Link if applicable */}
-                  {selectedTxDetail.smmLink && (
-                    <div className="pt-1">
-                      <span className="text-[#9490A8] font-bold block mb-1">Target Link & Quantity:</span>
-                      <div className="bg-[#F8F7FD] p-2.5 rounded-xl border border-[#ECEEF8] text-[11px] space-y-1">
-                        <div className="font-mono text-[#5B42F3] truncate">{selectedTxDetail.smmLink}</div>
-                        <div className="text-[#7E7998] font-bold">Quantity: {selectedTxDetail.smmQuantity} units</div>
+                  {/* SMM Target Link, Start Count, Remains & Quantity */}
+                  {selectedTxDetail.type === "smm" && (
+                    <div className="pt-1 space-y-2">
+                      <span className="text-[#9490A8] font-bold block">SMM Order Details:</span>
+                      <div className="bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]">
+                        {selectedTxDetail.smmLink && (
+                          <div>
+                            <div className="text-[10px] text-[#9490A8] font-bold uppercase">Target Link</div>
+                            <div className="font-mono text-[#5B42F3] break-all select-all font-semibold mt-0.5">
+                              {selectedTxDetail.smmLink}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[#ECEEF8]">
+                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9.5px] font-bold text-[#9490A8] block uppercase">Quantity</span>
+                            <span className="font-black text-[#181432] text-xs">{selectedTxDetail.smmQuantity || 0}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9.5px] font-bold text-sky-600 block uppercase">Start Count</span>
+                            <span className="font-black text-sky-600 text-xs">{selectedTxDetail.startCount || "0"}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9.5px] font-bold text-amber-600 block uppercase">Remains</span>
+                            <span className="font-black text-amber-600 text-xs">{selectedTxDetail.remains || "0"}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

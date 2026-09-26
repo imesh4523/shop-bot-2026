@@ -1929,21 +1929,33 @@ export async function registerRoutes(
         let cleanMethod = p.paymentMethod;
 
         if (isCard) {
-          title = "Card Payment (Visa / Mastercard)";
+          title = "Card Payment";
           cleanMethod = "card_payment";
           cleanRef = `#CARD-${p.id}`;
         } else if (isBinance) {
-          title = "Binance Pay Deposit";
+          title = "Binance Pay";
           cleanMethod = "binance_pay";
           cleanRef = p.txid ? `#BN-${p.txid.substring(0, 8)}` : `#BN-${p.id}`;
         } else if (isCrypto) {
-          title = "Cryptomus (USDT) Deposit";
+          title = "Cryptomus Deposit";
           cleanMethod = "cryptomus";
           cleanRef = `#CRYPTO-${p.id}`;
         }
 
-        const usdVal = (p.amount / 100);
-        const lkrVal = Math.round(usdVal * lkrRate);
+        const isLkr = (p.currency || "").toUpperCase() === "LKR";
+        let usdVal = 0;
+        let lkrVal = 0;
+        let amountFormatted = "";
+
+        if (isLkr) {
+          lkrVal = (p.amount / 100);
+          usdVal = lkrVal / lkrRate;
+          amountFormatted = `+Rs. ${lkrVal.toLocaleString()}`;
+        } else {
+          usdVal = (p.amount / 100);
+          lkrVal = Math.round(usdVal * lkrRate);
+          amountFormatted = `+$${usdVal.toFixed(2)}`;
+        }
 
         return {
           id: `DEP-${p.id}`,
@@ -1954,14 +1966,14 @@ export async function registerRoutes(
           amountCents: p.amount,
           amountUsd: usdVal.toFixed(2),
           amountLkr: lkrVal.toLocaleString(),
-          amountFormatted: `+$${usdVal.toFixed(2)} (Rs ${lkrVal.toLocaleString()})`,
-          currency: p.currency || "USD",
+          amountFormatted,
+          currency: isLkr ? "LKR" : "USD",
           method: cleanMethod,
           status: p.status, // "completed", "pending", "failed", "cancelled"
           reference: cleanRef,
           externalId: p.externalId || null,
           txid: p.txid || null,
-          details: isCard ? "Paid via Visa / Mastercard Online Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
+          details: isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
           createdAt: p.createdAt || new Date(),
           updatedAt: p.updatedAt || p.createdAt || new Date()
         };
@@ -1989,7 +2001,7 @@ export async function registerRoutes(
           amountCents: -(o.products?.price || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
           status: o.orders.status === "completed" ? "completed" : o.orders.status, // "completed", "refunded", "pending"
@@ -2021,10 +2033,13 @@ export async function registerRoutes(
           smmCategory: s.smm_services?.category || "Social Media",
           smmLink: s.smm_orders.link || "",
           smmQuantity: s.smm_orders.quantity || 0,
+          startCount: s.smm_orders.startCount || "0",
+          remains: s.smm_orders.remains || "0",
+          externalOrderId: s.smm_orders.externalOrderId || null,
           amountCents: -(s.smm_orders.charge || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
           status: s.smm_orders.status || "pending", // "completed", "processing", "pending", "canceled", "partial"
@@ -2054,7 +2069,7 @@ export async function registerRoutes(
           amountCents: -(sp.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)} (Rs ${costLkr.toLocaleString()})`,
+          amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
           status: sp.status === "approved" ? "completed" : sp.status,
@@ -2077,6 +2092,124 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("GET /api/mini/transactions error:", err);
       res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // Admin: Consolidated All Orders Hub API across Cloud, SMM, and Partner
+  app.get("/api/admin/all-orders", isAuth, async (req, res) => {
+    try {
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
+      // 1. Direct Cloud Store Orders
+      const directOrders = await db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+        .leftJoin(telegramUsers, eq(orders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(orders.createdAt));
+
+      const cloudItems = directOrders.map(o => {
+        const costUsd = ((o.products?.price || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+        const buyer = o.telegram_users ? (o.telegram_users.username ? `@${o.telegram_users.username}` : (o.telegram_users.email || `ID: ${o.telegram_users.telegramId}`)) : "Guest User";
+
+        return {
+          id: `ORD-${o.orders.id}`,
+          rawId: o.orders.id,
+          orderType: "cloud" as const,
+          typeLabel: "Cloud Account",
+          title: o.products?.name || "Digital Cloud Product",
+          category: o.products?.type || "Cloud",
+          buyer,
+          buyerId: o.orders.telegramUserId,
+          amountCents: o.products?.price || 0,
+          amountUsd: `$${costUsd.toFixed(2)}`,
+          amountLkr: `Rs. ${costLkr.toLocaleString()}`,
+          status: o.orders.status || "completed",
+          deliveredContent: o.credentials?.content || null,
+          details: `Direct Auto-Fulfillment (${o.products?.type || "Cloud"})`,
+          createdAt: o.orders.createdAt || new Date()
+        };
+      });
+
+      // 2. SMM Orders
+      const smmItemsRaw = await db.select()
+        .from(smmOrders)
+        .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+        .leftJoin(telegramUsers, eq(smmOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(smmOrders.createdAt));
+
+      const smmItems = smmItemsRaw.map(s => {
+        const costUsd = ((s.smm_orders.charge || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+        const buyer = s.telegram_users ? (s.telegram_users.username ? `@${s.telegram_users.username}` : (s.telegram_users.email || `ID: ${s.telegram_users.telegramId}`)) : "Guest User";
+
+        return {
+          id: `SMM-${s.smm_orders.id}`,
+          rawId: s.smm_orders.id,
+          orderType: "smm" as const,
+          typeLabel: "SMM Social Boost",
+          title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+          category: s.smm_services?.category || "Social Media",
+          buyer,
+          buyerId: s.smm_orders.telegramUserId,
+          amountCents: s.smm_orders.charge || 0,
+          amountUsd: `$${costUsd.toFixed(2)}`,
+          amountLkr: `Rs. ${costLkr.toLocaleString()}`,
+          status: s.smm_orders.status || "pending",
+          link: s.smm_orders.link || "",
+          quantity: s.smm_orders.quantity || 0,
+          startCount: s.smm_orders.startCount || "0",
+          remains: s.smm_orders.remains || "0",
+          externalOrderId: s.smm_orders.externalOrderId || null,
+          details: `Target: ${s.smm_orders.link} | Qty: ${s.smm_orders.quantity}`,
+          createdAt: s.smm_orders.createdAt || new Date()
+        };
+      });
+
+      // 3. Sandromania Partner Orders
+      const partnerItemsRaw = await db.select()
+        .from(sandromaniaOrders)
+        .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
+        .leftJoin(telegramUsers, eq(sandromaniaOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(sandromaniaOrders.createdAt));
+
+      const partnerItems = partnerItemsRaw.map(sp => {
+        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate);
+        const buyer = sp.telegram_users ? (sp.telegram_users.username ? `@${sp.telegram_users.username}` : (sp.telegram_users.email || `ID: ${sp.telegram_users.telegramId}`)) : "Guest User";
+
+        return {
+          id: `PARTNER-${sp.sandromania_orders.id}`,
+          rawId: sp.sandromania_orders.id,
+          orderType: "partner" as const,
+          typeLabel: "Sandromania Goods",
+          title: sp.sandromania_orders.productTitle || "Partner Digital Good",
+          category: sp.sandromania_products?.category || "Digital Goods",
+          buyer,
+          buyerId: sp.sandromania_orders.telegramUserId,
+          amountCents: sp.sandromania_orders.amountPaid || 0,
+          amountUsd: `$${costUsd.toFixed(2)}`,
+          amountLkr: `Rs. ${costLkr.toLocaleString()}`,
+          status: sp.sandromania_orders.status || "approved",
+          quantity: sp.sandromania_orders.quantity || 1,
+          deliveredContent: sp.sandromania_orders.deliveryText || null,
+          externalOrderId: sp.sandromania_orders.externalOrderId || null,
+          details: `Partner CDK Order #${sp.sandromania_orders.externalOrderId || sp.sandromania_orders.id}`,
+          createdAt: sp.sandromania_orders.createdAt || new Date()
+        };
+      });
+
+      // Combine and sort by date descending
+      const all = [...cloudItems, ...smmItems, ...partnerItems].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      res.json(all);
+    } catch (err: any) {
+      console.error("GET /api/admin/all-orders error:", err);
+      res.status(500).json({ message: err.message });
     }
   });
 

@@ -39,6 +39,7 @@ import CssxApiPage from "@/pages/cssx-api-page";
 import DomainAutomationPage from "@/pages/domain-automation-page";
 import StoreMeshPage from "@/pages/store-mesh-page";
 import PayHereGatewayPage from "@/pages/payhere-gateway-page";
+import AllOrdersPage from "@/pages/all-orders-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -124,6 +125,10 @@ function Router() {
       {/* Secret Admin Routes (/imeshadmindashbord/*) */}
       <Route path="/imeshadmindashbord">
         <ProtectedRoute component={Dashboard} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/all-orders">
+        <ProtectedRoute component={AllOrdersPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/api-keys">

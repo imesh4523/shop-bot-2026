@@ -26,6 +26,7 @@ import {
   Globe,
   Network,
   CreditCard,
+  Layers,
   Puzzle,
 } from "lucide-react";
 import { useState } from "react";
@@ -55,6 +56,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/imeshadmindashbord', icon: LayoutDashboard },
+    { name: 'All Orders', href: '/imeshadmindashbord/all-orders', icon: Layers },
     { name: 'API Keys', href: '/imeshadmindashbord/api-keys', icon: Key },
     { name: 'Cloudflare & Resend', href: '/imeshadmindashbord/domain-automation', icon: Globe },
     { name: 'PayHere Gateway', href: '/imeshadmindashbord/payhere', icon: CreditCard },
