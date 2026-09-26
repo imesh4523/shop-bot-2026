@@ -21,6 +21,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 3000,
   },
   server: {
+    host: "0.0.0.0",
+    allowedHosts: true,
     fs: {
       strict: true,
       deny: ["**/.*"],

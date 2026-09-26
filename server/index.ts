@@ -16,7 +16,13 @@ process.on("uncaughtException", (error) => {
 });
 
 const app = express();
+app.set("trust proxy", true);
+
 const httpServer = createServer(app);
+// Cloudflare Keep-Alive timeout alignment to eliminate Error 520 / 521 / 522 Host Errors
+httpServer.keepAliveTimeout = 65000; // > 60s Cloudflare timeout
+httpServer.headersTimeout = 66000;
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*",
@@ -33,6 +39,11 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+// Immediate Cloudflare & Load Balancer Health Check Probes (Bypass rate limit & shields)
+app.get(["/health", "/api/health", "/ping"], (_req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
 
 app.use(
   express.json({
