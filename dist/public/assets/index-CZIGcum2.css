@@ -1517,6 +1517,10 @@ h1, h2, h3, h4, h5, h6 {
   max-height: 500px;
 }
 
+.max-h-\[65vh\]{
+  max-height: 65vh;
+}
+
 .max-h-\[85vh\]{
   max-height: 85vh;
 }
@@ -8268,11 +8272,6 @@ body:has(.tg-mini-app) {
   background-color: rgb(91 66 243 / 0.1);
 }
 
-.hover\:bg-\[\#ECEEF8\]:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(236 238 248 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-\[\#EDE9FE\]:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(237 233 254 / var(--tw-bg-opacity, 1));
@@ -10383,10 +10382,6 @@ body:has(.tg-mini-app) {
 
   .sm\:h-7{
     height: 1.75rem;
-  }
-
-  .sm\:w-1\/2{
-    width: 50%;
   }
 
   .sm\:w-28{

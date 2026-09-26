@@ -84,10 +84,6 @@ export function PaymentProcessingModal({
         <p className="text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed">
           {subtitle}
         </p>
-        <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
-          <span className="w-2 h-2 rounded-full bg-purple-600 animate-ping" />
-          <span>Secure Encrypted Session</span>
-        </div>
       </div>
     </div>
   );

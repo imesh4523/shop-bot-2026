@@ -11651,16 +11651,6 @@ const History = createLucideIcon("History", [
   ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
   ["path", { d: "M12 7v5l4 2", key: "1fdv2h" }]
 ]);
-const House = createLucideIcon("House", [
-  ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
-  [
-    "path",
-    {
-      d: "M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
-      key: "1d0kgt"
-    }
-  ]
-]);
 const IdCard = createLucideIcon("IdCard", [
   ["path", { d: "M16 10h2", key: "8sgtl7" }],
   ["path", { d: "M16 14h2", key: "epxaof" }],
@@ -73975,7 +73965,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BWUxjkZ-.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Dq0PkX-6.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102544,11 +102534,7 @@ function PaymentProcessingModal({
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-white/20 flex flex-col items-center text-center animate-in zoom-in-95 duration-300", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "my-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 180 }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] tracking-tight mt-1", children: title }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed", children: subtitle }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex items-center gap-1.5 text-[11px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-purple-600 animate-ping" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Secure Encrypted Session" })
-    ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed", children: subtitle })
   ] }) });
 }
 const youuHostLogo = "/assets/youuhost_logo-DHO_k5Bj.png";
@@ -114464,27 +114450,9 @@ function EmailHubPage() {
   ] });
 }
 function NotFound() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex flex-col items-center justify-center bg-[#F8F9FD] p-6 text-center select-none", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-[#ECEEF8] flex flex-col items-center", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full flex justify-center -mt-4 mb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lottie404, { size: 280 }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl font-black text-[#181432] tracking-tight", children: "404 - Page Not Found" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-xs font-semibold text-[#7E7998] max-w-xs leading-relaxed", children: "The page or route you are looking for does not exist or has been moved." }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-6 flex flex-col sm:flex-row items-center gap-3 w-full", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "button",
-        {
-          onClick: () => window.history.back(),
-          className: "w-full sm:w-1/2 h-11 px-4 rounded-2xl bg-[#F8F7FD] hover:bg-[#ECEEF8] text-[#181432] text-xs font-bold flex items-center justify-center gap-2 border border-[#ECEEF8] transition-all active:scale-95",
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { className: "w-4 h-4" }),
-            " Go Back"
-          ]
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/", className: "w-full sm:w-1/2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { className: "w-full h-11 px-4 rounded-2xl bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] hover:opacity-90 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/20 transition-all active:scale-95", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(House, { className: "w-4 h-4" }),
-        " Return Home"
-      ] }) })
-    ] })
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex flex-col items-center justify-center bg-[#F8F9FD] p-4 text-center select-none overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-md w-full flex flex-col items-center justify-center", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full flex justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lottie404, { size: 320, className: "max-w-full max-h-[65vh]" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-black text-[#181432] tracking-tight mt-2", children: "404 - Page Not Found" })
   ] }) });
 }
 class ErrorBoundary extends reactExports.Component {
