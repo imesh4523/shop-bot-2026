@@ -582,6 +582,10 @@ export default function MiniAppShopModern() {
   // Top-Up State
   const [cryptomusAmount, setCryptomusAmount] = useState("10");
   const [isCreatingCryptomus, setIsCreatingCryptomus] = useState(false);
+  const [payhereAmount, setPayhereAmount] = useState(() => {
+    return (localStorage.getItem("app_currency") === "LKR") ? "1000" : "5";
+  });
+  const [isCreatingPayHere, setIsCreatingPayHere] = useState(false);
 
   const handleCatMouseDown = (e: React.MouseEvent) => {
     if (!catScrollRef.current) return;
@@ -782,14 +786,14 @@ export default function MiniAppShopModern() {
 
   const supportUser = supportUserSetting?.value || "@rochana_imesh";
 
-  const { data: depositMethods } = useQuery<{ binancePayId: string; cryptomusEnabled: boolean; supportUsername: string }>({
+  const { data: depositMethods } = useQuery<{ binancePayId: string; cryptomusEnabled: boolean; payhereEnabled?: boolean; payhereGatewayUrl?: string; supportUsername: string }>({
     queryKey: ["/api/mini/deposit/methods"],
     queryFn: async () => {
       try {
         const res = await fetch("/api/mini/deposit/methods");
         return res.json();
       } catch {
-        return { binancePayId: "284910485", cryptomusEnabled: true, supportUsername: "@rochana_imesh" };
+        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@rochana_imesh" };
       }
     },
   });
@@ -831,9 +835,11 @@ export default function MiniAppShopModern() {
     if (curr === "LKR") {
       setBinanceAmount("1000");
       setCryptomusAmount("1000");
+      setPayhereAmount("1000");
     } else {
       setBinanceAmount("5");
       setCryptomusAmount("10");
+      setPayhereAmount("5");
     }
   };
 
@@ -878,6 +884,15 @@ export default function MiniAppShopModern() {
     }
     return parseFloat(val.toFixed(2));
   }, [cryptomusAmount, selectedCurrency, lkrRate]);
+
+  const payhereCalculatedUsd = useMemo(() => {
+    const val = parseFloat(payhereAmount || "0");
+    if (isNaN(val) || val <= 0) return 0;
+    if (selectedCurrency === "LKR") {
+      return parseFloat((val / lkrRate).toFixed(2));
+    }
+    return parseFloat(val.toFixed(2));
+  }, [payhereAmount, selectedCurrency, lkrRate]);
 
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1110,6 +1125,40 @@ export default function MiniAppShopModern() {
       toast({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
     } finally {
       setIsCreatingCryptomus(false);
+    }
+  };
+
+  const handlePayHerePay = async () => {
+    const rawAmt = parseFloat(payhereAmount);
+    if (isNaN(rawAmt) || rawAmt < (selectedCurrency === "LKR" ? 100 : 1)) {
+      toast({
+        title: "Invalid Amount",
+        description: selectedCurrency === "LKR" ? "Minimum deposit is Rs. 100" : "Minimum deposit is $1.00",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsCreatingPayHere(true);
+    try {
+      const res = await miniApiRequest("POST", "/api/mini/deposit/payhere", {
+        amount: rawAmt,
+        currency: selectedCurrency
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        toast({ title: "Opening Checkout", description: "Redirecting to secure Card payment...", duration: 2500 });
+        if ((window as any).Telegram?.WebApp?.openLink) {
+          (window as any).Telegram.WebApp.openLink(data.checkoutUrl);
+        } else {
+          window.open(data.checkoutUrl, "_blank");
+        }
+      } else {
+        toast({ title: "Payment Error", description: data.message || "Failed to create checkout session", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Could not connect to payment gateway", variant: "destructive" });
+    } finally {
+      setIsCreatingPayHere(false);
     }
   };
 
@@ -2591,6 +2640,112 @@ export default function MiniAppShopModern() {
                         {selectedCurrency === "LKR"
                           ? `Pay Rs. ${parseFloat(cryptomusAmount || "0").toLocaleString()} (≈ $${cryptomusCalculatedUsd.toFixed(2)} USD) via Cryptomus`
                           : `Pay $${cryptomusAmount || "0"} via Cryptomus Gateway`}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 3. CARD PAYMENT / PAYHERE GATEWAY */}
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center shadow-sm">
+                      <CreditCard className="w-6 h-6 text-[#0052CC]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[#181432]">Visa / Mastercard / PayHere</h4>
+                      <span className="text-[10px] font-bold text-[#7E7998]">Credit & Debit Cards • Genie • LKR / USD</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-[#0052CC] bg-[#0052CC]/10 px-2.5 py-1 rounded-full border border-[#0052CC]/20 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> SECURE CARD
+                  </span>
+                </div>
+
+                {/* Amount selection quick chips */}
+                <div className="mb-3.5">
+                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
+                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
+                    {selectedCurrency === "LKR" ? (
+                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
+                      </span>
+                    ) : (
+                      <span className="text-blue-600 font-black text-[10px]">
+                        ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
+                      </span>
+                    )}
+                  </label>
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["500", "1000", "2500", "5000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                      const isSelected = payhereAmount === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setPayhereAmount(amt)}
+                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                            isSelected
+                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
+                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                          }`}
+                        >
+                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
+                      {selectedCurrency === "LKR" ? "Rs." : "$"}
+                    </span>
+                    <input
+                      type="number"
+                      min={selectedCurrency === "LKR" ? "100" : "1"}
+                      step={selectedCurrency === "LKR" ? "100" : "1"}
+                      value={payhereAmount}
+                      onChange={(e) => setPayhereAmount(e.target.value)}
+                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 1500)" : "Custom Amount in USD (e.g. 20)"}
+                      className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#0052CC]"
+                    />
+                  </div>
+                  {selectedCurrency === "LKR" && (
+                    <div className="mt-1.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 rounded-xl text-[10.5px] font-bold text-blue-900 flex items-center justify-between">
+                      <span>Card Charge: <b className="text-blue-700">Rs. {parseFloat(payhereAmount || "0").toLocaleString()} LKR</b> (≈ ${payhereCalculatedUsd.toFixed(2)} USD)</span>
+                      <span className="text-[9.5px] text-blue-600/80 font-normal">Direct PayHere Gateway</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accepted Cards Badge row */}
+                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
+                  <span className="text-[10px] font-bold text-[#7E7998]">Accepted:</span>
+                  <span className="text-[10px] font-extrabold text-[#1A1F71] bg-white px-2 py-0.5 rounded border border-neutral-200">VISA</span>
+                  <span className="text-[10px] font-extrabold text-[#EB001B] bg-white px-2 py-0.5 rounded border border-neutral-200">Mastercard</span>
+                  <span className="text-[10px] font-extrabold text-[#D92078] bg-white px-2 py-0.5 rounded border border-neutral-200">Genie</span>
+                  <span className="text-[10px] font-extrabold text-[#0089D6] bg-white px-2 py-0.5 rounded border border-neutral-200">FriMi</span>
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded border border-neutral-200">eZcash</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayHerePay}
+                  disabled={isCreatingPayHere}
+                  className="w-full h-11 px-4 bg-gradient-to-r from-[#0052CC] via-[#0065FF] to-[#00C7E6] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#0052CC]/25 hover:opacity-95 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isCreatingPayHere ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Secure Checkout...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        {selectedCurrency === "LKR"
+                          ? `Pay Rs. ${parseFloat(payhereAmount || "0").toLocaleString()} with Card (PayHere)`
+                          : `Pay $${payhereAmount || "0"} via PayHere Card Gateway`}
                       </span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </>
