@@ -8311,6 +8311,11 @@ body:has(.tg-mini-app) {
   color: rgb(82 82 82 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-orange-300:hover{
+  --tw-text-opacity: 1;
+  color: rgb(253 186 116 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-primary-foreground:hover{
   --tw-text-opacity: 1;
   color: hsl(var(--primary-foreground) / var(--tw-text-opacity, 1));
@@ -8443,6 +8448,11 @@ body:has(.tg-mini-app) {
   border-color: rgb(243 186 47 / var(--tw-border-opacity, 1));
 }
 
+.focus\:border-blue-500:focus{
+  --tw-border-opacity: 1;
+  border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
+}
+
 .focus\:border-cyan-500\/50:focus{
   border-color: rgb(6 182 212 / 0.5);
 }
@@ -8459,6 +8469,11 @@ body:has(.tg-mini-app) {
 .focus\:border-indigo-500:focus{
   --tw-border-opacity: 1;
   border-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
+}
+
+.focus\:border-orange-500:focus{
+  --tw-border-opacity: 1;
+  border-color: rgb(249 115 22 / var(--tw-border-opacity, 1));
 }
 
 .focus\:border-primary\/50:focus{

@@ -24,9 +24,13 @@ import {
   Code2,
   Lock,
   ArrowRight,
-  Sparkles,
   Cloud,
   Check,
+  Key,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +72,9 @@ export default function DomainAutomationPage() {
   const [resendKey, setResendKey] = useState("");
   const [resendFrom, setResendFrom] = useState("");
   const [serverIp, setServerIp] = useState("");
+  const [showCfToken, setShowCfToken] = useState(false);
+  const [showCfGlobalKey, setShowCfGlobalKey] = useState(false);
+  const [showResendKey, setShowResendKey] = useState(false);
   const [settingsInitialized, setSettingsInitialized] = useState(false);
 
   // Sync loaded settings into local inputs
@@ -1229,130 +1236,7 @@ export default function DomainAutomationPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: API CREDENTIALS & SETTINGS */}
-        <TabsContent value="settings" className="space-y-6">
-          <Card className="glass-panel border-white/10">
-            <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
-                <Lock className="w-5 h-5 text-purple-400" /> API Keys & Configuration
-              </CardTitle>
-              <CardDescription className="text-xs text-white/60">
-                Securely store your Cloudflare and Resend.com credentials.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-              {/* Cloudflare Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-orange-400 flex items-center gap-2">
-                  <Cloud className="w-4 h-4" /> Cloudflare Credentials
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Cloudflare API Token (Recommended)</Label>
-                    <Input
-                      type="password"
-                      placeholder="e.g. vL8..."
-                      value={cfToken}
-                      onChange={(e) => setCfToken(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                    <p className="text-[10px] text-white/40">
-                      Token with Zone.DNS (Edit) and Zone (Read) permissions.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Target Server IPv4 Address</Label>
-                    <Input
-                      placeholder="e.g. 18.141.224.63"
-                      value={serverIp}
-                      onChange={(e) => setServerIp(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                    <p className="text-[10px] text-white/40">
-                      The destination IP address for <code>api.yourdomain.com</code>.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Cloudflare Account Email (Optional)</Label>
-                    <Input
-                      type="email"
-                      placeholder="you@gmail.com"
-                      value={cfEmail}
-                      onChange={(e) => setCfEmail(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Cloudflare Global API Key (Optional)</Label>
-                    <Input
-                      type="password"
-                      placeholder="Global API Key"
-                      value={cfGlobalKey}
-                      onChange={(e) => setCfGlobalKey(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Resend Section */}
-              <div className="space-y-4 pt-4 border-t border-white/10">
-                <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> Resend.com Credentials
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Resend API Key</Label>
-                    <Input
-                      type="password"
-                      placeholder="re_123456789..."
-                      value={resendKey}
-                      onChange={(e) => setResendKey(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                    <p className="text-[10px] text-white/40">
-                      Get from <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-purple-400 underline">resend.com/api-keys</a>.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-white/70">Default Sender Email (From)</Label>
-                    <Input
-                      placeholder="Shopeefy <support@youuhost.com>"
-                      value={resendFrom}
-                      onChange={(e) => setResendFrom(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                    />
-                    <p className="text-[10px] text-white/40">
-                      Must use your verified domain or <code>onboarding@resend.dev</code> for testing.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="pt-4 flex justify-end">
-                <Button
-                  onClick={() => saveSettingsMutation.mutate()}
-                  disabled={saveSettingsMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-8"
-                >
-                  {saveSettingsMutation.isPending ? "Saving..." : "Save API Credentials"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 5: CYBERSECURITY SHIELD & WAF MONITOR */}
+        {/* TAB 4: CYBERSECURITY SHIELD & WAF MONITOR */}
         <TabsContent value="security" className="space-y-6">
           <Card className="glass-panel border-emerald-500/30 bg-emerald-950/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full" />
@@ -1516,6 +1400,265 @@ export default function DomainAutomationPage() {
                     </table>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: API CREDENTIALS & SETTINGS */}
+        <TabsContent value="settings" className="space-y-6">
+          <Card className="glass-panel border-purple-500/30 bg-[#120B24] relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 blur-3xl rounded-full pointer-events-none" />
+            <CardHeader className="border-b border-white/5 pb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-sm">
+                    <KeyRound className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white font-black flex items-center gap-2">
+                      Cloudflare & Resend API Credentials
+                    </CardTitle>
+                    <CardDescription className="text-white/60 text-xs mt-0.5">
+                      Configure your official API keys to enable automated DNS record creation, email verification, and server proxying.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => saveSettingsMutation.mutate()}
+                  disabled={saveSettingsMutation.isPending}
+                  className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-90 text-white font-black text-xs rounded-2xl h-11 px-6 shadow-lg shadow-purple-600/25 flex items-center gap-2"
+                >
+                  {saveSettingsMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" /> Save API Credentials
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-8 pt-6">
+              {/* SECTION 1: CLOUDFLARE CREDENTIALS */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Cloudflare API Settings
+                    </h3>
+                  </div>
+                  <a
+                    href="https://dash.cloudflare.com/profile/api-tokens"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1"
+                  >
+                    <span>Get Cloudflare Token</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Cloudflare API Token */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5 text-orange-400" />
+                        <span>Cloudflare Scoped API Token (Recommended)</span>
+                      </Label>
+                      <span className="text-[10px] text-emerald-400 font-medium">Permissions: Zone.DNS (Edit), Zone.Zone (Read)</span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type={showCfToken ? "text" : "password"}
+                        placeholder="Paste your Cloudflare API Token (e.g. 7X...)"
+                        value={cfToken}
+                        onChange={(e) => setCfToken(e.target.value)}
+                        className="bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCfToken(!showCfToken)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                      >
+                        {showCfToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cloudflare Account Email */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Cloudflare Account Email</span>
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="e.g. admin@youuhost.com"
+                      value={cfEmail}
+                      onChange={(e) => setCfEmail(e.target.value)}
+                      className="bg-black/40 border-white/10 text-white text-xs h-11 rounded-xl focus:border-orange-500"
+                    />
+                    <p className="text-[10.5px] text-white/40">Required if using Global API Key instead of API Token.</p>
+                  </div>
+
+                  {/* Cloudflare Global API Key */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Cloudflare Global API Key (Optional Alternative)</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type={showCfGlobalKey ? "text" : "password"}
+                        placeholder="Global API Key from Cloudflare Profile..."
+                        value={cfGlobalKey}
+                        onChange={(e) => setCfGlobalKey(e.target.value)}
+                        className="bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCfGlobalKey(!showCfGlobalKey)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                      >
+                        {showCfGlobalKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10.5px] text-white/40">Only needed if Scoped API Token is not provided.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: RESEND.COM CREDENTIALS */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-purple-400" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Resend.com Email API Settings
+                    </h3>
+                  </div>
+                  <a
+                    href="https://resend.com/api-keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1"
+                  >
+                    <span>Get Resend API Key</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Resend API Key */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Resend API Key</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type={showResendKey ? "text" : "password"}
+                        placeholder="re_xxxxxxxxxxxxxxxxxxxx"
+                        value={resendKey}
+                        onChange={(e) => setResendKey(e.target.value)}
+                        className="bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResendKey(!showResendKey)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                      >
+                        {showResendKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10.5px] text-white/40">Used for transactional emails, purchase receipts, and login verification codes.</p>
+                  </div>
+
+                  {/* Resend Default From Email */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Default Sender / From Address</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="Shopeefy <onboarding@resend.dev> or notify@youuhost.com"
+                      value={resendFrom}
+                      onChange={(e) => setResendFrom(e.target.value)}
+                      className="bg-black/40 border-white/10 text-white text-xs h-11 rounded-xl focus:border-purple-500"
+                    />
+                    <p className="text-[10.5px] text-white/40">Formatted as: Name &lt;email@domain.com&gt;</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: SERVER INFRASTRUCTURE IP */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                  <Server className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Infrastructure & Gateway Target IP
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Target Server IPv4 Address</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. 18.141.224.63"
+                      value={serverIp}
+                      onChange={(e) => setServerIp(e.target.value)}
+                      className="bg-black/40 border-white/10 text-white font-mono text-xs h-11 rounded-xl focus:border-blue-500"
+                    />
+                    <p className="text-[10.5px] text-white/40">The public IPv4 address assigned to your AWS EC2 or cloud server.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Primary Managed Domain</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. youuhost.com"
+                      value={targetDomain}
+                      onChange={(e) => setTargetDomain(e.target.value)}
+                      className="bg-black/40 border-white/10 text-white font-mono text-xs h-11 rounded-xl focus:border-blue-500"
+                    />
+                    <p className="text-[10.5px] text-white/40">The root domain managed on Cloudflare.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SAVE BUTTON AT BOTTOM */}
+              <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+                <Button
+                  type="button"
+                  onClick={() => saveSettingsMutation.mutate()}
+                  disabled={saveSettingsMutation.isPending}
+                  className="w-full sm:w-auto h-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-90 text-white font-black text-xs rounded-2xl px-8 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2"
+                >
+                  {saveSettingsMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Saving Settings...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" /> Save API Credentials
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>

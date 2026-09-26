@@ -11968,7 +11968,7 @@ const Smile = createLucideIcon("Smile", [
   ["line", { x1: "9", x2: "9.01", y1: "9", y2: "9", key: "yxxnd0" }],
   ["line", { x1: "15", x2: "15.01", y1: "9", y2: "9", key: "1p4y9e" }]
 ]);
-const Sparkles = createLucideIcon("Sparkles", [
+const Sparkles$1 = createLucideIcon("Sparkles", [
   [
     "path",
     {
@@ -61415,7 +61415,7 @@ function SettingsPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2 text-white", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
               "MiniApp Storefront Theme"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30", children: "Live Switcher" })
@@ -61466,7 +61466,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
             "Telegram Integration"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Telegram Bot token here. Changes are applied instantly." })
@@ -61559,7 +61559,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
           "AI Support Assistant (Gemini)"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Google AI Studio Gemini API Key to power the live support chat bot." })
@@ -61827,7 +61827,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
             "Branding & Customization"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Personalize your store and support contact information." })
@@ -62346,7 +62346,7 @@ function SettingsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-base font-bold text-white flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
                 "Payment Gateway Mode Switcher"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/60 mt-1", children: "Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices." })
@@ -73751,7 +73751,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DHuuP4jy.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DCmMNQNT.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85346,7 +85346,7 @@ function LoginPage() {
                 )
               ] }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-primary animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-primary animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
               ] })
             ] })
@@ -87570,7 +87570,7 @@ function TelegramInspectorPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-lg font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
             "Quick Text & Custom Emoji Inspector"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Paste raw text, HTML tag, or Emoji ID below to analyze instantly" })
@@ -87621,7 +87621,7 @@ function TelegramInspectorPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: filteredTraces.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-8 h-8" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-8 h-8" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-white mb-2", children: "No Telegram Traces Found" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 max-w-md mx-auto", children: "Forward any formatted message or send custom emojis to your Telegram Bot. The trace and extracted emoji IDs will appear here instantly!" })
     ] }) : filteredTraces.map((trace) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -88274,7 +88274,7 @@ function TelegramClientPage() {
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
                 ] })
               ] })
@@ -88391,7 +88391,7 @@ function TelegramClientPage() {
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Secure MTProto Link" })
               ] })
             ] })
@@ -89235,7 +89235,7 @@ function ForwardPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black text-white tracking-tight flex items-center gap-2", children: [
             "Auto Forward System",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400 animate-pulse" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400 animate-pulse" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm mt-1", children: "Automatically forward messages from a channel to groups using a dedicated bot" })
         ] })
@@ -92280,8 +92280,8 @@ const getSmmPlatformConfig = (category = "", name = "") => {
     accent: "#6C5CE7",
     bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
     blobColor: "from-purple-100/80 to-indigo-200/50",
-    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-12 h-12 text-[#6C5CE7]" }),
-    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#6C5CE7]" })
+    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-12 h-12 text-[#6C5CE7]" }),
+    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#6C5CE7]" })
   };
 };
 function LiveTOTP({ secret, onCopy }) {
@@ -95045,7 +95045,7 @@ function MiniAppShopModern() {
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isChatOpen, onOpenChange: setIsChatOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-5 shadow-2xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { className: "mb-3 flex flex-row items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-sm font-black text-[#181432] flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#D92078]" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#D92078]" }),
         " 24/7 AI Cloud Concierge"
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-64 overflow-y-auto space-y-2.5 pr-1 text-xs", children: [
@@ -97020,7 +97020,7 @@ function SandromaniaPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showImportModal, onOpenChange: setShowImportModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col p-6 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-600" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
           " Import Products from Sandromania"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Select products from Sandromania live catalog and set your profit markup percentage." })
@@ -97660,7 +97660,7 @@ function CssxApiPage() {
             value: "overview",
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 mr-2" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 mr-2" }),
               "Overview"
             ]
           }
@@ -98365,6 +98365,9 @@ function DomainAutomationPage() {
   const [resendKey, setResendKey] = reactExports.useState("");
   const [resendFrom, setResendFrom] = reactExports.useState("");
   const [serverIp, setServerIp] = reactExports.useState("");
+  const [showCfToken, setShowCfToken] = reactExports.useState(false);
+  const [showCfGlobalKey, setShowCfGlobalKey] = reactExports.useState(false);
+  const [showResendKey, setShowResendKey] = reactExports.useState(false);
   const [settingsInitialized, setSettingsInitialized] = reactExports.useState(false);
   if (settingsData && !settingsInitialized) {
     setCfToken(settingsData.cloudflareToken || "");
@@ -99411,136 +99414,6 @@ function DomainAutomationPage() {
           ] })
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "settings", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-panel border-white/10", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-lg text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-5 h-5 text-purple-400" }),
-            " API Keys & Configuration"
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs text-white/60", children: "Securely store your Cloudflare and Resend.com credentials." })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-6", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-sm font-bold text-orange-400 flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-4 h-4" }),
-              " Cloudflare Credentials"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Cloudflare API Token (Recommended)" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    type: "password",
-                    placeholder: "e.g. vL8...",
-                    value: cfToken,
-                    onChange: (e) => setCfToken(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: "Token with Zone.DNS (Edit) and Zone (Read) permissions." })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Target Server IPv4 Address" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    placeholder: "e.g. 18.141.224.63",
-                    value: serverIp,
-                    onChange: (e) => setServerIp(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40", children: [
-                  "The destination IP address for ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "api.yourdomain.com" }),
-                  "."
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Cloudflare Account Email (Optional)" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    type: "email",
-                    placeholder: "you@gmail.com",
-                    value: cfEmail,
-                    onChange: (e) => setCfEmail(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Cloudflare Global API Key (Optional)" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    type: "password",
-                    placeholder: "Global API Key",
-                    value: cfGlobalKey,
-                    onChange: (e) => setCfGlobalKey(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                )
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-4 border-t border-white/10", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-sm font-bold text-purple-400 flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-4 h-4" }),
-              " Resend.com Credentials"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Resend API Key" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    type: "password",
-                    placeholder: "re_123456789...",
-                    value: resendKey,
-                    onChange: (e) => setResendKey(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40", children: [
-                  "Get from ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: "https://resend.com/api-keys", target: "_blank", rel: "noreferrer", className: "text-purple-400 underline", children: "resend.com/api-keys" }),
-                  "."
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/70", children: "Default Sender Email (From)" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    placeholder: "Shopeefy <support@youuhost.com>",
-                    value: resendFrom,
-                    onChange: (e) => setResendFrom(e.target.value),
-                    className: "bg-white/5 border-white/10 text-white text-xs font-mono focus:border-purple-500"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40", children: [
-                  "Must use your verified domain or ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "onboarding@resend.dev" }),
-                  " for testing."
-                ] })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-4 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Button,
-            {
-              onClick: () => saveSettingsMutation.mutate(),
-              disabled: saveSettingsMutation.isPending,
-              className: "bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-8",
-              children: saveSettingsMutation.isPending ? "Saving..." : "Save API Credentials"
-            }
-          ) })
-        ] })
-      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "security", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-panel border-emerald-500/30 bg-emerald-950/10 relative overflow-hidden", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
@@ -99671,6 +99544,259 @@ function DomainAutomationPage() {
               ] }, threat.id)) })
             ] }) })
           ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "settings", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-panel border-purple-500/30 bg-[#120B24] relative overflow-hidden shadow-2xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-64 h-64 bg-purple-600/10 blur-3xl rounded-full pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "border-b border-white/5 pb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { className: "w-6 h-6" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl text-white font-black flex items-center gap-2", children: "Cloudflare & Resend API Credentials" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60 text-xs mt-0.5", children: "Configure your official API keys to enable automated DNS record creation, email verification, and server proxying." })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              onClick: () => saveSettingsMutation.mutate(),
+              disabled: saveSettingsMutation.isPending,
+              className: "bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-90 text-white font-black text-xs rounded-2xl h-11 px-6 shadow-lg shadow-purple-600/25 flex items-center gap-2",
+              children: saveSettingsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
+                " Saving..."
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }),
+                " Save API Credentials"
+              ] })
+            }
+          )
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-8 pt-6", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-white/5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-4 h-4 text-orange-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-white uppercase tracking-wider", children: "Cloudflare API Settings" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "a",
+                {
+                  href: "https://dash.cloudflare.com/profile/api-tokens",
+                  target: "_blank",
+                  rel: "noreferrer",
+                  className: "text-[11px] text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Get Cloudflare Token" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 md:col-span-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5 text-orange-400" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cloudflare Scoped API Token (Recommended)" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-400 font-medium", children: "Permissions: Zone.DNS (Edit), Zone.Zone (Read)" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: showCfToken ? "text" : "password",
+                      placeholder: "Paste your Cloudflare API Token (e.g. 7X...)",
+                      value: cfToken,
+                      onChange: (e) => setCfToken(e.target.value),
+                      className: "bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-orange-500"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setShowCfToken(!showCfToken),
+                      className: "absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white",
+                      children: showCfToken ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-4 h-4" })
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-3.5 h-3.5 text-orange-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cloudflare Account Email" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "email",
+                    placeholder: "e.g. admin@youuhost.com",
+                    value: cfEmail,
+                    onChange: (e) => setCfEmail(e.target.value),
+                    className: "bg-black/40 border-white/10 text-white text-xs h-11 rounded-xl focus:border-orange-500"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "Required if using Global API Key instead of API Token." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-3.5 h-3.5 text-orange-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cloudflare Global API Key (Optional Alternative)" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: showCfGlobalKey ? "text" : "password",
+                      placeholder: "Global API Key from Cloudflare Profile...",
+                      value: cfGlobalKey,
+                      onChange: (e) => setCfGlobalKey(e.target.value),
+                      className: "bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-orange-500"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setShowCfGlobalKey(!showCfGlobalKey),
+                      className: "absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white",
+                      children: showCfGlobalKey ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-4 h-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "Only needed if Scoped API Token is not provided." })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-white/5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-4 h-4 text-purple-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-white uppercase tracking-wider", children: "Resend.com Email API Settings" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "a",
+                {
+                  href: "https://resend.com/api-keys",
+                  target: "_blank",
+                  rel: "noreferrer",
+                  className: "text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Get Resend API Key" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Resend API Key" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: showResendKey ? "text" : "password",
+                      placeholder: "re_xxxxxxxxxxxxxxxxxxxx",
+                      value: resendKey,
+                      onChange: (e) => setResendKey(e.target.value),
+                      className: "bg-black/40 border-white/10 text-white font-mono text-xs h-11 pr-12 rounded-xl focus:border-purple-500"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setShowResendKey(!showResendKey),
+                      className: "absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white",
+                      children: showResendKey ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-4 h-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "Used for transactional emails, purchase receipts, and login verification codes." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Default Sender / From Address" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "text",
+                    placeholder: "Shopeefy <onboarding@resend.dev> or notify@youuhost.com",
+                    value: resendFrom,
+                    onChange: (e) => setResendFrom(e.target.value),
+                    className: "bg-black/40 border-white/10 text-white text-xs h-11 rounded-xl focus:border-purple-500"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "Formatted as: Name <email@domain.com>" })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pb-2 border-b border-white/5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4 text-blue-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-white uppercase tracking-wider", children: "Infrastructure & Gateway Target IP" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3.5 h-3.5 text-blue-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Target Server IPv4 Address" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "text",
+                    placeholder: "e.g. 18.141.224.63",
+                    value: serverIp,
+                    onChange: (e) => setServerIp(e.target.value),
+                    className: "bg-black/40 border-white/10 text-white font-mono text-xs h-11 rounded-xl focus:border-blue-500"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "The public IPv4 address assigned to your AWS EC2 or cloud server." })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3.5 h-3.5 text-blue-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Primary Managed Domain" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "text",
+                    placeholder: "e.g. youuhost.com",
+                    value: targetDomain,
+                    onChange: (e) => setTargetDomain(e.target.value),
+                    className: "bg-black/40 border-white/10 text-white font-mono text-xs h-11 rounded-xl focus:border-blue-500"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] text-white/40", children: "The root domain managed on Cloudflare." })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-4 border-t border-white/10 flex items-center justify-end gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              type: "button",
+              onClick: () => saveSettingsMutation.mutate(),
+              disabled: saveSettingsMutation.isPending,
+              className: "w-full sm:w-auto h-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-90 text-white font-black text-xs rounded-2xl px-8 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2",
+              children: saveSettingsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
+                " Saving Settings..."
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }),
+                " Save API Credentials"
+              ] })
+            }
+          ) })
         ] })
       ] }) })
     ] }),
