@@ -11989,7 +11989,7 @@ const Smile = createLucideIcon("Smile", [
   ["line", { x1: "9", x2: "9.01", y1: "9", y2: "9", key: "yxxnd0" }],
   ["line", { x1: "15", x2: "15.01", y1: "9", y2: "9", key: "1p4y9e" }]
 ]);
-const Sparkles$1 = createLucideIcon("Sparkles", [
+const Sparkles = createLucideIcon("Sparkles", [
   [
     "path",
     {
@@ -61454,7 +61454,7 @@ function SettingsPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2 text-white", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
               "MiniApp Storefront Theme"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30", children: "Live Switcher" })
@@ -61505,7 +61505,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
             "Telegram Integration"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Telegram Bot token here. Changes are applied instantly." })
@@ -61598,7 +61598,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
           "AI Support Assistant (Gemini)"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Google AI Studio Gemini API Key to power the live support chat bot." })
@@ -61866,7 +61866,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
             "Branding & Customization"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Personalize your store and support contact information." })
@@ -62385,7 +62385,7 @@ function SettingsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-base font-bold text-white flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
                 "Payment Gateway Mode Switcher"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/60 mt-1", children: "Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices." })
@@ -73790,7 +73790,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Cp6L4P-g.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BypKY4NB.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85385,7 +85385,7 @@ function LoginPage() {
                 )
               ] }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-primary animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-primary animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
               ] })
             ] })
@@ -87609,7 +87609,7 @@ function TelegramInspectorPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-lg font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
             "Quick Text & Custom Emoji Inspector"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Paste raw text, HTML tag, or Emoji ID below to analyze instantly" })
@@ -87660,7 +87660,7 @@ function TelegramInspectorPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: filteredTraces.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-8 h-8" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-8 h-8" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-white mb-2", children: "No Telegram Traces Found" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 max-w-md mx-auto", children: "Forward any formatted message or send custom emojis to your Telegram Bot. The trace and extracted emoji IDs will appear here instantly!" })
     ] }) : filteredTraces.map((trace) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -88313,7 +88313,7 @@ function TelegramClientPage() {
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
                 ] })
               ] })
@@ -88430,7 +88430,7 @@ function TelegramClientPage() {
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Secure MTProto Link" })
               ] })
             ] })
@@ -89274,7 +89274,7 @@ function ForwardPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black text-white tracking-tight flex items-center gap-2", children: [
             "Auto Forward System",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400 animate-pulse" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400 animate-pulse" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm mt-1", children: "Automatically forward messages from a channel to groups using a dedicated bot" })
         ] })
@@ -92365,8 +92365,8 @@ const getSmmPlatformConfig = (category = "", name = "") => {
     accent: "#6C5CE7",
     bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
     blobColor: "from-purple-100/80 to-indigo-200/50",
-    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-12 h-12 text-[#6C5CE7]" }),
-    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#6C5CE7]" })
+    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-12 h-12 text-[#6C5CE7]" }),
+    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#6C5CE7]" })
   };
 };
 function LiveTOTP({ secret, onCopy }) {
@@ -95707,7 +95707,7 @@ function MiniAppShopModern() {
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isChatOpen, onOpenChange: setIsChatOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-5 shadow-2xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { className: "mb-3 flex flex-row items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-sm font-black text-[#181432] flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#D92078]" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#D92078]" }),
         " 24/7 AI Cloud Concierge"
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-64 overflow-y-auto space-y-2.5 pr-1 text-xs", children: [
@@ -97682,7 +97682,7 @@ function SandromaniaPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showImportModal, onOpenChange: setShowImportModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col p-6 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-600" }),
           " Import Products from Sandromania"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Select products from Sandromania live catalog and set your profit markup percentage." })
@@ -98322,7 +98322,7 @@ function CssxApiPage() {
             value: "overview",
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 mr-2" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 mr-2" }),
               "Overview"
             ]
           }
@@ -102528,7 +102528,7 @@ function EmailHubPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-semibold flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "h-4 w-4 text-emerald-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "h-4 w-4 text-emerald-400" }),
               " Template Configuration"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Choose template style and configure custom receipt variables" })
