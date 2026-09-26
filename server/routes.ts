@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 // Triggering auto-deploy for V-7
 import express from "express";
 import { type Server as HttpServer } from "http";
-import { Server as SocketServer } from "socket.io";
+import { Server as SocketServer } from "socket.io/dist/index.js";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';

@@ -3,7 +3,7 @@ import { StringSession } from "telegram/sessions";
 import { NewMessage } from "telegram/events";
 import { Api } from "telegram";
 import { storage } from "./storage";
-import { Server as SocketServer } from "socket.io";
+import { Server as SocketServer } from "socket.io/dist/index.js";
 import { log } from "./log";
 
 let client: TelegramClient | null = null;
