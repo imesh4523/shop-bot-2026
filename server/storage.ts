@@ -195,6 +195,7 @@ export interface IStorage {
   getUserApiKeys(telegramUserId: number): Promise<ApiKey[]>;
   getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]>;
   revokeApiKey(id: number): Promise<ApiKey>;
+  deleteApiKey(id: number): Promise<boolean>;
   updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey>;
   getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]>;
 }
@@ -1052,6 +1053,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(apiKeys.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteApiKey(id: number): Promise<boolean> {
+    await db.delete(apiKeys).where(eq(apiKeys.id, id));
+    return true;
   }
 
   async updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey> {

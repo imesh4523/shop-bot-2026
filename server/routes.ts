@@ -1671,11 +1671,315 @@ export async function registerRoutes(
     const tgUser = (req as any).tgUser;
     if (!tgUser || tgUser.isGuest || !tgUser.id) return res.json([]);
 
-    const dbUser = await storage.getTelegramUser(tgUser.id.toString());
+    let dbUser = tgUser.dbUser;
+    if (!dbUser) {
+      dbUser = await storage.getTelegramUser(tgUser.id.toString());
+    }
     if (!dbUser) return res.json([]);
 
     const userPayments = await storage.getPaymentsForUser(dbUser.id);
     res.json(userPayments);
+  });
+
+  // --- Mini App User API Key Management ---
+  app.get("/api/mini/api-keys", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Authentication required", keys: [], activeKey: null });
+      }
+
+      const keys = await storage.getUserApiKeys(dbUser.id);
+      const activeKey = keys.find(k => k.status === "active") || null;
+      const baseUrlSetting = await storage.getSetting("API_BASE_URL");
+      const docsUrlSetting = await storage.getSetting("API_DOCS_URL");
+      const appUrl = (await storage.getSetting("APP_URL"))?.value || "https://api.youuhost.com";
+
+      res.json({
+        success: true,
+        keys,
+        activeKey,
+        baseUrl: baseUrlSetting?.value || appUrl,
+        docsUrl: docsUrlSetting?.value || "/api-docs",
+        totalOrders: keys.reduce((acc, k) => acc + (k.totalOrders || 0), 0),
+        successOrders: keys.reduce((acc, k) => acc + (k.successOrders || 0), 0),
+        failedOrders: keys.reduce((acc, k) => acc + (k.failedOrders || 0), 0),
+        revenueCents: keys.reduce((acc, k) => acc + (k.revenue || 0), 0),
+      });
+    } catch (err: any) {
+      console.error("GET /api/mini/api-keys error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.post("/api/mini/api-keys/generate", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Please sign in to generate an API key" });
+      }
+
+      const keyStr = "ric_" + crypto.randomBytes(20).toString("hex");
+      const created = await storage.createApiKey(dbUser.id, keyStr);
+
+      res.json({
+        success: true,
+        message: "New Developer API Key generated successfully!",
+        key: created
+      });
+    } catch (err: any) {
+      console.error("POST /api/mini/api-keys/generate error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.post("/api/mini/api-keys/:id/revoke", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ success: false, message: "Invalid Key ID" });
+
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+
+      const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+      if (!existing || existing.telegramUserId !== dbUser.id) {
+        return res.status(404).json({ success: false, message: "API Key not found or not owned by user" });
+      }
+
+      const revoked = await storage.revokeApiKey(id);
+      res.json({ success: true, message: "API Key revoked successfully", key: revoked });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.delete("/api/mini/api-keys/:id", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ success: false, message: "Invalid Key ID" });
+
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+
+      const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+      if (!existing || existing.telegramUserId !== dbUser.id) {
+        return res.status(404).json({ success: false, message: "API Key not found or not owned by user" });
+      }
+
+      await storage.deleteApiKey(id);
+      res.json({ success: true, message: "API Key deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.get("/api/mini/api-keys/:id/orders", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ success: false, message: "Invalid Key ID" });
+
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+
+      const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+      if (!existing || existing.telegramUserId !== dbUser.id) {
+        return res.status(404).json({ success: false, message: "API Key not found" });
+      }
+
+      const keyOrders = await db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+        .where(eq(orders.apiKeyId, id))
+        .orderBy(desc(orders.createdAt));
+
+      const formatted = keyOrders.map(r => ({
+        id: r.orders.id,
+        productId: r.orders.productId,
+        productName: r.products?.name || "Digital Product",
+        priceCents: r.products?.price || 0,
+        priceUsd: ((r.products?.price || 0) / 100).toFixed(2),
+        status: r.orders.status,
+        deliveredContent: r.credentials?.content || null,
+        createdAt: r.orders.createdAt
+      }));
+
+      res.json(formatted);
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // --- Comprehensive Mini App User Transactions Timeline ---
+  app.get("/api/mini/transactions", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const adminId = (req.session as any)?.passport?.user;
+        if (adminId) {
+          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
+        }
+      }
+      if (!dbUser) {
+        return res.json([]);
+      }
+
+      const userId = dbUser.id;
+
+      // 1. Deposits (Payments)
+      const userPayments = await storage.getPaymentsForUser(userId);
+      const deposits = userPayments.map(p => ({
+        id: `DEP-${p.id}`,
+        type: "deposit" as const,
+        category: "Wallet Top-up",
+        title: `${p.paymentMethod.replace(/_/g, ' ').toUpperCase()} Deposit`,
+        amountCents: p.amount,
+        amountFormatted: `+$${(p.amount / 100).toFixed(2)}`,
+        currency: p.currency || "USD",
+        method: p.paymentMethod,
+        status: p.status, // "completed", "pending", "failed", "cancelled"
+        reference: p.txid || p.externalId || p.cryptomusUuid || `#PAY-${p.id}`,
+        createdAt: p.createdAt || new Date(),
+        updatedAt: p.updatedAt || p.createdAt || new Date()
+      }));
+
+      // 2. Direct Store Purchases
+      const userOrders = await db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .where(eq(orders.telegramUserId, userId))
+        .orderBy(desc(orders.createdAt));
+
+      const purchases = userOrders.map(o => ({
+        id: `ORD-${o.orders.id}`,
+        type: "purchase" as const,
+        category: "Product Purchase",
+        title: o.products?.name || "Digital Item",
+        amountCents: -(o.products?.price || 0),
+        amountFormatted: `-$${((o.products?.price || 0) / 100).toFixed(2)}`,
+        currency: "USD",
+        method: "wallet_balance",
+        status: o.orders.status === "completed" ? "completed" : o.orders.status, // "completed", "refunded", "pending"
+        reference: `#ORD-${o.orders.id}`,
+        createdAt: o.orders.createdAt || new Date(),
+        updatedAt: o.orders.createdAt || new Date()
+      }));
+
+      // 3. SMM Boost Orders
+      const userSmmOrders = await db.select()
+        .from(smmOrders)
+        .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+        .where(eq(smmOrders.telegramUserId, userId))
+        .orderBy(desc(smmOrders.createdAt));
+
+      const smmTransactions = userSmmOrders.map(s => ({
+        id: `SMM-${s.smm_orders.id}`,
+        type: "smm" as const,
+        category: "SMM Social Boost",
+        title: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+        amountCents: -(s.smm_orders.charge || 0),
+        amountFormatted: `-$${((s.smm_orders.charge || 0) / 100).toFixed(2)}`,
+        currency: "USD",
+        method: "wallet_balance",
+        status: s.smm_orders.status || "pending", // "completed", "processing", "pending", "canceled", "partial"
+        reference: `#SMM-${s.smm_orders.id}`,
+        createdAt: s.smm_orders.createdAt || new Date(),
+        updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()
+      }));
+
+      // 4. Sandromania Partner Orders
+      const userSandromaniaOrders = await db.select()
+        .from(sandromaniaOrders)
+        .where(eq(sandromaniaOrders.telegramUserId, userId))
+        .orderBy(desc(sandromaniaOrders.createdAt));
+
+      const partnerTransactions = userSandromaniaOrders.map(sp => ({
+        id: `PARTNER-${sp.id}`,
+        type: "partner" as const,
+        category: "Sandromania Partner Order",
+        title: sp.productTitle || "Partner Digital Goods",
+        amountCents: -(sp.amountPaid || 0),
+        amountFormatted: `-$${((sp.amountPaid || 0) / 100).toFixed(2)}`,
+        currency: "USD",
+        method: "wallet_balance",
+        status: sp.status === "approved" ? "completed" : sp.status,
+        reference: `#SM-${sp.id}`,
+        createdAt: sp.createdAt || new Date(),
+        updatedAt: sp.createdAt || new Date()
+      }));
+
+      // Combine and sort by createdAt descending
+      const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions].sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+
+      res.json(allTransactions);
+    } catch (err: any) {
+      console.error("GET /api/mini/transactions error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
   });
 
   // Mini App Deposit Methods & Cryptomus Invoice
