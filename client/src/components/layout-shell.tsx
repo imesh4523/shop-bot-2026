@@ -28,6 +28,7 @@ import {
   CreditCard,
   Layers,
   Puzzle,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/imeshadmindashbord', icon: LayoutDashboard },
+    { name: 'Email Hub & Receipts', href: '/imeshadmindashbord/email-hub', icon: Mail },
     { name: 'All Orders', href: '/imeshadmindashbord/all-orders', icon: Layers },
     { name: 'API Keys', href: '/imeshadmindashbord/api-keys', icon: Key },
     { name: 'Cloudflare & Resend', href: '/imeshadmindashbord/domain-automation', icon: Globe },

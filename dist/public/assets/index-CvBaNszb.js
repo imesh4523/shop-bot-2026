@@ -11602,6 +11602,11 @@ const Eye = createLucideIcon("Eye", [
   ],
   ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
 ]);
+const FileCheck = createLucideIcon("FileCheck", [
+  ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
+  ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
+  ["path", { d: "m9 15 2 2 4-4", key: "1grp1n" }]
+]);
 const FileText = createLucideIcon("FileText", [
   ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
   ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
@@ -20220,6 +20225,7 @@ function LayoutShell({ children }) {
   const [isMobileOpen, setIsMobileOpen] = reactExports.useState(false);
   const navigation = [
     { name: "Dashboard", href: "/imeshadmindashbord", icon: LayoutDashboard },
+    { name: "Email Hub & Receipts", href: "/imeshadmindashbord/email-hub", icon: Mail },
     { name: "All Orders", href: "/imeshadmindashbord/all-orders", icon: Layers },
     { name: "API Keys", href: "/imeshadmindashbord/api-keys", icon: Key },
     { name: "Cloudflare & Resend", href: "/imeshadmindashbord/domain-automation", icon: Globe },
@@ -30788,6 +30794,22 @@ const storeMeshLogs = pgTable("store_mesh_logs", {
 createInsertSchema(storeMeshNodes).omit({ id: true, createdAt: true, updatedAt: true });
 createInsertSchema(storeMeshPairCodes).omit({ id: true, createdAt: true });
 createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
+const emailLogs = pgTable("email_logs", {
+  id: serial("id").primaryKey(),
+  toEmail: text("to_email").notNull(),
+  recipientName: text("recipient_name"),
+  subject: text("subject").notNull(),
+  templateType: text("template_type").notNull().default("transaction_receipt"),
+  // transaction_receipt, custom, announcement, alert
+  status: text("status").notNull().default("sent"),
+  // sent, failed, pending
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  // { amount: string, reference: string, paymentMethod: string, planTitle: string }
+  sentAt: timestamp("sent_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+createInsertSchema(emailLogs).omit({ id: true, createdAt: true });
 ({
   validation: z$1.object({
     message: z$1.string(),
@@ -73768,7 +73790,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-GgWEa4fF.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BYVyeEf8.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102274,6 +102296,724 @@ function AllOrdersPage() {
     ] }) }) })
   ] });
 }
+function EmailHubPage() {
+  const { toast: toast2 } = useToast();
+  const queryClient2 = useQueryClient();
+  const [activeTab, setActiveTab] = reactExports.useState("compose");
+  const [templateType, setTemplateType] = reactExports.useState("payment_success");
+  const [recipientMode, setRecipientMode] = reactExports.useState("single");
+  const [toEmail, setToEmail] = reactExports.useState("");
+  const [recipientName, setRecipientName] = reactExports.useState("");
+  const [subject, setSubject] = reactExports.useState("Payment Successful - Your Transaction Invoice");
+  const [amount, setAmount] = reactExports.useState("LKR 14,990.00");
+  const [planName, setPlanName] = reactExports.useState("Enterprise Cloud & Bot Hosting");
+  const [billingCycle, setBillingCycle] = reactExports.useState("Monthly");
+  const [paymentMethod, setPaymentMethod] = reactExports.useState("mastercard");
+  const [invoiceNumber, setInvoiceNumber] = reactExports.useState(`INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
+  const [bodyHeading, setBodyHeading] = reactExports.useState("Payment Successful");
+  const [bodyMessage, setBodyMessage] = reactExports.useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
+  const [ctaText, setCtaText] = reactExports.useState("Manage Subscription");
+  const [ctaUrl, setCtaUrl] = reactExports.useState("https://youuhost.com/userdashbord/dashboard");
+  const [previewHtml, setPreviewHtml] = reactExports.useState("");
+  const [selectedLog, setSelectedLog] = reactExports.useState(null);
+  const [viewEmailModal, setViewEmailModal] = reactExports.useState(false);
+  const [searchTerm, setSearchTerm] = reactExports.useState("");
+  const [filterStatus, setFilterStatus] = reactExports.useState("all");
+  const { data: logsData, isLoading: isLoadingLogs, refetch: refetchLogs } = useQuery({
+    queryKey: ["/api/admin/emails/logs"],
+    refetchInterval: 15e3
+  });
+  const { data: usersData } = useQuery({
+    queryKey: ["/api/admin/emails/users"]
+  });
+  reactExports.useEffect(() => {
+    const fetchPreview = async () => {
+      try {
+        const payload = {
+          templateType,
+          toEmail: toEmail || "customer@example.com",
+          recipientName: recipientName || "Valued Customer",
+          subject,
+          amount,
+          planName,
+          billingCycle,
+          paymentMethod,
+          invoiceNumber,
+          bodyHeading,
+          bodyMessage,
+          ctaText,
+          ctaUrl
+        };
+        const res = await apiRequest("POST", "/api/admin/emails/preview", payload);
+        const data = await res.json();
+        if (data.html) {
+          setPreviewHtml(data.html);
+        }
+      } catch (err) {
+        console.error("Failed to load preview:", err);
+      }
+    };
+    const timeout = setTimeout(fetchPreview, 300);
+    return () => clearTimeout(timeout);
+  }, [templateType, toEmail, recipientName, subject, amount, planName, billingCycle, paymentMethod, invoiceNumber, bodyHeading, bodyMessage, ctaText, ctaUrl]);
+  const sendEmailMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        templateType,
+        recipientMode,
+        toEmail,
+        recipientName,
+        subject,
+        amount,
+        planName,
+        billingCycle,
+        paymentMethod,
+        invoiceNumber,
+        bodyHeading,
+        bodyMessage,
+        ctaText,
+        ctaUrl
+      };
+      const res = await apiRequest("POST", "/api/admin/emails/send", payload);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast2({
+          title: "Email Dispatched Successfully",
+          description: recipientMode === "broadcast" ? `Sent to ${data.sentCount} users (${data.failedCount} failed).` : `Email successfully delivered to ${toEmail}.`
+        });
+        queryClient2.invalidateQueries({ queryKey: ["/api/admin/emails/logs"] });
+        setInvoiceNumber(`INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
+      } else {
+        toast2({
+          title: "Failed to Dispatch",
+          description: data.error || "Could not send email.",
+          variant: "destructive"
+        });
+      }
+    },
+    onError: (err) => {
+      toast2({
+        title: "Dispatch Error",
+        description: err.message || "Failed to send email. Check SMTP credentials.",
+        variant: "destructive"
+      });
+    }
+  });
+  const smtpTestMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/emails/test-smtp", {});
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast2({
+          title: "SMTP Connection Verified",
+          description: data.message || "Connected to mail server successfully."
+        });
+      } else {
+        toast2({
+          title: "SMTP Connection Failed",
+          description: data.error || "Check your host/port credentials.",
+          variant: "destructive"
+        });
+      }
+    },
+    onError: (err) => {
+      toast2({
+        title: "SMTP Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
+  const logs = logsData?.logs || [];
+  const counts = logsData?.counts || { total: 0, sent: 0, failed: 0, sentToday: 0 };
+  const userCount = usersData?.count || 0;
+  const filteredLogs = logs.filter((log2) => {
+    const matchesSearch = log2.toEmail.toLowerCase().includes(searchTerm.toLowerCase()) || log2.subject.toLowerCase().includes(searchTerm.toLowerCase()) || log2.recipientName && log2.recipientName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || log2.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 md:p-8 space-y-6 max-w-7xl mx-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-cyan-500/5 to-transparent p-6 rounded-2xl border border-emerald-500/20 backdrop-blur-xl", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-6 w-6" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-2xl font-bold tracking-tight text-white flex items-center gap-2", children: [
+            "YouuHost Email Center",
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs", children: "Pro Engine v2.4" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground", children: "Dispatch pixel-perfect branded payment receipts, transactional invoices, and bulk custom notifications." })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            variant: "outline",
+            size: "sm",
+            onClick: () => smtpTestMutation.mutate(),
+            disabled: smtpTestMutation.isPending,
+            className: "border-white/10 hover:border-emerald-500/40 text-xs",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: `h-4 w-4 mr-1.5 text-emerald-400 ${smtpTestMutation.isPending ? "animate-spin" : ""}` }),
+              smtpTestMutation.isPending ? "Testing SMTP..." : "Test SMTP Config"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            size: "sm",
+            onClick: () => refetchLogs(),
+            variant: "ghost",
+            className: "text-xs text-muted-foreground hover:text-white",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-3.5 w-3.5 mr-1" }),
+              " Refresh"
+            ]
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Total Dispatched" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-white", children: counts.total })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-5 w-5" }) })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Delivered (Sent)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-emerald-400", children: counts.sent })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "h-5 w-5" }) })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Failed Delivery" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-rose-400", children: counts.failed })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "h-5 w-5" }) })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Sent Today" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-cyan-400", children: counts.sentToday })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "h-5 w-5" }) })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, className: "space-y-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-card/60 border border-white/10 p-1 rounded-xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "compose", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4" }),
+          " Compose & Dispatch"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "logs", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "h-4 w-4" }),
+          " Delivery Logs & History",
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "secondary", className: "ml-1 bg-white/10 text-xs", children: logs.length })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "settings", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { className: "h-4 w-4" }),
+          " SMTP & Branding Config"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "compose", className: "space-y-6 mt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-12 gap-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-semibold flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "h-4 w-4 text-emerald-400" }),
+              " Template Configuration"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Choose template style and configure custom receipt variables" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-semibold", children: "Template Design" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Select,
+                {
+                  value: templateType,
+                  onValueChange: (val) => {
+                    setTemplateType(val);
+                    if (val === "payment_success") {
+                      setSubject("Payment Successful - Your Transaction Invoice");
+                      setBodyHeading("Payment Successful");
+                    } else if (val === "custom_broadcast") {
+                      setSubject("Important Update from YouuHost");
+                      setBodyHeading("Platform Announcement");
+                    } else {
+                      setSubject("Security Alert - Action Required");
+                      setBodyHeading("Account Security Notice");
+                    }
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "bg-background/80 border-white/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "Select template..." }) }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "payment_success", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(FileCheck, { className: "h-4 w-4 text-emerald-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Payment Successful Invoice (Receipt)" })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "custom_broadcast", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-4 w-4 text-cyan-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Custom Marketing / Announcement" })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "security_alert", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "h-4 w-4 text-amber-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Security & Account Notice" })
+                      ] }) })
+                    ] })
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-semibold", children: "Target Audience" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setRecipientMode("single"),
+                    className: `p-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all ${recipientMode === "single" ? "bg-emerald-500/20 border-emerald-500 text-emerald-300" : "bg-background/50 border-white/10 text-muted-foreground hover:bg-white/5"}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-3.5 w-3.5" }),
+                      " Single Email"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setRecipientMode("broadcast"),
+                    className: `p-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all ${recipientMode === "broadcast" ? "bg-emerald-500/20 border-emerald-500 text-emerald-300" : "bg-background/50 border-white/10 text-muted-foreground hover:bg-white/5"}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "h-3.5 w-3.5" }),
+                      " Broadcast (",
+                      userCount,
+                      " Users)"
+                    ]
+                  }
+                )
+              ] })
+            ] }),
+            recipientMode === "single" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Email" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    placeholder: "client@gmail.com",
+                    value: toEmail,
+                    onChange: (e) => setToEmail(e.target.value),
+                    className: "bg-background/80 border-white/10 text-xs"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Name" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    placeholder: "e.g. Test User",
+                    value: recipientName,
+                    onChange: (e) => setRecipientName(e.target.value),
+                    className: "bg-background/80 border-white/10 text-xs"
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Subject Line" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  value: subject,
+                  onChange: (e) => setSubject(e.target.value),
+                  className: "bg-background/80 border-white/10 text-xs"
+                }
+              )
+            ] }),
+            templateType === "payment_success" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-white/10", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] font-semibold text-emerald-400 uppercase tracking-wider", children: "Invoice & Transaction Metadata" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Invoice #" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: invoiceNumber,
+                      onChange: (e) => setInvoiceNumber(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Amount Paid" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: amount,
+                      onChange: (e) => setAmount(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Plan / Description" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: planName,
+                      onChange: (e) => setPlanName(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Billing Cycle" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: billingCycle,
+                      onChange: (e) => setBillingCycle(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Payment Method (Authentic Logo)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: paymentMethod, onValueChange: setPaymentMethod, children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "bg-background/80 border-white/10 h-8 text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, {}) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "mastercard", children: "💳 Mastercard (Official Dual Circles)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "visa", children: "💳 Visa (Official Gold/Blue)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "binance", children: "🟡 Binance Pay (Official Brand Badge)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "cryptomus", children: "🟢 Cryptomus (Official Hex Badge)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "wallet", children: "💎 YouuHost Instant Balance Wallet" })
+                  ] })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 pt-2 border-t border-white/10", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Main Message Body" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Textarea,
+                {
+                  rows: 3,
+                  value: bodyMessage,
+                  onChange: (e) => setBodyMessage(e.target.value),
+                  className: "bg-background/80 border-white/10 text-xs"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Button Label" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    value: ctaText,
+                    onChange: (e) => setCtaText(e.target.value),
+                    className: "bg-background/80 border-white/10 text-xs h-8"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Button URL" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    value: ctaUrl,
+                    onChange: (e) => setCtaUrl(e.target.value),
+                    className: "bg-background/80 border-white/10 text-xs h-8"
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                onClick: () => sendEmailMutation.mutate(),
+                disabled: sendEmailMutation.isPending || recipientMode === "single" && !toEmail,
+                className: "w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow-lg shadow-emerald-500/20 h-10 mt-2",
+                children: sendEmailMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-4 w-4 mr-2 animate-spin" }),
+                  "Dispatching Email..."
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4 mr-2" }),
+                  recipientMode === "broadcast" ? `Broadcast to All ${userCount} Users` : "Send Verified Email Now"
+                ] })
+              }
+            )
+          ] })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "lg:col-span-7 space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "h-4 w-4 text-cyan-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold text-white", children: "Live Email Rendering Sandbox" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] text-muted-foreground border-white/10", children: "Mobile & Desktop Responsive" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                variant: "ghost",
+                size: "sm",
+                onClick: () => {
+                  const blob = new Blob([previewHtml], { type: "text/html" });
+                  const url2 = URL.createObjectURL(blob);
+                  window.open(url2, "_blank");
+                },
+                className: "text-xs h-7 text-cyan-400 hover:text-cyan-300",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "h-3 w-3 mr-1" }),
+                  " Open in New Tab"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900 to-slate-950 p-4 shadow-2xl flex justify-center items-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full max-w-[480px] bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 transition-all", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between text-slate-700", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center", children: "Y" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] font-bold leading-none text-slate-900", children: "YouuHost System" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[9px] text-slate-500", children: [
+                    "to ",
+                    recipientName || "me"
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-medium bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded", children: "Inbox" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "iframe",
+              {
+                title: "Email Preview",
+                srcDoc: previewHtml,
+                className: "w-full h-[620px] border-0 bg-[#f4f7fa]",
+                sandbox: "allow-same-origin"
+              }
+            )
+          ] }) })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "logs", className: "space-y-4 mt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-base font-semibold", children: "Email Dispatch History & Logs" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Comprehensive trace of all outgoing transactional receipts and broadcast emails" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-48 md:w-64", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "Search recipient or subject...",
+                  value: searchTerm,
+                  onChange: (e) => setSearchTerm(e.target.value),
+                  className: "pl-8 h-8 text-xs bg-background/80 border-white/10"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: filterStatus, onValueChange: setFilterStatus, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "h-8 text-xs w-28 bg-background/80 border-white/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, {}) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "All Status" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "sent", children: "Sent" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "failed", children: "Failed" })
+              ] })
+            ] })
+          ] })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: isLoadingLogs ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-12 text-center text-muted-foreground flex items-center justify-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-4 w-4 animate-spin" }),
+          " Loading email logs..."
+        ] }) : filteredLogs.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "py-12 text-center text-muted-foreground", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-8 w-8 mx-auto mb-2 opacity-30" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", children: "No email logs found" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground/60", children: "Dispatch a test email using the Compose tab." })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto rounded-xl border border-white/10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-white/5 border-b border-white/10 text-muted-foreground uppercase font-semibold", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "ID" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Recipient" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Subject" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Template" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Status" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3", children: "Date & Time" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3 text-right", children: "Actions" })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-white/5", children: filteredLogs.map((log2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-white/[0.02] transition-colors", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-3 font-mono text-muted-foreground", children: [
+              "#",
+              log2.id
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-medium text-white", children: log2.recipientName || "Valued User" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-muted-foreground text-[11px] font-mono", children: log2.toEmail })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 max-w-[220px] truncate text-slate-300", children: log2.subject }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "border-white/10 text-[10px]", children: log2.templateType }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3", children: log2.status === "sent" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "h-3 w-3" }),
+              " Delivered"
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-rose-500/20 text-rose-400 border-rose-500/30 text-[10px] gap-1", title: log2.errorMessage || "", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "h-3 w-3" }),
+              " Failed"
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 text-muted-foreground font-mono text-[11px]", children: new Date(log2.createdAt).toLocaleString() }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3 text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                variant: "ghost",
+                size: "sm",
+                onClick: () => {
+                  setSelectedLog(log2);
+                  setViewEmailModal(true);
+                },
+                className: "h-7 px-2 text-xs text-cyan-400 hover:text-cyan-300",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "h-3.5 w-3.5 mr-1" }),
+                  " View Details"
+                ]
+              }
+            ) })
+          ] }, log2.id)) })
+        ] }) }) })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "settings", className: "space-y-4 mt-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-semibold flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { className: "h-4 w-4 text-emerald-400" }),
+            " SMTP Server & Branding Configuration"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Active email relay server configuration and branding details" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl border border-white/10 bg-background/50 space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-semibold text-white flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-4 w-4 text-emerald-400" }),
+                " SMTP Host & Port"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "Default uses NodeMailer / Gmail SMTP relay or custom host." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-xs text-emerald-300 bg-black/40 p-2 rounded border border-white/5", children: "HOST: smtp.gmail.com | PORT: 587 (TLS/SSL)" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl border border-white/10 bg-background/50 space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-semibold text-white flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "h-4 w-4 text-cyan-400" }),
+                " Branding Sender"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: "All emails are verified with YouuHost official header signatures." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-xs text-cyan-300 bg-black/40 p-2 rounded border border-white/5", children: '"YouuHost" <support@youuhost.com>' })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-2 flex justify-end", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              onClick: () => smtpTestMutation.mutate(),
+              disabled: smtpTestMutation.isPending,
+              className: "bg-emerald-500 hover:bg-emerald-600 text-white text-xs",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "h-3.5 w-3.5 mr-1.5" }),
+                " Test SMTP Relay Connection"
+              ]
+            }
+          ) })
+        ] })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: viewEmailModal, onOpenChange: setViewEmailModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-xl bg-slate-950 border-white/10 text-white", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-base font-bold flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-4 w-4 text-emerald-400" }),
+          " Email Dispatch Record #",
+          selectedLog?.id
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Detailed audit trail of dispatched email payload and server response." })
+      ] }),
+      selectedLog && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 text-xs", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 p-3 rounded-lg bg-white/5 border border-white/10", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Recipient:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-medium text-white", children: [
+              selectedLog.recipientName || "—",
+              " (",
+              selectedLog.toEmail,
+              ")"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Status:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium", children: selectedLog.status === "sent" ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-emerald-400", children: "Delivered" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-rose-400", children: "Failed" }) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Subject:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium text-white", children: selectedLog.subject })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Timestamp:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium text-slate-300 font-mono", children: new Date(selectedLog.createdAt).toLocaleString() })
+          ] })
+        ] }),
+        selectedLog.errorMessage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "font-semibold mb-1 flex items-center gap-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "h-3.5 w-3.5" }),
+            " Error Details:"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-mono text-[11px]", children: selectedLog.errorMessage })
+        ] }),
+        selectedLog.metadata && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground font-semibold", children: "Metadata Payload:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-3 bg-black/60 rounded-lg border border-white/10 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-48", children: JSON.stringify(selectedLog.metadata, null, 2) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2 pt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              variant: "outline",
+              size: "sm",
+              onClick: () => {
+                setToEmail(selectedLog.toEmail);
+                setRecipientName(selectedLog.recipientName || "");
+                setSubject(selectedLog.subject);
+                setActiveTab("compose");
+                setViewEmailModal(false);
+              },
+              className: "border-white/10 text-xs",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "h-3.5 w-3.5 mr-1" }),
+                " Load into Compose Tab"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              variant: "secondary",
+              size: "sm",
+              onClick: () => setViewEmailModal(false),
+              className: "text-xs",
+              children: "Close"
+            }
+          )
+        ] })
+      ] })
+    ] }) })
+  ] });
+}
 function NotFound() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex items-center justify-center bg-gray-50", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "w-full max-w-md mx-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "pt-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex mb-4 gap-2", children: [
@@ -102369,6 +103109,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: Dashboard }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/email-hub", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: EmailHubPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/all-orders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: AllOrdersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/api-keys", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: AdminApiKeysPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: DomainAutomationPage }) }),

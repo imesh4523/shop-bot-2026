@@ -6,7 +6,8 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs } from "@shared/schema";
+import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, TransactionEmailProps, CustomEmailProps } from "./email-template";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
@@ -609,6 +610,112 @@ async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ su
   }
 }
 
+// Global Luxury Email Dispatcher with DB Logging
+export async function sendLuxuryEmail({
+  toEmail,
+  recipientName,
+  subject,
+  html,
+  templateType = "transaction_receipt",
+  metadata = null,
+}: {
+  toEmail: string;
+  recipientName?: string;
+  subject: string;
+  html: string;
+  templateType?: string;
+  metadata?: any;
+}): Promise<{ success: boolean; error?: string; logId?: number }> {
+  let logStatus = "sent";
+  let errorMessage: string | undefined;
+
+  try {
+    const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+    const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+    const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+    const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+    const smtpFrom = (await storage.getSetting("SMTP_FROM"))?.value || process.env.SMTP_FROM || `"YouuHost" <no-reply@youuhost.store>`;
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      throw new Error("SMTP is not configured in Settings. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS.");
+    }
+
+    const nodemailerMod = await import("nodemailer");
+    const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: toEmail,
+      subject,
+      html,
+    });
+
+    console.log(`[Email Hub] Email "${subject}" successfully sent to ${toEmail}`);
+  } catch (err: any) {
+    logStatus = "failed";
+    errorMessage = err?.message || String(err);
+    console.error(`[Email Hub] Failed to send email to ${toEmail}:`, errorMessage);
+  }
+
+  // Record to email_logs
+  try {
+    const [log] = await db
+      .insert(emailLogs)
+      .values({
+        toEmail,
+        recipientName: recipientName || null,
+        subject,
+        templateType,
+        status: logStatus,
+        errorMessage: errorMessage || null,
+        metadata: metadata ? metadata : null,
+        sentAt: new Date(),
+      })
+      .returning();
+
+    return {
+      success: logStatus === "sent",
+      error: errorMessage,
+      logId: log?.id,
+    };
+  } catch (dbErr: any) {
+    console.error("[Email Hub] Failed to log email to DB:", dbErr.message);
+    return {
+      success: logStatus === "sent",
+      error: errorMessage || dbErr.message,
+    };
+  }
+}
+
+// Quick Helper: Send Payment Successful Verified Receipt Email
+export async function sendLuxuryReceiptEmail(props: TransactionEmailProps): Promise<{ success: boolean; error?: string }> {
+  const html = buildPaymentSuccessEmailHtml(props);
+  const subject = props.subject || `Payment Successful - YouuHost Receipt (${props.referenceId})`;
+  return await sendLuxuryEmail({
+    toEmail: props.toEmail,
+    recipientName: props.recipientName,
+    subject,
+    html,
+    templateType: "transaction_receipt",
+    metadata: {
+      amount: props.amount,
+      secondaryAmount: props.secondaryAmount,
+      referenceId: props.referenceId,
+      paymentMethod: props.paymentMethod,
+      planTitle: props.planTitle,
+    },
+  });
+}
+
 const activeSpecialOfferTimers = new Map<number, NodeJS.Timeout>();
 
 const storage_disk = multer.diskStorage({
@@ -882,8 +989,21 @@ export async function registerRoutes(
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS custom_button_url TEXT;
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS recipient_count INTEGER DEFAULT 0;
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS sent_messages_json TEXT;
+
+      CREATE TABLE IF NOT EXISTS email_logs (
+        id SERIAL PRIMARY KEY,
+        to_email TEXT NOT NULL,
+        recipient_name TEXT,
+        subject TEXT NOT NULL,
+        template_type TEXT NOT NULL DEFAULT 'transaction_receipt',
+        status TEXT NOT NULL DEFAULT 'sent',
+        error_message TEXT,
+        metadata JSONB,
+        sent_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
-    console.log('[DB] referrals, promo_codes, and broadcast_logs tables verified/created');
+    console.log('[DB] referrals, promo_codes, broadcast_logs, and email_logs tables verified/created');
   } catch (err: any) {
     console.error('Error verifying referrals table:', err.message);
   }
@@ -2210,6 +2330,363 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("GET /api/admin/all-orders error:", err);
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ==========================================
+  // EMAIL DISPATCHER & INVOICE HUB (ADMIN API)
+  // ==========================================
+
+  // 1. Get Email Delivery Logs & Summary Metrics
+  app.get("/api/admin/emails/logs", isAuth, async (req, res) => {
+    try {
+      const logs = await db.select().from(emailLogs).orderBy(desc(emailLogs.id)).limit(200);
+
+      const totalDispatched = logs.length;
+      const totalSent = logs.filter(l => l.status === "sent").length;
+      const totalFailed = logs.filter(l => l.status === "failed").length;
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const sentToday = logs.filter(l => l.status === "sent" && l.sentAt && new Date(l.sentAt) >= todayStart).length;
+
+      const successRate = totalDispatched > 0 ? Math.round((totalSent / totalDispatched) * 100) : 100;
+
+      res.json({
+        logs,
+        metrics: {
+          totalDispatched,
+          totalSent,
+          totalFailed,
+          sentToday,
+          successRate,
+        }
+      });
+    } catch (err: any) {
+      console.error("GET /api/admin/emails/logs error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // 2. Get All Registered Users with Valid Email for Broadcast
+  app.get("/api/admin/emails/users", isAuth, async (req, res) => {
+    try {
+      const usersList = await db.select({
+        id: telegramUsers.id,
+        telegramId: telegramUsers.telegramId,
+        username: telegramUsers.username,
+        firstName: telegramUsers.firstName,
+        email: telegramUsers.email,
+        balance: telegramUsers.balance,
+      })
+      .from(telegramUsers)
+      .where(sql`email IS NOT NULL AND email != ''`)
+      .orderBy(desc(telegramUsers.id));
+
+      res.json(usersList);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // 3. Send Custom or Template Email (Single or Broadcast)
+  app.post("/api/admin/emails/send", isAuth, async (req, res) => {
+    try {
+      const {
+        toEmail,
+        recipientName,
+        subject,
+        heading,
+        message,
+        templateType = "transaction_receipt",
+        badgeText,
+        badgeColor,
+        ctaText,
+        ctaUrl,
+        isBroadcast,
+        transactionData,
+      } = req.body;
+
+      if (!subject || !subject.trim()) {
+        return res.status(400).json({ success: false, message: "Subject is required" });
+      }
+
+      // Handle Broadcast to All Registered Users with email
+      if (isBroadcast) {
+        const eligibleUsers = await db.select()
+          .from(telegramUsers)
+          .where(sql`email IS NOT NULL AND email != ''`);
+
+        if (eligibleUsers.length === 0) {
+          return res.status(400).json({ success: false, message: "No registered users with email found." });
+        }
+
+        let sentCount = 0;
+        let failCount = 0;
+
+        for (const u of eligibleUsers) {
+          const userEmail = u.email?.trim();
+          if (!userEmail) continue;
+
+          let html = "";
+          if (templateType === "transaction_receipt") {
+            html = buildPaymentSuccessEmailHtml({
+              toEmail: userEmail,
+              recipientName: u.firstName || u.username || "Customer",
+              subject,
+              amount: transactionData?.amount || "$50.00 USD",
+              secondaryAmount: transactionData?.secondaryAmount,
+              referenceId: transactionData?.referenceId || `#TX-${Date.now().toString().slice(-6)}`,
+              paymentMethod: transactionData?.paymentMethod || "card",
+              paymentMethodDetails: transactionData?.paymentMethodDetails || "Verified Online Gateway",
+              planTitle: transactionData?.planTitle || "Wallet Deposit / Cloud Service",
+              ctaText,
+              ctaUrl,
+            });
+          } else {
+            html = buildCustomEmailHtml({
+              toEmail: userEmail,
+              recipientName: u.firstName || u.username || "Valued User",
+              subject,
+              heading: heading || subject,
+              message: message || "YouuHost Official Announcement",
+              badgeText,
+              badgeColor,
+              ctaText,
+              ctaUrl,
+            });
+          }
+
+          const result = await sendLuxuryEmail({
+            toEmail: userEmail,
+            recipientName: u.firstName || u.username || "Customer",
+            subject,
+            html,
+            templateType,
+            metadata: { broadcast: true, templateType }
+          });
+
+          if (result.success) sentCount++;
+          else failCount++;
+        }
+
+        return res.json({
+          success: true,
+          message: `Broadcast complete! Sent: ${sentCount}, Failed: ${failCount}`,
+          sentCount,
+          failCount,
+        });
+      }
+
+      // Single Recipient
+      if (!toEmail || !toEmail.includes("@")) {
+        return res.status(400).json({ success: false, message: "Valid recipient email is required" });
+      }
+
+      let html = "";
+      if (templateType === "transaction_receipt") {
+        html = buildPaymentSuccessEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Customer",
+          subject,
+          amount: transactionData?.amount || "$50.00 USD",
+          secondaryAmount: transactionData?.secondaryAmount,
+          referenceId: transactionData?.referenceId || `#TX-${Date.now().toString().slice(-6)}`,
+          paymentMethod: transactionData?.paymentMethod || "card",
+          paymentMethodDetails: transactionData?.paymentMethodDetails || "Verified Online Gateway",
+          planTitle: transactionData?.planTitle || "Wallet Deposit / Cloud Service",
+          ctaText,
+          ctaUrl,
+        });
+      } else {
+        html = buildCustomEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Valued User",
+          subject,
+          heading: heading || subject,
+          message: message || "YouuHost Official Message",
+          badgeText,
+          badgeColor,
+          ctaText,
+          ctaUrl,
+        });
+      }
+
+      const result = await sendLuxuryEmail({
+        toEmail,
+        recipientName,
+        subject,
+        html,
+        templateType,
+        metadata: { templateType, transactionData }
+      });
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.error || "Failed to send email. Check SMTP credentials in Settings.",
+          error: result.error,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Email successfully dispatched to ${toEmail}!`,
+        logId: result.logId,
+      });
+    } catch (err: any) {
+      console.error("POST /api/admin/emails/send error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // 4. Send Instant Test Receipt Email
+  app.post("/api/admin/emails/test-receipt", isAuth, async (req, res) => {
+    try {
+      const { toEmail, recipientName, amount, currency = "USD", paymentMethod = "card" } = req.body;
+      if (!toEmail || !toEmail.includes("@")) {
+        return res.status(400).json({ success: false, message: "Valid email address required." });
+      }
+
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
+      const isLkr = currency.toUpperCase() === "LKR";
+      const displayAmount = isLkr ? `LKR 14,990.00` : `$50.00 USD`;
+      const secondaryAmount = isLkr ? `≈ $49.00 USD` : `≈ Rs. ${Math.round(50 * lkrRate).toLocaleString()} LKR`;
+
+      const result = await sendLuxuryReceiptEmail({
+        toEmail,
+        recipientName: recipientName || "Test Customer",
+        amount: displayAmount,
+        secondaryAmount,
+        referenceId: `#INV-${Date.now().toString().slice(-6)}`,
+        paymentMethod,
+        paymentMethodDetails: paymentMethod === "card" ? "Mastercard ending in •••• 9876" : `${paymentMethod.toUpperCase()} Online Gateway`,
+        planTitle: "Enterprise Cloud Hosting & Verification Plan",
+        ctaText: "Manage Subscription & Services",
+        ctaUrl: "https://youuhost.com",
+      });
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.error || "Failed to send test receipt. Please verify SMTP settings.",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Verified Invoice Receipt successfully delivered to ${toEmail}! 🚀`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // 5. Generate Live HTML Preview
+  app.post("/api/admin/emails/preview", isAuth, async (req, res) => {
+    try {
+      const {
+        templateType = "transaction_receipt",
+        recipientName = "Test User",
+        subject = "Your Subscription Invoice",
+        heading = "Payment Successful",
+        message = "Your subscription invoice for your plan has been processed successfully. Thank you for your business!",
+        amount = "LKR 14,990.00",
+        secondaryAmount = "≈ $49.00 USD",
+        referenceId = "#INV-2026-812010",
+        paymentMethod = "card",
+        paymentMethodDetails = "Mastercard ending in •••• 9876",
+        planTitle = "Enterprise Cloud Plan",
+        badgeText = "Official Notice",
+        badgeColor = "#5B42F3",
+        ctaText = "Manage Subscription",
+        ctaUrl = "https://youuhost.com",
+      } = req.body;
+
+      let html = "";
+      if (templateType === "transaction_receipt") {
+        html = buildPaymentSuccessEmailHtml({
+          toEmail: "preview@youuhost.com",
+          recipientName,
+          subject,
+          amount,
+          secondaryAmount,
+          referenceId,
+          paymentMethod,
+          paymentMethodDetails,
+          planTitle,
+          ctaText,
+          ctaUrl,
+        });
+      } else {
+        html = buildCustomEmailHtml({
+          toEmail: "preview@youuhost.com",
+          recipientName,
+          subject,
+          heading,
+          message,
+          badgeText,
+          badgeColor,
+          ctaText,
+          ctaUrl,
+        });
+      }
+
+      res.json({ html });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // 6. Test SMTP Server Connection
+  app.post("/api/admin/emails/test-smtp", isAuth, async (req, res) => {
+    try {
+      const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+      const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+      const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+      const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+      const smtpFrom = (await storage.getSetting("SMTP_FROM"))?.value || process.env.SMTP_FROM || `"YouuHost" <no-reply@youuhost.store>`;
+
+      if (!smtpHost || !smtpUser || !smtpPass) {
+        return res.status(400).json({
+          success: false,
+          message: "SMTP is not fully configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in Settings.",
+        });
+      }
+
+      const nodemailerMod = await import("nodemailer");
+      const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      const startTime = Date.now();
+      await transporter.verify();
+      const latencyMs = Date.now() - startTime;
+
+      res.json({
+        success: true,
+        message: `SMTP Connection Verified! Host: ${smtpHost}:${smtpPort} (${latencyMs}ms latency)`,
+        latencyMs,
+        host: smtpHost,
+        port: smtpPort,
+        user: smtpUser,
+        from: smtpFrom,
+      });
+    } catch (err: any) {
+      res.status(400).json({
+        success: false,
+        message: `SMTP Verification Failed: ${err.message}`,
+        error: err.message,
+      });
     }
   });
 

@@ -40,6 +40,7 @@ import DomainAutomationPage from "@/pages/domain-automation-page";
 import StoreMeshPage from "@/pages/store-mesh-page";
 import PayHereGatewayPage from "@/pages/payhere-gateway-page";
 import AllOrdersPage from "@/pages/all-orders-page";
+import EmailHubPage from "@/pages/email-hub-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -125,6 +126,10 @@ function Router() {
       {/* Secret Admin Routes (/imeshadmindashbord/*) */}
       <Route path="/imeshadmindashbord">
         <ProtectedRoute component={Dashboard} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/email-hub">
+        <ProtectedRoute component={EmailHubPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/all-orders">

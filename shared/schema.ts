@@ -634,3 +634,21 @@ export type InsertStoreMeshPairCode = z.infer<typeof insertStoreMeshPairCodeSche
 export const insertStoreMeshLogSchema = createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
 export type StoreMeshLog = typeof storeMeshLogs.$inferSelect;
 export type InsertStoreMeshLog = z.infer<typeof insertStoreMeshLogSchema>;
+
+export const emailLogs = pgTable("email_logs", {
+  id: serial("id").primaryKey(),
+  toEmail: text("to_email").notNull(),
+  recipientName: text("recipient_name"),
+  subject: text("subject").notNull(),
+  templateType: text("template_type").notNull().default("transaction_receipt"), // transaction_receipt, custom, announcement, alert
+  status: text("status").notNull().default("sent"), // sent, failed, pending
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"), // { amount: string, reference: string, paymentMethod: string, planTitle: string }
+  sentAt: timestamp("sent_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({ id: true, createdAt: true });
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+
