@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package, CreditCard, ArrowRight } from "lucide-react";
 

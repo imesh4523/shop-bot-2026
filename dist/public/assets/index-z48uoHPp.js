@@ -9925,7 +9925,7 @@ function toast({ ...props }) {
     update
   };
 }
-function useToast$1() {
+function useToast() {
   const [state, setState] = reactExports.useState(memoryState);
   reactExports.useEffect(() => {
     listeners.push(setState);
@@ -14658,7 +14658,7 @@ const ToastDescription = reactExports.forwardRef(({ className, ...props }, ref) 
 ));
 ToastDescription.displayName = Description$1.displayName;
 function Toaster() {
-  const { toasts } = useToast$1();
+  const { toasts } = useToast();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(ToastProvider, { swipeDirection: "up", children: [
     toasts.map(function({ id: id2, title, description, action, ...props }) {
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(Toast, { ...props, children: [
@@ -23664,7 +23664,7 @@ function urlBase64ToUint8Array(base64String) {
   }
 }
 function AdminNotifier() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const { user } = useAuth();
   reactExports.useEffect(() => {
     if (!user) return;
@@ -55833,7 +55833,7 @@ function useProducts() {
 }
 function useCreateProduct() {
   const queryClient2 = useQueryClient();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   return useMutation({
     mutationFn: async (product) => {
       const res = await fetch(api.products.create.path, {
@@ -55870,7 +55870,7 @@ function useCreateProduct() {
 }
 function useDeleteProduct() {
   const queryClient2 = useQueryClient();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   return useMutation({
     mutationFn: async (id2) => {
       const url2 = buildUrl(api.products.delete.path, { id: id2 });
@@ -59204,7 +59204,7 @@ function ProductsPage() {
   const { data: products2, isLoading } = useProducts();
   const [search, setSearch] = reactExports.useState("");
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [isCustomBroadcastOpen, setIsCustomBroadcastOpen] = reactExports.useState(false);
   const broadcastMutation = useMutation({
     mutationFn: async () => {
@@ -59382,7 +59382,7 @@ function EditProductDialog({
   open: open2,
   onOpenChange
 }) {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [customType2, setCustomType] = reactExports.useState(
     ["AWS", "DigitalOcean", "Google Cloud", "Azure", "Linode", "Other"].includes(product.type) ? "" : product.type
   );
@@ -59583,7 +59583,7 @@ function CustomBroadcastDialog({
   open: open2,
   onOpenChange
 }) {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [message2, setMessage] = reactExports.useState("");
   const broadcastMutation = useMutation({
     mutationFn: async (content) => {
@@ -59851,7 +59851,7 @@ function CreateProductDialog({ open: open2, onOpenChange }) {
   ] });
 }
 function InventoryPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: products2 } = useProducts();
   const [selectedProductId, setSelectedProductId] = reactExports.useState("all");
@@ -60135,7 +60135,7 @@ function EditCredentialForm({
 function OrdersPage() {
   const { data: orders2, isLoading } = useOrders();
   const [search, setSearch] = reactExports.useState("");
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [copiedId, setCopiedId] = reactExports.useState(null);
   const copyToClipboard = (text2, id2) => {
     navigator.clipboard.writeText(text2);
@@ -73741,7 +73741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-ClCE9Oz4.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-C0e1a3Hh.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -76335,7 +76335,7 @@ try {
   console.error("Could not apply autoTable plugin", error);
 }
 function AwsCheckerPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [search, setSearch] = reactExports.useState("");
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
   const [editingAccount, setEditingAccount] = reactExports.useState(null);
@@ -76853,7 +76853,7 @@ function AccountDialog({
   onOpenChange,
   editingAccount
 }) {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const form = useForm({
     resolver: t(insertAwsAccountSchema),
     values: editingAccount ? {
@@ -76966,7 +76966,7 @@ function AccountDialog({
   ] }) });
 }
 function BroadcastPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [message2, setMessage] = reactExports.useState("");
   const [imageUrl, setImageUrl] = reactExports.useState("");
   const [buttonText, setButtonText] = reactExports.useState("");
@@ -85179,7 +85179,7 @@ const loginSchema = z$1.object({
 });
 function LoginPage() {
   const { user, isLoading, login, isLoggingIn } = useAuth();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const form = useForm({
     resolver: t(loginSchema),
     defaultValues: {
@@ -85381,7 +85381,7 @@ function SpecialOffersPage() {
   const [isCreateOpen, setIsCreateOpen] = reactExports.useState(false);
   const [editingOffer, setEditingOffer] = reactExports.useState(null);
   const [deletingOffer, setDeletingOffer] = reactExports.useState(null);
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const deleteMutation = useMutation({
     mutationFn: async (id2) => {
       await apiRequest("DELETE", `/api/special-offers/${id2}`);
@@ -85546,7 +85546,7 @@ function SpecialOffersPage() {
 }
 function CreateOfferDialog({ open: open2, onOpenChange }) {
   const { data: products2 } = useProducts();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const form = useForm({
     resolver: t(specialOfferFormSchema),
     defaultValues: {
@@ -85731,7 +85731,7 @@ function CreateOfferDialog({ open: open2, onOpenChange }) {
 }
 function EditOfferDialog({ offer, onOpenChange }) {
   const { data: products2 } = useProducts();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const form = useForm({
     resolver: t(specialOfferFormSchema),
     defaultValues: {
@@ -85926,7 +85926,7 @@ function EditOfferDialog({ offer, onOpenChange }) {
   ] }) });
 }
 function PromoCodesPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [code, setCode] = reactExports.useState("");
@@ -86276,7 +86276,7 @@ function PromoCodesPage() {
 }
 const PAGE_SIZE = 20;
 function TelegramUsersPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [editingId, setEditingId] = reactExports.useState(null);
   const [editBalance, setEditBalance] = reactExports.useState(0);
   const [search, setSearch] = reactExports.useState("");
@@ -86625,7 +86625,7 @@ function TelegramUsersPage() {
   ] });
 }
 function ReferralsPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
@@ -86897,7 +86897,7 @@ function ReferralsPage() {
   ] });
 }
 function SpamProtectorPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [search, setSearch] = reactExports.useState("");
   const [activeTab, setActiveTab] = reactExports.useState("all");
   const [currentPage, setCurrentPage] = reactExports.useState(1);
@@ -87420,7 +87420,7 @@ function SpamProtectorPage() {
   ] });
 }
 function TelegramInspectorPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [copiedId, setCopiedId] = reactExports.useState(null);
   const { data: traces = [], isLoading, refetch } = useQuery({
@@ -87765,7 +87765,7 @@ function TelegramInspectorPage() {
   ] });
 }
 function TelegramClientPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [phone, setPhone] = reactExports.useState("");
   const [apiId, setApiId] = reactExports.useState("");
@@ -88721,7 +88721,7 @@ function TelegramClientPage() {
   ] });
 }
 function BackupPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const consoleEndRef = reactExports.useRef(null);
   const [formData, setFormData] = reactExports.useState({
     dbUrl: "",
@@ -88992,7 +88992,7 @@ function BackupPage() {
   ] });
 }
 function ForwardPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [showToken, setShowToken] = reactExports.useState(false);
   const [botToken, setBotToken] = reactExports.useState("");
@@ -89689,7 +89689,7 @@ const QUICK_REPLIES = [
   "👍 Your issue has been resolved. Thank you!"
 ];
 function SupportTicketsPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
@@ -90093,7 +90093,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
   ] });
 }
 function CustomerTrackerPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [selectedUserId, setSelectedUserId] = reactExports.useState(null);
   const { data: users2 = [], isLoading: loadingUsers } = useQuery({
@@ -90276,7 +90276,7 @@ function CustomerTrackerPage() {
   ] });
 }
 function PreordersPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: preorders2 = [], isLoading } = useQuery({
     queryKey: ["/api/preorders"]
@@ -90919,7 +90919,7 @@ function LiveTOTP$1({ secret, onCopy }) {
 }
 function MiniAppShop$1() {
   const { theme } = useTheme();
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const isDarkMode = theme === "dark" || theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   if (typeof window !== "undefined") {
     const bg = isDarkMode ? "#121212" : "#f8f7ff";
@@ -92355,7 +92355,7 @@ function LiveTOTP({ secret, onCopy }) {
   ] });
 }
 function MiniAppShopModern() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [activeTab, setActiveTab] = reactExports.useState("home");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
@@ -94944,7 +94944,7 @@ function ApiDocsPage() {
   ) });
 }
 function AdminApiKeysPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
   const [copiedKeyId, setCopiedKeyId] = reactExports.useState(null);
@@ -95430,7 +95430,7 @@ function AdminApiKeysPage() {
   ] });
 }
 function N1PanelPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [activeTab, setActiveTab] = reactExports.useState("services");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
@@ -96203,7 +96203,7 @@ const PRESET_CATEGORIES = [
   { id: "general", label: "General / Other" }
 ];
 function SandromaniaPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [activeTab, setActiveTab] = reactExports.useState("products");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
   const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
@@ -97109,7 +97109,7 @@ function SandromaniaPage() {
   ] });
 }
 function DomainAutomationPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [selectedTab, setSelectedTab] = reactExports.useState("auto-config");
   const { data: settingsData, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
     queryKey: ["/api/admin/domain-automation/settings"]
@@ -98576,7 +98576,7 @@ function DomainAutomationPage() {
   ] });
 }
 function StoreMeshPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
   const [activeTab, setActiveTab] = reactExports.useState("nodes");
   const [customHostUrl, setCustomHostUrl] = reactExports.useState("");
@@ -99503,7 +99503,7 @@ function StoreMeshPage() {
   ] });
 }
 function PayHereGatewayPage() {
-  const { toast: toast2 } = useToast$1();
+  const { toast: toast2 } = useToast();
   const [payhereEnabled, setPayhereEnabled] = reactExports.useState(false);
   const [payhereGatewayUrl, setPayhereGatewayUrl] = reactExports.useState("");
   const [payhereMerchantId, setPayhereMerchantId] = reactExports.useState("");
