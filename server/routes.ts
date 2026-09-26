@@ -3203,6 +3203,50 @@ export async function registerRoutes(
     }
   });
 
+  // Category & Provider Customizer Endpoints (Public & Admin)
+  app.get("/api/categories/config", async (req, res) => {
+    try {
+      const setting = await storage.getSetting("CUSTOM_CATEGORIES_CONFIG");
+      if (setting && setting.value) {
+        try {
+          const parsed = JSON.parse(setting.value);
+          return res.json(parsed);
+        } catch (e) {}
+      }
+      res.json({ categories: null });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/categories/config", isAuth, async (req, res) => {
+    try {
+      const setting = await storage.getSetting("CUSTOM_CATEGORIES_CONFIG");
+      let list = null;
+      if (setting && setting.value) {
+        try {
+          list = JSON.parse(setting.value);
+        } catch (e) {}
+      }
+      res.json({ categories: list });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/categories/config", isAuth, async (req, res) => {
+    try {
+      const { categories } = req.body;
+      if (!Array.isArray(categories)) {
+        return res.status(400).json({ message: "Categories must be an array." });
+      }
+      await storage.setSetting("CUSTOM_CATEGORIES_CONFIG", JSON.stringify(categories));
+      res.json({ success: true, message: "Category configuration saved successfully.", categories });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/admin/users/:telegramUserId/api-details", isAuth, async (req, res) => {
     try {
       const tgUserId = parseInt(req.params.telegramUserId, 10);

@@ -41,6 +41,7 @@ import StoreMeshPage from "@/pages/store-mesh-page";
 import PayHereGatewayPage from "@/pages/payhere-gateway-page";
 import AllOrdersPage from "@/pages/all-orders-page";
 import EmailHubPage from "@/pages/email-hub-page";
+import CategoriesManagerPage from "@/pages/categories-manager-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -173,6 +174,10 @@ function Router() {
       
       <Route path="/imeshadmindashbord/products">
         <ProtectedRoute component={ProductsPage} />
+      </Route>
+      
+      <Route path="/imeshadmindashbord/categories-manager">
+        <ProtectedRoute component={CategoriesManagerPage} />
       </Route>
       
       <Route path="/imeshadmindashbord/inventory">

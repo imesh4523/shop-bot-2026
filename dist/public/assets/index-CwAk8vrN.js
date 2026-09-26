@@ -11405,6 +11405,10 @@ const ArrowDownLeft = createLucideIcon("ArrowDownLeft", [
   ["path", { d: "M17 7 7 17", key: "15tmo1" }],
   ["path", { d: "M17 17H7V7", key: "1org7z" }]
 ]);
+const ArrowDown = createLucideIcon("ArrowDown", [
+  ["path", { d: "M12 5v14", key: "s699le" }],
+  ["path", { d: "m19 12-7 7-7-7", key: "1idqje" }]
+]);
 const ArrowLeft = createLucideIcon("ArrowLeft", [
   ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
   ["path", { d: "M19 12H5", key: "x3x0zl" }]
@@ -11422,6 +11426,10 @@ const ArrowRight = createLucideIcon("ArrowRight", [
 const ArrowUpRight = createLucideIcon("ArrowUpRight", [
   ["path", { d: "M7 7h10v10", key: "1tivn9" }],
   ["path", { d: "M7 17 17 7", key: "1vkiza" }]
+]);
+const ArrowUp = createLucideIcon("ArrowUp", [
+  ["path", { d: "m5 12 7-7 7 7", key: "hav0vg" }],
+  ["path", { d: "M12 19V5", key: "x0mq9r" }]
 ]);
 const AtSign = createLucideIcon("AtSign", [
   ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
@@ -11877,6 +11885,10 @@ const RefreshCw = createLucideIcon("RefreshCw", [
   ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
   ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
   ["path", { d: "M8 16H3v5", key: "1cv678" }]
+]);
+const RotateCcw = createLucideIcon("RotateCcw", [
+  ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
+  ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
 ]);
 const Save = createLucideIcon("Save", [
   [
@@ -20235,6 +20247,7 @@ function LayoutShell({ children }) {
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
     { name: "Broadcast", href: "/imeshadmindashbord/broadcast", icon: Megaphone },
     { name: "Products", href: "/imeshadmindashbord/products", icon: Package },
+    { name: "Categories & Badges", href: "/imeshadmindashbord/categories-manager", icon: Tag },
     { name: "N1Panel SMM", href: "/imeshadmindashbord/n1panel", icon: Share2 },
     { name: "Sandromania Shop", href: "/imeshadmindashbord/sandromania", icon: ShoppingBag },
     { name: "Reseller API (CSxStore)", href: "/imeshadmindashbord/cssx-api", icon: Puzzle },
@@ -73965,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Dq0PkX-6.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BXXIpGD9.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102537,6 +102550,643 @@ function PaymentProcessingModal({
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-semibold text-[#7E7998] mt-1.5 leading-relaxed", children: subtitle })
   ] }) });
 }
+function SlideToPurchase({
+  onComplete,
+  disabled = false,
+  isLoading = false,
+  text: text2 = "Slide to Confirm Purchase",
+  completedText = "Processing Order...",
+  className = ""
+}) {
+  const containerRef = reactExports.useRef(null);
+  const [sliderPosition, setSliderPosition] = reactExports.useState(0);
+  const [isDragging, setIsDragging] = reactExports.useState(false);
+  const [isCompleted, setIsCompleted] = reactExports.useState(false);
+  const handleStart = (clientX) => {
+    if (disabled || isLoading || isCompleted) return;
+    setIsDragging(true);
+  };
+  const handleMove = (clientX) => {
+    if (!isDragging || disabled || isLoading || isCompleted || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const handleWidth = 48;
+    const maxDrag = rect.width - handleWidth;
+    if (maxDrag <= 0) return;
+    const currentX = clientX - rect.left - handleWidth / 2;
+    const clamped = Math.max(0, Math.min(currentX, maxDrag));
+    const progress2 = clamped / maxDrag;
+    setSliderPosition(progress2);
+    if (progress2 >= 0.88) {
+      setIsDragging(false);
+      setSliderPosition(1);
+      setIsCompleted(true);
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(50);
+        } catch (e) {
+        }
+      }
+      onComplete();
+    }
+  };
+  const handleEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (sliderPosition < 0.88) {
+      setSliderPosition(0);
+    }
+  };
+  const onTouchStart = (e) => {
+    handleStart(e.touches[0].clientX);
+  };
+  const onTouchMove = (e) => {
+    handleMove(e.touches[0].clientX);
+  };
+  const onTouchEnd = () => {
+    handleEnd();
+  };
+  const onMouseDown = (e) => {
+    handleStart(e.clientX);
+  };
+  reactExports.useEffect(() => {
+    const onMouseMove = (e) => {
+      handleMove(e.clientX);
+    };
+    const onMouseUp = () => {
+      handleEnd();
+    };
+    if (isDragging) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [isDragging, sliderPosition]);
+  reactExports.useEffect(() => {
+    if (!isLoading && !disabled) {
+      setIsCompleted(false);
+      setSliderPosition(0);
+    }
+  }, [isLoading, disabled]);
+  const progressPercent = Math.round(sliderPosition * 100);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      ref: containerRef,
+      onTouchStart,
+      onTouchMove,
+      onTouchEnd,
+      onMouseDown,
+      className: `relative w-full h-14 rounded-2xl select-none overflow-hidden transition-all p-1 flex items-center ${disabled ? "bg-gray-100 border border-gray-200 opacity-60 cursor-not-allowed" : "bg-gradient-to-r from-[#F4F1FD] via-[#ECE8FC] to-[#E9E4FA] border border-[#D5CDF7] shadow-md shadow-[#6C5CE7]/10 cursor-grab active:cursor-grabbing"} ${className}`,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] transition-all",
+            style: {
+              width: `${Math.max(sliderPosition * 100, isCompleted ? 100 : 0)}%`,
+              transition: isDragging ? "none" : "width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)"
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none px-12", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `text-xs sm:text-sm font-black tracking-tight transition-all duration-200 flex items-center gap-1.5 ${progressPercent > 45 || isCompleted ? "text-white" : "text-[#5B42F3]"}`,
+            children: isLoading || isCompleted ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-white" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: completedText })
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: text2 }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "opacity-70 text-[10px] tracking-widest font-black", children: "❯❯❯" })
+            ] })
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: `relative z-10 w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg border border-white/60 transition-transform ${isDragging ? "scale-105 shadow-xl" : ""}`,
+            style: {
+              transform: `translateX(${sliderPosition * ((containerRef.current?.offsetWidth || 300) - 56)}px)`,
+              transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)"
+            },
+            children: isLoading || isCompleted ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-5 h-5 text-emerald-600 font-black animate-bounce" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-center text-[#6C5CE7] font-black", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-5 h-5 -mr-2 text-[#FF5E62]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-5 h-5 text-[#6C5CE7]" })
+            ] })
+          }
+        )
+      ]
+    }
+  );
+}
+const DEFAULT_CATEGORIES = [
+  { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
+  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 2, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 3, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 4, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 5, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 6, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+  { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 7, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 8, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
+  { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 9, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
+  { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 10, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 12, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 13, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
+  { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 14, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
+  { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 15, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
+  { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 16, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 17, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
+  { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 18, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" }
+];
+const BADGE_COLOR_STYLES = {
+  red: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white",
+  purple: "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white",
+  blue: "bg-gradient-to-r from-[#00C0FF] to-[#4285F4] text-white",
+  emerald: "bg-gradient-to-r from-[#10B981] to-[#059669] text-white",
+  amber: "bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white",
+  pink: "bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white"
+};
+const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => {
+  if (customUrl) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: customUrl, alt: "", className: `${className} object-contain rounded-md` });
+  }
+  switch (iconType) {
+    case "all":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(LayoutGrid, { className });
+    case "aws":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaAws, { className: `${className} text-[#FF9900]` });
+    case "digitalocean":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiDigitalocean, { className: `${className} text-[#0080FF]` });
+    case "azure":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(VscAzure, { className: `${className} text-[#0089D6]` });
+    case "oracle":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-[#F80000] text-white flex items-center justify-center font-black text-[9px]", children: "O" });
+    case "linode":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaLinode, { className: `${className} text-[#00A95C]` });
+    case "google":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiGooglecloud, { className: `${className} text-[#4285F4]` });
+    case "telegram":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: `${className} text-[#24A1DE]` });
+    case "spotify":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaSpotify, { className: `${className} text-[#1DB954]` });
+    case "youtube":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaYoutube, { className: `${className} text-[#FF0000]` });
+    case "tiktok":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaTiktok, { className: `${className} text-black dark:text-white` });
+    case "instagram":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaInstagram, { className: `${className} text-[#E1306C]` });
+    case "facebook":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaFacebook, { className: `${className} text-[#1877F2]` });
+    case "chatgpt":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiOpenai, { className: `${className} text-[#10A37F]` });
+    case "gemini":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiGooglegemini, { className: `${className} text-[#1BA0E2]` });
+    case "claude":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiClaude, { className: `${className} text-[#D97757]` });
+    case "capcut":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-black text-white flex items-center justify-center font-black text-[9px]", children: "CC" });
+    case "kamatera":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-[#FF5E00] text-white flex items-center justify-center font-black text-[9px]", children: "K" });
+    case "duolingo":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiDuolingo, { className: `${className} text-[#58CC02]` });
+    default:
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className });
+  }
+};
+function CategoriesManagerPage() {
+  const { toast: toast2 } = useToast();
+  const [categoriesList, setCategoriesList] = reactExports.useState(DEFAULT_CATEGORIES);
+  const [editingCat, setEditingCat] = reactExports.useState(null);
+  const [isDialogOpen, setIsDialogOpen] = reactExports.useState(false);
+  const [previewActiveId, setPreviewActiveId] = reactExports.useState("aws");
+  const { data: serverData, isLoading } = useQuery({
+    queryKey: ["/api/admin/categories/config"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/categories/config");
+      return res.json();
+    }
+  });
+  reactExports.useEffect(() => {
+    if (serverData && serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
+      setCategoriesList(serverData.categories);
+    }
+  }, [serverData]);
+  const saveMutation = useMutation({
+    mutationFn: async (updatedList) => {
+      const res = await fetch("/api/admin/categories/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories: updatedList })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to save categories");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/categories/config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories/config"] });
+      toast2({
+        title: "Configuration Saved!",
+        description: "Category buttons and corner badge settings updated live across the Mini-App."
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Save Failed",
+        description: err.message || "Could not save category settings.",
+        variant: "destructive"
+      });
+    }
+  });
+  const handleSave = () => {
+    saveMutation.mutate(categoriesList);
+  };
+  const handleResetToDefault = () => {
+    if (confirm("Reset all categories, badges and ordering to default?")) {
+      setCategoriesList(DEFAULT_CATEGORIES);
+      saveMutation.mutate(DEFAULT_CATEGORIES);
+    }
+  };
+  const moveCategory = (index2, direction) => {
+    const targetIndex = direction === "up" ? index2 - 1 : index2 + 1;
+    if (targetIndex < 0 || targetIndex >= categoriesList.length) return;
+    const updated = [...categoriesList];
+    const temp = updated[index2];
+    updated[index2] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    updated.forEach((c2, idx) => {
+      c2.order = idx;
+    });
+    setCategoriesList(updated);
+  };
+  const toggleCategoryEnabled = (id2, enabled) => {
+    const updated = categoriesList.map((c2) => c2.id === id2 ? { ...c2, enabled } : c2);
+    setCategoriesList(updated);
+  };
+  const openAddDialog = () => {
+    setEditingCat({
+      id: `custom_${Date.now()}`,
+      label: "New Provider",
+      iconType: "custom",
+      customIconUrl: "",
+      enabled: true,
+      order: categoriesList.length,
+      badgeEnabled: true,
+      badgeText: "NEW",
+      badgeColor: "purple",
+      badgePosition: "top-right"
+    });
+    setIsDialogOpen(true);
+  };
+  const openEditDialog = (cat) => {
+    setEditingCat({ ...cat });
+    setIsDialogOpen(true);
+  };
+  const saveDialogItem = () => {
+    if (!editingCat || !editingCat.id.trim() || !editingCat.label.trim()) {
+      toast2({ title: "Validation Error", description: "Category ID and Label are required.", variant: "destructive" });
+      return;
+    }
+    const exists = categoriesList.some((c2) => c2.id === editingCat.id);
+    let updated;
+    if (exists) {
+      updated = categoriesList.map((c2) => c2.id === editingCat.id ? editingCat : c2);
+    } else {
+      updated = [...categoriesList, { ...editingCat, order: categoriesList.length }];
+    }
+    setCategoriesList(updated);
+    setIsDialogOpen(false);
+    setEditingCat(null);
+  };
+  const deleteCategory = (id2) => {
+    if (id2 === "all") {
+      toast2({ title: "Cannot Delete", description: "'All' category is mandatory.", variant: "destructive" });
+      return;
+    }
+    if (confirm(`Are you sure you want to remove the '${id2}' category?`)) {
+      const updated = categoriesList.filter((c2) => c2.id !== id2);
+      setCategoriesList(updated);
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 max-w-7xl mx-auto space-y-8", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#181432] via-[#2A1F52] to-[#181432] p-8 rounded-3xl text-white shadow-xl border border-white/10", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 text-xs font-black uppercase tracking-widest text-[#FF5E62] bg-white/10 px-3 py-1 rounded-full w-fit mb-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5" }),
+          " Mini-App Category & Badges Manager"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-black tracking-tight", children: "Categories, Brands & Corner Badges" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 text-xs sm:text-sm mt-1.5 max-w-2xl", children: "Customize cloud provider tabs, corner angle badge labels (e.g. HOT, NEW, PROMO), icons/logos, ordering, and visibility." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 shrink-0", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: handleResetToDefault,
+            variant: "outline",
+            className: "border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-2xl h-11",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, { className: "w-4 h-4 mr-1.5" }),
+              " Reset Default"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: openAddDialog,
+            className: "bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/30",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4 mr-1.5" }),
+              " Add Category"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: handleSave,
+            disabled: saveMutation.isPending,
+            className: "bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] hover:opacity-90 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-[#6C5CE7]/30",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-1.5" }),
+              " ",
+              saveMutation.isPending ? "Saving..." : "Save Live Changes"
+            ]
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm font-black text-[#181432] uppercase tracking-wider", children: "Live Mini-App Preview" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-[#7E7998] font-bold", children: "Click any pill to test active state" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-[#F8F9FD] p-5 rounded-2xl border border-[#ECEEF8] overflow-x-auto scrollbar-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 pt-3 pb-3", children: categoriesList.filter((c2) => c2.enabled).map((cat) => {
+        const isActive = previewActiveId === cat.id;
+        const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: () => setPreviewActiveId(cat.id),
+            className: `relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${isActive ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105" : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"}`,
+            children: [
+              cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "span",
+                {
+                  className: `absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-10 border border-white/60 ${badgeStyle}`,
+                  children: cat.badgeText
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "span",
+                {
+                  className: `absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${isActive ? "bg-white text-[#5B42F3] shadow-sm" : "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-xs"}`,
+                  children: "5"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-7 w-7 flex items-center justify-center mb-1.5", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`, children: cat.label })
+            ]
+          },
+          cat.id
+        );
+      }) }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] mb-4 flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-5 h-5 text-purple-600" }),
+        " Configured Categories & Cloud Providers (",
+        categoriesList.length,
+        ")"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: categoriesList.map((cat, index2) => {
+        const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: `p-4 rounded-2xl border transition-all flex flex-col justify-between ${cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: cat.label }),
+                      cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeStyle}`, children: cat.badgeText })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-semibold", children: [
+                      "ID: ",
+                      cat.id
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Switch,
+                  {
+                    checked: cat.enabled,
+                    onCheckedChange: (checked) => toggleCategoryEnabled(cat.id, checked)
+                  }
+                ) })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-4 mt-3 border-t border-[#F0F2FA]", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      size: "sm",
+                      variant: "ghost",
+                      disabled: index2 === 0,
+                      onClick: () => moveCategory(index2, "up"),
+                      className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUp, { className: "w-4 h-4" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      size: "sm",
+                      variant: "ghost",
+                      disabled: index2 === categoriesList.length - 1,
+                      onClick: () => moveCategory(index2, "down"),
+                      className: "h-8 w-8 p-0 rounded-lg text-gray-500 hover:text-purple-600",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDown, { className: "w-4 h-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      size: "sm",
+                      variant: "outline",
+                      onClick: () => openEditDialog(cat),
+                      className: "h-8 px-2.5 rounded-xl border-[#ECEEF8] text-xs font-bold text-[#181432] hover:bg-purple-50 hover:text-purple-600",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "w-3.5 h-3.5 mr-1" }),
+                        " Edit"
+                      ]
+                    }
+                  ),
+                  cat.id !== "all" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      size: "sm",
+                      variant: "ghost",
+                      onClick: () => deleteCategory(cat.id),
+                      className: "h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-50",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-3.5 h-3.5" })
+                    }
+                  )
+                ] })
+              ] })
+            ]
+          },
+          cat.id
+        );
+      }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isDialogOpen, onOpenChange: setIsDialogOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md rounded-3xl p-6 bg-white border border-[#ECEEF8]", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { className: "text-lg font-black text-[#181432]", children: editingCat?.id?.startsWith("custom_") ? "Add New Category / Provider" : `Edit Category: ${editingCat?.label}` }) }),
+      editingCat && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 py-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-[#181432]", children: "Category ID (Slug)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingCat.id,
+                onChange: (e) => setEditingCat({ ...editingCat, id: e.target.value.toLowerCase().replace(/\s+/g, "_") }),
+                className: "mt-1 rounded-xl h-10 text-xs font-bold border-[#ECEEF8]",
+                disabled: editingCat.id === "all"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-[#181432]", children: "Display Label" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingCat.label,
+                onChange: (e) => setEditingCat({ ...editingCat, label: e.target.value }),
+                className: "mt-1 rounded-xl h-10 text-xs font-bold border-[#ECEEF8]"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-[#181432]", children: "Built-in Brand Icon" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "select",
+            {
+              value: editingCat.iconType || "custom",
+              onChange: (e) => setEditingCat({ ...editingCat, iconType: e.target.value }),
+              className: "w-full mt-1 h-10 rounded-xl border border-[#ECEEF8] px-3 text-xs font-bold text-[#181432] bg-white",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "all", children: "All (Grid)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "aws", children: "AWS (Amazon Web Services)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "digitalocean", children: "DigitalOcean" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "azure", children: "Azure (Microsoft)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "oracle", children: "Oracle Cloud" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "linode", children: "Linode / Akamai" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "google", children: "Google Cloud (GCP)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "telegram", children: "Telegram" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "spotify", children: "Spotify" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "youtube", children: "YouTube" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "tiktok", children: "TikTok" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "instagram", children: "Instagram" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "facebook", children: "Facebook" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "chatgpt", children: "ChatGPT / OpenAI" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "gemini", children: "Gemini (Google AI)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "claude", children: "Claude (Anthropic)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "capcut", children: "CapCut" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "kamatera", children: "Kamatera" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "duolingo", children: "Duolingo" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "custom", children: "Custom Image URL" })
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-[#181432]", children: "Custom Logo / Image URL (Optional)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              placeholder: "https://example.com/logo.png",
+              value: editingCat.customIconUrl || "",
+              onChange: (e) => setEditingCat({ ...editingCat, customIconUrl: e.target.value }),
+              className: "mt-1 rounded-xl h-10 text-xs font-medium border-[#ECEEF8]"
+            }
+          ),
+          editingCat.customIconUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2 flex items-center gap-2 p-2 bg-purple-50 rounded-xl border border-purple-100", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: editingCat.customIconUrl, alt: "Preview", className: "w-8 h-8 object-contain rounded-lg bg-white p-1 border" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-purple-700", children: "Logo preview active" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 bg-[#F8F9FD] rounded-2xl border border-[#ECEEF8] space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-black text-[#181432]", children: "Corner Angle Badge Label" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-[#7E7998] font-semibold", children: "Shows promotional tag on top-left angle" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Switch,
+              {
+                checked: editingCat.badgeEnabled || false,
+                onCheckedChange: (checked) => setEditingCat({ ...editingCat, badgeEnabled: checked })
+              }
+            )
+          ] }),
+          editingCat.badgeEnabled && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 pt-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px] font-bold text-[#181432]", children: "Badge Text" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "e.g. HOT, NEW, 20% OFF",
+                  value: editingCat.badgeText || "",
+                  onChange: (e) => setEditingCat({ ...editingCat, badgeText: e.target.value.toUpperCase() }),
+                  className: "mt-1 rounded-xl h-9 text-xs font-black border-[#ECEEF8]"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px] font-bold text-[#181432]", children: "Badge Color" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "select",
+                {
+                  value: editingCat.badgeColor || "red",
+                  onChange: (e) => setEditingCat({ ...editingCat, badgeColor: e.target.value }),
+                  className: "w-full mt-1 h-9 rounded-xl border border-[#ECEEF8] px-2.5 text-xs font-black bg-white",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "red", children: "Red / Orange Flame" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "purple", children: "Purple / Sunset" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "blue", children: "Cyan / Blue Pro" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "emerald", children: "Emerald Green" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "amber", children: "Amber Gold" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "pink", children: "Neon Pink" })
+                  ]
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogFooter, { className: "gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "outline", onClick: () => setIsDialogOpen(false), className: "rounded-xl h-10 text-xs font-bold", children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: saveDialogItem, className: "bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-10 text-xs font-black", children: "Apply Changes" })
+      ] })
+    ] }) })
+  ] });
+}
 const youuHostLogo = "/assets/youuhost_logo-DHO_k5Bj.png";
 const miniApiRequest = async (method, path, body) => {
   const initData = getTelegramInitData();
@@ -103686,27 +104336,20 @@ function MiniAppShopModern() {
       console.error("Logout error:", err);
     }
   };
-  const categories = [
-    { id: "all", label: "All", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(LayoutGrid, { className: "w-5 h-5" }) },
-    { id: "aws", label: "AWS", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaAws, { className: "w-5 h-5 text-[#FF9900]" }) },
-    { id: "digitalocean", label: "DigitalOcean", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(SiDigitalocean, { className: "w-5 h-5 text-[#0080FF]" }) },
-    { id: "azure", label: "Azure", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(VscAzure, { className: "w-5 h-5 text-[#0089D6]" }) },
-    { id: "oracle", label: "Oracle", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(OracleLogo, { className: "w-5 h-5" }) },
-    { id: "linode", label: "Linode", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(LinodeLogo, { className: "w-5 h-5" }) },
-    { id: "google", label: "GCP", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(SiGooglecloud, { className: "w-5 h-5 text-[#4285F4]" }) },
-    { id: "telegram", label: "Telegram", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: "w-5 h-5 text-[#24A1DE]" }) },
-    { id: "spotify", label: "Spotify", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaSpotify, { className: "w-5 h-5 text-[#1DB954]" }) },
-    { id: "youtube", label: "YouTube", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaYoutube, { className: "w-5 h-5 text-[#FF0000]" }) },
-    { id: "tiktok", label: "TikTok", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaTiktok, { className: "w-5 h-5 text-[#000000]" }) },
-    { id: "instagram", label: "Instagram", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaInstagram, { className: "w-5 h-5 text-[#E1306C]" }) },
-    { id: "facebook", label: "Facebook", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(FaFacebook, { className: "w-5 h-5 text-[#1877F2]" }) },
-    { id: "chatgpt", label: "ChatGPT", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(SiOpenai, { className: "w-5 h-5 text-[#10A37F]" }) },
-    { id: "gemini", label: "Gemini", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(SiGooglegemini, { className: "w-5 h-5 text-[#1BA0E2]" }) },
-    { id: "claude", label: "Claude", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(ClaudeLogo, { className: "w-5 h-5" }) },
-    { id: "capcut", label: "CapCut", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(CapCutLogo, { className: "w-5 h-5" }) },
-    { id: "kamatera", label: "Kamatera", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(KamateraLogo, { className: "w-5 h-5" }) },
-    { id: "duolingo", label: "Duolingo", renderIcon: () => /* @__PURE__ */ jsxRuntimeExports.jsx(SiDuolingo, { className: "w-5 h-5 text-[#58CC02]" }) }
-  ];
+  const { data: categoryConfigData } = useQuery({
+    queryKey: ["/api/categories/config"],
+    queryFn: async () => {
+      const res = await fetch("/api/categories/config");
+      return res.json();
+    }
+  });
+  const categories = reactExports.useMemo(() => {
+    if (categoryConfigData && Array.isArray(categoryConfigData.categories) && categoryConfigData.categories.length > 0) {
+      return categoryConfigData.categories.filter((c2) => c2.enabled !== false);
+    }
+    return DEFAULT_CATEGORIES.filter((c2) => c2.enabled !== false);
+  }, [categoryConfigData]);
+  const [agreedToTerms, setAgreedToTerms] = reactExports.useState(true);
   const formatSmmRate = (rateCentsPer1000) => {
     const usd = rateCentsPer1000 / 100;
     if (selectedCurrency === "LKR") {
@@ -104116,7 +104759,7 @@ function MiniAppShopModern() {
             onMouseMove: handleCatMouseMove,
             onMouseUp: handleCatMouseUp,
             onMouseLeave: handleCatMouseUp,
-            className: "flex items-center gap-3 overflow-x-auto pb-2.5 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-5 px-5",
+            className: "flex items-center gap-3 overflow-x-auto pt-3 pb-3 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-5 px-5",
             style: {
               WebkitOverflowScrolling: "touch",
               scrollbarWidth: "none",
@@ -104126,6 +104769,7 @@ function MiniAppShopModern() {
             children: categories.map((cat) => {
               const isActive = selectedCategory === cat.id;
               const count2 = getCategoryCount(cat.id);
+              const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
               return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "button",
                 {
@@ -104134,8 +104778,15 @@ function MiniAppShopModern() {
                       setSelectedCategory(cat.id);
                     }
                   },
-                  className: `relative flex flex-col items-center justify-center min-w-[78px] h-[84px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${isActive ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105" : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"}`,
+                  className: `relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${isActive ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105 z-10" : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"}`,
                   children: [
+                    cat.badgeEnabled && cat.badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: `absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-20 border border-white/60 ${badgeStyle}`,
+                        children: cat.badgeText
+                      }
+                    ),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "span",
                       {
@@ -104143,7 +104794,7 @@ function MiniAppShopModern() {
                         children: count2
                       }
                     ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-7 w-7 flex items-center justify-center mb-1.5", children: cat.renderIcon() }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-7 w-7 flex items-center justify-center mb-1.5", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl) }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`, children: cat.label })
                   ]
                 },
@@ -104184,8 +104835,72 @@ function MiniAppShopModern() {
             )
           ] })
         ] }),
+        products2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-7", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex h-2.5 w-2.5 relative", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5E62] opacity-75" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF5E62]" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] tracking-tight", children: "Best Sellers & Hot Deals" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full", children: "⚡ Top Rated" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "flex items-center gap-3.5 overflow-x-auto pt-2 pb-3.5 scrollbar-none overscroll-x-contain touch-pan-x -mx-5 px-5",
+              style: {
+                WebkitOverflowScrolling: "touch",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none"
+              },
+              children: products2.slice(0, 6).map((p2, idx) => {
+                const priceFormatted = formatPrice(p2.price, p2.currency);
+                const isFav = favorites.includes(p2.id);
+                const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
+                const badgeLabel = p2.badge || badgeLabels[idx % badgeLabels.length];
+                const badgeGradient = idx % 2 === 0 ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    onClick: () => {
+                      setDetailProduct(p2);
+                      setQuantity(1);
+                    },
+                    className: "relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-2.5 left-2.5 z-10", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-xs leading-none ${badgeGradient}`, children: badgeLabel }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          type: "button",
+                          onClick: (e) => {
+                            toggleFavorite(p2.id, e);
+                          },
+                          className: "absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-[#F8F9FD] hover:bg-pink-50 border border-[#ECEEF8] flex items-center justify-center transition-colors active:scale-90",
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Heart, { className: `w-3.5 h-3.5 transition-colors ${isFav ? "fill-[#FF5E62] text-[#FF5E62]" : "text-[#9490A8]"}` })
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center text-center mt-6", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-2 shadow-2xs group-hover:scale-105 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: p2.name, type: p2.type, className: "w-7 h-7" }) }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1", children: p2.name }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998] mt-0.5", children: p2.stockCount && p2.stockCount > 0 ? `${p2.stockCount} in stock` : "Verified ⚡" })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-2 border-t border-[#F5F4FC]", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity", children: "Buy Now" })
+                      ] })
+                    ]
+                  },
+                  `bestseller-${p2.id}`
+                );
+              })
+            }
+          )
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] tracking-tight", children: "Best Sellers" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] tracking-tight", children: "All Catalog Products" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
@@ -105874,42 +106589,71 @@ function MiniAppShopModern() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#7E7998] font-medium", children: "(120+ reviews)" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B658B] leading-relaxed mb-5", children: detailProduct.description || "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring." }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-4", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#ECEEF8] gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              onClick: () => setQuantity((q2) => Math.max(1, q2 - 1)),
-              className: "w-6 h-6 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold",
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Minus, { className: "w-3 h-3" })
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432] min-w-[14px] text-center", children: quantity }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              onClick: () => setQuantity((q2) => q2 + 1),
-              className: "w-6 h-6 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold",
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3 h-3" })
-            }
-          )
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: "Quantity" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setQuantity((q2) => Math.max(1, q2 - 1)),
+                className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Minus, { className: "w-3 h-3" })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432] min-w-[14px] text-center", children: quantity }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: () => setQuantity((q2) => q2 + 1),
+                className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3 h-3" })
+              }
+            )
+          ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: handlePurchase,
-            disabled: isPurchasing,
-            className: "flex-1 py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-full text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
-            children: isPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4 text-pink-200" }),
-              " Sign In to Purchase"
-            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-pink-200" }),
-              " Buy Now"
-            ] })
-          }
-        )
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#7E7998] mr-1.5", children: "Total:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatProductPrice(detailProduct, quantity) })
+        ] })
       ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3.5 px-1", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "checkbox",
+            id: "agreeTermsModal",
+            checked: agreedToTerms,
+            onChange: (e) => setAgreedToTerms(e.target.checked),
+            className: "w-4 h-4 rounded text-[#6C5CE7] focus:ring-[#6C5CE7] border-[#ECEEF8] cursor-pointer"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "agreeTermsModal", className: "text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none", children: [
+          "I agree to the ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#6C5CE7] font-bold", children: "Terms of Service" }),
+          " & Instant Delivery"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4", children: !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setIsAuthModalOpen(true),
+          className: "w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4 text-pink-200" }),
+            " Sign In to Purchase"
+          ]
+        }
+      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+        SlideToPurchase,
+        {
+          onComplete: handlePurchase,
+          disabled: !agreedToTerms || isPurchasing,
+          isLoading: isPurchasing,
+          text: `Slide to Pay ${formatProductPrice(detailProduct, quantity)}`,
+          completedText: "Processing Order..."
+        }
+      ) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-[#5B42F3]" }),
@@ -114555,6 +115299,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/customer-tracker", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CustomerTrackerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/preorders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PreordersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/products", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ProductsPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/categories-manager", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CategoriesManagerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/inventory", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: InventoryPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/orders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: OrdersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/payments", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PaymentsPage }) }),

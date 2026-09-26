@@ -6,6 +6,8 @@ import { Product, TelegramUser, Order, Payment, SpecialOffer } from "@shared/sch
 import { getTelegramInitData, expandTelegramWebApp } from "@/lib/telegram";
 import { queryClient } from "@/lib/queryClient";
 import { PaymentProcessingModal } from "@/components/lottie-loader";
+import { SlideToPurchase } from "@/components/slide-to-purchase";
+import { DEFAULT_CATEGORIES, BADGE_COLOR_STYLES, renderCategoryBrandIcon, CustomCategoryItem } from "@/pages/categories-manager-page";
 import {
   Loader2,
   ShoppingCart,
@@ -1388,28 +1390,24 @@ export default function MiniAppShopModern() {
     }
   };
 
-  // Real Brand Categories with Crisp Vector Icons
-  const categories = [
-    { id: "all", label: "All", renderIcon: () => <LayoutGrid className="w-5 h-5" /> },
-    { id: "aws", label: "AWS", renderIcon: () => <FaAws className="w-5 h-5 text-[#FF9900]" /> },
-    { id: "digitalocean", label: "DigitalOcean", renderIcon: () => <SiDigitalocean className="w-5 h-5 text-[#0080FF]" /> },
-    { id: "azure", label: "Azure", renderIcon: () => <VscAzure className="w-5 h-5 text-[#0089D6]" /> },
-    { id: "oracle", label: "Oracle", renderIcon: () => <OracleLogo className="w-5 h-5" /> },
-    { id: "linode", label: "Linode", renderIcon: () => <LinodeLogo className="w-5 h-5" /> },
-    { id: "google", label: "GCP", renderIcon: () => <SiGooglecloud className="w-5 h-5 text-[#4285F4]" /> },
-    { id: "telegram", label: "Telegram", renderIcon: () => <FaTelegramPlane className="w-5 h-5 text-[#24A1DE]" /> },
-    { id: "spotify", label: "Spotify", renderIcon: () => <FaSpotify className="w-5 h-5 text-[#1DB954]" /> },
-    { id: "youtube", label: "YouTube", renderIcon: () => <FaYoutube className="w-5 h-5 text-[#FF0000]" /> },
-    { id: "tiktok", label: "TikTok", renderIcon: () => <FaTiktok className="w-5 h-5 text-[#000000]" /> },
-    { id: "instagram", label: "Instagram", renderIcon: () => <FaInstagram className="w-5 h-5 text-[#E1306C]" /> },
-    { id: "facebook", label: "Facebook", renderIcon: () => <FaFacebook className="w-5 h-5 text-[#1877F2]" /> },
-    { id: "chatgpt", label: "ChatGPT", renderIcon: () => <SiOpenai className="w-5 h-5 text-[#10A37F]" /> },
-    { id: "gemini", label: "Gemini", renderIcon: () => <SiGooglegemini className="w-5 h-5 text-[#1BA0E2]" /> },
-    { id: "claude", label: "Claude", renderIcon: () => <ClaudeLogo className="w-5 h-5" /> },
-    { id: "capcut", label: "CapCut", renderIcon: () => <CapCutLogo className="w-5 h-5" /> },
-    { id: "kamatera", label: "Kamatera", renderIcon: () => <KamateraLogo className="w-5 h-5" /> },
-    { id: "duolingo", label: "Duolingo", renderIcon: () => <SiDuolingo className="w-5 h-5 text-[#58CC02]" /> },
-  ];
+  // Fetch Dynamic Categories Configuration
+  const { data: categoryConfigData } = useQuery<{ categories: CustomCategoryItem[] | null }>({
+    queryKey: ["/api/categories/config"],
+    queryFn: async () => {
+      const res = await fetch("/api/categories/config");
+      return res.json();
+    },
+  });
+
+  const categories: CustomCategoryItem[] = useMemo(() => {
+    if (categoryConfigData && Array.isArray(categoryConfigData.categories) && categoryConfigData.categories.length > 0) {
+      return categoryConfigData.categories.filter((c) => c.enabled !== false);
+    }
+    return DEFAULT_CATEGORIES.filter((c) => c.enabled !== false);
+  }, [categoryConfigData]);
+
+  // Terms & Conditions Agreement
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
 
   // SMM Price Formatters
   const formatSmmRate = (rateCentsPer1000: number) => {
@@ -1899,13 +1897,14 @@ export default function MiniAppShopModern() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             
             {/* Real Brand Icons Category Badges */}
+            {/* Real Brand Icons Category Badges with Corner Angle Labels & No Top Clipping */}
             <div
               ref={catScrollRef}
               onMouseDown={handleCatMouseDown}
               onMouseMove={handleCatMouseMove}
               onMouseUp={handleCatMouseUp}
               onMouseLeave={handleCatMouseUp}
-              className="flex items-center gap-3 overflow-x-auto pb-2.5 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-5 px-5"
+              className="flex items-center gap-3 overflow-x-auto pt-3 pb-3 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-5 px-5"
               style={{
                 WebkitOverflowScrolling: "touch",
                 scrollbarWidth: "none",
@@ -1916,6 +1915,7 @@ export default function MiniAppShopModern() {
               {categories.map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 const count = getCategoryCount(cat.id);
+                const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
                 return (
                   <button
                     key={cat.id}
@@ -1924,12 +1924,21 @@ export default function MiniAppShopModern() {
                         setSelectedCategory(cat.id);
                       }
                     }}
-                    className={`relative flex flex-col items-center justify-center min-w-[78px] h-[84px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
+                    className={`relative flex flex-col items-center justify-center min-w-[80px] h-[86px] px-3 rounded-2xl transition-all duration-200 shrink-0 ${
                       isActive
-                        ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105"
+                        ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-lg shadow-[#6C5CE7]/30 scale-105 z-10"
                         : "bg-white text-[#4A4568] shadow-sm border border-[#ECEEF8] hover:bg-[#F5F4FC]"
                     }`}
                   >
+                    {/* Top-Left Corner Angle Badge */}
+                    {cat.badgeEnabled && cat.badgeText && (
+                      <span
+                        className={`absolute -top-1.5 -left-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-md leading-none z-20 border border-white/60 ${badgeStyle}`}
+                      >
+                        {cat.badgeText}
+                      </span>
+                    )}
+
                     {/* Top-Right Available Quantity Badge */}
                     <span
                       className={`absolute top-2 right-2 px-1.5 min-w-[18px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-black tracking-tight leading-none ${
@@ -1944,7 +1953,7 @@ export default function MiniAppShopModern() {
                     </span>
 
                     <div className="h-7 w-7 flex items-center justify-center mb-1.5">
-                      {cat.renderIcon()}
+                      {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl)}
                     </div>
                     <span className={`text-[11px] font-bold tracking-tight whitespace-nowrap text-center ${isActive ? "text-white" : "text-[#4A4568]"}`}>
                       {cat.label}
@@ -1988,9 +1997,94 @@ export default function MiniAppShopModern() {
               </div>
             </div>
 
-            {/* Best Sellers Section */}
+            {/* Best Sellers & Trending Sub-Slider */}
+            {products.length > 0 && (
+              <div className="mb-7">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5E62] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF5E62]"></span>
+                    </span>
+                    <h3 className="text-base font-black text-[#181432] tracking-tight">Best Sellers & Hot Deals</h3>
+                  </div>
+                  <span className="text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full">⚡ Top Rated</span>
+                </div>
+
+                <div
+                  className="flex items-center gap-3.5 overflow-x-auto pt-2 pb-3.5 scrollbar-none overscroll-x-contain touch-pan-x -mx-5 px-5"
+                  style={{
+                    WebkitOverflowScrolling: "touch",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                  }}
+                >
+                  {products.slice(0, 6).map((p, idx) => {
+                    const priceFormatted = formatPrice(p.price, p.currency);
+                    const isFav = favorites.includes(p.id);
+                    const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
+                    const badgeLabel = (p as any).badge || badgeLabels[idx % badgeLabels.length];
+                    const badgeGradient = idx % 2 === 0
+                      ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
+                      : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
+
+                    return (
+                      <div
+                        key={`bestseller-${p.id}`}
+                        onClick={() => {
+                          setDetailProduct(p);
+                          setQuantity(1);
+                        }}
+                        className="relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group"
+                      >
+                        {/* Top-Left Corner Angle Badge */}
+                        <div className="absolute top-2.5 left-2.5 z-10">
+                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-xs leading-none ${badgeGradient}`}>
+                            {badgeLabel}
+                          </span>
+                        </div>
+
+                        {/* Top-Right Heart / Favorite Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            toggleFavorite(p.id, e);
+                          }}
+                          className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-[#F8F9FD] hover:bg-pink-50 border border-[#ECEEF8] flex items-center justify-center transition-colors active:scale-90"
+                        >
+                          <Heart className={`w-3.5 h-3.5 transition-colors ${isFav ? "fill-[#FF5E62] text-[#FF5E62]" : "text-[#9490A8]"}`} />
+                        </button>
+
+                        {/* Center Brand Icon & Title */}
+                        <div className="flex flex-col items-center text-center mt-6">
+                          <div className="w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-2 shadow-2xs group-hover:scale-105 transition-transform">
+                            <BrandIcon name={p.name} type={p.type} className="w-7 h-7" />
+                          </div>
+                          <h4 className="text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1">
+                            {p.name}
+                          </h4>
+                          <span className="text-[10px] font-bold text-[#7E7998] mt-0.5">
+                            {p.stockCount && p.stockCount > 0 ? `${p.stockCount} in stock` : "Verified ⚡"}
+                          </span>
+                        </div>
+
+                        {/* Bottom Price & Action */}
+                        <div className="flex items-center justify-between pt-2 border-t border-[#F5F4FC]">
+                          <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                          <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity">
+                            Buy Now
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Products Section Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-[#181432] tracking-tight">Best Sellers</h3>
+              <h3 className="text-base font-black text-[#181432] tracking-tight">All Catalog Products</h3>
               <button
                 onClick={() => setSelectedCategory("all")}
                 className="text-xs font-bold text-[#5B42F3] hover:text-[#D92078] transition-colors"
@@ -3980,41 +4074,65 @@ export default function MiniAppShopModern() {
                   "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring."}
               </p>
 
-              {/* Quantity Stepper & Buy Now Button */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#ECEEF8] gap-3">
-                  <button
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-6 h-6 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="w-6 h-6 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
+              {/* Quantity Stepper & Price Summary */}
+              <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-[#181432]">Quantity</span>
+                  <div className="flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  onClick={handlePurchase}
-                  disabled={isPurchasing}
-                  className="flex-1 py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-full text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
-                >
-                  {isPurchasing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : !isCustomerLoggedIn ? (
-                    <>
-                      <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 text-pink-200" /> Buy Now
-                    </>
-                  )}
-                </button>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
+                  <span className="text-sm font-black text-[#181432]">{formatProductPrice(detailProduct, quantity)}</span>
+                </div>
+              </div>
+
+              {/* Terms & Conditions Agreement Rule */}
+              <div className="flex items-center gap-2 mb-3.5 px-1">
+                <input
+                  type="checkbox"
+                  id="agreeTermsModal"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#6C5CE7] focus:ring-[#6C5CE7] border-[#ECEEF8] cursor-pointer"
+                />
+                <label htmlFor="agreeTermsModal" className="text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none">
+                  I agree to the <span className="text-[#6C5CE7] font-bold">Terms of Service</span> & Instant Delivery
+                </label>
+              </div>
+
+              {/* Slide to Purchase / Sign In Button */}
+              <div className="mb-4">
+                {!isCustomerLoggedIn ? (
+                  <button
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all"
+                  >
+                    <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
+                  </button>
+                ) : (
+                  <SlideToPurchase
+                    onComplete={handlePurchase}
+                    disabled={!agreedToTerms || isPurchasing}
+                    isLoading={isPurchasing}
+                    text={`Slide to Pay ${formatProductPrice(detailProduct, quantity)}`}
+                    completedText="Processing Order..."
+                  />
+                )}
               </div>
 
               {/* Instant Delivery Footer Badge */}
