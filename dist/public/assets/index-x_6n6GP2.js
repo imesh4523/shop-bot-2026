@@ -30601,7 +30601,7 @@ const awsActivities = pgTable("aws_activities", {
 });
 const insertAwsAccountSchema = createInsertSchema(awsAccounts).omit({ id: true, createdAt: true });
 createInsertSchema(awsActivities).omit({ id: true });
-const specialOffers$1 = pgTable("special_offers", {
+const specialOffers = pgTable("special_offers", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull().references(() => products.id),
   name: text("name").notNull(),
@@ -30614,7 +30614,7 @@ const specialOffers$1 = pgTable("special_offers", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow()
 });
-const insertSpecialOfferSchema = createInsertSchema(specialOffers$1, {
+const insertSpecialOfferSchema = createInsertSchema(specialOffers, {
   expiresAt: z$1.union([z$1.date(), z$1.string().transform((v2) => new Date(v2))]).optional().nullable()
 }).omit({ id: true, createdAt: true });
 const backupConfigs = pgTable("backup_configs", {
@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-MEMCeDvf.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BxorbnpN.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -104374,7 +104374,7 @@ function MiniAppShopModern() {
       const grad = BADGE_COLOR_STYLES[customBadge.color] || BADGE_COLOR_STYLES.red;
       return { text: customBadge.text, gradient: grad };
     }
-    const isSpecialOffer = specialOffers.some((o2) => o2.productId === prod.id && o2.status === "active");
+    const isSpecialOffer = (offers || []).some((o2) => o2.productId === prod.id && o2.status === "active");
     if (isSpecialOffer) {
       return { text: "🔥 SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.red };
     }

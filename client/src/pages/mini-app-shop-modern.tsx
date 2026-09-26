@@ -1418,7 +1418,7 @@ export default function MiniAppShopModern() {
       return { text: customBadge.text, gradient: grad };
     }
 
-    const isSpecialOffer = specialOffers.some((o) => o.productId === prod.id && o.status === "active");
+    const isSpecialOffer = (offers || []).some((o) => o.productId === prod.id && o.status === "active");
     if (isSpecialOffer) {
       return { text: "🔥 SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.red };
     }
