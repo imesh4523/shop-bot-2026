@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package, CreditCard, ArrowRight } from "lucide-react";
+import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package, CreditCard, ArrowRight, Globe, Mail, Key, Server, ExternalLink, ShieldCheck } from "lucide-react";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -28,6 +28,75 @@ export default function SettingsPage() {
   const [cryptoBotEnabled, setCryptoBotEnabled] = useState(true);
   const [cryptoBotTestnet, setCryptoBotTestnet] = useState(false);
   const [binanceApiKey, setBinanceApiKey] = useState("");
+
+  // Cloudflare & Resend Credentials State
+  const [cfApiToken, setCfApiToken] = useState("");
+  const [cfEmail, setCfEmail] = useState("");
+  const [cfGlobalKey, setCfGlobalKey] = useState("");
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [serverTargetIp, setServerTargetIp] = useState("18.141.224.63");
+
+  const { data: cfApiTokenSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"],
+  });
+  const { data: cfEmailSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_EMAIL"],
+  });
+  const { data: cfGlobalKeySetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"],
+  });
+  const { data: resendApiKeySetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/RESEND_API_KEY"],
+  });
+  const { data: serverTargetIpSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/SERVER_TARGET_IP"],
+  });
+
+  useEffect(() => {
+    if (cfApiTokenSetting?.value !== undefined) setCfApiToken(cfApiTokenSetting.value);
+  }, [cfApiTokenSetting]);
+  useEffect(() => {
+    if (cfEmailSetting?.value !== undefined) setCfEmail(cfEmailSetting.value);
+  }, [cfEmailSetting]);
+  useEffect(() => {
+    if (cfGlobalKeySetting?.value !== undefined) setCfGlobalKey(cfGlobalKeySetting.value);
+  }, [cfGlobalKeySetting]);
+  useEffect(() => {
+    if (resendApiKeySetting?.value !== undefined) setResendApiKey(resendApiKeySetting.value);
+  }, [resendApiKeySetting]);
+  useEffect(() => {
+    if (serverTargetIpSetting?.value !== undefined) setServerTargetIp(serverTargetIpSetting.value || "18.141.224.63");
+  }, [serverTargetIpSetting]);
+
+  const saveCloudflareResendMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all([
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_API_TOKEN", value: cfApiToken }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_EMAIL", value: cfEmail }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_GLOBAL_KEY", value: cfGlobalKey }),
+        apiRequest("POST", "/api/settings", { key: "RESEND_API_KEY", value: resendApiKey }),
+        apiRequest("POST", "/api/settings", { key: "SERVER_TARGET_IP", value: serverTargetIp }),
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_EMAIL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/RESEND_API_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SERVER_TARGET_IP"] });
+      toast({
+        title: "Cloudflare & Resend Credentials Saved",
+        description: "API keys and DNS automation target IP updated successfully.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Save",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
   const [binanceSecretKey, setBinanceSecretKey] = useState("");
   const [binancePayId, setBinancePayId] = useState("");
   const [faqText, setFaqText] = useState("");
@@ -1360,6 +1429,114 @@ export default function SettingsPage() {
             >
               {adminCredentialsMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
               Update Credentials
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* CLOUDFLARE & RESEND AUTOMATION SETTINGS CARD */}
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 p-6 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                <Globe className="w-6 h-6 text-cyan-400" />
+                Cloudflare & Resend API Config
+              </CardTitle>
+              <CardDescription className="text-white/40 text-xs mt-1">
+                Configure Cloudflare DNS API and Resend Email keys for automatic domain setup and email relays.
+              </CardDescription>
+            </div>
+            <Link href="/imeshadmindashbord/domain-automation">
+              <Button size="sm" variant="outline" className="text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 gap-1">
+                Open Hub <ExternalLink className="w-3 h-3" />
+              </Button>
+            </Link>
+          </div>
+          <CardContent className="space-y-6 pt-6">
+            {/* Cloudflare API Token */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-cyan-400" /> Cloudflare API Token (Recommended)
+                </Label>
+                <span className="text-[10px] text-muted-foreground">Zone:DNS:Edit, Zone:Read</span>
+              </div>
+              <Input
+                type="password"
+                placeholder="Enter Cloudflare API Bearer Token..."
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={cfApiToken}
+                onChange={(e) => setCfApiToken(e.target.value)}
+              />
+            </div>
+
+            {/* Cloudflare Email & Global API Key */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-white/70">Cloudflare Account Email (Legacy)</Label>
+                <Input
+                  type="email"
+                  placeholder="name@example.com"
+                  className="glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs"
+                  value={cfEmail}
+                  onChange={(e) => setCfEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-white/70">Global API Key (Legacy)</Label>
+                <Input
+                  type="password"
+                  placeholder="Global API Key..."
+                  className="glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs font-mono"
+                  value={cfGlobalKey}
+                  onChange={(e) => setCfGlobalKey(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Resend API Key */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-purple-400" /> Resend API Key
+                </Label>
+                <span className="text-[10px] text-muted-foreground">e.g. re_123456789...</span>
+              </div>
+              <Input
+                type="password"
+                placeholder="re_..."
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={resendApiKey}
+                onChange={(e) => setResendApiKey(e.target.value)}
+              />
+            </div>
+
+            {/* Target Server IP */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-emerald-400" /> Server Target IP (For 1-Click DNS A Records)
+              </Label>
+              <Input
+                type="text"
+                placeholder="18.141.224.63"
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={serverTargetIp}
+                onChange={(e) => setServerTargetIp(e.target.value)}
+              />
+            </div>
+
+            <Button
+              onClick={() => saveCloudflareResendMutation.mutate()}
+              disabled={saveCloudflareResendMutation.isPending}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-600 hover:to-purple-700 font-bold shadow-lg shadow-cyan-500/20"
+            >
+              {saveCloudflareResendMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : (
+                <Save className="w-5 h-5 mr-2" />
+              )}
+              Save Cloudflare & Resend Credentials
             </Button>
           </CardContent>
         </Card>

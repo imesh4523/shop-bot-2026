@@ -2909,6 +2909,10 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgb(6 182 212 / 0.2);
 }
 
+.border-cyan-500\/30{
+  border-color: rgb(6 182 212 / 0.3);
+}
+
 .border-destructive-border{
   border-color: var(--destructive-border);
 }
@@ -4502,6 +4506,12 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.from-cyan-500\/20{
+  --tw-gradient-from: rgb(6 182 212 / 0.2) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(6 182 212 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .from-emerald-100\/60{
   --tw-gradient-from: rgb(209 250 229 / 0.6) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(209 250 229 / 0) var(--tw-gradient-to-position);
@@ -4854,6 +4864,16 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), rgb(59 130 246 / 0.1) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
+.via-blue-500\/20{
+  --tw-gradient-to: rgb(59 130 246 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(59 130 246 / 0.2) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
+.via-blue-600{
+  --tw-gradient-to: rgb(37 99 235 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), #2563eb var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
 .via-cyan-500\/5{
   --tw-gradient-to: rgb(6 182 212 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), rgb(6 182 212 / 0.05) var(--tw-gradient-via-position), var(--tw-gradient-to);
@@ -5155,6 +5175,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .to-purple-500\/10{
   --tw-gradient-to: rgb(168 85 247 / 0.1) var(--tw-gradient-to-position);
+}
+
+.to-purple-500\/20{
+  --tw-gradient-to: rgb(168 85 247 / 0.2) var(--tw-gradient-to-position);
 }
 
 .to-purple-600{
@@ -7102,6 +7126,11 @@ h1, h2, h3, h4, h5, h6 {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-cyan-500\/20{
+  --tw-shadow-color: rgb(6 182 212 / 0.2);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .shadow-cyan-950\/30{
   --tw-shadow-color: rgb(8 51 68 / 0.3);
   --tw-shadow: var(--tw-shadow-colored);
@@ -8257,6 +8286,10 @@ body:has(.tg-mini-app) {
   background-color: rgb(37 99 235 / 0.1);
 }
 
+.hover\:bg-cyan-500\/10:hover{
+  background-color: rgb(6 182 212 / 0.1);
+}
+
 .hover\:bg-emerald-50:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
@@ -8523,6 +8556,12 @@ body:has(.tg-mini-app) {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.hover\:from-cyan-600:hover{
+  --tw-gradient-from: #0891b2 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(8 145 178 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .hover\:from-emerald-500:hover{
   --tw-gradient-from: #10b981 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(16 185 129 / 0) var(--tw-gradient-to-position);
@@ -8605,6 +8644,10 @@ body:has(.tg-mini-app) {
 
 .hover\:to-purple-500:hover{
   --tw-gradient-to: #a855f7 var(--tw-gradient-to-position);
+}
+
+.hover\:to-purple-700:hover{
+  --tw-gradient-to: #7e22ce var(--tw-gradient-to-position);
 }
 
 .hover\:to-teal-500:hover{

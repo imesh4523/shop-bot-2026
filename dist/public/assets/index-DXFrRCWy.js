@@ -60563,6 +60563,70 @@ function SettingsPage() {
   const [cryptoBotEnabled, setCryptoBotEnabled] = reactExports.useState(true);
   const [cryptoBotTestnet, setCryptoBotTestnet] = reactExports.useState(false);
   const [binanceApiKey, setBinanceApiKey] = reactExports.useState("");
+  const [cfApiToken, setCfApiToken] = reactExports.useState("");
+  const [cfEmail, setCfEmail] = reactExports.useState("");
+  const [cfGlobalKey, setCfGlobalKey] = reactExports.useState("");
+  const [resendApiKey, setResendApiKey] = reactExports.useState("");
+  const [serverTargetIp, setServerTargetIp] = reactExports.useState("18.141.224.63");
+  const { data: cfApiTokenSetting } = useQuery({
+    queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"]
+  });
+  const { data: cfEmailSetting } = useQuery({
+    queryKey: ["/api/settings/CLOUDFLARE_EMAIL"]
+  });
+  const { data: cfGlobalKeySetting } = useQuery({
+    queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"]
+  });
+  const { data: resendApiKeySetting } = useQuery({
+    queryKey: ["/api/settings/RESEND_API_KEY"]
+  });
+  const { data: serverTargetIpSetting } = useQuery({
+    queryKey: ["/api/settings/SERVER_TARGET_IP"]
+  });
+  reactExports.useEffect(() => {
+    if (cfApiTokenSetting?.value !== void 0) setCfApiToken(cfApiTokenSetting.value);
+  }, [cfApiTokenSetting]);
+  reactExports.useEffect(() => {
+    if (cfEmailSetting?.value !== void 0) setCfEmail(cfEmailSetting.value);
+  }, [cfEmailSetting]);
+  reactExports.useEffect(() => {
+    if (cfGlobalKeySetting?.value !== void 0) setCfGlobalKey(cfGlobalKeySetting.value);
+  }, [cfGlobalKeySetting]);
+  reactExports.useEffect(() => {
+    if (resendApiKeySetting?.value !== void 0) setResendApiKey(resendApiKeySetting.value);
+  }, [resendApiKeySetting]);
+  reactExports.useEffect(() => {
+    if (serverTargetIpSetting?.value !== void 0) setServerTargetIp(serverTargetIpSetting.value || "18.141.224.63");
+  }, [serverTargetIpSetting]);
+  const saveCloudflareResendMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all([
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_API_TOKEN", value: cfApiToken }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_EMAIL", value: cfEmail }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_GLOBAL_KEY", value: cfGlobalKey }),
+        apiRequest("POST", "/api/settings", { key: "RESEND_API_KEY", value: resendApiKey }),
+        apiRequest("POST", "/api/settings", { key: "SERVER_TARGET_IP", value: serverTargetIp })
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_EMAIL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/RESEND_API_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SERVER_TARGET_IP"] });
+      toast2({
+        title: "Cloudflare & Resend Credentials Saved",
+        description: "API keys and DNS automation target IP updated successfully."
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Failed to Save",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
   const [binanceSecretKey, setBinanceSecretKey] = reactExports.useState("");
   const [binancePayId, setBinancePayId] = reactExports.useState("");
   const [faqText, setFaqText] = reactExports.useState("");
@@ -61734,6 +61798,117 @@ function SettingsPage() {
             children: [
               adminCredentialsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-5 h-5 mr-2" }),
               "Update Credentials"
+            ]
+          }
+        )
+      ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 p-6 border-b border-white/10 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-6 h-6 text-cyan-400" }),
+            "Cloudflare & Resend API Config"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40 text-xs mt-1", children: "Configure Cloudflare DNS API and Resend Email keys for automatic domain setup and email relays." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { size: "sm", variant: "outline", className: "text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 gap-1", children: [
+          "Open Hub ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-6 pt-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5 text-cyan-400" }),
+              " Cloudflare API Token (Recommended)"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "Zone:DNS:Edit, Zone:Read" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "password",
+              placeholder: "Enter Cloudflare API Bearer Token...",
+              className: "glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono",
+              value: cfApiToken,
+              onChange: (e) => setCfApiToken(e.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px] font-bold text-white/70", children: "Cloudflare Account Email (Legacy)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "email",
+                placeholder: "name@example.com",
+                className: "glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs",
+                value: cfEmail,
+                onChange: (e) => setCfEmail(e.target.value)
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px] font-bold text-white/70", children: "Global API Key (Legacy)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "password",
+                placeholder: "Global API Key...",
+                className: "glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs font-mono",
+                value: cfGlobalKey,
+                onChange: (e) => setCfGlobalKey(e.target.value)
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 pt-3 border-t border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-3.5 h-3.5 text-purple-400" }),
+              " Resend API Key"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "e.g. re_123456789..." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "password",
+              placeholder: "re_...",
+              className: "glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono",
+              value: resendApiKey,
+              onChange: (e) => setResendApiKey(e.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 pt-3 border-t border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-3.5 h-3.5 text-emerald-400" }),
+            " Server Target IP (For 1-Click DNS A Records)"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "text",
+              placeholder: "18.141.224.63",
+              className: "glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono",
+              value: serverTargetIp,
+              onChange: (e) => setServerTargetIp(e.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => saveCloudflareResendMutation.mutate(),
+            disabled: saveCloudflareResendMutation.isPending,
+            className: "w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-600 hover:to-purple-700 font-bold shadow-lg shadow-cyan-500/20",
+            children: [
+              saveCloudflareResendMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-5 h-5 mr-2" }),
+              "Save Cloudflare & Resend Credentials"
             ]
           }
         )
@@ -73790,7 +73965,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BypKY4NB.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CTCd_vQ_.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
