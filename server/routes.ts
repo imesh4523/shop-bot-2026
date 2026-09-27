@@ -15697,10 +15697,10 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         invoiceNumber = "INV-2026-812010",
         bodyHeading = "Payment Successful",
         bodyMessage = "Your subscription invoice for your plan has been processed successfully. Thank you for your business!",
-        ctaText = "Manage Subscription",
-        ctaUrl = "https://youuhost.com/userdashbord/dashboard",
+        ctaText = "Manage Orders",
+        ctaUrl = "https://youuhost.com/shop",
         orderId = "ORD-2026-88120",
-        credentialsText = "username: client_admin\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291",
+        credentialsText = "username: youuhost_admin\npassword: VpsP@ss#2026!\nhost_ip: 18.141.224.63:22\nlicense_key: YOUU-ENTERPRISE-PRO-9812-2291",
         otpCode = "839201",
       } = req.body;
 
@@ -15719,7 +15719,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           ctaUrl,
         });
       } else if (templateType === "order_credentials") {
-        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: youuhost_admin", "password: VpsP@ss#2026!", "host_ip: 18.141.224.63:22", "license_key: YOUU-ENTERPRISE-PRO-9812-2291"];
         html = buildOrderCredentialsEmailHtml({
           toEmail,
           recipientName,
@@ -15729,7 +15729,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           quantity: 1,
           amount: amount || "$5.50 USD",
           credentials: credsList,
-          ctaText: ctaText || "Access Your Dashboard",
+          ctaText: ctaText || "Manage Orders",
           ctaUrl: ctaUrl || "https://youuhost.com/shop",
         });
       } else if (templateType === "otp_verification") {
@@ -15992,7 +15992,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           console.error("[Email Hub] PDF Error:", pdfErr.message);
         }
       } else if (templateType === "order_credentials") {
-        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: youuhost_admin", "password: VpsP@ss#2026!", "host_ip: 18.141.224.63:22", "license_key: YOUU-ENTERPRISE-PRO-9812-2291"];
         emailHtml = buildOrderCredentialsEmailHtml({
           toEmail,
           recipientName: recipientName || "Valued Customer",
@@ -16002,7 +16002,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           quantity: 1,
           amount: amount || "$5.50 USD",
           credentials: credsList,
-          ctaText: ctaText || "Access Your Dashboard",
+          ctaText: ctaText || "Manage Orders",
           ctaUrl: ctaUrl || "https://youuhost.com/shop",
         });
 

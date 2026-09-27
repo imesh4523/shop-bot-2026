@@ -17,7 +17,7 @@ export interface TransactionEmailProps {
   subject?: string;
   planTitle?: string;
   amount: string; // e.g. "LKR 14,990.00" or "$50.00 USD"
-  secondaryAmount?: string; // e.g. "≈ $50.00 USD"
+  secondaryAmount?: string;
   referenceId: string; // e.g. "INV-2026-812010"
   paymentMethod: "card" | "payhere" | "mastercard" | "visa" | "binance" | "binance_pay" | "cryptomus" | "crypto" | "wallet_balance" | string;
   paymentMethodDetails?: string; // e.g. "Mastercard ending in •••• 9876"
@@ -37,7 +37,7 @@ export interface OrderCredentialsEmailProps {
   orderId: string | number;
   productName: string;
   quantity: number;
-  amount: string; // e.g. "$5.50 USD" or "Rs. 1,650 LKR"
+  amount: string; // e.g. "$5.50 USD" or "Rs. 1,815 LKR"
   credentials: string[];
   dateStr?: string;
   ctaText?: string;
@@ -66,6 +66,46 @@ export interface CustomEmailProps {
 }
 
 /**
+ * Clean and format currency string so it never shows dual/mixed conversions or garbled non-ascii chars
+ */
+export function sanitizeCurrencyAmount(amountRaw: string, fallbackDefault = "LKR 14,990.00"): string {
+  if (!amountRaw || typeof amountRaw !== "string") return fallbackDefault;
+  let str = amountRaw.trim();
+
+  // If contains dual conversion parentheses e.g. "LKR 14,990.00 (≈ $50.00 USD)" or "$5.50 USD (≈ Rs. 1,815 LKR)"
+  if (str.includes("(") || str.includes("≈") || str.includes("~")) {
+    const parts = str.split(/[\(≈~]/);
+    str = (parts[0] || "").trim();
+  }
+
+  // Remove any non-ASCII characters that can break jsPDF
+  str = str.replace(/[^\x20-\x7E]/g, "").trim();
+
+  // If LKR format
+  if (str.toUpperCase().includes("LKR") || str.toUpperCase().includes("RS")) {
+    const numMatch = str.replace(/,/g, "").match(/(\d+(\.\d+)?)/);
+    if (numMatch) {
+      const val = parseFloat(numMatch[1]);
+      if (str.toUpperCase().includes("RS")) {
+        return `Rs. ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`;
+      }
+      return `LKR ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  }
+
+  // If USD format
+  if (str.toUpperCase().includes("USD") || str.includes("$")) {
+    const numMatch = str.replace(/,/g, "").match(/(\d+(\.\d+)?)/);
+    if (numMatch) {
+      const val = parseFloat(numMatch[1]);
+      return `$${val.toFixed(2)} USD`;
+    }
+  }
+
+  return str || fallbackDefault;
+}
+
+/**
  * Helper to get YouuHost Logo Public URL (Lightweight & Email-Safe, prevents Gmail clipping)
  */
 function getLogoDataUri(): string {
@@ -73,7 +113,7 @@ function getLogoDataUri(): string {
 }
 
 /**
- * Generate PDF Invoice matching Image 3 layout
+ * Generate PDF Invoice matching official YouuHost Invoice design (Clean Single-Currency Layout)
  */
 export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   const doc = new jsPDF({
@@ -88,7 +128,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   const toEmail = props.toEmail || "customer@youuhost.com";
   const plan = props.planTitle || "Enterprise AI Plan";
   const billingCycle = props.billingCycle || "Monthly";
-  const amount = props.amount || "LKR 14,990.00";
+  const amount = sanitizeCurrencyAmount(props.amount || "LKR 14,990.00");
 
   // Margins
   const left = 20;
@@ -178,7 +218,8 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(55, 65, 81);
-  doc.text(`${plan} Subscription`, left, y);
+  const cleanPlanText = plan.length > 42 ? plan.substring(0, 40) + "..." : plan;
+  doc.text(`${cleanPlanText}`, left, y);
   doc.text(billingCycle, 115, y);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(17, 24, 39);
@@ -206,7 +247,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(156, 163, 175);
-  doc.text("Thank you for choosing YouuHost! Your subscription is now fully active.", 105, y, { align: "center" });
+  doc.text("Thank you for choosing YouuHost! Your service is now fully active.", 105, y, { align: "center" });
   y += 5;
   doc.text("For any billing queries or support, contact support@youuhost.com", 105, y, { align: "center" });
 
@@ -214,43 +255,65 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 }
 
 /**
- * Payment Method Icon Renderer for HTML Emails (Email-Safe Table Layout)
+ * Payment Method Icon Renderer for HTML Emails (Professional Brand Icons matching YouuHost)
  */
 function getPaymentMethodHtml(method: string, details?: string): { iconHtml: string; title: string; subtitle: string } {
   const m = (method || "").toLowerCase();
 
-  if (m.includes("master") || m.includes("card") || m.includes("payhere") || m.includes("visa")) {
-    const isMaster = m.includes("master") || (!m.includes("visa"));
-    
-    // Official Mastercard / Visa Dual Circles (Bulletproof table)
+  // 1. VISA CARD
+  if (m.includes("visa")) {
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background-color: #0F172A; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 4px; border: 1px solid #1E293B;">
+          <td style="width: 42px; height: 28px; background-color: #1A1F71; border-radius: 6px; text-align: center; vertical-align: middle; box-shadow: 0 2px 6px rgba(26, 31, 113, 0.25);">
+            <span style="color: #FFFFFF; font-weight: 900; font-size: 11px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; letter-spacing: 1px; font-style: italic;">VISA</span>
+          </td>
+        </tr>
+      </table>
+    `;
+    return {
+      iconHtml,
+      title: "Payment Method",
+      subtitle: details || "Visa ending in &bull;&bull;&bull;&bull; 4122",
+    };
+  }
+
+  // 2. MASTERCARD
+  if (m.includes("master") || m.includes("card") || m.includes("payhere")) {
+    const iconHtml = `
+      <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
+        <tr>
+          <td style="width: 42px; height: 28px; background-color: #0F172A; border-radius: 6px; text-align: center; vertical-align: middle; padding: 0 4px; border: 1px solid #1E293B; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);">
             <table cellpadding="0" cellspacing="0" border="0" align="center">
               <tr>
-                <td style="width: 13px; height: 13px; background-color: #EB001B; border-radius: 50%;"></td>
-                <td style="width: 13px; height: 13px; background-color: #F79E1B; border-radius: 50%; margin-left: -5px;"></td>
+                <td style="width: 14px; height: 14px; background-color: #EB001B; border-radius: 50%;"></td>
+                <td style="width: 14px; height: 14px; background-color: #F79E1B; border-radius: 50%; margin-left: -6px;"></td>
               </tr>
             </table>
           </td>
         </tr>
       </table>
     `;
-
     return {
       iconHtml,
       title: "Payment Method",
-      subtitle: details || (isMaster ? "Mastercard ending in &bull;&bull;&bull;&bull; 9876" : "Visa ending in &bull;&bull;&bull;&bull; 4122"),
+      subtitle: details || "Mastercard ending in &bull;&bull;&bull;&bull; 9876",
     };
   }
 
+  // 3. BINANCE PAY
   if (m.includes("binance")) {
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background-color: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle;">
-            <span style="color: #12161C; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">BIN</span>
+          <td style="width: 42px; height: 28px; background-color: #F3BA2F; border-radius: 6px; text-align: center; vertical-align: middle; box-shadow: 0 2px 6px rgba(243, 186, 47, 0.3);">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr>
+                <td style="color: #12161C; font-weight: 900; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0.5px;">
+                  BINANCE
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
@@ -262,12 +325,19 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     };
   }
 
-  if (m.includes("cryptomus") || m.includes("crypto")) {
+  // 4. CRYPTOMUS
+  if (m.includes("cryptomus") || m.includes("crypto") || m.includes("usdt")) {
     const iconHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
         <tr>
-          <td style="width: 38px; height: 26px; background-color: #5B42F3; border-radius: 6px; text-align: center; vertical-align: middle;">
-            <span style="color: #FFFFFF; font-weight: 900; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">CR</span>
+          <td style="width: 42px; height: 28px; background: linear-gradient(135deg, #5B42F3 0%, #4328EB 100%); border-radius: 6px; text-align: center; vertical-align: middle; box-shadow: 0 2px 6px rgba(91, 66, 243, 0.3);">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr>
+                <td style="color: #FFFFFF; font-weight: 900; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0.5px;">
+                  CRYPTOMUS
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
@@ -279,12 +349,12 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
     };
   }
 
-  // Wallet Balance
+  // 5. YOUUHOST WALLET BALANCE
   const iconHtml = `
     <table cellpadding="0" cellspacing="0" border="0" style="display: inline-block; vertical-align: middle;">
       <tr>
-        <td style="width: 38px; height: 26px; background-color: #10B981; border-radius: 6px; text-align: center; vertical-align: middle;">
-          <span style="color: #FFFFFF; font-weight: 900; font-size: 14px;">&#128179;</span>
+        <td style="width: 42px; height: 28px; background: linear-gradient(135deg, #00C269 0%, #059669 100%); border-radius: 6px; text-align: center; vertical-align: middle; box-shadow: 0 2px 6px rgba(0, 194, 105, 0.25);">
+          <span style="color: #FFFFFF; font-weight: 900; font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0.5px;">WALLET</span>
         </td>
       </tr>
     </table>
@@ -298,17 +368,16 @@ function getPaymentMethodHtml(method: string, details?: string): { iconHtml: str
 
 /**
  * Generate Luxury Transaction Verified / Payment Successful HTML Email
- * EXACT match to Image 3 reference:
  * - Real YouuHost Gradient Logo centered ABOVE the card with transparent background
  * - Payment Successful heading with official blue checkmark badge
  * - Green CTA button: Manage Orders
- * - All 3 Sections: Transaction Details, Payment Method, Invoice Attachment
+ * - All 3 Sections: Transaction Details, Payment Method, Invoice Attachment (Professional Vector Badges)
  * - Official footer with link
  */
 export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): string {
   const name = props.recipientName || "Test User";
   const plan = props.planTitle || "Enterprise AI Plan";
-  const amount = props.amount || "LKR 14,990.00";
+  const amount = sanitizeCurrencyAmount(props.amount || "LKR 14,990.00");
   const billingCycle = props.billingCycle || "Monthly";
   const ctaText = props.ctaText || "Manage Orders";
   const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
@@ -348,7 +417,7 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
 
         <!-- Description text -->
         <p style="text-align: center; font-size: 13.5px; color: #64748B; line-height: 1.6; margin: 0 auto 26px auto; max-width: 380px;">
-          Your subscription invoice for your plan has been processed successfully. Thank you for your business!
+          Your payment and subscription have been processed successfully. Thank you for choosing YouuHost!
         </p>
 
         <!-- Manage Orders Button -->
@@ -366,14 +435,14 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
 
         <div style="border-top: 1px solid #F1F5F9; margin: 28px 0;"></div>
 
-        <!-- SECTION 1: Transaction Details -->
+        <!-- SECTION 1: Transaction Details (Vector Luxury Card Badge) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
-              <table cellpadding="0" cellspacing="0" border="0" style="width: 38px; height: 38px; border-radius: 12px; background-color: #ECFDF5; text-align: center;">
+            <td style="width: 48px; vertical-align: top; padding-right: 12px;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1px solid #A7F3D0; text-align: center;">
                 <tr>
-                  <td align="center" valign="middle" style="font-size: 18px; color: #059669;">
-                    &#128179;
+                  <td align="center" valign="middle" style="color: #059669; font-weight: 900; font-size: 13px; font-family: monospace;">
+                    &#9776;
                   </td>
                 </tr>
               </table>
@@ -381,20 +450,20 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
             <td style="vertical-align: middle;">
               <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">Transaction Details</div>
               <div style="font-size: 12.5px; color: #64748B; line-height: 1.5;">
-                Plan: ${plan} &bull; Amount: ${amount} &bull; Billing: ${billingCycle}
+                Plan: ${plan} &bull; Amount: <strong style="color: #00C269;">${amount}</strong> &bull; Billing: ${billingCycle}
               </div>
             </td>
           </tr>
         </table>
 
-        <!-- SECTION 2: Payment Method -->
+        <!-- SECTION 2: Payment Method (Official Real Badge) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
+            <td style="width: 48px; vertical-align: top; padding-right: 12px;">
               ${paymentInfo.iconHtml}
             </td>
             <td style="vertical-align: middle;">
-              <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">Payment Method</div>
+              <div style="font-size: 14px; font-weight: 700; color: #0F172A; margin-bottom: 3px;">${paymentInfo.title}</div>
               <div style="font-size: 12.5px; color: #64748B; line-height: 1.5;">
                 ${paymentInfo.subtitle}
               </div>
@@ -402,14 +471,14 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
           </tr>
         </table>
 
-        <!-- SECTION 3: Invoice Attachment -->
+        <!-- SECTION 3: Invoice Attachment (Official PDF Badge) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="width: 44px; vertical-align: top; padding-right: 12px;">
-              <table cellpadding="0" cellspacing="0" border="0" style="width: 38px; height: 38px; border-radius: 12px; background-color: #ECFDF5; text-align: center;">
+            <td style="width: 48px; vertical-align: top; padding-right: 12px;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); border: 1px solid #FECACA; text-align: center;">
                 <tr>
-                  <td align="center" valign="middle" style="font-size: 18px; color: #059669;">
-                    &#128196;
+                  <td align="center" valign="middle" style="color: #DC2626; font-weight: 900; font-size: 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; letter-spacing: 0.5px;">
+                    PDF
                   </td>
                 </tr>
               </table>
@@ -495,17 +564,40 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
 
 /**
  * Order Confirmation & Product Credentials Delivery Email Template
+ * - Refactored: Unified Luxury AWS/Cloud Style Access Card (Replaced 4 ugly separate black boxes)
+ * - Single clean currency amount (no dual conversions or cut-offs)
+ * - Green CTA button: Manage Orders
  */
 export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps): string {
   const name = props.recipientName || "Valued Customer";
   const orderId = props.orderId || `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
   const prodName = props.productName || "Cloud VPS / Service";
   const qty = props.quantity || 1;
-  const amount = props.amount || "$5.50 USD";
-  const ctaText = props.ctaText || "Access Your Dashboard";
+  const amount = sanitizeCurrencyAmount(props.amount || "$5.50 USD", "$5.50 USD");
+  const ctaText = props.ctaText || "Manage Orders";
   const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
   const logoUri = getLogoDataUri();
-  const credentials = props.credentials && props.credentials.length > 0 ? props.credentials : ["Your digital product is ready in your account dashboard."];
+  const rawCredentials = props.credentials && props.credentials.length > 0 ? props.credentials : ["root_user: client_admin", "root_pass: P@ssword#2026", "host_ip: 18.141.224.63:22", "license_key: YOUU-ENTERPRISE-PRO-9812-2291"];
+
+  // Parse credentials into clean rows
+  const parsedRows: { label: string; value: string }[] = [];
+  for (const c of rawCredentials) {
+    if (typeof c === "string" && c.includes(":")) {
+      const idx = c.indexOf(":");
+      const rawKey = c.substring(0, idx).trim();
+      const rawVal = c.substring(idx + 1).trim();
+      // Format key nicely (e.g. root_user -> Root User, host_ip -> Host / IP)
+      let formattedKey = rawKey.replace(/_/g, " ").toUpperCase();
+      if (formattedKey === "ROOT USER") formattedKey = "USERNAME";
+      else if (formattedKey === "ROOT PASS") formattedKey = "PASSWORD";
+      else if (formattedKey === "HOST IP") formattedKey = "HOST / IP";
+      else if (formattedKey === "LICENSE KEY") formattedKey = "LICENSE KEY";
+      
+      parsedRows.push({ label: formattedKey, value: rawVal });
+    } else if (typeof c === "string" && c.trim()) {
+      parsedRows.push({ label: "ACCESS KEY", value: c.trim() });
+    }
+  }
 
   return `
 <!DOCTYPE html>
@@ -541,29 +633,37 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
         </p>
 
         <!-- ORDER SUMMARY STRIP -->
-        <table style="width: 100%; border-collapse: collapse; background-color: #F8FAFC; border-radius: 16px; padding: 14px; margin-bottom: 22px; border: 1px solid #ECEEF8;" cellpadding="12" cellspacing="0">
+        <table style="width: 100%; border-collapse: collapse; background-color: #F8FAFC; border-radius: 16px; margin-bottom: 22px; border: 1px solid #ECEEF8;" cellpadding="12" cellspacing="0">
           <tr>
             <td style="font-size: 12.5px; color: #64748B;">Item: <strong style="color: #0F172A;">${prodName}</strong></td>
             <td align="right" style="font-size: 12.5px; color: #64748B;">Qty: <strong style="color: #0F172A;">${qty}</strong> &bull; Total: <strong style="color: #00C269;">${amount}</strong></td>
           </tr>
         </table>
 
-        <!-- CREDENTIALS CONTAINER -->
+        <!-- UNIFIED LUXURY AWS/CLOUD STYLE ACCESS CREDENTIALS CARD -->
         <div style="margin-bottom: 24px;">
-          <div style="font-size: 12px; font-weight: 800; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center;">
-            <span style="display: inline-block; width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; margin-right: 6px;"></span>
-            Delivered Credentials & Activation Keys
+          <div style="font-size: 12px; font-weight: 800; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+            <span style="display: inline-block; width: 8px; height: 8px; background-color: #00C269; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>
+            Instant Server Credentials & Access Keys
           </div>
 
-          ${credentials.map((c, i) => `
-            <div style="background-color: #0B1120; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid #1E293B;">
-              <div style="font-size: 10px; font-weight: 700; color: #38BDF8; margin-bottom: 6px; text-transform: uppercase;">Credential Item #${i + 1}</div>
-              <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; color: #F1F5F9; word-break: break-all; line-height: 1.5; white-space: pre-wrap;">${c}</div>
-            </div>
-          `).join('')}
+          <div style="background-color: #0F172A; border-radius: 16px; padding: 18px 20px; border: 1px solid #1E293B; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);">
+            <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+              ${parsedRows.map((r, idx) => `
+                <tr>
+                  <td style="padding: 10px 0; ${idx < parsedRows.length - 1 ? 'border-bottom: 1px solid #1E293B;' : ''} width: 36%; font-size: 11px; font-weight: 700; color: #38BDF8; text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle;">
+                    ${r.label}
+                  </td>
+                  <td style="padding: 10px 0; ${idx < parsedRows.length - 1 ? 'border-bottom: 1px solid #1E293B;' : ''} font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; font-weight: 600; color: #F8FAFC; text-align: right; word-break: break-all; vertical-align: middle;">
+                    ${r.value}
+                  </td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
         </div>
 
-        <!-- CTA BUTTON -->
+        <!-- MANAGE ORDERS BUTTON -->
         <div style="text-align: center; margin-bottom: 24px;">
           <a href="${ctaUrl}" style="display: inline-block; width: 100%; max-width: 320px; padding: 14px 24px; background-color: #00C269; color: #FFFFFF !important; font-weight: 700; font-size: 15px; text-align: center; text-decoration: none; border-radius: 9999px; box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32); box-sizing: border-box;">
             ${ctaText}
@@ -593,15 +693,13 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
 
 /**
  * YouuHost OTP Security Verification Code Email Template
+ * - Refactored: Emerald Green Title (#00C269), Professional Shield/Lock Badge & Sleek Timer Badge
  */
 export function buildOtpVerificationEmailHtml(props: OtpEmailProps): string {
   const name = props.recipientName || "Valued Customer";
   const code = props.otpCode || "839201";
   const expiry = props.expiryMinutes || 10;
   const logoUri = getLogoDataUri();
-
-  // Split code into spaced digits
-  const spacedCode = code.split('').join('  ');
 
   return `
 <!DOCTYPE html>
@@ -625,11 +723,17 @@ export function buildOtpVerificationEmailHtml(props: OtpEmailProps): string {
       <!-- MAIN CARD -->
       <div style="background-color: #FFFFFF; border-radius: 28px; padding: 38px 28px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); border: 1px solid #F1F5F9; text-align: center;">
         
-        <div style="width: 52px; height: 52px; background-color: #ECFDF5; border-radius: 16px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center; line-height: 52px; font-size: 24px;">
-          &#128274;
-        </div>
+        <!-- Professional Shield Lock Badge (Bulletproof HTML Table) -->
+        <table align="center" cellpadding="0" cellspacing="0" border="0" style="width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #A7F3D0; text-align: center; margin: 0 auto 18px auto; box-shadow: 0 4px 12px rgba(0, 194, 105, 0.15);">
+          <tr>
+            <td align="center" valign="middle" style="color: #00C269; font-weight: 900; font-size: 22px;">
+              &#128274;
+            </td>
+          </tr>
+        </table>
 
-        <h1 style="font-size: 22px; font-weight: 800; color: #0F172A; margin: 0 0 10px 0;">
+        <!-- Emerald Green Title -->
+        <h1 style="font-size: 22px; font-weight: 800; color: #00C269; margin: 0 0 10px 0; letter-spacing: -0.3px;">
           Account Verification Code
         </h1>
 
@@ -638,15 +742,20 @@ export function buildOtpVerificationEmailHtml(props: OtpEmailProps): string {
         </p>
 
         <!-- BIG OTP CODE BOX -->
-        <div style="background-color: #F1F5F9; border-radius: 18px; padding: 18px 20px; margin: 0 auto 20px auto; border: 2px dashed #CBD5E1; max-width: 320px;">
+        <div style="background-color: #F8FAFC; border-radius: 18px; padding: 18px 20px; margin: 0 auto 18px auto; border: 2px dashed #00C269; max-width: 320px;">
           <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 32px; font-weight: 900; color: #0F172A; letter-spacing: 6px;">
             ${code}
           </div>
         </div>
 
-        <div style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; border-radius: 9999px; font-size: 11.5px; font-weight: 700; color: #92400E; margin-bottom: 24px;">
-          &#9200; Expires in ${expiry} minutes
-        </div>
+        <!-- Sleek Timer Badge -->
+        <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 24px auto;">
+          <tr>
+            <td style="padding: 6px 14px; background-color: #FEF3C7; border: 1px solid #FDE68A; border-radius: 9999px; font-size: 12px; font-weight: 700; color: #92400E; text-align: center;">
+              &#9200; Expires in ${expiry} minutes
+            </td>
+          </tr>
+        </table>
 
         <p style="font-size: 12px; color: #94A3B8; line-height: 1.5; margin: 0 0 20px 0; border-top: 1px solid #F1F5F9; padding-top: 18px;">
           If you did not request this verification code, please ignore this email or contact security support immediately. Do not share this code with anyone.
@@ -671,3 +780,4 @@ export function buildOtpVerificationEmailHtml(props: OtpEmailProps): string {
 </html>
   `;
 }
+

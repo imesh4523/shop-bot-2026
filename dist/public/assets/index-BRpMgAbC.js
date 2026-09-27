@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CCzqhD0K.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DvVzgsTv.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115224,13 +115224,13 @@ function EmailHubPage() {
   const [toEmail, setToEmail] = reactExports.useState("");
   const [recipientName, setRecipientName] = reactExports.useState("");
   const [subject, setSubject] = reactExports.useState("Payment Successful - Your Transaction Invoice");
-  const [amount, setAmount] = reactExports.useState("LKR 14,990.00 (≈ $50.00 USD)");
+  const [amount, setAmount] = reactExports.useState("LKR 14,990.00");
   const [planName, setPlanName] = reactExports.useState("Enterprise Cloud & Bot Hosting");
   const [billingCycle, setBillingCycle] = reactExports.useState("Monthly");
   const [paymentMethod, setPaymentMethod] = reactExports.useState("mastercard");
   const [invoiceNumber, setInvoiceNumber] = reactExports.useState(`INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
   const [orderId, setOrderId] = reactExports.useState(`ORD-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
-  const [credentialsText, setCredentialsText] = reactExports.useState("username: client_root\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291");
+  const [credentialsText, setCredentialsText] = reactExports.useState("username: youuhost_admin\npassword: VpsP@ss#2026!\nhost_ip: 18.141.224.63:22\nlicense_key: YOUU-ENTERPRISE-PRO-9812-2291");
   const [otpCode, setOtpCode] = reactExports.useState("839201");
   const [bodyHeading, setBodyHeading] = reactExports.useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = reactExports.useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");

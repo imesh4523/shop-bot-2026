@@ -68,13 +68,13 @@ export default function EmailHubPage() {
   const [toEmail, setToEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [subject, setSubject] = useState("Payment Successful - Your Transaction Invoice");
-  const [amount, setAmount] = useState("LKR 14,990.00 (≈ $50.00 USD)");
+  const [amount, setAmount] = useState("LKR 14,990.00");
   const [planName, setPlanName] = useState("Enterprise Cloud & Bot Hosting");
   const [billingCycle, setBillingCycle] = useState("Monthly");
   const [paymentMethod, setPaymentMethod] = useState("mastercard");
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-2026-${Math.floor(100000 + Math.random() * 900000)}`);
   const [orderId, setOrderId] = useState(`ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`);
-  const [credentialsText, setCredentialsText] = useState("username: client_root\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291");
+  const [credentialsText, setCredentialsText] = useState("username: youuhost_admin\npassword: VpsP@ss#2026!\nhost_ip: 18.141.224.63:22\nlicense_key: YOUU-ENTERPRISE-PRO-9812-2291");
   const [otpCode, setOtpCode] = useState("839201");
   const [bodyHeading, setBodyHeading] = useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
