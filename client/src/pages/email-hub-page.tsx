@@ -781,9 +781,18 @@ export default function EmailHubPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      const blob = new Blob([previewHtml], { type: "text/html" });
-                      const url = URL.createObjectURL(blob);
-                      window.open(url, "_blank");
+                      try {
+                        const newTab = window.open("", "_blank");
+                        if (newTab) {
+                          newTab.document.open();
+                          newTab.document.write(previewHtml || "<p style='font-family:sans-serif;padding:20px;'>No preview content available</p>");
+                          newTab.document.close();
+                        } else {
+                          toast({ title: "Popup Blocked", description: "Please allow popups to open full email preview.", variant: "destructive" });
+                        }
+                      } catch (e: any) {
+                        console.error("Open preview error:", e);
+                      }
                     }}
                     className="text-xs h-7 text-cyan-400 hover:text-cyan-300"
                   >

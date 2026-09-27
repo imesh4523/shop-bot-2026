@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-mxZ4qkE8.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CCzqhD0K.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115892,9 +115892,18 @@ function EmailHubPage() {
                   variant: "ghost",
                   size: "sm",
                   onClick: () => {
-                    const blob = new Blob([previewHtml], { type: "text/html" });
-                    const url2 = URL.createObjectURL(blob);
-                    window.open(url2, "_blank");
+                    try {
+                      const newTab = window.open("", "_blank");
+                      if (newTab) {
+                        newTab.document.open();
+                        newTab.document.write(previewHtml || "<p style='font-family:sans-serif;padding:20px;'>No preview content available</p>");
+                        newTab.document.close();
+                      } else {
+                        toast2({ title: "Popup Blocked", description: "Please allow popups to open full email preview.", variant: "destructive" });
+                      }
+                    } catch (e) {
+                      console.error("Open preview error:", e);
+                    }
                   },
                   className: "text-xs h-7 text-cyan-400 hover:text-cyan-300",
                   children: [
