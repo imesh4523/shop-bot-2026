@@ -3211,9 +3211,8 @@ export default function MiniAppShopModern() {
                     <img src="/qplus.png" alt="Q+ Payment" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
                     <span className="text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-emerald-200/80 shadow-xs">
-                    <img src="/genie_wallet.png" alt="Genie" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#00A859]">Genie</span>
+                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-white border border-slate-200/80 shadow-xs">
+                    <img src="/gpay.png" alt="G Pay" className="h-4 w-auto object-contain" />
                   </span>
                 </div>
 

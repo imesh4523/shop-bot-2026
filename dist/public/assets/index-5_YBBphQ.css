@@ -6515,11 +6515,6 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(0 137 214 / var(--tw-text-opacity, 1));
 }
 
-.text-\[\#00A859\]{
-  --tw-text-opacity: 1;
-  color: rgb(0 168 89 / var(--tw-text-opacity, 1));
-}
-
 .text-\[\#00A95C\]{
   --tw-text-opacity: 1;
   color: rgb(0 169 92 / var(--tw-text-opacity, 1));

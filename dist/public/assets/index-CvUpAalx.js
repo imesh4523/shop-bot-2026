@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BjhZ-bL6.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CU_F42n4.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -106057,10 +106057,7 @@ function MiniAppShopModern() {
                 /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/qplus.png", alt: "Q+ Payment", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#0054A6]", children: "Q+ Payment" })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-emerald-200/80 shadow-xs", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/genie_wallet.png", alt: "Genie", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#00A859]", children: "Genie" })
-              ] })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-flex items-center px-2 py-1 rounded-lg bg-white border border-slate-200/80 shadow-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/gpay.png", alt: "G Pay", className: "h-4 w-auto object-contain" }) })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
