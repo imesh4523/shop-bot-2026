@@ -2515,11 +2515,8 @@ export default function MiniAppShopModern() {
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                             {conf.tag}
                           </span>
-                          <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                            #YH-API-{smmOrd.id}
-                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs">
-                              <Key className="w-2 h-2" /> API
-                            </span>
+                          <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-md">
+                            #YH-{smmOrd.id}
                           </span>
                         </div>
                         {statusBadge}
@@ -3821,9 +3818,9 @@ export default function MiniAppShopModern() {
 
                     {/* Transactions List */}
                     {isLoadingTransactions ? (
-                      <div className="p-8 text-center text-xs text-[#7E7998]">
-                        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#5B42F3]" />
-                        Loading transactions...
+                      <div className="p-8 text-center text-xs text-[#7E7998] flex flex-col items-center justify-center">
+                        <LottiePayment size={100} />
+                        <span className="mt-2 font-bold text-[#5B42F3]">Loading transactions...</span>
                       </div>
                     ) : transactionsList.length === 0 ? (
                       <div className="p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]">
@@ -3859,9 +3856,9 @@ export default function MiniAppShopModern() {
                                   <div className="min-w-0">
                                     <div className="text-xs font-black text-[#181432] truncate flex items-center gap-1.5">
                                       <span className="truncate">{tx.title}</span>
-                                      {(tx.type === "smm" || tx.isApiOrder || (tx.reference && tx.reference.includes("API")) || tx.id?.includes("API")) && (
-                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8px] font-black shadow-xs shrink-0">
-                                          <Key className="w-2 h-2" /> API Key
+                                      {Boolean(tx.isApiOrder || tx.type === "api") && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8.5px] font-black shadow-xs shrink-0">
+                                          <Key className="w-2.5 h-2.5" /> API Key
                                         </span>
                                       )}
                                     </div>
@@ -4297,11 +4294,8 @@ export default function MiniAppShopModern() {
                       <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`}>
                         {conf.tag}
                       </span>
-                      <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
-                        #YH-API-{detailSmmService.id}
-                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs">
-                          <Key className="w-2 h-2" /> API
-                        </span>
+                      <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2.5 py-0.5 rounded-full font-mono">
+                        #YH-{detailSmmService.id}
                       </span>
                     </div>
                   );

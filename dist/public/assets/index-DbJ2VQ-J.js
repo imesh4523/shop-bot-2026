@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CmzhPgzq.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CF8dQzZT.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -86517,6 +86517,7 @@ function TelegramUsersPage() {
   const [editingId, setEditingId] = reactExports.useState(null);
   const [editBalance, setEditBalance] = reactExports.useState(0);
   const [search, setSearch] = reactExports.useState("");
+  const [accountTypeFilter, setAccountTypeFilter] = reactExports.useState("all");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
   const [currentPage, setCurrentPage] = reactExports.useState(1);
   const { data: usersData, isLoading, isError, refetch } = useQuery({
@@ -86524,6 +86525,10 @@ function TelegramUsersPage() {
     retry: 1
   });
   const users2 = reactExports.useMemo(() => Array.isArray(usersData) ? usersData : [], [usersData]);
+  const isEmailUser = (u2) => Boolean(u2.email || u2.authProvider === "google" || u2.authProvider === "email" || u2.telegramId?.startsWith("google:"));
+  const isTelegramUser = (u2) => !isEmailUser(u2);
+  const emailCount = reactExports.useMemo(() => users2.filter(isEmailUser).length, [users2]);
+  const telegramCount = reactExports.useMemo(() => users2.filter(isTelegramUser).length, [users2]);
   const bannedCount = reactExports.useMemo(() => users2.filter((u2) => Boolean(u2?.isBanned)).length, [users2]);
   const activeCount = reactExports.useMemo(() => users2.length - bannedCount, [users2, bannedCount]);
   const mutation = useMutation({
@@ -86537,7 +86542,7 @@ function TelegramUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
       toast2({
         title: "User Updated",
-        description: "Telegram user balance has been updated."
+        description: "User balance has been updated."
       });
       setEditingId(null);
     }
@@ -86553,12 +86558,17 @@ function TelegramUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
       toast2({
         title: variables.isBanned ? "User Banned" : "User Unbanned",
-        description: variables.isBanned ? "User has been banned from using the Telegram bot." : "User has been unbanned and restored access to the bot."
+        description: variables.isBanned ? "User has been banned from the platform." : "User has been unbanned and restored access."
       });
     }
   });
   const filteredUsers = reactExports.useMemo(() => {
     let result = users2;
+    if (accountTypeFilter === "email") {
+      result = result.filter(isEmailUser);
+    } else if (accountTypeFilter === "telegram") {
+      result = result.filter(isTelegramUser);
+    }
     if (statusFilter === "banned") {
       result = result.filter((u2) => Boolean(u2?.isBanned));
     } else if (statusFilter === "active") {
@@ -86573,11 +86583,12 @@ function TelegramUsersPage() {
         const fullName = `${firstName} ${lastName}`.toLowerCase();
         const username = String(user.username || "").toLowerCase();
         const telegramId = String(user.telegramId || "").toLowerCase();
-        return fullName.includes(searchLower) || username.includes(searchLower) || telegramId.includes(searchLower);
+        const email = String(user.email || "").toLowerCase();
+        return fullName.includes(searchLower) || username.includes(searchLower) || telegramId.includes(searchLower) || email.includes(searchLower);
       });
     }
     return result;
-  }, [users2, statusFilter, search]);
+  }, [users2, accountTypeFilter, statusFilter, search]);
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const validCurrentPage = Math.min(currentPage, totalPages);
   const paginatedUsers = reactExports.useMemo(() => {
@@ -86588,8 +86599,12 @@ function TelegramUsersPage() {
     setSearch(e.target.value);
     setCurrentPage(1);
   };
-  const handleFilterChange = (filter2) => {
-    setStatusFilter(filter2);
+  const handleAccountTypeChange = (type) => {
+    setAccountTypeFilter(type);
+    setCurrentPage(1);
+  };
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(status);
     setCurrentPage(1);
   };
   const handleEdit = (user) => {
@@ -86604,66 +86619,120 @@ function TelegramUsersPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Telegram Users" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-xs sm:text-sm font-medium mt-1", children: "Manage bot subscribers, view balances & access status." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Users Management" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-xs sm:text-sm font-medium mt-1", children: "Manage Telegram bot & Web / Google users, balances & access status." })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-2 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-3 text-sm font-bold text-white shadow-lg", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-5 h-5 text-purple-400" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-          users2.length,
-          " Total Users"
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-xs font-bold text-purple-300 shadow-sm", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            telegramCount,
+            " Telegram"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-xs font-bold text-blue-300 shadow-sm", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-3.5 h-3.5 text-blue-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            emailCount,
+            " Email / Google"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-xs font-bold text-white shadow-sm", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-3.5 h-3.5 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            users2.length,
+            " Total"
+          ] })
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center p-1.5 rounded-2xl bg-[#130d24] border border-white/10 gap-1 overflow-x-auto", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: () => handleFilterChange("all"),
-            className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${statusFilter === "all" ? "bg-purple-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-3.5 h-3.5" }),
-              "All (",
-              users2.length,
-              ")"
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: () => handleFilterChange("active"),
-            className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${statusFilter === "active" ? "bg-emerald-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3.5 h-3.5 text-emerald-400" }),
-              "Active (",
-              activeCount,
-              ")"
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: () => handleFilterChange("banned"),
-            className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${statusFilter === "banned" ? "bg-red-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3.5 h-3.5 text-red-400" }),
-              "Banned 🚫 (",
-              bannedCount,
-              ")"
-            ]
-          }
-        )
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center p-1.5 rounded-2xl bg-[#130d24] border border-white/10 gap-1 overflow-x-auto", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => handleAccountTypeChange("all"),
+              className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${accountTypeFilter === "all" ? "bg-purple-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-3.5 h-3.5" }),
+                "All Users (",
+                users2.length,
+                ")"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => handleAccountTypeChange("telegram"),
+              className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${accountTypeFilter === "telegram" ? "bg-sky-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-300" }),
+                "Telegram Users (",
+                telegramCount,
+                ")"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => handleAccountTypeChange("email"),
+              className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${accountTypeFilter === "email" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3.5 h-3.5 text-blue-300" }),
+                "Email & Google Users (",
+                emailCount,
+                ")"
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center p-1 rounded-xl bg-[#130d24] border border-white/10 gap-1 shrink-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => handleStatusFilterChange("all"),
+              className: `px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter === "all" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"}`,
+              children: "All Status"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => handleStatusFilterChange("active"),
+              className: `px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === "active" ? "bg-emerald-600/30 text-emerald-400 border border-emerald-500/30" : "text-white/40 hover:text-white"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3 h-3 text-emerald-400" }),
+                "Active (",
+                activeCount,
+                ")"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              onClick: () => handleStatusFilterChange("banned"),
+              className: `px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === "banned" ? "bg-red-600/30 text-red-400 border border-red-500/30" : "text-white/40 hover:text-white"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3 text-red-400" }),
+                "Banned (",
+                bannedCount,
+                ")"
+              ]
+            }
+          )
+        ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full md:max-w-md", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           Input,
           {
-            placeholder: "Search name, @username, ID...",
-            className: "pl-10 h-11 rounded-2xl border-white/10 bg-[#130d24] text-white text-xs placeholder:text-white/30 focus:border-purple-500/50",
+            placeholder: "Search by name, @username, email, or user ID...",
+            className: "pl-10 h-11 rounded-2xl border-white/10 bg-[#130d24] text-white text-xs placeholder:text-white/30 focus:border-purple-500/50 w-full",
             value: search,
             onChange: handleSearchChange
           }
@@ -86717,19 +86786,27 @@ function TelegramUsersPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center py-16", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-purple-400" }) }) : isError ? /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "border border-red-500/20 bg-red-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "pt-6 text-center space-y-3", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-red-400 text-sm font-bold", children: "Failed to load Telegram users." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-red-400 text-sm font-bold", children: "Failed to load users." }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { onClick: () => refetch(), variant: "outline", className: "border-red-500/30 text-white", children: "Retry" })
-    ] }) }) : filteredUsers.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "border border-white/10 bg-[#130d24]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-white/50 text-sm", children: statusFilter === "banned" ? "No banned users found" : statusFilter === "active" ? "No active users found" : search ? "No users found matching your search" : "No telegram users yet" }) }) }) : paginatedUsers.map((user) => {
+    ] }) }) : filteredUsers.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "border border-white/10 bg-[#130d24]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pt-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-center text-white/50 text-sm", children: accountTypeFilter === "email" ? "No Email / Google users found" : accountTypeFilter === "telegram" ? "No Telegram users found" : statusFilter === "banned" ? "No banned users found" : statusFilter === "active" ? "No active users found" : search ? "No users found matching your search" : "No users registered yet" }) }) }) : paginatedUsers.map((user) => {
       const isUserBanned = Boolean(user.isBanned);
-      const userDisplayName = user.firstName || user.lastName ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : user.username ? `@${user.username}` : `User ${user.telegramId || user.id}`;
+      const isUserEmail = isEmailUser(user);
+      const userDisplayName = user.firstName || user.lastName ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : user.username ? `@${user.username}` : user.email ? user.email.split("@")[0] : `User ${user.telegramId || user.id}`;
       return /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
           className: `p-5 rounded-2xl border transition-all duration-200 ${isUserBanned ? "border-red-500/30 bg-red-950/20" : "border-white/10 bg-[#130d24] hover:border-purple-500/30"}`,
           children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-white text-base sm:text-lg", children: userDisplayName }),
+                isUserEmail ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3 h-3 text-blue-400" }),
+                  user.authProvider === "google" || user.telegramId?.startsWith("google:") ? "Google Account" : "Email Account"
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3 h-3 text-sky-400" }),
+                  " Telegram Bot"
+                ] }),
                 isUserBanned ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3" }),
                   " BANNED"
@@ -86738,15 +86815,29 @@ function TelegramUsersPage() {
                   " ACTIVE"
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-white/60 font-mono", children: [
-                "ID: ",
-                String(user.telegramId || user.id),
-                " ",
-                user.username ? `(@${user.username})` : ""
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/60 font-mono", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "DB ID: #",
+                  user.id
+                ] }),
+                user.email && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-blue-300 font-sans flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-3 h-3" }),
+                  " ",
+                  user.email
+                ] }),
+                user.username && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "@",
+                  user.username
+                ] }),
+                user.telegramId && !user.telegramId.startsWith("google:") && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "TG ID: ",
+                  user.telegramId
+                ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-purple-300 font-bold", children: [
-                "Balance: $",
-                ((user.balance || 0) / 100).toFixed(2)
+                "Wallet Balance: $",
+                ((user.balance || 0) / 100).toFixed(2),
+                " USD"
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
@@ -86830,17 +86921,17 @@ function TelegramUsersPage() {
               step: "0.01",
               value: editBalance,
               onChange: (e) => setEditBalance(parseFloat(e.target.value) || 0),
-              className: "h-11 rounded-xl border-white/10 bg-white/5 text-white text-sm"
+              className: "border-white/10 bg-black/40 text-white"
             }
           )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 justify-end pt-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-3 pt-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
             {
               variant: "outline",
               onClick: () => setEditingId(null),
-              className: "border-white/10 text-white hover:bg-white/5 h-10 rounded-xl text-xs font-bold",
+              className: "border-white/10 text-white hover:bg-white/10",
               children: "Cancel"
             }
           ),
@@ -86849,10 +86940,10 @@ function TelegramUsersPage() {
             {
               onClick: handleSave,
               disabled: mutation.isPending,
-              className: "bg-gradient-to-r from-purple-500 to-blue-600 text-white h-10 rounded-xl text-xs font-bold px-5",
+              className: "bg-purple-600 text-white hover:bg-purple-700",
               children: [
                 mutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-1.5" }),
-                "Save Balance"
+                "Save Changes"
               ]
             }
           )
@@ -105276,13 +105367,9 @@ function MiniAppShopModern() {
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.5 rounded-md flex items-center gap-1", children: [
-                        "#YH-API-",
-                        smmOrd.id,
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
-                          " API"
-                        ] })
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-md", children: [
+                        "#YH-",
+                        smmOrd.id
                       ] })
                     ] }),
                     statusBadge
@@ -106449,9 +106536,9 @@ function MiniAppShopModern() {
                 }
               )
             ] }),
-            isLoadingTransactions ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center text-xs text-[#7E7998]", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mx-auto mb-2 text-[#5B42F3]" }),
-              "Loading transactions..."
+            isLoadingTransactions ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center text-xs text-[#7E7998] flex flex-col items-center justify-center", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 100 }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-2 font-bold text-[#5B42F3]", children: "Loading transactions..." })
             ] }) : transactionsList.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-8 h-8 text-[#9490A8]/40 mx-auto" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-[#181432]", children: "No Transactions Yet" }),
@@ -106479,8 +106566,8 @@ function MiniAppShopModern() {
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs font-black text-[#181432] truncate flex items-center gap-1.5", children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: tx.title }),
-                          (tx.type === "smm" || tx.isApiOrder || tx.reference && tx.reference.includes("API") || tx.id?.includes("API")) && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8px] font-black shadow-xs shrink-0", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
+                          Boolean(tx.isApiOrder || tx.type === "api") && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8.5px] font-black shadow-xs shrink-0", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2.5 h-2.5" }),
                             " API Key"
                           ] })
                         ] }),
@@ -106813,13 +106900,9 @@ function MiniAppShopModern() {
               const conf = getSmmPlatformConfig(detailSmmService.category, detailSmmService.name);
               return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono flex items-center gap-1", children: [
-                  "#YH-API-",
-                  detailSmmService.id,
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
-                    " API"
-                  ] })
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2.5 py-0.5 rounded-full font-mono", children: [
+                  "#YH-",
+                  detailSmmService.id
                 ] })
               ] });
             })(),

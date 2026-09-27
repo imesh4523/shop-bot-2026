@@ -173,6 +173,16 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
 
     if (user.balance < totalCost) {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
+      try {
+        await storage.createOrder({
+          productId: prod.id,
+          telegramUserId: user.id,
+          apiKeyId: req.apiKey!.id,
+          status: "failed"
+        });
+      } catch (e) {
+        console.error("Failed to log failed API order:", e);
+      }
       return res.status(400).json({
         success: false,
         error: "insufficient_balance",
@@ -249,6 +259,16 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       });
     } else {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
+      try {
+        await storage.createOrder({
+          productId: prod.id,
+          telegramUserId: user.id,
+          apiKeyId: req.apiKey!.id,
+          status: "failed"
+        });
+      } catch (e) {
+        console.error("Failed to log failed API order:", e);
+      }
       return res.status(400).json({
         success: false,
         error: "out_of_stock",
@@ -293,6 +313,14 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
       // Check balance
       const currentBalance = (await storage.getTelegramUserByChatId(user.telegramId))?.balance || 0;
       if (currentBalance < cost) {
+        try {
+          await storage.createOrder({
+            productId: prod.id,
+            telegramUserId: user.id,
+            apiKeyId: req.apiKey!.id,
+            status: "failed"
+          });
+        } catch (e) {}
         results.push({ product_id: item.product_id, success: false, error: "insufficient_balance" });
         continue;
       }
@@ -318,6 +346,14 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
         grandTotalCents += cost;
         results.push({ product_id: prod.id, product_name: prod.name, success: true, delivered_items: fulfilled });
       } else {
+        try {
+          await storage.createOrder({
+            productId: prod.id,
+            telegramUserId: user.id,
+            apiKeyId: req.apiKey!.id,
+            status: "failed"
+          });
+        } catch (e) {}
         results.push({ product_id: prod.id, success: false, error: "out_of_stock" });
       }
     }

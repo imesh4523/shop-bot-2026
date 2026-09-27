@@ -8,7 +8,7 @@ import fs from 'fs';
 import multer from 'multer';
 import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs } from "@shared/schema";
 import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps } from "./email-template";
-import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
@@ -2157,18 +2157,27 @@ export async function registerRoutes(
         };
       });
 
+      // Get all user's API Key IDs
+      const userKeys = await storage.getUserApiKeys(userId);
+      const userKeyIds = userKeys.map(k => k.id);
+
       // 2. Direct Store Purchases & Developer API Orders
       const userOrders = await db.select()
         .from(orders)
         .leftJoin(products, eq(orders.productId, products.id))
         .leftJoin(credentials, eq(orders.credentialId, credentials.id))
-        .where(eq(orders.telegramUserId, userId))
+        .where(
+          userKeyIds.length > 0
+            ? or(eq(orders.telegramUserId, userId), inArray(orders.apiKeyId, userKeyIds))
+            : eq(orders.telegramUserId, userId)
+        )
         .orderBy(desc(orders.createdAt));
 
       const purchases = userOrders.map(o => {
         const isApiOrder = Boolean(o.orders.apiKeyId);
         const costUsd = ((o.products?.price || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
+        const isFailed = (o.orders.status || "").toLowerCase() === "failed";
 
         return {
           id: isApiOrder ? `YH-API-${o.orders.id}` : `ORD-${o.orders.id}`,
@@ -2188,7 +2197,7 @@ export async function registerRoutes(
           isApiOrder,
           deliveredContent: o.credentials?.content || null,
           details: isApiOrder
-            ? `API Key Order #${o.orders.id} for ${o.products?.name || "Product"}`
+            ? `API Key Order #${o.orders.id} for ${o.products?.name || "Product"}${isFailed ? " (Status: Failed)" : ""}`
             : `Purchased: ${o.products?.name || "Product"}. Instant credentials delivered.`,
           createdAt: o.orders.createdAt || new Date(),
           updatedAt: o.orders.createdAt || new Date()
