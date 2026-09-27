@@ -3212,7 +3212,7 @@ export default function MiniAppShopModern() {
                     <span className="text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
                   </span>
                   <span className="inline-flex items-center px-2 py-1 rounded-lg bg-white border border-slate-200/80 shadow-xs">
-                    <img src="/gpay.png" alt="G Pay" className="h-4 w-auto object-contain" />
+                    <img src="/gpay.svg" alt="Google Pay" className="h-3.5 w-auto object-contain" />
                   </span>
                 </div>
 
