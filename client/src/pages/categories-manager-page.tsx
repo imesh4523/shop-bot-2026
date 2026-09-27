@@ -87,7 +87,7 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "aws": return <FaAws className={`${className} text-[#FF9900]`} />;
     case "digitalocean": return <SiDigitalocean className={`${className} text-[#0080FF]`} />;
     case "azure": return <VscAzure className={`${className} text-[#0089D6]`} />;
-    case "oracle": return <span className="w-5 h-5 rounded-md bg-[#F80000] text-white flex items-center justify-center font-black text-[9px]">O</span>;
+    case "oracle": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10" alt="Oracle" className={`${className} object-contain rounded-md`} />;
     case "linode": return <FaLinode className={`${className} text-[#00A95C]`} />;
     case "google": return <SiGooglecloud className={`${className} text-[#4285F4]`} />;
     case "telegram": return <FaTelegramPlane className={`${className} text-[#24A1DE]`} />;
@@ -99,8 +99,8 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "chatgpt": return <SiOpenai className={`${className} text-[#10A37F]`} />;
     case "gemini": return <SiGooglegemini className={`${className} text-[#1BA0E2]`} />;
     case "claude": return <SiClaude className={`${className} text-[#D97757]`} />;
-    case "capcut": return <span className="w-5 h-5 rounded-md bg-black text-white flex items-center justify-center font-black text-[9px]">CC</span>;
-    case "kamatera": return <span className="w-5 h-5 rounded-md bg-[#FF5E00] text-white flex items-center justify-center font-black text-[9px]">K</span>;
+    case "capcut": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwqyJe8cXE-btMxT-WsTMJQOcoV0C88_7iv7rbZok-Pw&s" alt="CapCut" className={`${className} object-contain rounded-md`} />;
+    case "kamatera": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSji3gQmT-Rgim3tUz_IJD9o15dGe8si09LDF7mm2qQMQ&s=10" alt="Kamatera" className={`${className} object-contain rounded-md`} />;
     case "duolingo": return <SiDuolingo className={`${className} text-[#58CC02]`} />;
     default: return <Tag className={className} />;
   }

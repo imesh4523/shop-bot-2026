@@ -93,15 +93,18 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
   return res;
 };
 
-// Custom Crisp Vector SVG Components for Brands not in basic icon sets
+// Custom Crisp Vector & Brand Logos
+const ORACLE_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10";
+const KAMATERA_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSji3gQmT-Rgim3tUz_IJD9o15dGe8si09LDF7mm2qQMQ&s=10";
+const CAPCUT_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwqyJe8cXE-btMxT-WsTMJQOcoV0C88_7iv7rbZok-Pw&s";
+const API_TRANSACTION_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA24Ajtr-PQkSbpxwfGmNvEW3OyYTz1i5p3FBnTgE3yQ&s=10";
+
 const OracleLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="24" fill="#F80000" />
-    <path
-      d="M50 28C36.7 28 26 37.8 26 50C26 62.2 36.7 72 50 72C63.3 72 74 62.2 74 50C74 37.8 63.3 28 50 28ZM50 62C42 62 35.5 56.6 35.5 50C35.5 43.4 42 38 50 38C58 38 64.5 43.4 64.5 50C64.5 56.6 58 62 50 62Z"
-      fill="white"
-    />
-  </svg>
+  <img
+    src={ORACLE_IMG}
+    alt="Oracle"
+    className={`${className} shrink-0 object-contain rounded-lg`}
+  />
 );
 
 const LinodeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
@@ -116,8 +119,6 @@ const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </span>
 );
 
-const CAPCUT_IMG = "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.pZpm0Z4411CbphwIhfBM6AHaHa%3Fr%3D0%26pid%3DApi&f=1&ipt=eae86a3f91c99488278eef014b1f759c68adf46152c5d6d39388587032507959&ipo=images";
-
 const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <img
     src={CAPCUT_IMG}
@@ -127,12 +128,11 @@ const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100" height="100" rx="24" fill="#FF5E00" />
-    <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
-    <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
-    <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
-  </svg>
+  <img
+    src={KAMATERA_IMG}
+    alt="Kamatera"
+    className={`${className} shrink-0 object-contain rounded-lg`}
+  />
 );
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -193,6 +193,29 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
+
+  // API Order / Transaction
+  if (
+    tx?.isApiOrder ||
+    type === "api" ||
+    method === "api_key" ||
+    method === "api" ||
+    title.includes("developer api") ||
+    title.includes("api key") ||
+    title.includes("api order") ||
+    title.includes("api purchase") ||
+    title.includes("api transaction")
+  ) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src={API_TRANSACTION_IMG}
+          alt="API Transaction"
+          className="w-full h-full object-contain rounded-lg"
+        />
+      </div>
+    );
+  }
 
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");

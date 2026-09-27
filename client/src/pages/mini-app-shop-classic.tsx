@@ -92,7 +92,7 @@ const getProviderTheme = (name: string, type: string) => {
       hover: "group-hover:bg-[#0089D6]"
     },
     oracle: {
-      logo: "https://www.vectorlogo.zone/logos/oracle/oracle-icon.svg",
+      logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10",
       color: "text-[#F11010]",
       bg: "bg-[#F11010]/5",
       hover: "group-hover:bg-[#F11010]"
