@@ -762,17 +762,31 @@ export default function MiniAppShopModern() {
   const [isChatSending, setIsChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Terms & Conditions Modal State
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [termsModalProduct, setTermsModalProduct] = useState<string | null>(null);
+
+  // Dynamic Hero Banners Query
+  const { data: dynamicHeroBannersData } = useQuery<{ banners: any[] }>({
+    queryKey: ["/api/mini/hero-banners"],
+  });
+
+  const activeHeroSlides = (dynamicHeroBannersData?.banners && Array.isArray(dynamicHeroBannersData.banners) && dynamicHeroBannersData.banners.length > 0)
+    ? dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false)
+    : HERO_SLIDES;
+
   // Hero Auto-Swap Carousel State (Every 3 seconds)
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
 
   useEffect(() => {
     if (isHeroPaused) return;
+    const count = activeHeroSlides.length || 1;
     const interval = setInterval(() => {
-      setCurrentHeroSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentHeroSlide((prev) => (prev + 1) % count);
     }, 3000);
     return () => clearInterval(interval);
-  }, [isHeroPaused]);
+  }, [isHeroPaused, activeHeroSlides.length]);
 
   // Category Horizontal Scroll & Drag Support for Mobile and Desktop
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -2219,14 +2233,20 @@ export default function MiniAppShopModern() {
               onTouchStart={() => setIsHeroPaused(true)}
               onTouchEnd={() => setIsHeroPaused(false)}
             >
-              {HERO_SLIDES.map((slide, idx) => {
+              {activeHeroSlides.map((slide: any, idx: number) => {
                 const isActive = idx === currentHeroSlide;
+                const slideImage = slide.image || slide.imageSrc || "/assets/banner_capcut_3d.png";
+                const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
+                const slideBorder = slide.borderColor || "border-[#ECEEF8]";
+                const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
+                const featuresList: string[] = Array.isArray(slide.features) ? slide.features : [];
+
                 return (
                   <div
-                    key={slide.id}
+                    key={slide.id || idx}
                     className={`p-5 rounded-3xl border transition-all duration-700 ${
                       isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
-                    } bg-gradient-to-r ${slide.gradientBg} ${slide.borderColor}`}
+                    } bg-gradient-to-r ${slideBg} ${slideBorder}`}
                   >
                     <div className="relative z-10 max-w-[62%]">
                       <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
@@ -2237,50 +2257,69 @@ export default function MiniAppShopModern() {
                       </div>
 
                       {/* Genuine Pro Features Bullet List */}
-                      <div className="space-y-1 mb-3.5">
-                        {slide.features.map((feat, fIdx) => (
-                          <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span className="line-clamp-1">{feat}</span>
-                          </div>
-                        ))}
-                      </div>
+                      {featuresList.length > 0 && (
+                        <div className="space-y-1 mb-3.5">
+                          {featuresList.map((feat, fIdx) => (
+                            <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span className="line-clamp-1">{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                       <div>
                         <button
                           onClick={() => {
-                            const matched = products.find((p) => {
-                              const pName = (p.name || "").toLowerCase();
-                              const pType = (p.type || "").toLowerCase();
-                              const cat = slide.categoryTarget.toLowerCase();
-                              return pName.includes(cat) || pType.includes(cat);
-                            });
-                            if (matched) {
-                              setDetailProduct(matched);
-                              setQuantity(1);
-                            } else {
-                              setSelectedCategory(slide.categoryTarget);
-                              toast({
-                                title: `${slide.title} 🎯`,
-                                description: "Showing available packages & deals below."
+                            // If actionType is specific product
+                            if (slide.actionType === "product" && slide.actionTarget) {
+                              const foundProd = products.find((p) => p.id.toString() === slide.actionTarget.toString() || p.name.toLowerCase() === slide.actionTarget.toLowerCase());
+                              if (foundProd) {
+                                setDetailProduct(foundProd);
+                                setQuantity(1);
+                                return;
+                              }
+                            }
+
+                            // If actionType is category
+                            const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                            if (targetCat && targetCat !== "ALL") {
+                              const matched = products.find((p) => {
+                                const pName = (p.name || "").toLowerCase();
+                                const pType = (p.type || "").toLowerCase();
+                                const cat = targetCat.toLowerCase();
+                                return pName.includes(cat) || pType.includes(cat);
                               });
+                              if (matched) {
+                                setDetailProduct(matched);
+                                setQuantity(1);
+                              } else {
+                                setSelectedCategory(targetCat);
+                                toast({
+                                  title: `${slide.title} 🎯`,
+                                  description: "Showing available packages & deals below."
+                                });
+                                const el = document.getElementById("best-sellers-heading");
+                                if (el) el.scrollIntoView({ behavior: "smooth" });
+                              }
+                            } else {
                               const el = document.getElementById("best-sellers-heading");
                               if (el) el.scrollIntoView({ behavior: "smooth" });
                             }
                           }}
-                          className={`px-5 py-2 bg-gradient-to-r ${slide.btnGradient} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
+                          className={`px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
                         >
-                          Buy Now <ChevronRight className="w-3.5 h-3.5" />
+                          {slide.ctaText || "Buy Now"} <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    {/* High-res Transparent Product Visual */}
+                    {/* High-res Transparent Product Visual (Instant Canvas Downsampled) */}
                     <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
-                      <div className={`w-28 h-28 rounded-full ${slide.glowColor} blur-xl absolute`} />
+                      <div className={`w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute`} />
                       <img
-                        src={slide.imageSrc}
-                        alt={slide.imageAlt}
+                        src={slideImage}
+                        alt={slide.title || "Banner"}
                         className="w-32 h-32 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as any).style.display = "none";
@@ -2290,7 +2329,7 @@ export default function MiniAppShopModern() {
 
                     {/* Carousel Navigation Indicator Dots */}
                     <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20">
-                      {HERO_SLIDES.map((_, dotIdx) => (
+                      {activeHeroSlides.map((_: any, dotIdx: number) => (
                         <button
                           key={dotIdx}
                           onClick={(e) => {
@@ -3810,6 +3849,19 @@ export default function MiniAppShopModern() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setTermsModalProduct(null);
+                        setIsTermsModalOpen(true);
+                      }}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" /> Terms of Service & Warranty Policy
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                    </button>
+
+                    <button
                       onClick={() => setIsChatOpen(true)}
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
@@ -4531,7 +4583,20 @@ export default function MiniAppShopModern() {
                   className="w-4 h-4 rounded text-[#6C5CE7] focus:ring-[#6C5CE7] border-[#ECEEF8] cursor-pointer"
                 />
                 <label htmlFor="agreeTermsModal" className="text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none">
-                  I agree to the <span className="text-[#6C5CE7] font-bold">Terms of Service</span> & Instant Delivery
+                  I agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setTermsModalProduct(detailProduct?.name || "Cloud Account");
+                      setIsTermsModalOpen(true);
+                    }}
+                    className="text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer"
+                  >
+                    Terms of Service
+                  </button>{" "}
+                  & Instant Delivery
                 </label>
               </div>
 
@@ -5111,6 +5176,77 @@ export default function MiniAppShopModern() {
             >
               <Send className="w-4 h-4" />
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TERMS OF SERVICE & WARRANTY POLICY POPUP DIALOG */}
+      <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
+        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-base font-black text-[#181432] flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              {termsModalProduct ? `${termsModalProduct} Terms & Warranty` : "Service Terms & Guarantee Policy"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#7E7998]">
+              Official policy guidelines, instant warranty coverage, and customer rights.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 text-xs text-[#3D3656] pt-2">
+            {/* Policy 1: Instant Auto-Delivery */}
+            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
+              <div className="flex items-center gap-2 text-emerald-700 font-black text-xs">
+                <Zap className="w-4 h-4 text-emerald-500" /> 1. Automated Instant Fulfillment (0-2 Mins)
+              </div>
+              <p className="text-[11px] text-[#6B658B] leading-relaxed">
+                All digital accounts, licenses, and cloud credentials are automatically issued upon payment confirmation. Credentials can be retrieved at any time under your <b>Orders</b> tab.
+              </p>
+            </div>
+
+            {/* Policy 2: 24h Replacement Guarantee */}
+            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
+              <div className="flex items-center gap-2 text-[#5B42F3] font-black text-xs">
+                <ShieldCheck className="w-4 h-4 text-[#5B42F3]" /> 2. 24-Hour Replacement Warranty
+              </div>
+              <p className="text-[11px] text-[#6B658B] leading-relaxed">
+                If any account credentials or 2FA codes encounter issues within 24 hours of purchase, our support team will issue an instant replacement or full credit refund after verification.
+              </p>
+            </div>
+
+            {/* Policy 3: Cloud Quota & Fair Usage */}
+            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
+              <div className="flex items-center gap-2 text-amber-700 font-black text-xs">
+                <CheckCircle2 className="w-4 h-4 text-amber-500" /> 3. Fair Usage & Prohibited Activities
+              </div>
+              <p className="text-[11px] text-[#6B658B] leading-relaxed">
+                Cloud servers and accounts are strictly intended for legal development, bot hosting, and personal subscriptions. Any illegal activity, unauthorized crypto mining, DDoS attacks, or spam will result in immediate termination without refund.
+              </p>
+            </div>
+
+            {/* Policy 4: Wallet & Refunds */}
+            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
+              <div className="flex items-center gap-2 text-sky-700 font-black text-xs">
+                <Wallet className="w-4 h-4 text-sky-500" /> 4. Wallet Balance & Support Assistance
+              </div>
+              <p className="text-[11px] text-[#6B658B] leading-relaxed">
+                Wallet top-ups via PayHere (Card) and Cryptomus are credited instantly. For any inquiries or disputes, reach out via the 24/7 AI Concierge or official Telegram support.
+              </p>
+            </div>
+
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>100% Verified Accounts • Zero Logins Required For Gifting</span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-[#ECEEF8]">
+            <Button
+              onClick={() => setIsTermsModalOpen(false)}
+              className="w-full bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:from-[#4A32D6] hover:to-[#5B42F3] text-white font-black text-xs rounded-2xl h-11 shadow-md shadow-[#5B42F3]/25"
+            >
+              I Understand & Agree
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

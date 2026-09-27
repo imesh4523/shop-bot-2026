@@ -11666,7 +11666,7 @@ const IdCard = createLucideIcon("IdCard", [
   ["circle", { cx: "9", cy: "11", r: "2", key: "yxgjnd" }],
   ["rect", { x: "2", y: "5", width: "20", height: "14", rx: "2", key: "qneu4z" }]
 ]);
-const Image$1 = createLucideIcon("Image", [
+const Image$2 = createLucideIcon("Image", [
   ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", ry: "2", key: "1m3agn" }],
   ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }],
   ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }]
@@ -11995,13 +11995,24 @@ const SlidersHorizontal = createLucideIcon("SlidersHorizontal", [
   ["line", { x1: "8", x2: "8", y1: "10", y2: "14", key: "1i6ji0" }],
   ["line", { x1: "16", x2: "16", y1: "18", y2: "22", key: "1lctlv" }]
 ]);
+const SlidersVertical = createLucideIcon("SlidersVertical", [
+  ["line", { x1: "4", x2: "4", y1: "21", y2: "14", key: "1p332r" }],
+  ["line", { x1: "4", x2: "4", y1: "10", y2: "3", key: "gb41h5" }],
+  ["line", { x1: "12", x2: "12", y1: "21", y2: "12", key: "hf2csr" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "3", key: "1kfi7u" }],
+  ["line", { x1: "20", x2: "20", y1: "21", y2: "16", key: "1lhrwl" }],
+  ["line", { x1: "20", x2: "20", y1: "12", y2: "3", key: "16vvfq" }],
+  ["line", { x1: "2", x2: "6", y1: "14", y2: "14", key: "1uebub" }],
+  ["line", { x1: "10", x2: "14", y1: "8", y2: "8", key: "1yglbp" }],
+  ["line", { x1: "18", x2: "22", y1: "16", y2: "16", key: "1jxqpz" }]
+]);
 const Smile = createLucideIcon("Smile", [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "M8 14s1.5 2 4 2 4-2 4-2", key: "1y1vjs" }],
   ["line", { x1: "9", x2: "9.01", y1: "9", y2: "9", key: "yxxnd0" }],
   ["line", { x1: "15", x2: "15.01", y1: "9", y2: "9", key: "1p4y9e" }]
 ]);
-const Sparkles = createLucideIcon("Sparkles", [
+const Sparkles$1 = createLucideIcon("Sparkles", [
   [
     "path",
     {
@@ -12102,6 +12113,11 @@ const TriangleAlert = createLucideIcon("TriangleAlert", [
   ],
   ["path", { d: "M12 9v4", key: "juzpu7" }],
   ["path", { d: "M12 17h.01", key: "p32p05" }]
+]);
+const Upload = createLucideIcon("Upload", [
+  ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
+  ["polyline", { points: "17 8 12 3 7 8", key: "t8dd8p" }],
+  ["line", { x1: "12", x2: "12", y1: "3", y2: "15", key: "widbto" }]
 ]);
 const UserCheck = createLucideIcon("UserCheck", [
   ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
@@ -20194,7 +20210,7 @@ function useIsHydrated() {
   );
 }
 var Root$3 = Avatar$1;
-var Image = AvatarImage$1;
+var Image$1 = AvatarImage$1;
 var Fallback = AvatarFallback$1;
 const Avatar = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
   Root$3,
@@ -20211,14 +20227,14 @@ const Avatar = reactExports.forwardRef(({ className, ...props }, ref) => /* @__P
 ));
 Avatar.displayName = Root$3.displayName;
 const AvatarImage = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-  Image,
+  Image$1,
   {
     ref,
     className: cn("aspect-square h-full w-full", className),
     ...props
   }
 ));
-AvatarImage.displayName = Image.displayName;
+AvatarImage.displayName = Image$1.displayName;
 const AvatarFallback = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
   Fallback,
   {
@@ -20248,6 +20264,7 @@ function LayoutShell({ children }) {
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
     { name: "Broadcast", href: "/imeshadmindashbord/broadcast", icon: Megaphone },
     { name: "Products", href: "/imeshadmindashbord/products", icon: Package },
+    { name: "Hero Banners & Slider", href: "/imeshadmindashbord/hero-banners", icon: Sparkles },
     { name: "Categories & Badges", href: "/imeshadmindashbord/categories-manager", icon: Tag },
     { name: "N1Panel SMM", href: "/imeshadmindashbord/n1panel", icon: Share2 },
     { name: "Sandromania Shop", href: "/imeshadmindashbord/sandromania", icon: ShoppingBag },
@@ -61537,7 +61554,7 @@ function SettingsPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2 text-white", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
               "MiniApp Storefront Theme"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30", children: "Live Switcher" })
@@ -61588,7 +61605,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
             "Telegram Integration"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Telegram Bot token here. Changes are applied instantly." })
@@ -61681,7 +61698,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
           "AI Support Assistant (Gemini)"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Google AI Studio Gemini API Key to power the live support chat bot." })
@@ -62060,7 +62077,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
             "Branding & Customization"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Personalize your store and support contact information." })
@@ -62579,7 +62596,7 @@ function SettingsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-base font-bold text-white flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
                 "Payment Gateway Mode Switcher"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/60 mt-1", children: "Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices." })
@@ -73984,7 +74001,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DhPVuCEy.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-x3aoLckt.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85579,7 +85596,7 @@ function LoginPage() {
                 )
               ] }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-primary animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-primary animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
               ] })
             ] })
@@ -87960,7 +87977,7 @@ function TelegramInspectorPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-lg font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
             "Quick Text & Custom Emoji Inspector"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Paste raw text, HTML tag, or Emoji ID below to analyze instantly" })
@@ -88011,7 +88028,7 @@ function TelegramInspectorPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: filteredTraces.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-8 h-8" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-8 h-8" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-white mb-2", children: "No Telegram Traces Found" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 max-w-md mx-auto", children: "Forward any formatted message or send custom emojis to your Telegram Bot. The trace and extracted emoji IDs will appear here instantly!" })
     ] }) : filteredTraces.map((trace) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -88664,7 +88681,7 @@ function TelegramClientPage() {
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
                 ] })
               ] })
@@ -88781,7 +88798,7 @@ function TelegramClientPage() {
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Secure MTProto Link" })
               ] })
             ] })
@@ -89625,7 +89642,7 @@ function ForwardPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black text-white tracking-tight flex items-center gap-2", children: [
             "Auto Forward System",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400 animate-pulse" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400 animate-pulse" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm mt-1", children: "Automatically forward messages from a channel to groups using a dedicated bot" })
         ] })
@@ -90353,7 +90370,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
         ] }),
         ticket.attachmentUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/5 border border-purple-500/20 rounded-2xl p-4 space-y-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Image$1, { className: "w-4 h-4 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Image$2, { className: "w-4 h-4 text-purple-400" }),
             "Attached Screenshot / Proof:"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group max-w-md overflow-hidden rounded-xl border border-white/10 bg-black/40", children: [
@@ -91160,7 +91177,7 @@ const getProviderTheme = (name, type) => {
       hover: "group-hover:bg-[#0089D6]"
     },
     oracle: {
-      logo: "https://www.vectorlogo.zone/logos/oracle/oracle-icon.svg",
+      logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10",
       color: "text-[#F11010]",
       bg: "bg-[#F11010]/5",
       hover: "group-hover:bg-[#F11010]"
@@ -102756,7 +102773,7 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
     case "azure":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(VscAzure, { className: `${className} text-[#0089D6]` });
     case "oracle":
-      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-[#F80000] text-white flex items-center justify-center font-black text-[9px]", children: "O" });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { fillRule: "evenodd", clipRule: "evenodd", d: "M16.54 4.5H7.46C3.34 4.5 0 7.84 0 11.96c0 4.12 3.34 7.46 7.46 7.46h9.08c4.12 0 7.46-3.34 7.46-7.46 0-4.12-3.34-7.46-7.46-7.46zm-9.08 11.72c-2.35 0-4.26-1.91-4.26-4.26 0-2.35 1.91-4.26 4.26-4.26h9.08c2.35 0 4.26 1.91 4.26 4.26 0 2.35-1.91 4.26-4.26 4.26H7.46z", fill: "#F80000" }) });
     case "linode":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(FaLinode, { className: `${className} text-[#00A95C]` });
     case "google":
@@ -102780,9 +102797,9 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
     case "claude":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(SiClaude, { className: `${className} text-[#D97757]` });
     case "capcut":
-      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-black text-white flex items-center justify-center font-black text-[9px]", children: "CC" });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png", alt: "CapCut", className: `${className} object-contain mix-blend-multiply dark:brightness-125` });
     case "kamatera":
-      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-5 h-5 rounded-md bg-[#FF5E00] text-white flex items-center justify-center font-black text-[9px]", children: "K" });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/assets/kamatera.png", alt: "Kamatera", className: `${className} object-contain` });
     case "duolingo":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(SiDuolingo, { className: `${className} text-[#58CC02]` });
     default:
@@ -102927,7 +102944,7 @@ function CategoriesManagerPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#181432] via-[#2A1F52] to-[#181432] p-8 rounded-3xl text-white shadow-xl border border-white/10", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 text-xs font-black uppercase tracking-widest text-[#FF5E62] bg-white/10 px-3 py-1 rounded-full w-fit mb-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5" }),
           " Mini-App Category & Badges Manager"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-black tracking-tight", children: "Categories, Brands & Corner Badges" }),
@@ -102994,7 +103011,7 @@ function CategoriesManagerPage() {
           onClick: () => setActiveTab("productBadges"),
           className: `px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${activeTab === "productBadges" ? "bg-white text-[#181432] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#FF5E62]" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#FF5E62]" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               "Product Angle Badges & Special Offers (",
               allProducts.length,
@@ -103143,7 +103160,7 @@ function CategoriesManagerPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#ECEEF8]", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-[#FF5E62]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-[#FF5E62]" }),
               " Product Card Angle Badges & Special Offers (",
               allProducts.length,
               ")"
@@ -103388,33 +103405,35 @@ const miniApiRequest = async (method, path, body) => {
   }
   return res;
 };
-const OracleLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className, viewBox: "0 0 100 100", fill: "none", children: [
-  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { width: "100", height: "100", rx: "24", fill: "#F80000" }),
-  /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "path",
-    {
-      d: "M50 28C36.7 28 26 37.8 26 50C26 62.2 36.7 72 50 72C63.3 72 74 62.2 74 50C74 37.8 63.3 28 50 28ZM50 62C42 62 35.5 56.6 35.5 50C35.5 43.4 42 38 50 38C58 38 64.5 43.4 64.5 50C64.5 56.6 58 62 50 62Z",
-      fill: "white"
-    }
-  )
-] });
+const OracleLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+  "path",
+  {
+    fillRule: "evenodd",
+    clipRule: "evenodd",
+    d: "M16.54 4.5H7.46C3.34 4.5 0 7.84 0 11.96c0 4.12 3.34 7.46 7.46 7.46h9.08c4.12 0 7.46-3.34 7.46-7.46 0-4.12-3.34-7.46-7.46-7.46zm-9.08 11.72c-2.35 0-4.26-1.91-4.26-4.26 0-2.35 1.91-4.26 4.26-4.26h9.08c2.35 0 4.26 1.91 4.26 4.26 0 2.35-1.91 4.26-4.26 4.26H7.46z",
+    fill: "#F80000"
+  }
+) });
 const LinodeLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `inline-flex items-center justify-center rounded-2xl bg-[#00A95C] p-1.5 text-white shrink-0 ${className}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(FaLinode, { className: "w-full h-full text-white" }) });
 const ClaudeLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `inline-flex items-center justify-center rounded-2xl bg-[#D97757] p-1.5 text-white shrink-0 ${className}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(SiClaude, { className: "w-full h-full text-white" }) });
-const CAPCUT_IMG = "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.pZpm0Z4411CbphwIhfBM6AHaHa%3Fr%3D0%26pid%3DApi&f=1&ipt=eae86a3f91c99488278eef014b1f759c68adf46152c5d6d39388587032507959&ipo=images";
+const CAPCUT_TRANSPARENT_IMG = "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png";
 const CapCutLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
   "img",
   {
-    src: CAPCUT_IMG,
+    src: CAPCUT_TRANSPARENT_IMG,
     alt: "CapCut",
-    className: `${className} shrink-0 object-contain rounded-lg`
+    className: `${className} shrink-0 object-contain mix-blend-multiply dark:brightness-125`
   }
 );
-const KamateraLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: `${className} shrink-0`, viewBox: "0 0 100 100", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
-  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { width: "100", height: "100", rx: "24", fill: "#FF5E00" }),
-  /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "22", y: "22", width: "13", height: "56", rx: "3", fill: "#FFFFFF" }),
-  /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M42 47L68 22H82L53 50L84 78H70L42 53V47Z", fill: "#FFFFFF" }),
-  /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "74", cy: "27", r: "5", fill: "#FFFFFF" })
-] });
+const KamateraLogo = ({ className = "w-6 h-6" }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+  "img",
+  {
+    src: "/assets/kamatera.png",
+    alt: "Kamatera",
+    className: `${className} shrink-0 object-contain`
+  }
+);
+const API_TRANSACTION_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA24Ajtr-PQkSbpxwfGmNvEW3OyYTz1i5p3FBnTgE3yQ&s=10";
 const GoogleIcon = ({ className = "w-5 h-5" }) => /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className, viewBox: "0 0 24 24", fill: "none", children: [
   /* @__PURE__ */ jsxRuntimeExports.jsx(
     "path",
@@ -103464,10 +103483,90 @@ const DualCardIcon = ({ className = "h-4" }) => /* @__PURE__ */ jsxRuntimeExport
     className: "h-4 w-auto object-contain rounded-sm"
   }
 ) });
+const HERO_SLIDES = [
+  {
+    id: "capcut-pro",
+    title: "CapCut Pro Video Editor",
+    subtitle: "1 Month • 6 Months • 7 Days Pro",
+    features: [
+      "4K 60fps Ultra HD Export & No Watermark",
+      "Pro VIP AI Effects, Transitions & Auto-Cut",
+      "100GB Cloud Storage & Multi-Device Login"
+    ],
+    categoryTarget: "capcut",
+    gradientBg: "from-[#FFF1F6] via-[#FCE7F3] to-[#F5E6FF]",
+    borderColor: "border-pink-200/80",
+    btnGradient: "from-[#FF007A] to-[#7928CA]",
+    imageSrc: "/assets/banner_capcut_3d.png",
+    imageAlt: "CapCut Pro",
+    glowColor: "bg-pink-400/25"
+  },
+  {
+    id: "gemini-ai",
+    title: "Google Gemini 1.5 Pro AI",
+    subtitle: "18 Months & 1 Year Full Pro Access",
+    features: [
+      "2M Token Context & Ultra Deep Reasoning",
+      "Advanced Python Coding & Multimodal Input",
+      "Private Dedicated Account & 100% Guaranteed"
+    ],
+    categoryTarget: "gemini",
+    gradientBg: "from-[#F0F9FF] via-[#E0F2FE] to-[#EDE9FE]",
+    borderColor: "border-cyan-200/80",
+    btnGradient: "from-[#0080FF] to-[#6C5CE7]",
+    imageSrc: "/assets/banner_gemini_3d.png",
+    imageAlt: "Gemini AI Pro",
+    glowColor: "bg-cyan-400/25"
+  },
+  {
+    id: "cloud-vps",
+    title: "High Performance Cloud VPS",
+    subtitle: "AWS • DigitalOcean • Oracle • Kamatera",
+    features: [
+      "High CPU & RAM VPS with 100% Verified Quotas",
+      "Tier-3 Datacenters & Dedicated Static IP",
+      "Instant Root Access & 24/7 Automated Delivery"
+    ],
+    categoryTarget: "aws",
+    gradientBg: "from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE]",
+    borderColor: "border-[#E4DCFA]",
+    btnGradient: "from-[#FF5E62] to-[#6C5CE7]",
+    imageSrc: "/assets/banner_cloud_3d.png",
+    imageAlt: "Cloud Servers",
+    glowColor: "bg-purple-400/25"
+  },
+  {
+    id: "telegram-spotify",
+    title: "Telegram Premium & Spotify",
+    subtitle: "3, 6 & 12 Months Subscriptions",
+    features: [
+      "Star Profile Badge, 4GB Uploads & Fast Speed",
+      "Ad-Free Spotify Hi-Fi Music & Offline Mode",
+      "Instant Gift Links & Official Upgrades"
+    ],
+    categoryTarget: "telegram",
+    gradientBg: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    borderColor: "border-sky-200/80",
+    btnGradient: "from-[#00C9FF] to-[#6C5CE7]",
+    imageSrc: "/assets/banner_premium_3d.png",
+    imageAlt: "Telegram & Spotify",
+    glowColor: "bg-sky-400/25"
+  }
+];
 const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
+  if (tx?.isApiOrder || type === "api" || method === "api_key" || method === "api" || title.includes("developer api") || title.includes("api key") || title.includes("api order") || title.includes("api purchase") || title.includes("api transaction")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: API_TRANSACTION_IMG,
+        alt: "API Transaction",
+        className: "w-full h-full object-contain rounded-lg"
+      }
+    ) });
+  }
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -103770,8 +103869,8 @@ const getSmmPlatformConfig = (category = "", name = "") => {
     accent: "#6C5CE7",
     bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
     blobColor: "from-purple-100/80 to-indigo-200/50",
-    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-12 h-12 text-[#6C5CE7]" }),
-    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#6C5CE7]" })
+    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-12 h-12 text-[#6C5CE7]" }),
+    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#6C5CE7]" })
   };
 };
 function LiveTOTP({ secret, onCopy }) {
@@ -103880,6 +103979,22 @@ function MiniAppShopModern() {
   ]);
   const [isChatSending, setIsChatSending] = reactExports.useState(false);
   const chatEndRef = reactExports.useRef(null);
+  const [isTermsModalOpen, setIsTermsModalOpen] = reactExports.useState(false);
+  const [termsModalProduct, setTermsModalProduct] = reactExports.useState(null);
+  const { data: dynamicHeroBannersData } = useQuery({
+    queryKey: ["/api/mini/hero-banners"]
+  });
+  const activeHeroSlides = dynamicHeroBannersData?.banners && Array.isArray(dynamicHeroBannersData.banners) && dynamicHeroBannersData.banners.length > 0 ? dynamicHeroBannersData.banners.filter((b2) => b2.isActive !== false) : HERO_SLIDES;
+  const [currentHeroSlide, setCurrentHeroSlide] = reactExports.useState(0);
+  const [isHeroPaused, setIsHeroPaused] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    if (isHeroPaused) return;
+    const count2 = activeHeroSlides.length || 1;
+    const interval2 = setInterval(() => {
+      setCurrentHeroSlide((prev) => (prev + 1) % count2);
+    }, 3e3);
+    return () => clearInterval(interval2);
+  }, [isHeroPaused, activeHeroSlides.length]);
   const catScrollRef = reactExports.useRef(null);
   const [isCatDown, setIsCatDown] = reactExports.useState(false);
   const [catStartX, setCatStartX] = reactExports.useState(0);
@@ -105094,41 +105209,112 @@ function MiniAppShopModern() {
             })
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE] p-5 shadow-sm mb-7 border border-[#E4DCFA]", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 max-w-[65%]", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-black uppercase tracking-widest text-[#D92078] bg-white/90 shadow-sm px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3 h-3 text-amber-500 fill-amber-500" }),
-              " Verified Cloud & AI"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-black text-[#181432] leading-tight mb-1.5", children: "High Performance Dedicated Cloud" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-snug mb-4", children: "Handpicked & automated cloud accounts with guaranteed quotas." }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                onClick: () => setSelectedCategory("aws"),
-                className: "px-4 py-2 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white rounded-full text-xs font-bold shadow-md shadow-[#6C5CE7]/25 hover:opacity-95 transition-transform active:scale-95 flex items-center gap-1.5",
-                children: [
-                  "Explore Now ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-3.5 h-3.5" })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute -right-4 -bottom-4 w-36 h-36 opacity-90 pointer-events-none flex items-center justify-center", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-28 h-28 rounded-full bg-white/40 blur-xl absolute" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "img",
-              {
-                src: "/imesh_cloudbot_banner.png",
-                alt: "Feature",
-                className: "w-28 h-28 object-contain drop-shadow-md transform -rotate-6 hover:rotate-0 transition-transform duration-500",
-                onError: (e) => {
-                  e.target.style.display = "none";
-                }
-              }
-            )
-          ] })
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "relative overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500",
+            onMouseEnter: () => setIsHeroPaused(true),
+            onMouseLeave: () => setIsHeroPaused(false),
+            onTouchStart: () => setIsHeroPaused(true),
+            onTouchEnd: () => setIsHeroPaused(false),
+            children: activeHeroSlides.map((slide, idx) => {
+              const isActive = idx === currentHeroSlide;
+              const slideImage = slide.image || slide.imageSrc || "/assets/banner_capcut_3d.png";
+              const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
+              const slideBorder = slide.borderColor || "border-[#ECEEF8]";
+              const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
+              const featuresList = Array.isArray(slide.features) ? slide.features : [];
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: `p-5 rounded-3xl border transition-all duration-700 ${isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"} bg-gradient-to-r ${slideBg} ${slideBorder}`,
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 max-w-[62%]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-[17px] font-black text-[#181432] leading-tight mb-0.5", children: slide.title }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[12px] font-black text-[#5B42F3] mb-2.5", children: slide.subtitle }),
+                      featuresList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 mb-3.5", children: featuresList.map((feat, fIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-emerald-500 shrink-0" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "line-clamp-1", children: feat })
+                      ] }, fIdx)) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "button",
+                        {
+                          onClick: () => {
+                            if (slide.actionType === "product" && slide.actionTarget) {
+                              const foundProd = products2.find((p2) => p2.id.toString() === slide.actionTarget.toString() || p2.name.toLowerCase() === slide.actionTarget.toLowerCase());
+                              if (foundProd) {
+                                setDetailProduct(foundProd);
+                                setQuantity(1);
+                                return;
+                              }
+                            }
+                            const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                            if (targetCat && targetCat !== "ALL") {
+                              const matched = products2.find((p2) => {
+                                const pName = (p2.name || "").toLowerCase();
+                                const pType = (p2.type || "").toLowerCase();
+                                const cat = targetCat.toLowerCase();
+                                return pName.includes(cat) || pType.includes(cat);
+                              });
+                              if (matched) {
+                                setDetailProduct(matched);
+                                setQuantity(1);
+                              } else {
+                                setSelectedCategory(targetCat);
+                                toast2({
+                                  title: `${slide.title} 🎯`,
+                                  description: "Showing available packages & deals below."
+                                });
+                                const el = document.getElementById("best-sellers-heading");
+                                if (el) el.scrollIntoView({ behavior: "smooth" });
+                              }
+                            } else {
+                              const el = document.getElementById("best-sellers-heading");
+                              if (el) el.scrollIntoView({ behavior: "smooth" });
+                            }
+                          },
+                          className: `px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`,
+                          children: [
+                            slide.ctaText || "Buy Now",
+                            " ",
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-3.5 h-3.5" })
+                          ]
+                        }
+                      ) })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute -right-3 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute` }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "img",
+                        {
+                          src: slideImage,
+                          alt: slide.title || "Banner",
+                          className: "w-32 h-32 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500",
+                          onError: (e) => {
+                            e.target.style.display = "none";
+                          }
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-3 right-4 flex items-center gap-1.5 z-20", children: activeHeroSlides.map((_2, dotIdx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          setCurrentHeroSlide(dotIdx);
+                        },
+                        className: `transition-all duration-300 rounded-full h-1.5 ${dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"}`,
+                        "aria-label": `Slide ${dotIdx + 1}`
+                      },
+                      dotIdx
+                    )) })
+                  ]
+                },
+                slide.id || idx
+              );
+            })
+          }
+        ),
         products2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-7", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
@@ -106397,6 +106583,23 @@ function MiniAppShopModern() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
+                onClick: () => {
+                  setTermsModalProduct(null);
+                  setIsTermsModalOpen(true);
+                },
+                className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-emerald-600" }),
+                    " Terms of Service & Warranty Policy"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-[#9490A8]" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
                 onClick: () => setIsChatOpen(true),
                 className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
                 children: [
@@ -107021,9 +107224,24 @@ function MiniAppShopModern() {
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { htmlFor: "agreeTermsModal", className: "text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none", children: [
-          "I agree to the ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#6C5CE7] font-bold", children: "Terms of Service" }),
-          " & Instant Delivery"
+          "I agree to the",
+          " ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setTermsModalProduct(detailProduct?.name || "Cloud Account");
+                setIsTermsModalOpen(true);
+              },
+              className: "text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer",
+              children: "Terms of Service"
+            }
+          ),
+          " ",
+          "& Instant Delivery"
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4", children: !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -107493,7 +107711,7 @@ function MiniAppShopModern() {
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isChatOpen, onOpenChange: setIsChatOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-5 shadow-2xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { className: "mb-3 flex flex-row items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-sm font-black text-[#181432] flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#D92078]" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#D92078]" }),
         " 24/7 AI Cloud Concierge"
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-64 overflow-y-auto space-y-2.5 pr-1 text-xs", children: [
@@ -107533,6 +107751,61 @@ function MiniAppShopModern() {
           }
         )
       ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isTermsModalOpen, onOpenChange: setIsTermsModalOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { className: "mb-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-base font-black text-[#181432] flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-5 h-5 text-emerald-600" }),
+          termsModalProduct ? `${termsModalProduct} Terms & Warranty` : "Service Terms & Guarantee Policy"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-[#7E7998]", children: "Official policy guidelines, instant warranty coverage, and customer rights." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5 text-xs text-[#3D3656] pt-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-emerald-700 font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-emerald-500" }),
+            " 1. Automated Instant Fulfillment (0-2 Mins)"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: [
+            "All digital accounts, licenses, and cloud credentials are automatically issued upon payment confirmation. Credentials can be retrieved at any time under your ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Orders" }),
+            " tab."
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-[#5B42F3] font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-[#5B42F3]" }),
+            " 2. 24-Hour Replacement Warranty"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "If any account credentials or 2FA codes encounter issues within 24 hours of purchase, our support team will issue an instant replacement or full credit refund after verification." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-amber-700 font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-amber-500" }),
+            " 3. Fair Usage & Prohibited Activities"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "Cloud servers and accounts are strictly intended for legal development, bot hosting, and personal subscriptions. Any illegal activity, unauthorized crypto mining, DDoS attacks, or spam will result in immediate termination without refund." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sky-700 font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-4 h-4 text-sky-500" }),
+            " 4. Wallet Balance & Support Assistance"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "Wallet top-ups via PayHere (Card) and Cryptomus are credited instantly. For any inquiries or disputes, reach out via the 24/7 AI Concierge or official Telegram support." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 font-semibold flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-600 shrink-0" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "100% Verified Accounts • Zero Logins Required For Gifting" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 pt-3 border-t border-[#ECEEF8]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Button,
+        {
+          onClick: () => setIsTermsModalOpen(false),
+          className: "w-full bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:from-[#4A32D6] hover:to-[#5B42F3] text-white font-black text-xs rounded-2xl h-11 shadow-md shadow-[#5B42F3]/25",
+          children: "I Understand & Agree"
+        }
+      ) })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       PaymentProcessingModal,
@@ -109484,7 +109757,7 @@ function SandromaniaPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showImportModal, onOpenChange: setShowImportModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col p-6 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-600" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
           " Import Products from Sandromania"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Select products from Sandromania live catalog and set your profit markup percentage." })
@@ -110124,7 +110397,7 @@ function CssxApiPage() {
             value: "overview",
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 mr-2" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 mr-2" }),
               "Overview"
             ]
           }
@@ -111291,7 +111564,7 @@ function DomainAutomationPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5" }),
           " Domain & Infrastructure Automation"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black tracking-tight text-white flex items-center gap-3", children: [
@@ -111454,7 +111727,7 @@ function DomainAutomationPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3.5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-600/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 animate-pulse" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-600/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 animate-pulse" }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 flex-wrap", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl font-black text-white", children: "Zero-Touch Auto-Pilot Pipeline & Diagnostics" }),
@@ -111539,7 +111812,7 @@ function DomainAutomationPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 text-purple-400" }),
                   " 7-Step Auto-Provisioning Pipeline"
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Automated end-to-end cloud orchestration" })
@@ -111918,7 +112191,7 @@ function DomainAutomationPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-5 h-5 animate-spin" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Configuring Cloudflare & Resend DNS..." })
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-amber-300" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-amber-300" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⚡ Auto-Configure Everything (Cloudflare + Resend + Subdomain)" })
                 ] })
               }
@@ -115113,7 +115386,7 @@ function EmailHubPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-semibold flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "h-4 w-4 text-emerald-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "h-4 w-4 text-emerald-400" }),
               " Template Configuration"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Choose template style and configure custom receipt variables" })
@@ -116013,6 +116286,719 @@ function ConnectedStoresTrackerPage() {
     ] }) })
   ] });
 }
+const DEFAULT_BANNERS = [
+  {
+    id: "capcut_pro_default",
+    title: "CapCut Pro 1 & 12 Month",
+    subtitle: "Unlock 4K 60fps export, AI auto captions, smart removal & cloud space.",
+    features: ["4K 60FPS AI Export", "Auto Caption Pro", "Official Account Activation"],
+    ctaText: "Buy Now",
+    image: "/assets/banner_capcut_3d.png",
+    bgGradient: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    actionType: "category",
+    actionTarget: "CapCut",
+    isActive: true,
+    order: 0
+  },
+  {
+    id: "gemini_pro_default",
+    title: "Gemini AI 1.5 Pro (18 Mos)",
+    subtitle: "Advanced 2M token context, workspace integration & top-tier reasoning.",
+    features: ["2M Token Deep Context", "Workspace AI Sync", "Instant Key Delivery"],
+    ctaText: "Buy Now",
+    image: "/assets/banner_gemini_3d.png",
+    bgGradient: "from-[#EFF6FF] via-[#EEF2FF] to-[#FAF5FF]",
+    actionType: "category",
+    actionTarget: "AI",
+    isActive: true,
+    order: 1
+  },
+  {
+    id: "cloud_vps_default",
+    title: "Dedicated Cloud VPS & Servers",
+    subtitle: "Ultra-fast NVMe cloud nodes on Kamatera & Oracle Cloud with 10Gbps uplinks.",
+    features: ["Kamatera & Oracle Nodes", "Dedicated NVMe SSD", "99.99% Guaranteed Uptime"],
+    ctaText: "Buy Now",
+    image: "/assets/banner_cloud_3d.png",
+    bgGradient: "from-[#ECFDF5] via-[#F0FDF4] to-[#EFF6FF]",
+    actionType: "category",
+    actionTarget: "Cloud",
+    isActive: true,
+    order: 2
+  },
+  {
+    id: "telegram_premium_default",
+    title: "Telegram & Spotify Premium",
+    subtitle: "Double limits, 4GB uploads, zero ads, no-login direct gifting with warranty.",
+    features: ["4GB File Uploads", "Zero Login Needed", "Instant Official Gift"],
+    ctaText: "Buy Now",
+    image: "/assets/banner_premium_3d.png",
+    bgGradient: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    actionType: "category",
+    actionTarget: "Subscriptions",
+    isActive: true,
+    order: 3
+  }
+];
+const GRADIENT_PRESETS = [
+  { label: "Fresh Pastel (Telegram Style)", value: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]" },
+  { label: "Ocean Breeze", value: "from-[#EFF6FF] via-[#EEF2FF] to-[#FAF5FF]" },
+  { label: "Emerald Glow", value: "from-[#ECFDF5] via-[#F0FDF4] to-[#EFF6FF]" },
+  { label: "Sunrise Peach", value: "from-[#FFF7ED] via-[#FEF2F2] to-[#FAF5FF]" },
+  { label: "Lavender Dream", value: "from-[#FAF5FF] via-[#F3E8FF] to-[#E0E7FF]" },
+  { label: "Dark Obsidian", value: "from-slate-900 via-indigo-950 to-slate-900" }
+];
+function HeroBannersPage() {
+  const { toast: toast2 } = useToast();
+  const queryClient2 = useQueryClient();
+  const fileInputRef = reactExports.useRef(null);
+  const { data: products2 = [] } = useQuery({
+    queryKey: ["/api/products"]
+  });
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"]
+  });
+  const { data: bannerData, isLoading } = useQuery({
+    queryKey: ["/api/admin/hero-banners"]
+  });
+  const [banners, setBanners] = reactExports.useState(DEFAULT_BANNERS);
+  const [editingBanner, setEditingBanner] = reactExports.useState(null);
+  const [isDialogOpen, setIsDialogOpen] = reactExports.useState(false);
+  const [previewIndex, setPreviewIndex] = reactExports.useState(0);
+  const [isCompressing, setIsCompressing] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    if (bannerData?.banners && Array.isArray(bannerData.banners) && bannerData.banners.length > 0) {
+      setBanners(bannerData.banners);
+    }
+  }, [bannerData]);
+  reactExports.useEffect(() => {
+    const activeBanners2 = banners.filter((b2) => b2.isActive);
+    if (activeBanners2.length === 0) return;
+    const interval2 = setInterval(() => {
+      setPreviewIndex((prev) => (prev + 1) % activeBanners2.length);
+    }, 3e3);
+    return () => clearInterval(interval2);
+  }, [banners]);
+  const saveMutation = useMutation({
+    mutationFn: async (updatedBanners) => {
+      const res = await apiRequest("POST", "/api/admin/hero-banners", { banners: updatedBanners });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient2.invalidateQueries({ queryKey: ["/api/admin/hero-banners"] });
+      queryClient2.invalidateQueries({ queryKey: ["/api/mini/hero-banners"] });
+      toast2({
+        title: "Banners Published! 🚀",
+        description: "Your hero banner slider has been updated instantly in the Mini-App."
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Save Failed",
+        description: err.message || "Failed to update banners",
+        variant: "destructive"
+      });
+    }
+  });
+  const moveBanner = (index2, direction) => {
+    const newBanners = [...banners];
+    const targetIndex = direction === "up" ? index2 - 1 : index2 + 1;
+    if (targetIndex < 0 || targetIndex >= newBanners.length) return;
+    const temp = newBanners[index2];
+    newBanners[index2] = newBanners[targetIndex];
+    newBanners[targetIndex] = temp;
+    newBanners.forEach((b2, i2) => b2.order = i2);
+    setBanners(newBanners);
+  };
+  const deleteBanner = (id2) => {
+    const filtered = banners.filter((b2) => b2.id !== id2);
+    filtered.forEach((b2, i2) => b2.order = i2);
+    setBanners(filtered);
+    toast2({ title: "Banner Removed", description: "Click Save & Publish to apply changes." });
+  };
+  const openNewBannerDialog = () => {
+    setEditingBanner({
+      id: "banner_" + Date.now(),
+      title: "New Featured Special",
+      subtitle: "Add high converting subtitle description here.",
+      features: ["Feature Bullet 1", "Feature Bullet 2", "Instant Delivery"],
+      ctaText: "Buy Now",
+      image: "/assets/banner_capcut_3d.png",
+      bgGradient: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+      actionType: "category",
+      actionTarget: "",
+      isActive: true,
+      order: banners.length
+    });
+    setIsDialogOpen(true);
+  };
+  const saveEditingBanner = () => {
+    if (!editingBanner) return;
+    const exists = banners.some((b2) => b2.id === editingBanner.id);
+    let updated;
+    if (exists) {
+      updated = banners.map((b2) => b2.id === editingBanner.id ? editingBanner : b2);
+    } else {
+      updated = [...banners, editingBanner];
+    }
+    updated.forEach((b2, i2) => b2.order = i2);
+    setBanners(updated);
+    setIsDialogOpen(false);
+    setEditingBanner(null);
+  };
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingBanner) return;
+    setIsCompressing(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 480;
+        const MAX_HEIGHT = 480;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/png", 0.9);
+          setEditingBanner({
+            ...editingBanner,
+            image: compressedDataUrl
+          });
+          toast2({
+            title: "Image Processed & Compressed! ⚡",
+            description: `Compressed to ${Math.round(compressedDataUrl.length / 1024)}KB for 0ms instant loading.`
+          });
+        }
+        setIsCompressing(false);
+      };
+      img.src = event.target?.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  const activeBanners = banners.filter((b2) => b2.isActive);
+  const currentPreview = activeBanners[previewIndex % (activeBanners.length || 1)] || banners[0];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 p-6 max-w-7xl mx-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-violet-950 via-indigo-900 to-slate-900 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 space-y-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-purple-200 border border-white/10", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 text-yellow-300 animate-pulse" }),
+          "Mini-App Hero Slider Manager"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl md:text-4xl font-black tracking-tight text-white", children: "Hero Banners & Slider Studio" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm md:text-base text-purple-200/80 max-w-2xl", children: "Customize top 3D rotating banners in the customer shop. Add direct product/category links, compress custom images instantly with HTML5 Canvas, and reorder slides." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 flex flex-wrap items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            variant: "outline",
+            onClick: () => {
+              setBanners(DEFAULT_BANNERS);
+              toast2({ title: "Reset to Default Banners", description: "Click Save to apply defaults." });
+            },
+            className: "bg-white/10 border-white/20 text-white hover:bg-white/20",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, { className: "w-4 h-4 mr-2" }),
+              "Reset Defaults"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: openNewBannerDialog,
+            className: "bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4 mr-2" }),
+              "Add Slide"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => saveMutation.mutate(banners),
+            disabled: saveMutation.isPending,
+            className: "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-2" }),
+              saveMutation.isPending ? "Publishing..." : "Save & Publish"
+            ]
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-12 gap-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "lg:col-span-7 space-y-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-lg font-black text-slate-900 dark:text-white flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(SlidersVertical, { className: "w-5 h-5 text-purple-600" }),
+            "Active Slides (",
+            banners.length,
+            ")"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-slate-500 font-medium", children: "Drag or use arrows to change display order" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: banners.map((banner, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Card,
+          {
+            className: `transition-all border-2 overflow-hidden shadow-sm hover:shadow-md ${banner.isActive ? "border-purple-200 dark:border-purple-900/40 bg-white dark:bg-slate-900" : "border-slate-200 dark:border-slate-800 opacity-60 bg-slate-50 dark:bg-slate-950"}`,
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-4 flex items-center justify-between gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-2 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-800", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "img",
+                {
+                  src: banner.image,
+                  alt: banner.title,
+                  className: "w-full h-full object-contain drop-shadow-md"
+                }
+              ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-wrap", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-slate-900 dark:text-white truncate", children: banner.title }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Badge,
+                    {
+                      variant: "secondary",
+                      className: "text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+                      children: [
+                        "Slide #",
+                        index2 + 1
+                      ]
+                    }
+                  ),
+                  banner.actionType === "product" && /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "text-[10px] text-blue-600 border-blue-200", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-3 h-3 mr-1" }),
+                    " Product"
+                  ] }),
+                  banner.actionType === "category" && /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "text-[10px] text-emerald-600 border-emerald-200", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className: "w-3 h-3 mr-1" }),
+                    " Cat: ",
+                    banner.actionTarget || "All"
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-slate-500 line-clamp-1", children: banner.subtitle }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2 pt-1", children: banner.features?.slice(0, 2).map((feat, fi) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "span",
+                  {
+                    className: "inline-flex items-center text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-2.5 h-2.5 mr-1 text-emerald-500" }),
+                      feat
+                    ]
+                  },
+                  fi
+                )) })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 shrink-0", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Switch,
+                  {
+                    checked: banner.isActive,
+                    onCheckedChange: (checked) => {
+                      const updated = banners.map(
+                        (b2) => b2.id === banner.id ? { ...b2, isActive: checked } : b2
+                      );
+                      setBanners(updated);
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1 ml-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      size: "icon",
+                      variant: "ghost",
+                      className: "h-7 w-7",
+                      disabled: index2 === 0,
+                      onClick: () => moveBanner(index2, "up"),
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUp, { className: "w-3.5 h-3.5 text-slate-500" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      size: "icon",
+                      variant: "ghost",
+                      className: "h-7 w-7",
+                      disabled: index2 === banners.length - 1,
+                      onClick: () => moveBanner(index2, "down"),
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDown, { className: "w-3.5 h-3.5 text-slate-500" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "outline",
+                    className: "ml-2 font-bold text-xs",
+                    onClick: () => {
+                      setEditingBanner({ ...banner });
+                      setIsDialogOpen(true);
+                    },
+                    children: "Edit"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Button,
+                  {
+                    size: "icon",
+                    variant: "ghost",
+                    className: "h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30",
+                    onClick: () => deleteBanner(banner.id),
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-4 h-4" })
+                  }
+                )
+              ] })
+            ] })
+          },
+          banner.id
+        )) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 flex flex-col items-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full max-w-sm sticky top-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3 px-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-3.5 h-3.5 text-purple-600" }),
+            "Live Mini-App Preview"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                size: "icon",
+                variant: "ghost",
+                className: "h-6 w-6",
+                onClick: () => setPreviewIndex((prev) => prev > 0 ? prev - 1 : activeBanners.length - 1),
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { className: "w-4 h-4" })
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-slate-700 dark:text-slate-300", children: [
+              activeBanners.length > 0 ? previewIndex % activeBanners.length + 1 : 0,
+              " /",
+              " ",
+              activeBanners.length
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                size: "icon",
+                variant: "ghost",
+                className: "h-6 w-6",
+                onClick: () => setPreviewIndex((prev) => (prev + 1) % (activeBanners.length || 1)),
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4" })
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-[40px] border-[10px] border-slate-900 bg-[#0B0F19] p-4 shadow-2xl relative overflow-hidden", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-32 h-5 bg-slate-900 rounded-b-2xl mx-auto -mt-4 mb-4 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-1 bg-slate-700 rounded-full" }) }),
+          currentPreview ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: `relative overflow-hidden rounded-2xl bg-gradient-to-r ${currentPreview.bgGradient} p-4 border border-slate-200/80 shadow-md text-slate-900`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 flex items-start justify-between gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-slate-900 leading-tight", children: currentPreview.title }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5 line-clamp-2", children: currentPreview.subtitle })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 pt-1", children: currentPreview.features?.map((feat, fidx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: "flex items-center gap-1 text-[10px] font-bold text-slate-800",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 text-emerald-600 shrink-0" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: feat })
+                          ]
+                        },
+                        fidx
+                      )) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1", children: currentPreview.ctaText || "Buy Now" }) })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-24 h-24 shrink-0 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "img",
+                      {
+                        src: currentPreview.image,
+                        alt: "Banner Preview",
+                        className: "w-full h-full object-contain drop-shadow-xl"
+                      }
+                    ) })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center gap-1 mt-3", children: activeBanners.map((_2, dotIdx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: `h-1.5 rounded-full transition-all duration-300 ${dotIdx === previewIndex % (activeBanners.length || 1) ? "w-5 bg-emerald-600" : "w-1.5 bg-slate-300"}`
+                    },
+                    dotIdx
+                  )) })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-slate-800/60 rounded-xl text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-slate-400 font-medium", children: "Rotating automatically every 3s in customer Telegram Mini-App" }) })
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-8 text-center text-slate-500 text-xs", children: "No active banners configured." })
+        ] })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isDialogOpen, onOpenChange: setIsDialogOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-2xl max-h-[90vh] overflow-y-auto", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-xl font-black flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
+        editingBanner?.id.startsWith("banner_") ? "Create New Slide" : "Edit Slide"
+      ] }) }),
+      editingBanner && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5 py-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "Slide Headline Title" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingBanner.title,
+                onChange: (e) => setEditingBanner({ ...editingBanner, title: e.target.value }),
+                placeholder: "e.g. CapCut Pro 1 Month",
+                className: "mt-1 font-bold text-sm"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "Subtitle Description" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingBanner.subtitle,
+                onChange: (e) => setEditingBanner({ ...editingBanner, subtitle: e.target.value }),
+                placeholder: "e.g. Unlock 4K 60fps export, AI auto captions & cloud space.",
+                className: "mt-1 text-xs"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "Feature Bullets (With Checkmarks)" }),
+          [0, 1, 2].map((idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-600 shrink-0" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingBanner.features[idx] || "",
+                onChange: (e) => {
+                  const newFeats = [...editingBanner.features || []];
+                  newFeats[idx] = e.target.value;
+                  setEditingBanner({ ...editingBanner, features: newFeats });
+                },
+                placeholder: `Feature Bullet #${idx + 1}`,
+                className: "text-xs"
+              }
+            )
+          ] }, idx))
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "3D Icon / Graphic (Instant Loading Canvas Compressed)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border p-2 flex items-center justify-center shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "img",
+              {
+                src: editingBanner.image,
+                alt: "Thumbnail",
+                className: "w-full h-full object-contain"
+              }
+            ) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-wrap", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    type: "button",
+                    size: "sm",
+                    variant: "outline",
+                    onClick: () => fileInputRef.current?.click(),
+                    disabled: isCompressing,
+                    className: "font-bold text-xs",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Upload, { className: "w-3.5 h-3.5 mr-1.5" }),
+                      isCompressing ? "Compressing..." : "Upload & Compress Image"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    type: "file",
+                    ref: fileInputRef,
+                    accept: "image/*",
+                    className: "hidden",
+                    onChange: handleImageUpload
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 flex-wrap", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-slate-400", children: "Presets:" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setEditingBanner({
+                      ...editingBanner,
+                      image: "/assets/banner_capcut_3d.png"
+                    }),
+                    className: "text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500",
+                    children: "CapCut"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setEditingBanner({
+                      ...editingBanner,
+                      image: "/assets/banner_gemini_3d.png"
+                    }),
+                    className: "text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500",
+                    children: "Gemini AI"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setEditingBanner({
+                      ...editingBanner,
+                      image: "/assets/banner_cloud_3d.png"
+                    }),
+                    className: "text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500",
+                    children: "Cloud VPS"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => setEditingBanner({
+                      ...editingBanner,
+                      image: "/assets/banner_premium_3d.png"
+                    }),
+                    className: "text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500",
+                    children: "Telegram"
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "Background Color Gradient Style" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 md:grid-cols-3 gap-2", children: GRADIENT_PRESETS.map((preset, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              type: "button",
+              onClick: () => setEditingBanner({ ...editingBanner, bgGradient: preset.value }),
+              className: `p-2.5 rounded-xl border text-left transition-all text-xs font-bold flex items-center justify-between ${editingBanner.bgGradient === preset.value ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/50 dark:bg-purple-950/30" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: preset.label }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "div",
+                  {
+                    className: `w-4 h-4 rounded-full bg-gradient-to-r ${preset.value} border border-slate-300 shrink-0 ml-2`
+                  }
+                )
+              ]
+            },
+            idx
+          )) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "CTA Action Type" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Select,
+              {
+                value: editingBanner.actionType,
+                onValueChange: (val) => setEditingBanner({ ...editingBanner, actionType: val, actionTarget: "" }),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, {}) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "category", children: "Filter by Category" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "product", children: "Open Specific Product" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "custom", children: "Custom URL / Page" })
+                  ] })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold uppercase tracking-wider text-slate-500", children: "Target Selection" }),
+            editingBanner.actionType === "product" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Select,
+              {
+                value: editingBanner.actionTarget,
+                onValueChange: (val) => setEditingBanner({ ...editingBanner, actionTarget: val }),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "Select Product" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SelectContent, { children: products2.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectItem, { value: p2.id.toString(), children: [
+                    p2.title,
+                    " (LKR ",
+                    p2.price,
+                    ")"
+                  ] }, p2.id)) })
+                ]
+              }
+            ) : editingBanner.actionType === "category" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Select,
+              {
+                value: editingBanner.actionTarget,
+                onValueChange: (val) => setEditingBanner({ ...editingBanner, actionTarget: val }),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "Select Category" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "ALL", children: "All Categories" }),
+                    categories.map((c2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: c2.name, children: c2.name }, c2.id || c2.name))
+                  ] })
+                ]
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                value: editingBanner.actionTarget,
+                onChange: (e) => setEditingBanner({ ...editingBanner, actionTarget: e.target.value }),
+                placeholder: "e.g. /support or https://..."
+              }
+            )
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogFooter, { className: "gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "outline", onClick: () => setIsDialogOpen(false), children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Button,
+          {
+            onClick: saveEditingBanner,
+            className: "bg-purple-600 hover:bg-purple-500 text-white font-bold",
+            children: "Apply Changes"
+          }
+        )
+      ] })
+    ] }) })
+  ] });
+}
 function NotFound() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex flex-col items-center justify-center bg-[#F8F9FD] p-4 text-center select-none overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-md w-full flex flex-col items-center justify-center", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full flex justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lottie404, { size: 320, className: "max-w-full max-h-[65vh]" }) }),
@@ -116124,6 +117110,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/preorders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PreordersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/products", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ProductsPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/categories-manager", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CategoriesManagerPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/hero-banners", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: HeroBannersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/inventory", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: InventoryPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/orders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: OrdersPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/payments", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PaymentsPage }) }),

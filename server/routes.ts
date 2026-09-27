@@ -2409,6 +2409,89 @@ export async function registerRoutes(
   });
 
   // ==========================================
+  // HERO BANNERS & SLIDER MANAGEMENT (ADMIN & MINI API)
+  // ==========================================
+
+  app.get("/api/admin/hero-banners", isAuth, async (req, res) => {
+    try {
+      const setting = await storage.getSetting("HERO_BANNERS_CONFIG");
+      let banners = null;
+      if (setting && setting.value) {
+        try {
+          banners = JSON.parse(setting.value);
+        } catch {
+          banners = null;
+        }
+      }
+      res.json({ banners });
+    } catch (err: any) {
+      console.error("GET /api/admin/hero-banners error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/hero-banners", isAuth, async (req, res) => {
+    try {
+      const { banners } = req.body;
+      await storage.setSetting("HERO_BANNERS_CONFIG", JSON.stringify(banners || []));
+      res.json({ success: true, message: "Hero banners updated successfully" });
+    } catch (err: any) {
+      console.error("POST /api/admin/hero-banners error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/hero-banners/upload", isAuth, async (req, res) => {
+    try {
+      const { dataBase64, filename } = req.body;
+      if (!dataBase64) {
+        return res.status(400).json({ success: false, message: "Missing image data" });
+      }
+      const cleanBase64 = dataBase64.replace(/^data:image\/\w+;base64,/, "");
+      const buf = Buffer.from(cleanBase64, "base64");
+      const safeName = `banner_${Date.now()}_${(filename || "custom").replace(/[^a-zA-Z0-9_-]/g, "")}.png`;
+      const clientPath = path.join(process.cwd(), "client", "public", "assets", safeName);
+      const distPath = path.join(process.cwd(), "dist", "public", "assets", safeName);
+
+      if (!fs.existsSync(path.dirname(clientPath))) {
+        fs.mkdirSync(path.dirname(clientPath), { recursive: true });
+      }
+      fs.writeFileSync(clientPath, buf);
+
+      if (fs.existsSync(path.dirname(distPath))) {
+        fs.writeFileSync(distPath, buf);
+      }
+
+      res.json({ success: true, url: `/assets/${safeName}` });
+    } catch (err: any) {
+      console.error("POST /api/admin/hero-banners/upload error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.get("/api/mini/hero-banners", async (req, res) => {
+    try {
+      const setting = await storage.getSetting("HERO_BANNERS_CONFIG");
+      if (setting && setting.value) {
+        try {
+          const banners = JSON.parse(setting.value);
+          if (Array.isArray(banners) && banners.length > 0) {
+            const activeOnly = banners.filter((b: any) => b.isActive !== false);
+            if (activeOnly.length > 0) {
+              return res.json(activeOnly);
+            }
+          }
+        } catch {
+          return res.json(null);
+        }
+      }
+      return res.json(null);
+    } catch (err: any) {
+      res.json(null);
+    }
+  });
+
+  // ==========================================
   // EMAIL DISPATCHER & INVOICE HUB (ADMIN API)
   // ==========================================
 
@@ -6464,7 +6547,7 @@ app.get("/api/settings/:key", async (req, res, next) => {
     'STORE_NAME', 'SUPPORT_USERNAME', 'SUPPORT_BTN_TEXT', 'LOADING_TEXT', 
     'BOT_USERNAME', 'faq_content', 'CURRENCY_RATES', 'VAPID_PUBLIC_KEY', 
     'MINI_APP_URL', 'BOT_ABOUT_TEXT', 'BOT_DESCRIPTION_TEXT', 'REVIEWS_CHANNEL_URL',
-    'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME'
+    'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME', 'HERO_BANNERS_CONFIG', 'TERMS_AND_CONDITIONS'
   ];
   if (!publicKeys.includes(req.params.key) && !req.isAuthenticated()) {
     return res.status(401).json({ message: "Unauthorized" });

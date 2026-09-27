@@ -68,6 +68,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
+    { name: 'Hero Banners & Slider', href: '/imeshadmindashbord/hero-banners', icon: Sparkles },
     { name: 'Categories & Badges', href: '/imeshadmindashbord/categories-manager', icon: Tag },
     { name: 'N1Panel SMM', href: '/imeshadmindashbord/n1panel', icon: Share2 },
     { name: 'Sandromania Shop', href: '/imeshadmindashbord/sandromania', icon: ShoppingBag },
