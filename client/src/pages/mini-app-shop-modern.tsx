@@ -64,7 +64,9 @@ import {
   LifeBuoy,
   Ticket,
   HelpCircle,
-  SendHorizontal
+  SendHorizontal,
+  PackageCheck,
+  Rocket
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
