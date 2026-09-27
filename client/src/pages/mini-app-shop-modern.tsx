@@ -2072,25 +2072,17 @@ export default function MiniAppShopModern() {
                           setDetailProduct(p);
                           setQuantity(1);
                         }}
-                        className="relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group"
+                        className="relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden"
                       >
-                        {/* Top-Left Corner Angle Badge */}
-                        <div className="absolute top-2.5 left-2.5 z-10">
-                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-xs leading-none ${badgeGradient}`}>
+                        {/* Top-Right 45° Corner Angle Ribbon */}
+                        <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                          <div
+                            className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badgeGradient}`}
+                            style={{ letterSpacing: '0.04em' }}
+                          >
                             {badgeLabel}
-                          </span>
+                          </div>
                         </div>
-
-                        {/* Top-Right Heart / Favorite Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            toggleFavorite(p.id, e);
-                          }}
-                          className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-[#F8F9FD] hover:bg-pink-50 border border-[#ECEEF8] flex items-center justify-center transition-colors active:scale-90"
-                        >
-                          <Heart className={`w-3.5 h-3.5 transition-colors ${isFav ? "fill-[#FF5E62] text-[#FF5E62]" : "text-[#9490A8]"}`} />
-                        </button>
 
                         {/* Center Brand Icon & Title */}
                         <div className="flex flex-col items-center text-center mt-6">
@@ -2305,21 +2297,29 @@ export default function MiniAppShopModern() {
                         setDetailProduct(prod);
                         setQuantity(1);
                       }}
-                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
+                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group overflow-hidden"
                     >
-                      {/* Top Action: Provider Tag & Dynamic Angle Banner */}
+                      {/* Top-Right 45° Corner Angle Ribbon Banner */}
+                      {(() => {
+                        const badge = getProductBadge(prod);
+                        if (!badge || !badge.text) return null;
+                        return (
+                          <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                            <div
+                              className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`}
+                              style={{ letterSpacing: '0.04em' }}
+                            >
+                              {badge.text}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Top Action: Provider Tag */}
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                           {conf.tag}
                         </span>
-                        {(() => {
-                          const badge = getProductBadge(prod);
-                          return (
-                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-2xs leading-none ${badge.gradient}`}>
-                              {badge.text}
-                            </span>
-                          );
-                        })()}
                       </div>
 
                       {/* Centered Image with Real Brand Icon and Organic Blob Background */}

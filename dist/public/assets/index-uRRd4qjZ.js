@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BxorbnpN.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CHGJ1bwr.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103020,15 +103020,19 @@ function CategoriesManagerPage() {
                     )
                   ] })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative p-3 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-[#181432]", children: "Live Card Tag:" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "span",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative p-3.5 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between overflow-hidden min-h-[58px]", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-[#181432] block", children: "Card Corner Preview" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "45° Top-Right Ribbon" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-20 h-20 pointer-events-none overflow-hidden z-10", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
                     {
-                      className: `px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-xs ${badge.enabled ? currentGrad : "bg-gray-200 text-gray-500 line-through"}`,
+                      className: `absolute transform rotate-45 text-center text-[6.5px] font-black uppercase tracking-wider py-0.5 shadow-xs w-28 -right-8 top-3 leading-none ${badge.enabled ? currentGrad : "bg-gray-300 text-gray-600 line-through"}`,
+                      style: { letterSpacing: "0.04em" },
                       children: badge.text || "NO LABEL"
                     }
-                  )
+                  ) })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 pt-1", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -103770,7 +103774,6 @@ function MiniAppShopModern() {
     };
   }, []);
   const toggleFavorite = (productId, e) => {
-    if (e) e.stopPropagation();
     setFavorites((prev) => {
       const next = prev.includes(productId) ? prev.filter((id2) => id2 !== productId) : [...prev, productId];
       try {
@@ -104901,7 +104904,7 @@ function MiniAppShopModern() {
               },
               children: products2.slice(0, 6).map((p2, idx) => {
                 const priceFormatted = formatProductPrice(p2);
-                const isFav = favorites.includes(p2.id);
+                favorites.includes(p2.id);
                 const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
                 const badgeLabel = p2.badge || badgeLabels[idx % badgeLabels.length];
                 const badgeGradient = idx % 2 === 0 ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
@@ -104912,20 +104915,16 @@ function MiniAppShopModern() {
                       setDetailProduct(p2);
                       setQuantity(1);
                     },
-                    className: "relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group",
+                    className: "relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden",
                     children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-2.5 left-2.5 z-10", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-xs leading-none ${badgeGradient}`, children: badgeLabel }) }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "button",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
                         {
-                          type: "button",
-                          onClick: (e) => {
-                            toggleFavorite(p2.id, e);
-                          },
-                          className: "absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-[#F8F9FD] hover:bg-pink-50 border border-[#ECEEF8] flex items-center justify-center transition-colors active:scale-90",
-                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Heart, { className: `w-3.5 h-3.5 transition-colors ${isFav ? "fill-[#FF5E62] text-[#FF5E62]" : "text-[#9490A8]"}` })
+                          className: `absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badgeGradient}`,
+                          style: { letterSpacing: "0.04em" },
+                          children: badgeLabel
                         }
-                      ),
+                      ) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center text-center mt-6", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-2 shadow-2xs group-hover:scale-105 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: p2.name, type: p2.type, className: "w-7 h-7" }) }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1", children: p2.name }),
@@ -105102,15 +105101,21 @@ function MiniAppShopModern() {
                   setDetailProduct(prod);
                   setQuantity(1);
                 },
-                className: "bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group",
+                className: "bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group overflow-hidden",
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                    (() => {
-                      const badge = getProductBadge(prod);
-                      return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-2xs leading-none ${badge.gradient}`, children: badge.text });
-                    })()
-                  ] }),
+                  (() => {
+                    const badge = getProductBadge(prod);
+                    if (!badge || !badge.text) return null;
+                    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: `absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`,
+                        style: { letterSpacing: "0.04em" },
+                        children: badge.text
+                      }
+                    ) });
+                  })(),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }) }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "div",

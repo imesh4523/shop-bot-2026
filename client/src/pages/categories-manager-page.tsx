@@ -525,15 +525,23 @@ export default function CategoriesManagerPage() {
                   </div>
 
                   {/* Live Badge Preview Card Mini */}
-                  <div className="relative p-3 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#181432]">Live Card Tag:</span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shadow-xs ${
-                        badge.enabled ? currentGrad : "bg-gray-200 text-gray-500 line-through"
-                      }`}
-                    >
-                      {badge.text || "NO LABEL"}
-                    </span>
+                  <div className="relative p-3.5 bg-[#F8F9FD] rounded-xl border border-[#ECEEF8] flex items-center justify-between overflow-hidden min-h-[58px]">
+                    <div>
+                      <span className="text-[11px] font-bold text-[#181432] block">Card Corner Preview</span>
+                      <span className="text-[9px] text-[#7E7998] block">45° Top-Right Ribbon</span>
+                    </div>
+
+                    {/* Mini Corner Ribbon */}
+                    <div className="absolute top-0 right-0 w-20 h-20 pointer-events-none overflow-hidden z-10">
+                      <div
+                        className={`absolute transform rotate-45 text-center text-[6.5px] font-black uppercase tracking-wider py-0.5 shadow-xs w-28 -right-8 top-3 leading-none ${
+                          badge.enabled ? currentGrad : "bg-gray-300 text-gray-600 line-through"
+                        }`}
+                        style={{ letterSpacing: '0.04em' }}
+                      >
+                        {badge.text || "NO LABEL"}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Badge Controls */}
