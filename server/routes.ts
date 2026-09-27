@@ -3511,27 +3511,44 @@ export async function registerRoutes(
         }
       });
 
+      const summary = {
+        totalOrders,
+        completedOrders,
+        failedOrders,
+        totalRevenueCents,
+        totalRevenueUsd,
+        totalRevenueLkr,
+        usdToLkrRate: Math.round(lkrRate),
+        activeMeshNodesCount: meshNodes.filter(n => n.status === 'online').length,
+        activeApiKeysCount: allKeys.filter(k => k.status === 'active').length,
+      };
+
+      const storeList = [
+        { id: "all", name: "All Connected Stores & APIs", type: "system", totalOrders: totalOrders, totalRevenueUsd: totalRevenueUsd, totalRevenueLkr: totalRevenueLkr },
+        { id: "direct", name: "Direct Mini Store Customers", type: "direct", totalOrders: formattedOrders.filter(o => !o.isApiOrder).length, totalRevenueUsd: (formattedOrders.filter(o => !o.isApiOrder && (o.status === 'completed' || o.status === 'success')).reduce((a, b) => a + b.priceCents, 0) / 100).toFixed(2), totalRevenueLkr: Math.round((formattedOrders.filter(o => !o.isApiOrder && (o.status === 'completed' || o.status === 'success')).reduce((a, b) => a + b.priceCents, 0) / 100) * lkrRate).toLocaleString() },
+        ...meshNodes.map(n => ({ id: `mesh_${n.id}`, name: `StoreMesh: ${n.nodeName}`, type: "mesh", totalOrders: 0, totalRevenueUsd: "0.00", totalRevenueLkr: 0 })),
+        ...allKeys.map(k => {
+          const keyOrders = formattedOrders.filter(o => o.apiKeyId === k.id);
+          const revCents = keyOrders.filter(o => o.status === 'completed' || o.status === 'success').reduce((a, b) => a + b.priceCents, 0);
+          return {
+            id: `key_${k.id}`,
+            name: `API: ${k.telegramUser?.username ? '@' + k.telegramUser.username : 'User #' + k.telegramUserId}`,
+            type: "api",
+            totalOrders: keyOrders.length,
+            totalRevenueUsd: (revCents / 100).toFixed(2),
+            totalRevenueLkr: Math.round((revCents / 100) * lkrRate).toLocaleString()
+          };
+        })
+      ];
+
       res.json({
         success: true,
         timeRange,
         dateFrom,
         dateTo,
-        metrics: {
-          totalOrders,
-          completedOrders,
-          failedOrders,
-          totalRevenueCents,
-          totalRevenueUsd,
-          totalRevenueLkr,
-          activeMeshNodesCount: meshNodes.filter(n => n.status === 'online').length,
-          activeApiKeysCount: allKeys.filter(k => k.status === 'active').length,
-        },
-        stores: [
-          { id: "all", name: "All Connected Stores & APIs" },
-          { id: "direct", name: "Direct Mini Store Customers" },
-          ...meshNodes.map(n => ({ id: `mesh_${n.id}`, name: `StoreMesh: ${n.nodeName} (${n.status})` })),
-          ...allKeys.map(k => ({ id: `key_${k.id}`, name: `API Key: ${k.telegramUser?.username ? '@' + k.telegramUser.username : 'User #' + k.telegramUserId} (${k.key.substring(0, 12)}...)` }))
-        ],
+        summary,
+        metrics: summary,
+        stores: storeList,
         partnerBreakdown: Object.values(partnerBreakdown),
         orders: formattedOrders
       });

@@ -73984,7 +73984,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DH6rcs9W.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CsI6RB1M.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115674,11 +115674,10 @@ function ConnectedStoresTrackerPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "bg-slate-950 border-slate-800 text-slate-200", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "All Stores & API Clients" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "direct", children: "Direct Web / Bot Users" }),
-              data?.stores.map((st2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectItem, { value: st2.id, children: [
+              data?.stores?.filter((st2) => st2.id !== "all" && st2.id !== "direct").map((st2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectItem, { value: st2.id, children: [
                 st2.name,
-                " (",
-                st2.type.toUpperCase(),
-                ")"
+                " ",
+                st2.type ? `(${String(st2.type).toUpperCase()})` : ""
               ] }, st2.id))
             ] })
           ] })
@@ -115825,7 +115824,7 @@ function ConnectedStoresTrackerPage() {
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-white truncate", children: st2.name }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] uppercase border-slate-700 text-purple-300", children: st2.type })
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] uppercase border-slate-700 text-purple-300", children: st2.type ? String(st2.type).toUpperCase() : "STORE" })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2.5 flex items-baseline justify-between text-xs", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-slate-400", children: [

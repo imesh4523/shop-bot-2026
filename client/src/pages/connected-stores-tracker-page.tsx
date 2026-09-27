@@ -170,9 +170,9 @@ export default function ConnectedStoresTrackerPage() {
                 <SelectContent className="bg-slate-950 border-slate-800 text-slate-200">
                   <SelectItem value="all">All Stores & API Clients</SelectItem>
                   <SelectItem value="direct">Direct Web / Bot Users</SelectItem>
-                  {data?.stores.map(st => (
+                  {data?.stores?.filter(st => st.id !== 'all' && st.id !== 'direct').map(st => (
                     <SelectItem key={st.id} value={st.id}>
-                      {st.name} ({st.type.toUpperCase()})
+                      {st.name} {st.type ? `(${String(st.type).toUpperCase()})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -340,7 +340,7 @@ export default function ConnectedStoresTrackerPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white truncate">{st.name}</span>
                     <Badge variant="outline" className="text-[10px] uppercase border-slate-700 text-purple-300">
-                      {st.type}
+                      {st.type ? String(st.type).toUpperCase() : "STORE"}
                     </Badge>
                   </div>
                   <div className="mt-2.5 flex items-baseline justify-between text-xs">
