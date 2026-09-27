@@ -6600,6 +6600,11 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(51 105 30 / var(--tw-text-opacity, 1));
 }
 
+.text-\[\#3C4043\]{
+  --tw-text-opacity: 1;
+  color: rgb(60 64 67 / var(--tw-text-opacity, 1));
+}
+
 .text-\[\#3D3656\]{
   --tw-text-opacity: 1;
   color: rgb(61 54 86 / var(--tw-text-opacity, 1));
