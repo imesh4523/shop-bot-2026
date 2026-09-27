@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   User,
   User as UserIcon,
+  Headphones,
   Package,
   Wallet,
   ChevronRight,
