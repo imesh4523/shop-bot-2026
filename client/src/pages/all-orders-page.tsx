@@ -493,7 +493,7 @@ export default function AllOrdersPage() {
                 <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-emerald-400 font-bold flex items-center gap-1.5 text-xs">
-                      <Zap className="w-3.5 h-3.5" /> Delivered Credentials / CDK:
+                      <ShoppingBag className="w-3.5 h-3.5" /> Delivered Credentials / CDK:
                     </span>
                     <Button
                       size="sm"

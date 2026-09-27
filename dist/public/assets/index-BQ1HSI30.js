@@ -74105,7 +74105,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Dm7d3zAr.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-B9rcGmdq.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90963,8 +90963,8 @@ function PreordersPage() {
           disabled: fulfillMutation.isPending,
           className: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-6 px-8 rounded-2xl shadow-lg shadow-purple-500/20 border border-purple-400/30 transition-all duration-300 hover:scale-105 active:scale-95",
           children: [
-            fulfillMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-5 h-5 animate-spin mr-3" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-5 h-5 mr-3 text-amber-300" }),
-            "⚡ Fulfill Pending Pre-Orders Now"
+            fulfillMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-5 h-5 animate-spin mr-3" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-5 h-5 mr-3 text-purple-200" }),
+            "Fulfill Pending Pre-Orders Now"
           ]
         }
       )
@@ -103605,6 +103605,25 @@ function CategoriesManagerPage() {
   ] });
 }
 const youuHostLogo = "/assets/youuhost_logo-DHO_k5Bj.png";
+function ShopBagIcon({ className = "w-4 h-4", ...props }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
+    {
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      className,
+      ...props,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 7.5V5.5C8 3.57 9.57 2 11.5 2h1C14.43 2 16 3.57 16 5.5v2" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4.5 7.5h15l-1.4 12.6c-.1.9-.9 1.6-1.8 1.6H7.7c-.9 0-1.7-.7-1.8-1.6L4.5 7.5z" })
+      ]
+    }
+  );
+}
 const compressImageToDataUrl = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) => {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
@@ -105994,7 +106013,7 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] tracking-tight", children: "Best Sellers & Hot Deals" })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5 text-amber-500 fill-amber-500" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5 text-[#D92078]" }),
               " Top Rated"
             ] })
           ] }),
@@ -106035,7 +106054,7 @@ ${finalDetails}`;
                         /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1", children: p2.name }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#7E7998] mt-0.5 inline-flex items-center gap-1", children: [
                           p2.stockCount && p2.stockCount > 0 ? `${p2.stockCount} in stock` : "Verified",
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5 text-amber-500 fill-amber-500" })
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5 text-[#5B42F3]" })
                         ] })
                       ] }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-2 border-t border-[#F5F4FC]", children: [
@@ -106087,7 +106106,7 @@ ${finalDetails}`;
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`, children: smmConf.tag }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5" }),
                       " YouuHost"
                     ] })
                   ] }),
@@ -106153,7 +106172,7 @@ ${finalDetails}`;
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5" }),
                       " Auto-Key"
                     ] })
                   ] }),
@@ -106347,7 +106366,7 @@ ${finalDetails}`;
                   onClick: () => setOrdersFilter("smm"),
                   className: `px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${ordersFilter === "smm" ? "bg-[#5B42F3] text-white shadow-xs" : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"}`,
                   children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3 h-3" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3 h-3" }),
                     " Social Boost (",
                     smmOrdersList.filter((s2) => !(s2.status || "").toLowerCase().includes("fail") && !(s2.status || "").toLowerCase().includes("cancel")).length,
                     ")"
@@ -107814,7 +107833,7 @@ ${finalDetails}`;
           selectedTxDetail.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-700 font-extrabold flex items-center gap-1 text-[11.5px]", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3.5 h-3.5 text-emerald-600" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3.5 h-3.5 text-emerald-600" }),
                 " Delivered Account / License Key:"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -108044,7 +108063,7 @@ ${finalDetails}`;
             /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-white" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Processing Order..." })
           ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-white group-hover:scale-110 transition-transform" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               "Purchase Now • ",
               appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)
@@ -108054,12 +108073,12 @@ ${finalDetails}`;
       ) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-[#5B42F3]" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-[#5B42F3]" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-[#5B42F3]", children: "Automated 2FA Instant Delivery" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#7E7998] font-semibold inline-flex items-center gap-1", children: [
           "0-2 Mins ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-2.5 h-2.5 text-amber-500 fill-amber-500" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5 text-emerald-600" })
         ] })
       ] })
     ] }) }) }),
@@ -108256,7 +108275,7 @@ ${finalDetails}`;
                 /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                 " Sign In to Order Boost"
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4" }),
                 " Place Order Now 🚀"
               ] })
             }
@@ -108294,7 +108313,7 @@ ${finalDetails}`;
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1 shadow-xs", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3 h-3" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3 h-3" }),
                 " Instant Auto-Delivery"
               ] })
             ] }),
@@ -108410,7 +108429,7 @@ ${finalDetails}`;
                   /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                   " Sign In to Purchase"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4" }),
                   " Purchase Now (Auto Delivery) 🚀"
                 ] })
               }
@@ -108582,7 +108601,7 @@ ${finalDetails}`;
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-emerald-700 font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-emerald-500" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-emerald-500" }),
             " 1. Automated Instant Fulfillment (0-2 Mins)"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: [
@@ -108752,7 +108771,7 @@ ${finalDetails}`;
             ] }),
             ord.orderType === "smm" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5 overflow-hidden w-full", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between text-xs font-black text-[#D92078]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-[#D92078]" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-[#D92078]" }),
                 "Social Boost Target & Stats"
               ] }) }),
               ord.smmLink && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2 overflow-hidden w-full", children: [
@@ -116616,7 +116635,7 @@ function AllOrdersPage() {
       viewOrderDetail.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-400 font-bold flex items-center gap-1.5 text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-3.5 h-3.5" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-3.5 h-3.5" }),
             " Delivered Credentials / CDK:"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(

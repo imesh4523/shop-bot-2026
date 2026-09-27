@@ -9,7 +9,7 @@ import {
   Package, 
   RefreshCw, 
   CheckCircle2, 
-  Zap,
+  ShoppingBag,
   Calendar,
   Layers
 } from "lucide-react";
@@ -89,9 +89,9 @@ export default function PreordersPage() {
           {fulfillMutation.isPending ? (
             <RefreshCw className="w-5 h-5 animate-spin mr-3" />
           ) : (
-            <Zap className="w-5 h-5 mr-3 text-amber-300" />
+            <ShoppingBag className="w-5 h-5 mr-3 text-purple-200" />
           )}
-          ⚡ Fulfill Pending Pre-Orders Now
+          Fulfill Pending Pre-Orders Now
         </Button>
       </div>
 

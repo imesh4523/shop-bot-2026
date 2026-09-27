@@ -90,6 +90,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Clean Transparent Shopping Bag Icon (matching user provided design without background)
+function ShopBagIcon({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...props}
+    >
+      <path d="M8 7.5V5.5C8 3.57 9.57 2 11.5 2h1C14.43 2 16 3.57 16 5.5v2" />
+      <path d="M4.5 7.5h15l-1.4 12.6c-.1.9-.9 1.6-1.8 1.6H7.7c-.9 0-1.7-.7-1.8-1.6L4.5 7.5z" />
+    </svg>
+  );
+}
+
 // Canvas-based Image Compressor (reduces photo size before uploading)
 const compressImageToDataUrl = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -2898,7 +2917,7 @@ Support: https://t.me/youuhost_support
                     <h3 className="text-base font-black text-[#181432] tracking-tight">Best Sellers & Hot Deals</h3>
                   </div>
                   <span className="text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                    <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /> Top Rated
+                    <ShopBagIcon className="w-2.5 h-2.5 text-[#D92078]" /> Top Rated
                   </span>
                 </div>
 
@@ -2948,7 +2967,7 @@ Support: https://t.me/youuhost_support
                           </h4>
                           <span className="text-[10px] font-bold text-[#7E7998] mt-0.5 inline-flex items-center gap-1">
                             {p.stockCount && p.stockCount > 0 ? `${p.stockCount} in stock` : "Verified"}
-                            <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
+                            <ShopBagIcon className="w-2.5 h-2.5 text-[#5B42F3]" />
                           </span>
                         </div>
 
@@ -3016,7 +3035,7 @@ Support: https://t.me/youuhost_support
                           {smmConf.tag}
                         </span>
                         <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                          <Zap className="w-2.5 h-2.5" /> YouuHost
+                          <ShopBagIcon className="w-2.5 h-2.5" /> YouuHost
                         </span>
                       </div>
 
@@ -3088,7 +3107,7 @@ Support: https://t.me/youuhost_support
                           {conf.tag}
                         </span>
                         <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5">
-                          <Zap className="w-2.5 h-2.5" /> Auto-Key
+                          <ShopBagIcon className="w-2.5 h-2.5" /> Auto-Key
                         </span>
                       </div>
 
@@ -3311,7 +3330,7 @@ Support: https://t.me/youuhost_support
                     : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
                 }`}
               >
-                <Zap className="w-3 h-3" /> Social Boost ({smmOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
+                <ShopBagIcon className="w-3 h-3" /> Social Boost ({smmOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
               </button>
 
               {sandromaniaOrdersList.length > 0 && (
@@ -4992,7 +5011,7 @@ Support: https://t.me/youuhost_support
                     <div className="pt-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-emerald-700 font-extrabold flex items-center gap-1 text-[11.5px]">
-                          <Zap className="w-3.5 h-3.5 text-emerald-600" /> Delivered Account / License Key:
+                          <ShopBagIcon className="w-3.5 h-3.5 text-emerald-600" /> Delivered Account / License Key:
                         </span>
                         <button
                           onClick={() => {
@@ -5242,7 +5261,7 @@ Support: https://t.me/youuhost_support
                       </>
                     ) : (
                       <>
-                        <Zap className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+                        <ShopBagIcon className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
                         <span>
                           Purchase Now • {appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)}
                         </span>
@@ -5255,11 +5274,11 @@ Support: https://t.me/youuhost_support
               {/* Instant Delivery Footer Badge */}
               <div className="bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-[#5B42F3]" />
+                  <ShopBagIcon className="w-4 h-4 text-[#5B42F3]" />
                   <span className="text-[11px] font-bold text-[#5B42F3]">Automated 2FA Instant Delivery</span>
                 </div>
                 <span className="text-[10px] text-[#7E7998] font-semibold inline-flex items-center gap-1">
-                  0-2 Mins <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
+                  0-2 Mins <ShopBagIcon className="w-2.5 h-2.5 text-emerald-600" />
                 </span>
               </div>
             </div>
@@ -5498,7 +5517,7 @@ Support: https://t.me/youuhost_support
                   </>
                 ) : (
                   <>
-                    <Zap className="w-4 h-4" /> Place Order Now 🚀
+                    <ShopBagIcon className="w-4 h-4" /> Place Order Now 🚀
                   </>
                 )}
               </button>
@@ -5541,7 +5560,7 @@ Support: https://t.me/youuhost_support
                   </button>
 
                   <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1 shadow-xs">
-                    <Zap className="w-3 h-3" /> Instant Auto-Delivery
+                    <ShopBagIcon className="w-3 h-3" /> Instant Auto-Delivery
                   </span>
                 </div>
 
@@ -5672,7 +5691,7 @@ Support: https://t.me/youuhost_support
                     </>
                   ) : (
                     <>
-                      <Zap className="w-4 h-4" /> Purchase Now (Auto Delivery) 🚀
+                      <ShopBagIcon className="w-4 h-4" /> Purchase Now (Auto Delivery) 🚀
                     </>
                   )}
                 </button>
@@ -5865,7 +5884,7 @@ Support: https://t.me/youuhost_support
             {/* Policy 1: Instant Auto-Delivery */}
             <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
               <div className="flex items-center gap-2 text-emerald-700 font-black text-xs">
-                <Zap className="w-4 h-4 text-emerald-500" /> 1. Automated Instant Fulfillment (0-2 Mins)
+                <ShopBagIcon className="w-4 h-4 text-emerald-500" /> 1. Automated Instant Fulfillment (0-2 Mins)
               </div>
               <p className="text-[11px] text-[#6B658B] leading-relaxed">
                 All digital accounts, licenses, and cloud credentials are automatically issued upon payment confirmation. Credentials can be retrieved at any time under your <b>Orders</b> tab.
@@ -6058,7 +6077,7 @@ Support: https://t.me/youuhost_support
                   <div className="bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5 overflow-hidden w-full">
                     <div className="flex items-center justify-between text-xs font-black text-[#D92078]">
                       <div className="flex items-center gap-1.5">
-                        <Zap className="w-4 h-4 text-[#D92078]" />
+                        <ShopBagIcon className="w-4 h-4 text-[#D92078]" />
                         Social Boost Target & Stats
                       </div>
                     </div>
