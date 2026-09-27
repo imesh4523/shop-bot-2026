@@ -70,7 +70,7 @@ export default function EmailHubPage() {
   const [subject, setSubject] = useState("Payment Successful - Your Transaction Invoice");
   const [amount, setAmount] = useState("LKR 14,990.00");
   const [planName, setPlanName] = useState("Enterprise Cloud & Bot Hosting");
-  const [billingCycle, setBillingCycle] = useState("Monthly");
+  const [billingCycle, setBillingCycle] = useState("One-Time");
   const [paymentMethod, setPaymentMethod] = useState("mastercard");
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-2026-${Math.floor(100000 + Math.random() * 900000)}`);
   const [orderId, setOrderId] = useState(`ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`);

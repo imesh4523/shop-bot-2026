@@ -18,11 +18,14 @@ export interface TransactionEmailProps {
   planTitle?: string;
   amount: string; // e.g. "LKR 14,990.00" or "$50.00 USD"
   secondaryAmount?: string;
+  discountAmount?: string; // e.g. "$5.00" or "LKR 500.00"
+  discountCode?: string; // e.g. "PROMO20"
+  subtotal?: string;
   referenceId: string; // e.g. "INV-2026-812010"
   paymentMethod: "card" | "payhere" | "mastercard" | "visa" | "binance" | "binance_pay" | "cryptomus" | "crypto" | "wallet_balance" | string;
-  paymentMethodDetails?: string; // e.g. "Mastercard ending in •••• 9876"
+  paymentMethodDetails?: string; // e.g. "Visa ending in •••• 9865"
   dateStr?: string;
-  billingCycle?: string; // e.g. "Monthly"
+  billingCycle?: string; // default "One-Time"
   ctaText?: string;
   ctaUrl?: string;
   customNote?: string;
@@ -37,7 +40,10 @@ export interface OrderCredentialsEmailProps {
   orderId: string | number;
   productName: string;
   quantity: number;
-  amount: string; // e.g. "$5.50 USD" or "Rs. 1,815 LKR"
+  amount: string; // e.g. "$50.00 USD" or "Rs. 1,815 LKR"
+  discountAmount?: string;
+  discountCode?: string;
+  subtotal?: string;
   credentials?: string[];
   dateStr?: string;
   ctaText?: string;
@@ -63,6 +69,51 @@ export interface CustomEmailProps {
   ctaText?: string;
   ctaUrl?: string;
   detailsList?: { label: string; value: string }[];
+}
+
+/**
+ * Generate formatted .txt attachment with clean itemized credentials
+ */
+export function generateCredentialsTxt(props: {
+  orderId: string | number;
+  productName: string;
+  recipientName?: string;
+  credentials?: string[];
+  dateStr?: string;
+}): Buffer {
+  const today = props.dateStr || new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const orderNo = String(props.orderId).startsWith("#") ? props.orderId : `#${props.orderId}`;
+  
+  let content = `========================================\r\n`;
+  content += `YOUUHOST DIGITAL RECEIPT & ACCESS\r\n`;
+  content += `========================================\r\n`;
+  content += `Order ID     : ${orderNo}\r\n`;
+  content += `Product      : ${props.productName}\r\n`;
+  content += `Customer     : ${props.recipientName || 'Valued Customer'}\r\n`;
+  content += `Delivered On : ${today}\r\n`;
+  content += `----------------------------------------\r\n`;
+  content += `DELIVERED CREDENTIALS:\r\n`;
+  content += `----------------------------------------\r\n`;
+
+  const creds = props.credentials && props.credentials.length > 0
+    ? props.credentials
+    : [
+        "username: youuhost_admin",
+        "password: VpsP@ss#2026!"
+      ];
+
+  creds.forEach((item, index) => {
+    if (creds.length > 1) {
+      content += `[Item ${index + 1}]\r\n`;
+    }
+    content += `${item.trim()}\r\n\r\n`;
+  });
+
+  content += `----------------------------------------\r\n`;
+  content += `Support: https://t.me/youuhost_support\r\n`;
+  content += `========================================\r\n`;
+
+  return Buffer.from(content, "utf-8");
 }
 
 /**
@@ -127,7 +178,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   const recipientName = props.recipientName || "Valued Customer";
   const toEmail = props.toEmail || "customer@youuhost.com";
   const plan = props.planTitle || "Enterprise Cloud Service";
-  const billingCycle = props.billingCycle || "Monthly";
+  const billingCycle = props.billingCycle || "One-Time";
   const amount = sanitizeCurrencyAmount(props.amount || "LKR 14,990.00");
 
   const left = 20;
@@ -233,36 +284,44 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 
   // Breakdown rows matching Image 2
   const isLkr = amount.toUpperCase().includes("LKR") || amount.toUpperCase().includes("RS");
-  const zeroStr = isLkr ? "LKR 0.00" : "$0.00";
+  const cleanNumAmount = amount.replace(/\s*(USD|LKR)/gi, "").trim();
+  let discountLabel = "Discounts";
+  let discountStr = isLkr ? "LKR 0.00" : "$0.00";
+
+  if (props.discountAmount && props.discountAmount.trim()) {
+    const dVal = sanitizeCurrencyAmount(props.discountAmount).replace(/\s*(USD|LKR)/gi, "").trim();
+    discountStr = `-${dVal}`;
+    if (props.discountCode) discountLabel = `Discounts (${props.discountCode})`;
+  }
 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
 
-  doc.text("Discounts", 145, y, { align: "right" });
-  doc.text(zeroStr, right, y, { align: "right" });
+  doc.text(discountLabel, 145, y, { align: "right" });
+  doc.text(discountStr, right, y, { align: "right" });
 
   y += 5;
   doc.text("Subtotal", 145, y, { align: "right" });
-  doc.text(amount, right, y, { align: "right" });
+  doc.text(cleanNumAmount, right, y, { align: "right" });
 
   y += 6;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(17, 24, 39);
   doc.text("Total", 145, y, { align: "right" });
-  doc.text(amount, right, y, { align: "right" });
+  doc.text(cleanNumAmount, right, y, { align: "right" });
 
   y += 6;
   doc.setTextColor(0, 209, 102);
   doc.text("Payment", 145, y, { align: "right" });
-  doc.text(amount, right, y, { align: "right" });
+  doc.text(cleanNumAmount, right, y, { align: "right" });
 
   // Footer
   y = 240;
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(148, 163, 184);
-  doc.text("Thank you for choosing YouuHost! Your subscription is now fully active.", 105, y, { align: "center" });
+  doc.text("Thank you for choosing YouuHost! Your digital service is now fully active.", 105, y, { align: "center" });
   y += 5;
   doc.text("For any billing queries or support, contact support@youuhost.com", 105, y, { align: "center" });
 
@@ -295,7 +354,7 @@ function getPaymentMethodDetails(method: string, details?: string): { iconUrl: s
 
   if (m.includes("binance")) {
     return {
-      iconUrl: "https://img.icons8.com/color/96/binance.png",
+      iconUrl: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
       title: "Payment Method",
       subtitle: details || "Binance Pay • Instant Crypto Settlement",
       isBrandIcon: true,
@@ -324,9 +383,9 @@ function getPaymentMethodDetails(method: string, details?: string): { iconUrl: s
  */
 export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): string {
   const name = props.recipientName || "Valued Customer";
-  const plan = props.planTitle || "Enterprise AI Plan";
+  const plan = props.planTitle || "Enterprise Cloud Service";
   const amount = sanitizeCurrencyAmount(props.amount || "LKR 14,990.00");
-  const billingCycle = props.billingCycle || "Monthly";
+  const billingCycle = props.billingCycle || "One-Time";
   const ctaText = props.ctaText || "Manage Orders";
   const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
   const paymentInfo = getPaymentMethodDetails(props.paymentMethod, props.paymentMethodDetails);
@@ -389,7 +448,7 @@ export function buildPaymentSuccessEmailHtml(props: TransactionEmailProps): stri
               <div style="font-size: 14.5px; font-weight: 600; color: #475569; margin-bottom: 10px; text-align: center;">Hello ${name},</div>
 
               <p style="font-size: 13.5px; line-height: 1.6; color: #64748b; margin: 0 auto 26px auto; text-align: center; max-width: 380px;">
-                Your payment and subscription have been processed successfully. Thank you for choosing YouuHost!
+                Your payment has been processed successfully. Thank you for choosing YouuHost!
               </p>
 
               <!-- CTA Button -->
@@ -464,8 +523,23 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
   const ctaText = props.ctaText || "Manage Orders";
   const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
   const logoUri = getLogoDataUri();
+  
   const isLkr = amount.toUpperCase().includes("LKR") || amount.toUpperCase().includes("RS");
-  const zeroStr = isLkr ? "LKR 0.00" : "$0.00";
+  // Numeric string without currency symbols for breakdown rows (e.g. "$50.00" or "Rs. 1,815.00")
+  const tableNumericAmount = amount.replace(/\s*(USD|LKR)/gi, "").trim();
+
+  // Discount breakdown handling
+  let discountLabel = "Discounts";
+  let discountDisplay = isLkr ? "LKR 0.00" : "$0.00";
+  if (props.discountAmount && props.discountAmount.trim()) {
+    const cleanDisc = sanitizeCurrencyAmount(props.discountAmount).replace(/\s*(USD|LKR)/gi, "").trim();
+    discountDisplay = `-${cleanDisc}`;
+    if (props.discountCode) {
+      discountLabel = `Discounts (${props.discountCode})`;
+    }
+  }
+
+  const subtotalDisplay = props.subtotal ? sanitizeCurrencyAmount(props.subtotal).replace(/\s*(USD|LKR)/gi, "").trim() : tableNumericAmount;
 
   return `
 <!DOCTYPE html>
@@ -526,23 +600,23 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
                   </tr>
                   <tr style="border-top: 1px solid #f1f5f9;">
                     <td colspan="2"></td>
-                    <td align="right" style="padding: 10px 4px 4px 4px; font-size: 12px; color: #64748b;">Discounts</td>
-                    <td align="right" style="padding: 10px 4px 4px 4px; font-size: 12px; color: #64748b;">${zeroStr}</td>
+                    <td align="right" style="padding: 10px 4px 4px 4px; font-size: 12px; color: #64748b;">${discountLabel}</td>
+                    <td align="right" style="padding: 10px 4px 4px 4px; font-size: 12px; color: #64748b;">${discountDisplay}</td>
                   </tr>
                   <tr>
                     <td colspan="2"></td>
                     <td align="right" style="padding: 4px 4px; font-size: 12px; color: #64748b;">Subtotal</td>
-                    <td align="right" style="padding: 4px 4px; font-size: 12px; color: #64748b;">${amount}</td>
+                    <td align="right" style="padding: 4px 4px; font-size: 12px; color: #64748b;">${subtotalDisplay}</td>
                   </tr>
                   <tr>
                     <td colspan="2"></td>
                     <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">Total</td>
-                    <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">${amount}</td>
+                    <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">${tableNumericAmount}</td>
                   </tr>
                   <tr>
                     <td colspan="2"></td>
                     <td align="right" style="padding: 4px 4px 14px 4px; font-size: 13px; font-weight: 700; color: #00d166;">Payment</td>
-                    <td align="right" style="padding: 4px 4px 14px 4px; font-size: 13px; font-weight: 700; color: #00d166;">${amount}</td>
+                    <td align="right" style="padding: 4px 4px 14px 4px; font-size: 13px; font-weight: 700; color: #00d166;">${tableNumericAmount}</td>
                   </tr>
                 </tbody>
               </table>
@@ -560,7 +634,7 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
 
               <!-- FOOTER SIGN-OFF -->
               <div style="text-align: center; font-size: 12.5px; color: #64748b; line-height: 1.5; margin-bottom: 8px;">
-                Your official PDF receipt has also been attached to this email.<br>
+                Your official PDF invoice and digital credentials (.txt) have been attached to this email.<br>
                 Best Regards, <strong style="color: #111827;">YouuHost Team</strong>
               </div>
 
@@ -755,5 +829,115 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
 </html>
   `;
 }
+
+/**
+ * Anti-Spam Plain Text Generators (Required for 10/10 Deliverability & SPF/DKIM Multipart Score)
+ */
+export function buildPaymentSuccessPlainText(props: TransactionEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  const plan = props.planTitle || "Enterprise Cloud Service";
+  const amount = sanitizeCurrencyAmount(props.amount || "LKR 14,990.00");
+  const billingCycle = props.billingCycle || "One-Time";
+  const ref = props.referenceId || "INV-2026";
+  const paymentMethod = props.paymentMethodDetails || (props.paymentMethod ? props.paymentMethod.toUpperCase() : "Credit / Debit Card");
+
+  return `Hello ${name},
+
+Thank you for choosing YouuHost! Your payment has been successfully processed.
+
+TRANSACTION RECEIPT
+--------------------------------------------------
+Invoice Number : ${ref}
+Plan / Service : ${plan}
+Total Amount   : ${amount}
+Billing Cycle  : ${billingCycle}
+Payment Method : ${paymentMethod}
+Payment Status : PAID (Verified)
+--------------------------------------------------
+
+Your official PDF invoice has been attached to this email.
+You can manage your active services anytime at: https://youuhost.com/shop
+
+If you have any questions, our support team is available 24/7 at support@youuhost.com.
+
+Best regards,
+YouuHost Billing Team
+https://youuhost.com`;
+}
+
+export function buildOrderCredentialsPlainText(props: OrderCredentialsEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  const orderId = props.orderId;
+  const prod = props.productName;
+  const amount = sanitizeCurrencyAmount(props.amount);
+
+  return `Hello ${name},
+
+Your order #${orderId} has been confirmed and your digital product credentials are now available.
+
+ORDER CONFIRMATION
+--------------------------------------------------
+Order ID       : #${orderId}
+Product        : ${prod}
+Quantity       : ${props.quantity || 1}
+Total Amount   : ${amount}
+Status         : Confirmed & Active
+--------------------------------------------------
+
+Your official PDF invoice and product credentials (.txt) have been attached to this email for your records.
+Manage your orders and active services at: https://youuhost.com/shop
+
+Best regards,
+YouuHost Orders Team
+https://youuhost.com`;
+}
+
+export function buildOtpVerificationPlainText(props: OtpEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  const code = props.otpCode;
+  const expiry = props.expiryMinutes || 10;
+
+  return `Hello ${name},
+
+Your YouuHost login verification code is: ${code}
+
+This one-time security code is valid for ${expiry} minutes. Please do not share this code with anyone.
+
+If you did not request this verification code, please ignore this email or contact support@youuhost.com.
+
+Best regards,
+YouuHost Security Team
+https://youuhost.com`;
+}
+
+export function buildCustomEmailPlainText(props: CustomEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  return `Hello ${name},
+
+${props.heading}
+--------------------------------------------------
+${props.message}
+--------------------------------------------------
+
+Access your YouuHost dashboard: ${props.ctaUrl || "https://youuhost.com/shop"}
+
+Best regards,
+YouuHost Team
+https://youuhost.com`;
+}
+
+export function generatePlainTextEmail(templateType: string, props: any): string {
+  switch (templateType) {
+    case "payment_success":
+      return buildPaymentSuccessPlainText(props);
+    case "order_credentials":
+      return buildOrderCredentialsPlainText(props);
+    case "otp_verification":
+      return buildOtpVerificationPlainText(props);
+    default:
+      return buildCustomEmailPlainText(props);
+  }
+}
+
 
 

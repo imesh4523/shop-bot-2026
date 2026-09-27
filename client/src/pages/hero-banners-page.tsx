@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { DEFAULT_CATEGORIES } from "./categories-manager-page";
 
 export interface HeroBannerItem {
   id: string;
@@ -53,6 +54,7 @@ export interface HeroBannerItem {
   image: string;
   bgGradient: string;
   badgeText?: string;
+  bannerType?: "card" | "full_image"; // "card" (designed card) or "full_image" (direct full-size banner)
   actionType: "product" | "category" | "custom";
   actionTarget: string; // product ID, category name, or URL
   isActive: boolean;
@@ -68,6 +70,7 @@ const DEFAULT_BANNERS: HeroBannerItem[] = [
     ctaText: "Buy Now",
     image: "/assets/banner_capcut_3d.png",
     bgGradient: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    bannerType: "card",
     actionType: "category",
     actionTarget: "CapCut",
     isActive: true,
@@ -81,6 +84,7 @@ const DEFAULT_BANNERS: HeroBannerItem[] = [
     ctaText: "Buy Now",
     image: "/assets/banner_gemini_3d.png",
     bgGradient: "from-[#EFF6FF] via-[#EEF2FF] to-[#FAF5FF]",
+    bannerType: "card",
     actionType: "category",
     actionTarget: "AI",
     isActive: true,
@@ -94,6 +98,7 @@ const DEFAULT_BANNERS: HeroBannerItem[] = [
     ctaText: "Buy Now",
     image: "/assets/banner_cloud_3d.png",
     bgGradient: "from-[#ECFDF5] via-[#F0FDF4] to-[#EFF6FF]",
+    bannerType: "card",
     actionType: "category",
     actionTarget: "Cloud",
     isActive: true,
@@ -107,6 +112,7 @@ const DEFAULT_BANNERS: HeroBannerItem[] = [
     ctaText: "Buy Now",
     image: "/assets/banner_premium_3d.png",
     bgGradient: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    bannerType: "card",
     actionType: "category",
     actionTarget: "Subscriptions",
     isActive: true,
@@ -127,15 +133,47 @@ export default function HeroBannersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fullBannerInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch products & categories for linking
+  // Fetch products & categories config for linking
   const { data: products = [] } = useQuery<any[]>({
     queryKey: ["/api/products"],
   });
 
-  const { data: categories = [] } = useQuery<any[]>({
-    queryKey: ["/api/categories"],
+  const { data: categoryConfig } = useQuery<{ categories: any[]; productBadges: any }>({
+    queryKey: ["/api/categories/config"],
   });
+
+  // Calculate comprehensive, deduplicated categories list
+  const allAvailableCategories = React.useMemo(() => {
+    const list = new Set<string>();
+
+    // 1. From Category Config
+    if (categoryConfig?.categories && Array.isArray(categoryConfig.categories)) {
+      categoryConfig.categories.forEach((c: any) => {
+        const name = c.label || c.name || c.id;
+        if (name && name.toLowerCase() !== "all") list.add(name.trim());
+      });
+    } else {
+      DEFAULT_CATEGORIES.forEach((c) => {
+        if (c.label && c.label.toLowerCase() !== "all") list.add(c.label.trim());
+      });
+    }
+
+    // 2. From actual products types
+    if (Array.isArray(products)) {
+      products.forEach((p: any) => {
+        if (p.type && typeof p.type === "string" && p.type.trim()) {
+          list.add(p.type.trim());
+        }
+      });
+    }
+
+    // Standard popular categories
+    ["CapCut", "Gemini", "ChatGPT", "Claude", "Spotify", "YouTube", "AWS", "DigitalOcean", "Azure", "Oracle", "Kamatera", "Linode", "Telegram", "SMM Boost", "Accounts"].forEach((cat) => list.add(cat));
+
+    return Array.from(list).sort((a, b) => a.localeCompare(b));
+  }, [categoryConfig, products]);
 
   // Fetch current banner configuration
   const { data: bannerData, isLoading } = useQuery<{ banners: HeroBannerItem[] }>({
@@ -238,7 +276,7 @@ export default function HeroBannersPage() {
     setEditingBanner(null);
   };
 
-  // Canvas-based image compression and cropper
+  // Canvas-based image compression for 3D Icon (max 480x480 PNG)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingBanner) return;
@@ -248,7 +286,6 @@ export default function HeroBannersPage() {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // High quality canvas downscale (target max 400x400 for transparent 3D badge icons, keeping under 80KB)
         const canvas = document.createElement("canvas");
         const MAX_WIDTH = 480;
         const MAX_HEIGHT = 480;
@@ -275,15 +312,71 @@ export default function HeroBannersPage() {
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Use PNG or high quality WebP
           const compressedDataUrl = canvas.toDataURL("image/png", 0.9);
           setEditingBanner({
             ...editingBanner,
             image: compressedDataUrl,
           });
           toast({
-            title: "Image Processed & Compressed! ⚡",
-            description: `Compressed to ${Math.round(compressedDataUrl.length / 1024)}KB for 0ms instant loading.`,
+            title: "3D Icon Processed & Compressed! ⚡",
+            description: `Compressed to ${Math.round(compressedDataUrl.length / 1024)}KB for instant loading.`,
+          });
+        }
+        setIsCompressing(false);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Canvas-based image compression for Full-Width Banner Graphic (Target 1200x520 max WebP/JPEG/PNG under 120KB)
+  const handleFullBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingBanner) return;
+
+    setIsCompressing(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+        if (height > MAX_HEIGHT) {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Try WebP with 88% quality, fallback to JPEG
+          let compressedDataUrl = canvas.toDataURL("image/webp", 0.88);
+          if (!compressedDataUrl.startsWith("data:image/webp")) {
+            compressedDataUrl = canvas.toDataURL("image/jpeg", 0.88);
+          }
+
+          setEditingBanner({
+            ...editingBanner,
+            bannerType: "full_image",
+            image: compressedDataUrl,
+          });
+
+          toast({
+            title: "Full Banner Compressed Successfully! ⚡",
+            description: `Auto-compressed to ${Math.round(compressedDataUrl.length / 1024)}KB for instant 0ms mobile rendering!`,
           });
         }
         setIsCompressing(false);
@@ -310,8 +403,7 @@ export default function HeroBannersPage() {
             Hero Banners & Slider Studio
           </h1>
           <p className="text-sm md:text-base text-purple-200/80 max-w-2xl">
-            Customize top 3D rotating banners in the customer shop. Add direct product/category links,
-            compress custom images instantly with HTML5 Canvas, and reorder slides.
+            Customize top rotating banners in the customer shop. Upload full-bleed ready graphic photos or design 3D interactive cards, add instant product/category redirects, and compress images with 0ms loading.
           </p>
         </div>
         <div className="relative z-10 flex flex-wrap items-center gap-3">
@@ -370,11 +462,11 @@ export default function HeroBannersPage() {
               >
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   {/* Thumbnail */}
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-2 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-800">
+                  <div className="w-24 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-1 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-800 overflow-hidden">
                     <img
                       src={banner.image}
                       alt={banner.title}
-                      className="w-full h-full object-contain drop-shadow-md"
+                      className={`w-full h-full ${banner.bannerType === "full_image" ? "object-cover rounded-xl" : "object-contain"} drop-shadow-md`}
                     />
                   </div>
 
@@ -382,7 +474,7 @@ export default function HeroBannersPage() {
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm font-black text-slate-900 dark:text-white truncate">
-                        {banner.title}
+                        {banner.title || "Custom Banner Graphic"}
                       </h3>
                       <Badge
                         variant="secondary"
@@ -390,6 +482,15 @@ export default function HeroBannersPage() {
                       >
                         Slide #{index + 1}
                       </Badge>
+                      {banner.bannerType === "full_image" ? (
+                        <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/40">
+                          <ImageIcon className="w-3 h-3 mr-1" /> Full Banner
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-indigo-600 border-indigo-200">
+                          <Sparkles className="w-3 h-3 mr-1" /> 3D Card
+                        </Badge>
+                      )}
                       {banner.actionType === "product" && (
                         <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200">
                           <Package className="w-3 h-3 mr-1" /> Product
@@ -401,18 +502,24 @@ export default function HeroBannersPage() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 line-clamp-1">{banner.subtitle}</p>
-                    <div className="flex items-center gap-2 pt-1">
-                      {banner.features?.slice(0, 2).map((feat, fi) => (
-                        <span
-                          key={fi}
-                          className="inline-flex items-center text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full"
-                        >
-                          <Check className="w-2.5 h-2.5 mr-1 text-emerald-500" />
-                          {feat}
-                        </span>
-                      ))}
-                    </div>
+                    {banner.bannerType === "full_image" ? (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">✨ Full edge-to-edge custom graphic</p>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-500 line-clamp-1">{banner.subtitle}</p>
+                        <div className="flex items-center gap-2 pt-1">
+                          {banner.features?.slice(0, 2).map((feat, fi) => (
+                            <span
+                              key={fi}
+                              className="inline-flex items-center text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full"
+                            >
+                              <Check className="w-2.5 h-2.5 mr-1 text-emerald-500" />
+                              {feat}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -520,65 +627,88 @@ export default function HeroBannersPage() {
               {/* Mini App Shop Hero Component */}
               {currentPreview ? (
                 <div className="space-y-4">
-                  <div
-                    className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${currentPreview.bgGradient} p-4 border border-slate-200/80 shadow-md text-slate-900`}
-                  >
-                    <div className="relative z-10 flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-2">
-                        <div>
-                          <h3 className="text-base font-black text-slate-900 leading-tight">
-                            {currentPreview.title}
-                          </h3>
-                          <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5 line-clamp-2">
-                            {currentPreview.subtitle}
-                          </p>
+                  {currentPreview.bannerType === "full_image" ? (
+                    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 shadow-md group cursor-pointer">
+                      <img
+                        src={currentPreview.image}
+                        alt={currentPreview.title || "Full Banner"}
+                        className="w-full h-36 object-cover rounded-2xl"
+                      />
+                      {/* Dots overlay */}
+                      <div className="absolute bottom-2.5 right-3 flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full z-10">
+                        {activeBanners.map((_, dotIdx) => (
+                          <div
+                            key={dotIdx}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              dotIdx === previewIndex % (activeBanners.length || 1)
+                                ? "w-4 bg-white"
+                                : "w-1.5 bg-white/40"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${currentPreview.bgGradient} p-4 border border-slate-200/80 shadow-md text-slate-900`}
+                    >
+                      <div className="relative z-10 flex items-start justify-between gap-2">
+                        <div className="flex-1 space-y-2">
+                          <div>
+                            <h3 className="text-base font-black text-slate-900 leading-tight">
+                              {currentPreview.title}
+                            </h3>
+                            <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5 line-clamp-2">
+                              {currentPreview.subtitle}
+                            </p>
+                          </div>
+
+                          {/* Features with checkmarks */}
+                          <div className="space-y-1 pt-1">
+                            {currentPreview.features?.map((feat, fidx) => (
+                              <div
+                                key={fidx}
+                                className="flex items-center gap-1 text-[10px] font-bold text-slate-800"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span className="truncate">{feat}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Buy Now Button */}
+                          <div className="pt-2">
+                            <button className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1">
+                              {currentPreview.ctaText || "Buy Now"}
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Features with checkmarks */}
-                        <div className="space-y-1 pt-1">
-                          {currentPreview.features?.map((feat, fidx) => (
-                            <div
-                              key={fidx}
-                              className="flex items-center gap-1 text-[10px] font-bold text-slate-800"
-                            >
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                              <span className="truncate">{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Buy Now Button */}
-                        <div className="pt-2">
-                          <button className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1">
-                            {currentPreview.ctaText || "Buy Now"}
-                          </button>
+                        {/* 3D Image */}
+                        <div className="w-24 h-24 shrink-0 flex items-center justify-center">
+                          <img
+                            src={currentPreview.image}
+                            alt="Banner Preview"
+                            className="w-full h-full object-contain drop-shadow-xl"
+                          />
                         </div>
                       </div>
 
-                      {/* 3D Image */}
-                      <div className="w-24 h-24 shrink-0 flex items-center justify-center">
-                        <img
-                          src={currentPreview.image}
-                          alt="Banner Preview"
-                          className="w-full h-full object-contain drop-shadow-xl"
-                        />
+                      {/* Dots */}
+                      <div className="flex items-center justify-center gap-1 mt-3">
+                        {activeBanners.map((_, dotIdx) => (
+                          <div
+                            key={dotIdx}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              dotIdx === previewIndex % (activeBanners.length || 1)
+                                ? "w-5 bg-emerald-600"
+                                : "w-1.5 bg-slate-300"
+                            }`}
+                          />
+                        ))}
                       </div>
                     </div>
-
-                    {/* Dots */}
-                    <div className="flex items-center justify-center gap-1 mt-3">
-                      {activeBanners.map((_, dotIdx) => (
-                        <div
-                          key={dotIdx}
-                          className={`h-1.5 rounded-full transition-all duration-300 ${
-                            dotIdx === previewIndex % (activeBanners.length || 1)
-                              ? "w-5 bg-emerald-600"
-                              : "w-1.5 bg-slate-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   <div className="p-3 bg-slate-800/60 rounded-xl text-center">
                     <p className="text-[11px] text-slate-400 font-medium">
@@ -607,184 +737,326 @@ export default function HeroBannersPage() {
           </DialogHeader>
 
           {editingBanner && (
-            <div className="space-y-5 py-2">
-              {/* Title & Subtitle */}
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Slide Headline Title
-                  </Label>
-                  <Input
-                    value={editingBanner.title}
-                    onChange={(e) =>
-                      setEditingBanner({ ...editingBanner, title: e.target.value })
+            <div className="space-y-6 py-2">
+              {/* BANNER MODE SELECTOR */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Select Banner Style / Mode
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingBanner({ ...editingBanner, bannerType: "full_image" })
                     }
-                    placeholder="e.g. CapCut Pro 1 Month"
-                    className="mt-1 font-bold text-sm"
-                  />
-                </div>
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-start gap-3 ${
+                      editingBanner.bannerType === "full_image"
+                        ? "border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 opacity-70"
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                        🖼️ Full Photo Banner
+                        {editingBanner.bannerType === "full_image" && (
+                          <Badge className="bg-amber-500 text-[10px] h-4 px-1.5">Selected</Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                        Upload a ready artwork photo. No need to fill titles or bullet points!
+                      </p>
+                    </div>
+                  </button>
 
-                <div>
-                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Subtitle Description
-                  </Label>
-                  <Input
-                    value={editingBanner.subtitle}
-                    onChange={(e) =>
-                      setEditingBanner({ ...editingBanner, subtitle: e.target.value })
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingBanner({ ...editingBanner, bannerType: "card" })
                     }
-                    placeholder="e.g. Unlock 4K 60fps export, AI auto captions & cloud space."
-                    className="mt-1 text-xs"
-                  />
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-start gap-3 ${
+                      editingBanner.bannerType !== "full_image"
+                        ? "border-purple-600 bg-purple-50/50 dark:bg-purple-950/20 shadow-sm"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 opacity-70"
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                        🎨 Designed 3D Card
+                        {editingBanner.bannerType !== "full_image" && (
+                          <Badge className="bg-purple-600 text-[10px] h-4 px-1.5">Selected</Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                        Dynamic title, subtitle description, feature bullet points & 3D badge.
+                      </p>
+                    </div>
+                  </button>
                 </div>
               </div>
 
-              {/* Feature Bullets (3 items) */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Feature Bullets (With Checkmarks)
-                </Label>
-                {[0, 1, 2].map((idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <Input
-                      value={editingBanner.features[idx] || ""}
-                      onChange={(e) => {
-                        const newFeats = [...(editingBanner.features || [])];
-                        newFeats[idx] = e.target.value;
-                        setEditingBanner({ ...editingBanner, features: newFeats });
-                      }}
-                      placeholder={`Feature Bullet #${idx + 1}`}
-                      className="text-xs"
-                    />
-                  </div>
-                ))}
-              </div>
+              {/* MODE 1: FULL PHOTO BANNER UPLOAD */}
+              {editingBanner.bannerType === "full_image" ? (
+                <div className="space-y-4 p-5 rounded-2xl bg-amber-50/40 dark:bg-slate-900/60 border border-amber-200/80 dark:border-amber-900/40">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Full Banner Graphic Photo (Auto-Compressed)</span>
+                      <span className="text-[10px] text-emerald-600 font-bold">⚡ HTML5 0ms Load Compressor</span>
+                    </Label>
 
-              {/* Image Selection & Canvas Compressor */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  3D Icon / Graphic (Instant Loading Canvas Compressed)
-                </Label>
-                <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                  <div className="w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border p-2 flex items-center justify-center shrink-0">
-                    <img
-                      src={editingBanner.image}
-                      alt="Thumbnail"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
+                    {/* Preview Box */}
+                    <div className="relative w-full h-44 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-amber-300 dark:border-amber-700/60 flex items-center justify-center overflow-hidden group">
+                      {editingBanner.image ? (
+                        <>
+                          <img
+                            src={editingBanner.image}
+                            alt="Full Banner Preview"
+                            className="w-full h-full object-cover rounded-2xl"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button
+                              type="button"
+                              onClick={() => fullBannerInputRef.current?.click()}
+                              className="bg-white text-slate-900 font-bold text-xs"
+                            >
+                              <Upload className="w-3.5 h-3.5 mr-1.5" /> Replace Photo
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center space-y-2 p-4">
+                          <ImageIcon className="w-10 h-10 text-amber-500 mx-auto" />
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                            No full banner uploaded yet. Click below to select image.
+                          </p>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-3 pt-2">
                       <Button
                         type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => fullBannerInputRef.current?.click()}
                         disabled={isCompressing}
-                        className="font-bold text-xs"
+                        className="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow-md"
                       >
                         <Upload className="w-3.5 h-3.5 mr-1.5" />
-                        {isCompressing ? "Compressing..." : "Upload & Compress Image"}
+                        {isCompressing ? "Compressing..." : "Upload & Compress Full Banner"}
                       </Button>
                       <input
                         type="file"
-                        ref={fileInputRef}
+                        ref={fullBannerInputRef}
                         accept="image/*"
                         className="hidden"
-                        onChange={handleImageUpload}
+                        onChange={handleFullBannerUpload}
+                      />
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Recommended: 1200x500 or 16:9 ratio (PNG, JPG, WebP)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Internal Banner Label (Optional)
+                    </Label>
+                    <Input
+                      value={editingBanner.title || ""}
+                      onChange={(e) =>
+                        setEditingBanner({ ...editingBanner, title: e.target.value })
+                      }
+                      placeholder="e.g. Summer Promo Special 2026"
+                      className="mt-1 font-bold text-sm bg-white dark:bg-slate-900"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* MODE 2: DESIGNED 3D CARD MODE */
+                <div className="space-y-5">
+                  {/* Title & Subtitle */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Slide Headline Title
+                      </Label>
+                      <Input
+                        value={editingBanner.title}
+                        onChange={(e) =>
+                          setEditingBanner({ ...editingBanner, title: e.target.value })
+                        }
+                        placeholder="e.g. CapCut Pro 1 Month"
+                        className="mt-1 font-bold text-sm"
                       />
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold text-slate-400">Presets:</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingBanner({
-                            ...editingBanner,
-                            image: "/assets/banner_capcut_3d.png",
-                          })
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Subtitle Description
+                      </Label>
+                      <Input
+                        value={editingBanner.subtitle}
+                        onChange={(e) =>
+                          setEditingBanner({ ...editingBanner, subtitle: e.target.value })
                         }
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
-                      >
-                        CapCut
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingBanner({
-                            ...editingBanner,
-                            image: "/assets/banner_gemini_3d.png",
-                          })
-                        }
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
-                      >
-                        Gemini AI
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingBanner({
-                            ...editingBanner,
-                            image: "/assets/banner_cloud_3d.png",
-                          })
-                        }
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
-                      >
-                        Cloud VPS
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingBanner({
-                            ...editingBanner,
-                            image: "/assets/banner_premium_3d.png",
-                          })
-                        }
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
-                      >
-                        Telegram
-                      </button>
+                        placeholder="e.g. Unlock 4K 60fps export, AI auto captions & cloud space."
+                        className="mt-1 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Feature Bullets (3 items) */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Feature Bullets (With Checkmarks)
+                    </Label>
+                    {[0, 1, 2].map((idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <Input
+                          value={editingBanner.features?.[idx] || ""}
+                          onChange={(e) => {
+                            const newFeats = [...(editingBanner.features || [])];
+                            newFeats[idx] = e.target.value;
+                            setEditingBanner({ ...editingBanner, features: newFeats });
+                          }}
+                          placeholder={`Feature Bullet #${idx + 1}`}
+                          className="text-xs"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Image Selection & Canvas Compressor */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      3D Icon / Graphic (Instant Loading Canvas Compressed)
+                    </Label>
+                    <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                      <div className="w-20 h-20 rounded-xl bg-white dark:bg-slate-800 border p-2 flex items-center justify-center shrink-0">
+                        <img
+                          src={editingBanner.image}
+                          alt="Thumbnail"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isCompressing}
+                            className="font-bold text-xs"
+                          >
+                            <Upload className="w-3.5 h-3.5 mr-1.5" />
+                            {isCompressing ? "Compressing..." : "Upload & Compress Image"}
+                          </Button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-400">Presets:</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingBanner({
+                                ...editingBanner,
+                                image: "/assets/banner_capcut_3d.png",
+                              })
+                            }
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
+                          >
+                            CapCut
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingBanner({
+                                ...editingBanner,
+                                image: "/assets/banner_gemini_3d.png",
+                              })
+                            }
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
+                          >
+                            Gemini AI
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingBanner({
+                                ...editingBanner,
+                                image: "/assets/banner_cloud_3d.png",
+                              })
+                            }
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
+                          >
+                            Cloud VPS
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingBanner({
+                                ...editingBanner,
+                                image: "/assets/banner_premium_3d.png",
+                              })
+                            }
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border hover:border-purple-500"
+                          >
+                            Telegram
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Background Gradient */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Background Color Gradient Style
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {GRADIENT_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            setEditingBanner({ ...editingBanner, bgGradient: preset.value })
+                          }
+                          className={`p-2.5 rounded-xl border text-left transition-all text-xs font-bold flex items-center justify-between ${
+                            editingBanner.bgGradient === preset.value
+                              ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/50 dark:bg-purple-950/30"
+                              : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                          }`}
+                        >
+                          <span className="truncate">{preset.label}</span>
+                          <div
+                            className={`w-4 h-4 rounded-full bg-gradient-to-r ${preset.value} border border-slate-300 shrink-0 ml-2`}
+                          />
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Background Gradient */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Background Color Gradient Style
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {GRADIENT_PRESETS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() =>
-                        setEditingBanner({ ...editingBanner, bgGradient: preset.value })
-                      }
-                      className={`p-2.5 rounded-xl border text-left transition-all text-xs font-bold flex items-center justify-between ${
-                        editingBanner.bgGradient === preset.value
-                          ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/50 dark:bg-purple-950/30"
-                          : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
-                      }`}
-                    >
-                      <span className="truncate">{preset.label}</span>
-                      <div
-                        className={`w-4 h-4 rounded-full bg-gradient-to-r ${preset.value} border border-slate-300 shrink-0 ml-2`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Link (Product or Category) */}
+              {/* Target Selection & CTA Action Link (Common to both modes) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                 <div className="space-y-1">
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    CTA Action Type
+                    Click / CTA Action
                   </Label>
                   <Select
                     value={editingBanner.actionType}
@@ -798,14 +1070,14 @@ export default function HeroBannersPage() {
                     <SelectContent>
                       <SelectItem value="category">Filter by Category</SelectItem>
                       <SelectItem value="product">Open Specific Product</SelectItem>
-                      <SelectItem value="custom">Custom URL / Page</SelectItem>
+                      <SelectItem value="custom">Custom URL / Link</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Target Selection
+                    Target Destination
                   </Label>
                   {editingBanner.actionType === "product" ? (
                     <Select
@@ -820,7 +1092,7 @@ export default function HeroBannersPage() {
                       <SelectContent>
                         {products.map((p) => (
                           <SelectItem key={p.id} value={p.id.toString()}>
-                            {p.title} (LKR {p.price})
+                            {p.title || p.name} (LKR {p.price})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -835,11 +1107,11 @@ export default function HeroBannersPage() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-60 overflow-y-auto">
                         <SelectItem value="ALL">All Categories</SelectItem>
-                        {categories.map((c) => (
-                          <SelectItem key={c.id || c.name} value={c.name}>
-                            {c.name}
+                        {allAvailableCategories.map((catName) => (
+                          <SelectItem key={catName} value={catName}>
+                            {catName}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -850,7 +1122,7 @@ export default function HeroBannersPage() {
                       onChange={(e) =>
                         setEditingBanner({ ...editingBanner, actionTarget: e.target.value })
                       }
-                      placeholder="e.g. /support or https://..."
+                      placeholder="e.g. /shop or https://..."
                     />
                   )}
                 </div>

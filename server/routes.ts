@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
-import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
+import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, generateCredentialsTxt, generatePlainTextEmail, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
@@ -557,56 +557,34 @@ interface CustomerOtpRecord {
 }
 const customerOtpStore = new Map<string, CustomerOtpRecord>();
 
-async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ success: boolean; devCode?: string; error?: string }> {
+async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
-    const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
-    const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
-    const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
-    const smtpFrom = (await storage.getSetting("SMTP_FROM"))?.value || process.env.SMTP_FROM || `"youuhost" <no-reply@youuhost.store>`;
+    const emailHtml = buildOtpVerificationEmailHtml({
+      toEmail,
+      recipientName: toEmail.split('@')[0],
+      otpCode: code,
+      expiryMinutes: 10,
+    });
 
-    if (smtpHost && smtpUser && smtpPass) {
-      const nodemailerMod = await import("nodemailer");
-      const nodemailer = (nodemailerMod as any).default || nodemailerMod;
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+    const result = await sendLuxuryEmail({
+      toEmail,
+      recipientName: toEmail.split('@')[0],
+      subject: `Verification Code: ${code} - YouuHost`,
+      html: emailHtml,
+      templateType: "otp_verification",
+      metadata: { code, purpose: "customer_login_otp" }
+    });
 
-      await transporter.sendMail({
-        from: smtpFrom,
-        to: toEmail,
-        subject: `Your youuhost Verification Code: ${code}`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #0B0E14; color: #FFFFFF; border-radius: 24px; border: 1px solid #1F2430;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h1 style="margin: 0; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FF5E62 0%, #6C5CE7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">youuhost</h1>
-              <p style="margin: 6px 0 0 0; font-size: 13px; color: #9490A8;">Cloud Servers & Digital Products</p>
-            </div>
-            <div style="background: #151923; padding: 28px; border-radius: 18px; text-align: center; border: 1px solid #232938;">
-              <p style="margin: 0 0 16px 0; font-size: 14px; color: #D1D5DB;">Use the one-time code below to log in or sign up to your account:</p>
-              <div style="letter-spacing: 8px; font-size: 36px; font-weight: 900; color: #4ADE80; background: #0B0E14; padding: 16px 20px; border-radius: 12px; display: inline-block; font-family: monospace; border: 1px solid #1E293B;">
-                ${code}
-              </div>
-              <p style="margin: 16px 0 0 0; font-size: 12px; color: #94A3B8;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
-            </div>
-          </div>
-        `,
-      });
-      console.log(`[Customer Auth] OTP ${code} successfully sent via SMTP to ${toEmail}`);
+    if (result.success) {
+      console.log(`[Customer Auth] Live OTP ${code} successfully dispatched via Resend to ${toEmail}`);
       return { success: true };
     } else {
-      console.log(`[Customer Auth] SMTP not configured. OTP generated for ${toEmail}: ${code}`);
-      return { success: true, devCode: code };
+      console.warn(`[Customer Auth] Live OTP dispatch notice for ${toEmail}: ${result.error}`);
+      return { success: true, error: result.error };
     }
   } catch (err: any) {
-    console.error(`[Customer Auth] SMTP error for ${toEmail}:`, err?.message || err);
-    return { success: true, devCode: code, error: err?.message };
+    console.error(`[Customer Auth] OTP send error for ${toEmail}:`, err?.message || err);
+    return { success: false, error: err?.message };
   }
 }
 
@@ -654,7 +632,28 @@ export async function sendLuxuryEmail({
           activeFrom = "YouuHost <onboarding@resend.dev>";
         }
 
-        // 1. Send via Resend API (Transactional Engine)
+        // 1. Generate Plain Text Alternative for Maximum Deliverability (0% Spam score)
+        const plainText = generatePlainTextEmail(templateType || "custom", {
+          toEmail: cleanToEmail,
+          recipientName: recipientName || "Valued Customer",
+          subject,
+          amount: metadata?.amount,
+          planTitle: metadata?.planName || metadata?.planTitle,
+          referenceId: metadata?.invoiceNumber || metadata?.orderId || metadata?.referenceId,
+          billingCycle: metadata?.billingCycle || "One-Time",
+          paymentMethod: metadata?.paymentMethod,
+          paymentMethodDetails: metadata?.paymentMethodDetails,
+          orderId: metadata?.orderId,
+          productName: metadata?.planName || metadata?.productName,
+          quantity: metadata?.quantity,
+          otpCode: metadata?.code || metadata?.otpCode,
+          heading: metadata?.heading,
+          message: metadata?.message,
+          ctaText: metadata?.ctaText,
+          ctaUrl: metadata?.ctaUrl,
+        });
+
+        // 2. Format Resend Attachments
         const resendAttachments = attachments && attachments.length > 0
           ? attachments.map((a) => {
               const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content);
@@ -665,6 +664,12 @@ export async function sendLuxuryEmail({
             })
           : undefined;
 
+        const antiSpamHeaders = {
+          "X-Entity-Ref-ID": `youuhost-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          "List-Unsubscribe": "<https://youuhost.com/shop>",
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        };
+
         let res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -674,8 +679,11 @@ export async function sendLuxuryEmail({
           body: JSON.stringify({
             from: activeFrom,
             to: [cleanToEmail],
+            reply_to: "support@youuhost.com",
             subject,
             html,
+            text: plainText,
+            headers: antiSpamHeaders,
             attachments: resendAttachments,
           }),
         });
@@ -695,8 +703,11 @@ export async function sendLuxuryEmail({
               body: JSON.stringify({
                 from: "YouuHost <onboarding@resend.dev>",
                 to: [cleanToEmail],
+                reply_to: "support@youuhost.com",
                 subject,
                 html,
+                text: plainText,
+                headers: antiSpamHeaders,
                 attachments: resendAttachments,
               }),
             });
@@ -1261,7 +1272,6 @@ export async function registerRoutes(
       return res.json({
         success: true,
         message: "A 6-digit verification code has been sent to your email.",
-        devCode: sendResult.devCode
       });
     } catch (err: any) {
       console.error("send-otp error:", err);
@@ -1919,6 +1929,160 @@ export async function registerRoutes(
 
     const userPayments = await storage.getPaymentsForUser(dbUser.id);
     res.json(userPayments);
+  });
+
+  // --- Mini App Customer Support Tickets Endpoints ---
+  app.get("/api/mini/support/tickets", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) return res.json([]);
+
+      const userTgId = dbUser.telegramId ? dbUser.telegramId.toString() : "";
+      const tickets = await db
+        .select()
+        .from(supportTickets)
+        .where(
+          or(
+            eq(supportTickets.telegramUserId, dbUser.id),
+            userTgId ? eq(supportTickets.userTelegramId, userTgId) : sql`false`
+          )
+        )
+        .orderBy(desc(supportTickets.id));
+
+      res.json(tickets);
+    } catch (err: any) {
+      console.error("Error fetching mini app support tickets:", err);
+      res.status(500).json({ message: err.message || "Failed to fetch tickets" });
+    }
+  });
+
+  app.post("/api/mini/support/tickets", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) {
+        return res.status(401).json({ message: "Please sign in to open a support ticket." });
+      }
+
+      const { issueType = "General Support", subject, details, orderId } = req.body;
+      if (!details || !details.trim()) {
+        return res.status(400).json({ message: "Ticket message details are required" });
+      }
+
+      const ticketSubject = subject && subject.trim() ? subject.trim() : `Support: ${issueType}`;
+      const initialMessages = [
+        {
+          sender: "user",
+          text: details.trim(),
+          timestamp: new Date().toISOString()
+        }
+      ];
+
+      const [newTicket] = await db.insert(supportTickets).values({
+        telegramUserId: dbUser.id,
+        userTelegramId: dbUser.telegramId ? dbUser.telegramId.toString() : "",
+        username: dbUser.username || dbUser.firstName || dbUser.email || "Customer",
+        issueType: issueType,
+        subject: ticketSubject,
+        details: details.trim(),
+        status: "open",
+        messages: JSON.stringify(initialMessages),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+
+      // Notify Admin via WebSocket
+      io.emit("admin_notification", {
+        type: "support_ticket",
+        title: "New Support Ticket Opened",
+        message: `Ticket #${newTicket.id} from ${dbUser.firstName || dbUser.username || dbUser.email}: ${ticketSubject}`,
+        ticketId: newTicket.id,
+        createdAt: new Date()
+      });
+
+      res.json(newTicket);
+    } catch (err: any) {
+      console.error("Error creating mini app support ticket:", err);
+      res.status(500).json({ message: err.message || "Failed to create ticket" });
+    }
+  });
+
+  app.post("/api/mini/support/tickets/:id/message", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const tgUser = (req as any).tgUser;
+      let dbUser = tgUser?.dbUser;
+      if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        const customerUserId = (req.session as any)?.customerUserId;
+        if (customerUserId) {
+          dbUser = await storage.getTelegramUserById(customerUserId);
+        }
+      }
+      if (!dbUser) return res.status(401).json({ message: "Sign in required" });
+
+      const ticketId = parseInt(req.params.id, 10);
+      const { message } = req.body;
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: "Message cannot be empty" });
+      }
+
+      const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, ticketId));
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+      let messagesList: any[] = [];
+      if (ticket.messages) {
+        try {
+          messagesList = JSON.parse(ticket.messages);
+        } catch {
+          messagesList = [];
+        }
+      }
+
+      messagesList.push({
+        sender: "user",
+        text: message.trim(),
+        timestamp: new Date().toISOString()
+      });
+
+      const [updated] = await db.update(supportTickets).set({
+        messages: JSON.stringify(messagesList),
+        status: "open", // Reopens for admin review if user replies
+        updatedAt: new Date()
+      }).where(eq(supportTickets.id, ticketId)).returning();
+
+      io.emit("admin_notification", {
+        type: "support_message",
+        title: `New Message on Ticket #${ticketId}`,
+        message: message.trim(),
+        ticketId,
+        createdAt: new Date()
+      });
+
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to send message" });
+    }
   });
 
   // --- Mini App User API Key Management ---
@@ -3589,6 +3753,13 @@ export async function registerRoutes(
               referenceId: orderNo,
             });
 
+            const txtBuf = generateCredentialsTxt({
+              orderId: orderNo,
+              productName: result.product.name,
+              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              credentials: orderCreds,
+            });
+
             await sendLuxuryEmail({
               toEmail: targetEmail,
               recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
@@ -3601,6 +3772,11 @@ export async function registerRoutes(
                   filename: `invoice_${orderNo}.pdf`,
                   content: pdfBuf,
                   contentType: "application/pdf",
+                },
+                {
+                  filename: `credentials_${orderNo}.txt`,
+                  content: txtBuf,
+                  contentType: "text/plain",
                 },
               ],
             });
@@ -15799,17 +15975,21 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         recipientName,
         subject = "Payment Successful - Your Transaction Invoice",
         amount = "LKR 14,990.00",
+        discountAmount,
+        discountCode,
+        subtotal,
         planName = "Enterprise AI Plan",
-        billingCycle = "Monthly",
+        billingCycle = "One-Time",
         paymentMethod = "mastercard",
+        paymentMethodDetails,
         invoiceNumber = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`,
         orderId = `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
         credentialsText,
         otpCode = `${Math.floor(100000 + Math.random() * 900000)}`,
         bodyHeading = "Payment Successful",
-        bodyMessage = "Your subscription invoice for your plan has been processed successfully.",
-        ctaText = "Manage Subscription",
-        ctaUrl = "https://youuhost.com/userdashbord/dashboard",
+        bodyMessage = "Your payment for your plan has been processed successfully.",
+        ctaText = "Manage Orders",
+        ctaUrl = "https://youuhost.com/shop",
       } = req.body;
 
       if (recipientMode === "broadcast") {
@@ -15878,9 +16058,13 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
               recipientName: uName,
               subject,
               amount,
+              discountAmount,
+              discountCode,
+              subtotal,
               planTitle: planName,
               billingCycle,
               paymentMethod,
+              paymentMethodDetails,
               referenceId: userInv,
               ctaText,
               ctaUrl,
@@ -15890,9 +16074,13 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
                 toEmail: u.email!,
                 recipientName: uName,
                 amount,
+                discountAmount,
+                discountCode,
+                subtotal,
                 planTitle: planName,
                 billingCycle,
                 paymentMethod,
+                paymentMethodDetails,
                 referenceId: userInv,
               });
               attachments.push({
@@ -15902,7 +16090,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
               });
             } catch (pErr) {}
           } else if (templateType === "order_credentials") {
-            const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+            const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: youuhost_admin", "password: VpsP@ss#2026!", "host_ip: 18.141.224.63:22", "license_key: YOUU-ENTERPRISE-PRO-9812-2291"];
             emailHtml = buildOrderCredentialsEmailHtml({
               toEmail: u.email!,
               recipientName: uName,
@@ -15911,10 +16099,46 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
               productName: planName,
               quantity: 1,
               amount,
+              discountAmount,
+              discountCode,
+              subtotal,
               credentials: credsList,
-              ctaText: ctaText || "Access Your Dashboard",
+              ctaText: ctaText || "Manage Orders",
               ctaUrl: ctaUrl || "https://youuhost.com/shop",
             });
+            try {
+              const pdfBuf = generateInvoicePdf({
+                toEmail: u.email!,
+                recipientName: uName,
+                amount,
+                discountAmount,
+                discountCode,
+                subtotal,
+                planTitle: planName,
+                billingCycle: "One-Time / Digital License",
+                paymentMethod: paymentMethod || "wallet",
+                paymentMethodDetails,
+                referenceId: orderId,
+              });
+              const txtBuf = generateCredentialsTxt({
+                orderId,
+                productName: planName,
+                recipientName: uName,
+                credentials: credsList,
+              });
+              attachments.push(
+                {
+                  filename: `invoice_${orderId}.pdf`,
+                  content: pdfBuf,
+                  contentType: "application/pdf",
+                },
+                {
+                  filename: `credentials_${orderId}.txt`,
+                  content: txtBuf,
+                  contentType: "text/plain",
+                }
+              );
+            } catch (pErr) {}
           } else if (templateType === "otp_verification") {
             emailHtml = buildOtpVerificationEmailHtml({
               toEmail: u.email!,
@@ -15940,7 +16164,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             subject,
             html: emailHtml,
             templateType,
-            metadata: { amount, planName, invoiceNumber },
+            metadata: { amount, planName, invoiceNumber, billingCycle, paymentMethod },
             attachments,
           });
 
@@ -15962,12 +16186,16 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
       if (templateType === "payment_success") {
         emailHtml = buildPaymentSuccessEmailHtml({
           toEmail,
-          recipientName: recipientName || "Test User",
+          recipientName: recipientName || "Valued Customer",
           subject,
           amount,
+          discountAmount,
+          discountCode,
+          subtotal,
           planTitle: planName,
           billingCycle,
           paymentMethod,
+          paymentMethodDetails,
           referenceId: invoiceNumber,
           ctaText,
           ctaUrl,
@@ -15976,11 +16204,15 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         try {
           const pdfBuf = generateInvoicePdf({
             toEmail,
-            recipientName: recipientName || "Test User",
+            recipientName: recipientName || "Valued Customer",
             amount,
+            discountAmount,
+            discountCode,
+            subtotal,
             planTitle: planName,
             billingCycle,
             paymentMethod,
+            paymentMethodDetails,
             referenceId: invoiceNumber,
           });
           attachments.push({
@@ -16001,6 +16233,9 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           productName: planName || "Cloud VPS Service",
           quantity: 1,
           amount: amount || "$5.50 USD",
+          discountAmount,
+          discountCode,
+          subtotal,
           credentials: credsList,
           ctaText: ctaText || "Manage Orders",
           ctaUrl: ctaUrl || "https://youuhost.com/shop",
@@ -16011,18 +16246,35 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             toEmail,
             recipientName: recipientName || "Valued Customer",
             amount: amount || "$5.50 USD",
+            discountAmount,
+            discountCode,
+            subtotal,
             planTitle: planName || "Cloud VPS Service",
             billingCycle: "One-Time / Digital License",
             paymentMethod: paymentMethod || "wallet",
+            paymentMethodDetails,
             referenceId: orderId,
           });
-          attachments.push({
-            filename: `invoice_${orderId}.pdf`,
-            content: pdfBuf,
-            contentType: "application/pdf",
+          const txtBuf = generateCredentialsTxt({
+            orderId,
+            productName: planName || "Cloud VPS Service",
+            recipientName: recipientName || "Valued Customer",
+            credentials: credsList,
           });
+          attachments.push(
+            {
+              filename: `invoice_${orderId}.pdf`,
+              content: pdfBuf,
+              contentType: "application/pdf",
+            },
+            {
+              filename: `credentials_${orderId}.txt`,
+              content: txtBuf,
+              contentType: "text/plain",
+            }
+          );
         } catch (pdfErr: any) {
-          console.error("[Email Hub] Order PDF Error:", pdfErr.message);
+          console.error("[Email Hub] Order PDF/TXT Error:", pdfErr.message);
         }
       } else if (templateType === "otp_verification") {
         emailHtml = buildOtpVerificationEmailHtml({
@@ -16049,7 +16301,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         subject,
         html: emailHtml,
         templateType,
-        metadata: { amount, planName, invoiceNumber, paymentMethod },
+        metadata: { amount, planName, invoiceNumber, billingCycle, paymentMethod },
         attachments,
       });
 

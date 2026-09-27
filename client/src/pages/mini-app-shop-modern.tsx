@@ -15,6 +15,7 @@ import {
   Package,
   Wallet,
   ChevronRight,
+  ChevronLeft,
   CreditCard,
   History as HistoryIcon,
   Store as StoreIcon,
@@ -56,7 +57,14 @@ import {
   Terminal,
   Layers,
   XCircle,
-  Tag
+  Tag,
+  Download,
+  FileText,
+  CheckCircle,
+  LifeBuoy,
+  Ticket,
+  HelpCircle,
+  SendHorizontal
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
@@ -206,7 +214,7 @@ const HERO_SLIDES = [
     gradientBg: "from-[#FFF1F6] via-[#FCE7F3] to-[#F5E6FF]",
     borderColor: "border-pink-200/80",
     btnGradient: "from-[#FF007A] to-[#7928CA]",
-    imageSrc: "/assets/banner_capcut_3d.png",
+    imageSrc: "https://img.icons8.com/color/144/capcut.png",
     imageAlt: "CapCut Pro",
     glowColor: "bg-pink-400/25"
   },
@@ -223,7 +231,7 @@ const HERO_SLIDES = [
     gradientBg: "from-[#F0F9FF] via-[#E0F2FE] to-[#EDE9FE]",
     borderColor: "border-cyan-200/80",
     btnGradient: "from-[#0080FF] to-[#6C5CE7]",
-    imageSrc: "/assets/banner_gemini_3d.png",
+    imageSrc: "https://img.icons8.com/color/144/google-gemini.png",
     imageAlt: "Gemini AI Pro",
     glowColor: "bg-cyan-400/25"
   },
@@ -240,7 +248,7 @@ const HERO_SLIDES = [
     gradientBg: "from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE]",
     borderColor: "border-[#E4DCFA]",
     btnGradient: "from-[#FF5E62] to-[#6C5CE7]",
-    imageSrc: "/assets/banner_cloud_3d.png",
+    imageSrc: "https://img.icons8.com/fluency/144/server.png",
     imageAlt: "Cloud Servers",
     glowColor: "bg-purple-400/25"
   },
@@ -257,7 +265,7 @@ const HERO_SLIDES = [
     gradientBg: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
     borderColor: "border-sky-200/80",
     btnGradient: "from-[#00C9FF] to-[#6C5CE7]",
-    imageSrc: "/assets/banner_premium_3d.png",
+    imageSrc: "https://img.icons8.com/color/144/telegram-app.png",
     imageAlt: "Telegram & Spotify",
     glowColor: "bg-sky-400/25"
   }
@@ -776,16 +784,74 @@ export default function MiniAppShopModern() {
     ? dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false)
     : HERO_SLIDES;
 
-  // Hero Auto-Swap Carousel State (Every 3 seconds)
+  // Hero Auto-Swap & Touch/Mouse Swipe Carousel State
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const heroTouchStartX = useRef<number | null>(null);
+  const heroTouchStartY = useRef<number | null>(null);
+  const heroDragStartX = useRef<number | null>(null);
+
+  const nextHeroSlide = () => {
+    const count = activeHeroSlides.length || 1;
+    setCurrentHeroSlide((prev) => (prev + 1) % count);
+  };
+
+  const prevHeroSlide = () => {
+    const count = activeHeroSlides.length || 1;
+    setCurrentHeroSlide((prev) => (prev - 1 + count) % count);
+  };
+
+  const handleHeroTouchStart = (e: React.TouchEvent) => {
+    setIsHeroPaused(true);
+    heroTouchStartX.current = e.touches[0].clientX;
+    heroTouchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleHeroTouchEnd = (e: React.TouchEvent) => {
+    setIsHeroPaused(false);
+    if (heroTouchStartX.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = heroTouchStartX.current - endX;
+    const diffY = heroTouchStartY.current ? heroTouchStartY.current - endY : 0;
+
+    // Detect horizontal swipe if delta > 30px and greater than vertical scroll
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+      if (diffX > 0) {
+        nextHeroSlide();
+      } else {
+        prevHeroSlide();
+      }
+    }
+    heroTouchStartX.current = null;
+    heroTouchStartY.current = null;
+  };
+
+  const handleHeroMouseDown = (e: React.MouseEvent) => {
+    setIsHeroPaused(true);
+    heroDragStartX.current = e.clientX;
+  };
+
+  const handleHeroMouseUp = (e: React.MouseEvent) => {
+    setIsHeroPaused(false);
+    if (heroDragStartX.current === null) return;
+    const diffX = heroDragStartX.current - e.clientX;
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        nextHeroSlide();
+      } else {
+        prevHeroSlide();
+      }
+    }
+    heroDragStartX.current = null;
+  };
 
   useEffect(() => {
     if (isHeroPaused) return;
     const count = activeHeroSlides.length || 1;
     const interval = setInterval(() => {
       setCurrentHeroSlide((prev) => (prev + 1) % count);
-    }, 3000);
+    }, 3500);
     return () => clearInterval(interval);
   }, [isHeroPaused, activeHeroSlides.length]);
 
@@ -914,13 +980,14 @@ export default function MiniAppShopModern() {
     },
   });
 
-  const { data: orders = [] } = useQuery<Order[]>({
+  const { data: orders = [], refetch: refetchOrders } = useQuery<Order[]>({
     queryKey: ["/api/mini/orders"],
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/orders");
       return res.json();
     },
     enabled: activeTab === "orders" || activeTab === "profile",
+    refetchInterval: activeTab === "orders" ? 8000 : false,
   });
 
   const { data: payments = [] } = useQuery<Payment[]>({
@@ -957,6 +1024,7 @@ export default function MiniAppShopModern() {
       }
     },
     enabled: activeTab === "orders",
+    refetchInterval: activeTab === "orders" ? 8000 : false,
   });
 
   // SMM Modal & Ordering State
@@ -990,7 +1058,236 @@ export default function MiniAppShopModern() {
       }
     },
     enabled: activeTab === "orders",
+    refetchInterval: activeTab === "orders" ? 8000 : false,
   });
+
+  // Orders Tab Filter & Unified List State
+  const [ordersFilter, setOrdersFilter] = useState<"all" | "account" | "smm" | "license">("all");
+  const [isSyncingOrders, setIsSyncingOrders] = useState(false);
+
+  const handleSyncAllOrders = async () => {
+    setIsSyncingOrders(true);
+    try {
+      await Promise.all([
+        refetchOrders(),
+        refetchSmmOrders(),
+        refetchSandromaniaOrders(),
+      ]);
+      toast({
+        title: "Orders Synced! 🔄",
+        description: "Your latest orders & status updates are refreshed.",
+      });
+    } catch {
+      toast({
+        title: "Sync complete",
+        description: "Orders checked.",
+      });
+    } finally {
+      setIsSyncingOrders(false);
+    }
+  };
+
+  // Unified Chronological Order History (Sorted Newest First - Only Successful & Active Orders)
+  const unifiedOrdersList = useMemo(() => {
+    const list: any[] = [];
+
+    // 1. Cloud & Account Orders (Exclude failed API / checkout errors)
+    orders.forEach((ord: any) => {
+      const isFailed = (ord.status || "").toLowerCase() === "failed";
+      if (isFailed) return; // Customer order list only shows successful fulfilled purchases
+
+      const prodName = ord.product?.name || "Cloud & Account Service";
+      const prodType = ord.product?.type || "account";
+      const conf = getProviderConfig(prodName, prodType);
+
+      list.push({
+        id: `ord-${ord.id}`,
+        rawId: ord.id,
+        orderType: "account",
+        orderNumber: `#ORD-${ord.id}`,
+        title: prodName,
+        categoryTag: conf.tag || "Cloud Service",
+        badgeBg: conf.bgBadge || "bg-purple-50 text-[#5B42F3] border-purple-200",
+        status: "Active / Completed",
+        statusBadge: (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+            Active / Completed
+          </span>
+        ),
+        priceCents: ord.product?.price || 0,
+        quantity: 1,
+        date: ord.createdAt ? new Date(ord.createdAt) : new Date(0),
+        credentialData: ord.credential?.data,
+        twoFactorSecret: ord.credential?.twoFactorSecret,
+      });
+    });
+
+    // 2. SMM Social Boost Orders
+    smmOrdersList.forEach((smmOrd: any) => {
+      const status = (smmOrd.status || "Pending").toLowerCase();
+      if (status.includes("fail") || status.includes("cancel")) return;
+
+      const smmService = smmOrd.smmService || smmServicesList.find((s) => s.id === smmOrd.smmServiceId);
+      const conf = getSmmPlatformConfig(smmService?.category || smmOrd.serviceCategory || "", smmService?.name || smmOrd.serviceName || "");
+
+      let statusBadge = (
+        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200">
+          Pending
+        </span>
+      );
+      if (status.includes("complete") || status.includes("success")) {
+        statusBadge = (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+            Completed
+          </span>
+        );
+      } else if (status.includes("progress") || status.includes("processing")) {
+        statusBadge = (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+            In Progress
+          </span>
+        );
+      } else if (status.includes("partial")) {
+        statusBadge = (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+            Partial
+          </span>
+        );
+      }
+
+      list.push({
+        id: `smm-${smmOrd.id}`,
+        rawId: smmOrd.id,
+        orderType: "smm",
+        orderNumber: `#YH-${smmOrd.id}`,
+        title: smmOrd.serviceName || smmService?.name || `Social Boost Service #${smmOrd.id}`,
+        categoryTag: conf.tag || "Social Boost",
+        badgeBg: conf.bgBadge || "bg-pink-50 text-pink-600 border-pink-200",
+        status: smmOrd.status || "Pending",
+        statusBadge,
+        priceCents: smmOrd.charge || smmOrd.amountPaid || 0,
+        quantity: smmOrd.quantity || 1,
+        date: smmOrd.createdAt ? new Date(smmOrd.createdAt) : new Date(0),
+        smmLink: smmOrd.link,
+        startCount: smmOrd.startCount,
+        remains: smmOrd.remains,
+      });
+    });
+
+    // 3. Sandromania CDK Orders
+    sandromaniaOrdersList.forEach((sandroOrd: any) => {
+      const status = (sandroOrd.status || "Completed").toLowerCase();
+      if (status.includes("fail") || status.includes("cancel")) return;
+
+      const conf = getProviderConfig(sandroOrd.product?.title || "", sandroOrd.product?.category || "");
+
+      let statusBadge = (
+        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+          Auto-Delivered
+        </span>
+      );
+      if (status.includes("pend") || status.includes("process")) {
+        statusBadge = (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+            Processing
+          </span>
+        );
+      }
+
+      const deliveredData =
+        sandroOrd.deliveredData ||
+        (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload || ""));
+
+      list.push({
+        id: `sandro-${sandroOrd.id}`,
+        rawId: sandroOrd.id,
+        orderType: "license",
+        orderNumber: sandroOrd.externalOrderId ? `#SANDRO-${sandroOrd.externalOrderId}` : `#ORD-${sandroOrd.id}`,
+        title: sandroOrd.product?.title || `Digital License #${sandroOrd.productId}`,
+        categoryTag: conf.tag || "Digital License",
+        badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
+        status: sandroOrd.status || "Completed",
+        statusBadge,
+        priceCents: sandroOrd.amountPaid || 0,
+        quantity: sandroOrd.quantity || 1,
+        date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : new Date(0),
+        licenseKey: deliveredData,
+      });
+    });
+
+    // Chronological Sort: Newest Order Always First
+    list.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    return list;
+  }, [orders, smmOrdersList, sandromaniaOrdersList, smmServicesList]);
+
+  const filteredOrders = useMemo(() => {
+    if (ordersFilter === "all") return unifiedOrdersList;
+    return unifiedOrdersList.filter((item) => item.orderType === ordersFilter);
+  }, [unifiedOrdersList, ordersFilter]);
+
+  // Order Details Modal State & Txt Downloader
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+
+  const downloadOrderTxt = (ord: any) => {
+    if (!ord) return;
+    const dateStr = ord.date && ord.date.getTime() > 0 ? format(ord.date, "yyyy-MM-dd HH:mm:ss") : "N/A";
+    const priceUsd = (ord.priceCents / 100).toFixed(2);
+    const priceLkr = Math.round((ord.priceCents / 100) * lkrRate).toLocaleString();
+
+    let credSection = "";
+    if (ord.credentialData) {
+      credSection = `DELIVERED CREDENTIALS / ACCESS:\n----------------------------------------\n${ord.credentialData}\n`;
+      if (ord.twoFactorSecret) {
+        credSection += `\n2FA SECRET KEY: ${ord.twoFactorSecret}\n`;
+      }
+    } else if (ord.licenseKey) {
+      credSection = `DIGITAL LICENSE / CDK / DATA:\n----------------------------------------\n${ord.licenseKey}\n`;
+    } else if (ord.smmLink) {
+      credSection = `SERVICE TARGET LINK:\n----------------------------------------\n${ord.smmLink}\nQuantity   : ${ord.quantity}\nStart Count: ${ord.startCount || 0}\nRemains    : ${ord.remains || 0}\n`;
+    } else {
+      credSection = `STATUS / DELIVERY:\n----------------------------------------\n${ord.status}\n`;
+    }
+
+    const content = `========================================
+YOUUHOST DIGITAL RECEIPT & ACCESS
+========================================
+Order Number : ${ord.orderNumber}
+Product      : ${ord.title}
+Category     : ${ord.categoryTag}
+Status       : ${ord.status}
+Order Date   : ${dateStr}
+Quantity     : ${ord.quantity || 1}
+Amount Paid  : $${priceUsd} USD (Rs. ${priceLkr} LKR)
+----------------------------------------
+${credSection}----------------------------------------
+Support: https://t.me/youuhost_support
+========================================`;
+
+    try {
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const cleanOrderNum = ord.orderNumber.replace(/[^a-zA-Z0-9-]/g, "");
+      link.download = `YouuHost_${cleanOrderNum}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Receipt Downloaded! 📄",
+        description: `${ord.orderNumber} saved as .txt file.`
+      });
+    } catch (err) {
+      toast({
+        title: "Download Failed",
+        description: "Please copy credentials manually.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Sandromania Modal & Ordering State
   const [detailSandromaniaProduct, setDetailSandromaniaProduct] = useState<any | null>(null);
@@ -1017,14 +1314,119 @@ export default function MiniAppShopModern() {
 
   const binancePayId = depositMethods?.binancePayId || "410975578";
 
-  // --- Profile Sub-Tab, Developer API & Transactions State ---
-  const [profileSubTab, setProfileSubTab] = useState<"overview" | "api" | "transactions">("overview");
+  // --- Profile Sub-Tabs: Overview, Developer API, Transactions, Support Tickets ---
+  const [profileSubTab, setProfileSubTab] = useState<"overview" | "api" | "transactions" | "tickets">("overview");
   const [showApiKeySecret, setShowApiKeySecret] = useState(false);
   const [copiedApiKey, setCopiedApiKey] = useState(false);
   const [selectedApiKeyOrders, setSelectedApiKeyOrders] = useState<any | null>(null);
   const [selectedTxDetail, setSelectedTxDetail] = useState<any | null>(null);
   const [txSearchQuery, setTxSearchQuery] = useState("");
   const [txFilterType, setTxFilterType] = useState<"all" | "deposit" | "purchase" | "smm">("all");
+
+  // Support Ticket Form & Thread State
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportSelectedTicket, setSupportSelectedTicket] = useState<any | null>(null);
+  const [ticketIssueType, setTicketIssueType] = useState("Order Delivery Issue");
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketDetails, setTicketDetails] = useState("");
+  const [ticketOrderId, setTicketOrderId] = useState("");
+  const [ticketReplyMsg, setTicketReplyMsg] = useState("");
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  const [isReplyingTicket, setIsReplyingTicket] = useState(false);
+
+  // Customer Support Tickets Query
+  const { data: supportTicketsList = [], refetch: refetchSupportTickets } = useQuery<any[]>({
+    queryKey: ["/api/mini/support/tickets"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/support/tickets");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "profile" || isChatOpen || isSupportModalOpen,
+    refetchInterval: (activeTab === "profile" || isSupportModalOpen || !!supportSelectedTicket) ? 6000 : false,
+  });
+
+  const handleCreateSupportTicket = async () => {
+    if (!ticketDetails.trim()) {
+      toast({
+        title: "Message required",
+        description: "Please explain your issue in detail.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmittingTicket(true);
+    try {
+      const payload: any = {
+        issueType: ticketIssueType,
+        subject: ticketSubject.trim() || `${ticketIssueType}${ticketOrderId ? ` (${ticketOrderId})` : ""}`,
+        details: ticketOrderId ? `[Related Order: ${ticketOrderId}]\n${ticketDetails.trim()}` : ticketDetails.trim(),
+        orderId: ticketOrderId || undefined,
+      };
+
+      const res = await miniApiRequest("POST", "/api/mini/support/tickets", payload);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to open ticket");
+      }
+
+      const created = await res.json();
+      await refetchSupportTickets();
+      setIsSupportModalOpen(false);
+      setTicketSubject("");
+      setTicketDetails("");
+      setTicketOrderId("");
+
+      toast({
+        title: "Support Ticket Opened! 🎫",
+        description: `Ticket #${created.id} submitted. Our team will review and reply shortly.`
+      });
+
+      // Navigate to tickets tab
+      setActiveTab("profile");
+      setProfileSubTab("tickets");
+      setSupportSelectedTicket(created);
+    } catch (err: any) {
+      toast({
+        title: "Ticket Submission Failed",
+        description: err.message || "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingTicket(false);
+    }
+  };
+
+  const handleSendTicketReply = async (ticketId: number) => {
+    if (!ticketReplyMsg.trim()) return;
+    setIsReplyingTicket(true);
+    try {
+      const res = await miniApiRequest("POST", `/api/mini/support/tickets/${ticketId}/message`, {
+        message: ticketReplyMsg.trim()
+      });
+      if (!res.ok) throw new Error("Failed to send reply");
+      const updated = await res.json();
+      await refetchSupportTickets();
+      setSupportSelectedTicket(updated);
+      setTicketReplyMsg("");
+      toast({
+        title: "Message Sent! 💬",
+        description: `Your reply was sent to Ticket #${ticketId}.`
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to Send",
+        description: err.message || "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsReplyingTicket(false);
+    }
+  };
 
   // User API Keys Query
   const { data: apiKeysData, refetch: refetchApiKeys } = useQuery<any>({
@@ -1453,9 +1855,7 @@ export default function MiniAppShopModern() {
       setResendTimer(60);
       toast({
         title: "Verification Code Sent!",
-        description: data.devCode
-          ? `Code sent to ${authEmail}! (Demo Code: ${data.devCode})`
-          : `We've sent a 6-digit code to ${authEmail}. Please check your inbox.`,
+        description: `We've sent a 6-digit verification code to ${authEmail}. Please check your inbox.`,
       });
     } catch (err: any) {
       toast({
@@ -2226,22 +2626,103 @@ export default function MiniAppShopModern() {
               })}
             </div>
 
-            {/* Auto-Swapping Feature Hero Carousel (Swaps every 3 seconds) */}
+            {/* Auto-Swapping & Touch-Swiping Feature Hero Carousel */}
             <div 
-              className="relative overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500"
+              className="relative group overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing"
               onMouseEnter={() => setIsHeroPaused(true)}
-              onMouseLeave={() => setIsHeroPaused(false)}
-              onTouchStart={() => setIsHeroPaused(true)}
-              onTouchEnd={() => setIsHeroPaused(false)}
+              onMouseLeave={() => {
+                setIsHeroPaused(false);
+                heroDragStartX.current = null;
+              }}
+              onTouchStart={handleHeroTouchStart}
+              onTouchEnd={handleHeroTouchEnd}
+              onMouseDown={handleHeroMouseDown}
+              onMouseUp={handleHeroMouseUp}
             >
               {activeHeroSlides.map((slide: any, idx: number) => {
                 const isActive = idx === currentHeroSlide;
-                const slideImage = slide.image || slide.imageSrc || "/assets/banner_capcut_3d.png";
+                const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
                 const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
                 const slideBorder = slide.borderColor || "border-[#ECEEF8]";
                 const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
                 const featuresList: string[] = Array.isArray(slide.features) ? slide.features : [];
 
+                const handleSlideClick = () => {
+                  if (slide.actionType === "product" && slide.actionTarget) {
+                    const foundProd = products.find((p) => p.id.toString() === slide.actionTarget.toString() || p.name.toLowerCase() === slide.actionTarget.toLowerCase());
+                    if (foundProd) {
+                      setDetailProduct(foundProd);
+                      setQuantity(1);
+                      return;
+                    }
+                  }
+
+                  const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                  if (targetCat && targetCat !== "ALL") {
+                    const matched = products.find((p) => {
+                      const pName = (p.name || "").toLowerCase();
+                      const pType = (p.type || "").toLowerCase();
+                      const cat = targetCat.toLowerCase();
+                      return pName.includes(cat) || pType.includes(cat);
+                    });
+                    if (matched) {
+                      setDetailProduct(matched);
+                      setQuantity(1);
+                    } else {
+                      setSelectedCategory(targetCat);
+                      toast({
+                        title: `${slide.title || targetCat} 🎯`,
+                        description: "Showing available packages & deals below."
+                      });
+                      const el = document.getElementById("best-sellers-heading");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }
+                  } else {
+                    const el = document.getElementById("best-sellers-heading");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }
+                };
+
+                // Full Photo Banner Mode
+                if (slide.bannerType === "full_image") {
+                  return (
+                    <div
+                      key={slide.id || idx}
+                      onClick={handleSlideClick}
+                      className={`rounded-3xl border transition-all duration-700 overflow-hidden cursor-pointer shadow-sm relative ${
+                        isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
+                      } ${slideBorder}`}
+                    >
+                      <img
+                        src={slideImage}
+                        alt={slide.title || "Promo Banner"}
+                        className="w-full h-auto min-h-[145px] max-h-[210px] object-cover rounded-3xl"
+                        onError={(e) => {
+                          (e.target as any).style.display = "none";
+                        }}
+                      />
+
+                      {/* Dots */}
+                      <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full">
+                        {activeHeroSlides.map((_: any, dotIdx: number) => (
+                          <button
+                            key={dotIdx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentHeroSlide(dotIdx);
+                            }}
+                            className={`transition-all duration-300 rounded-full h-1.5 ${
+                              dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40"
+                            }`}
+                            aria-label={`Slide ${dotIdx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Interactive 3D Card Mode
                 return (
                   <div
                     key={slide.id || idx}
@@ -2271,42 +2752,9 @@ export default function MiniAppShopModern() {
                       
                       <div>
                         <button
-                          onClick={() => {
-                            // If actionType is specific product
-                            if (slide.actionType === "product" && slide.actionTarget) {
-                              const foundProd = products.find((p) => p.id.toString() === slide.actionTarget.toString() || p.name.toLowerCase() === slide.actionTarget.toLowerCase());
-                              if (foundProd) {
-                                setDetailProduct(foundProd);
-                                setQuantity(1);
-                                return;
-                              }
-                            }
-
-                            // If actionType is category
-                            const targetCat = slide.actionTarget || slide.categoryTarget || "";
-                            if (targetCat && targetCat !== "ALL") {
-                              const matched = products.find((p) => {
-                                const pName = (p.name || "").toLowerCase();
-                                const pType = (p.type || "").toLowerCase();
-                                const cat = targetCat.toLowerCase();
-                                return pName.includes(cat) || pType.includes(cat);
-                              });
-                              if (matched) {
-                                setDetailProduct(matched);
-                                setQuantity(1);
-                              } else {
-                                setSelectedCategory(targetCat);
-                                toast({
-                                  title: `${slide.title} 🎯`,
-                                  description: "Showing available packages & deals below."
-                                });
-                                const el = document.getElementById("best-sellers-heading");
-                                if (el) el.scrollIntoView({ behavior: "smooth" });
-                              }
-                            } else {
-                              const el = document.getElementById("best-sellers-heading");
-                              if (el) el.scrollIntoView({ behavior: "smooth" });
-                            }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSlideClick();
                           }}
                           className={`px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
                         >
@@ -2315,13 +2763,13 @@ export default function MiniAppShopModern() {
                       </div>
                     </div>
 
-                    {/* High-res Transparent Product Visual (Instant Canvas Downsampled) */}
-                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
+                    {/* High-res Transparent Product Visual */}
+                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
                       <div className={`w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute`} />
                       <img
                         src={slideImage}
                         alt={slide.title || "Banner"}
-                        className="w-32 h-32 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
+                        className="w-28 h-28 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as any).style.display = "none";
                         }}
@@ -2329,20 +2777,22 @@ export default function MiniAppShopModern() {
                     </div>
 
                     {/* Carousel Navigation Indicator Dots */}
-                    <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20">
-                      {activeHeroSlides.map((_: any, dotIdx: number) => (
-                        <button
-                          key={dotIdx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentHeroSlide(dotIdx);
-                          }}
-                          className={`transition-all duration-300 rounded-full h-1.5 ${
-                            dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
-                          }`}
-                          aria-label={`Slide ${dotIdx + 1}`}
-                        />
-                      ))}
+                    <div className="absolute bottom-3 right-4 flex items-center gap-2 z-20">
+                      <div className="flex items-center gap-1.5">
+                        {activeHeroSlides.map((_: any, dotIdx: number) => (
+                          <button
+                            key={dotIdx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentHeroSlide(dotIdx);
+                            }}
+                            className={`transition-all duration-300 rounded-full h-1.5 ${
+                              dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
+                            }`}
+                            aria-label={`Slide ${dotIdx + 1}`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -2717,319 +3167,250 @@ export default function MiniAppShopModern() {
           </motion.div>
         )}
 
-        {/* ORDERS TAB */}
+        {/* ORDERS TAB - UNIFIED & HARMONIOUS CHRONOLOGICAL LAYOUT */}
         {activeTab === "orders" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-0.5">
               <h2 className="text-lg font-black text-[#181432]">My Orders & Services</h2>
-              <span className="text-xs font-bold text-[#7E7998]">{orders.length + smmOrdersList.length} Total</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#7E7998]">{unifiedOrdersList.length} Total</span>
+                <button
+                  onClick={handleSyncAllOrders}
+                  disabled={isSyncingOrders}
+                  className="text-[11px] font-bold text-[#5B42F3] bg-[#F5F4FC] hover:bg-[#EDE9FE] px-2.5 py-1 rounded-full border border-purple-200/60 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncingOrders ? "animate-spin" : ""}`} />
+                  Sync
+                </button>
+              </div>
             </div>
 
-            {/* YOUUHOST SOCIAL BOOST ORDERS SECTION */}
-            {smmOrdersList.length > 0 && (
+            {/* CATEGORY FILTER TABS (Clean Scrollable Tabs without underline) */}
+            <div 
+              className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 pt-0.5 [&::-webkit-scrollbar]:hidden"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <button
+                onClick={() => setOrdersFilter("all")}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 ${
+                  ordersFilter === "all"
+                    ? "bg-[#5B42F3] text-white shadow-xs"
+                    : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
+                }`}
+              >
+                All Orders ({unifiedOrdersList.length})
+              </button>
+
+              <button
+                onClick={() => setOrdersFilter("account")}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  ordersFilter === "account"
+                    ? "bg-[#5B42F3] text-white shadow-xs"
+                    : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
+                }`}
+              >
+                <Package className="w-3 h-3" /> Cloud & Accounts ({orders.filter((o: any) => (o.status || '').toLowerCase() !== 'failed').length})
+              </button>
+
+              <button
+                onClick={() => setOrdersFilter("smm")}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  ordersFilter === "smm"
+                    ? "bg-[#5B42F3] text-white shadow-xs"
+                    : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
+                }`}
+              >
+                <Zap className="w-3 h-3" /> Social Boost ({smmOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
+              </button>
+
+              {sandromaniaOrdersList.length > 0 && (
+                <button
+                  onClick={() => setOrdersFilter("license")}
+                  className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                    ordersFilter === "license"
+                      ? "bg-[#5B42F3] text-white shadow-xs"
+                      : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
+                  }`}
+                >
+                  <ShieldCheck className="w-3 h-3" /> Digital Licenses ({sandromaniaOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
+                </button>
+              )}
+            </div>
+
+            {/* UNIFIED CHRONOLOGICAL ORDER LIST */}
+            {filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
+                <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
+                <h4 className="text-sm font-bold text-[#181432]">No orders found</h4>
+                <p className="text-xs text-[#7E7998] mt-1">
+                  {ordersFilter === "all"
+                    ? "Explore our catalog and make your first purchase!"
+                    : "No orders found in this category."}
+                </p>
+                <Button
+                  onClick={() => setActiveTab("home")}
+                  className="mt-4 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] hover:opacity-95 text-white rounded-full text-xs font-bold px-6 shadow-md shadow-[#6C5CE7]/25"
+                >
+                  Start Shopping
+                </Button>
+              </div>
+            ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-[#5B42F3] uppercase tracking-wider flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5" /> YouuHost Social Boost Orders ({smmOrdersList.length})
-                  </h3>
-                  <button
-                    onClick={() => refetchSmmOrders()}
-                    className="text-[10px] font-bold text-[#7E7998] hover:text-[#5B42F3] flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Sync
-                  </button>
-                </div>
-
-                {smmOrdersList.map((smmOrd: any) => {
-                  const smmService = smmOrd.smmService || smmServicesList.find((s) => s.id === smmOrd.smmServiceId);
-                  const conf = getSmmPlatformConfig(smmService?.category || smmOrd.serviceCategory || "", smmService?.name || smmOrd.serviceName || "");
-                  const status = (smmOrd.status || "Pending").toLowerCase();
-
-                  let statusBadge = (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200">
-                      Pending
-                    </span>
-                  );
-                  if (status.includes("complete") || status.includes("success")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-                        Completed
-                      </span>
-                    );
-                  } else if (status.includes("progress") || status.includes("processing")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
-                        In Progress
-                      </span>
-                    );
-                  } else if (status.includes("cancel")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                        Canceled
-                      </span>
-                    );
-                  } else if (status.includes("partial")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-                        Partial
-                      </span>
-                    );
-                  }
-
-                  const orderChargeCents = smmOrd.charge || smmOrd.amountPaid || 0;
-
+                {filteredOrders.map((ord: any) => {
                   return (
                     <div
-                      key={`smm-ord-${smmOrd.id}`}
-                      className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
+                      key={ord.id}
+                      onClick={() => setSelectedOrderDetails(ord)}
+                      className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] hover:shadow-md transition-all space-y-2.5 cursor-pointer active:scale-[0.99] group relative"
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      {/* Top Header Row */}
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
-                            {conf.tag}
+                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${ord.badgeBg}`}>
+                            {ord.categoryTag}
                           </span>
                           <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-md">
-                            #YH-{smmOrd.id}
+                            {ord.orderNumber}
                           </span>
                         </div>
-                        {statusBadge}
-                      </div>
-
-                      <h4 className="text-xs font-black text-[#181432] mb-2">
-                        {smmOrd.serviceName || smmService?.name || `YouuHost Service #${smmOrd.smmServiceId || smmOrd.id}`}
-                      </h4>
-
-                      {/* Target Link */}
-                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
-                          <ExternalLink className="w-3 h-3 text-[#5B42F3] shrink-0" />
-                          <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
-                            {smmOrd.link}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => copyToClipboard(smmOrd.link, "Link Copied")}
-                          className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
-                        >
-                          Copy
-                        </button>
-                      </div>
-
-                      {/* Start Count, Remains & Quantity Metrics */}
-                      <div className="grid grid-cols-3 gap-2 bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mb-2.5 text-center">
-                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
-                          <span className="text-[9px] font-bold text-[#9490A8] uppercase block">Quantity</span>
-                          <span className="font-black text-[#181432] text-xs">{smmOrd.quantity?.toLocaleString()}</span>
-                        </div>
-                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
-                          <span className="text-[9px] font-bold text-sky-600 uppercase block">Start Count</span>
-                          <span className="font-black text-sky-600 text-xs">{smmOrd.startCount || "0"}</span>
-                        </div>
-                        <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
-                          <span className="text-[9px] font-bold text-amber-600 uppercase block">Remains</span>
-                          <span className="font-black text-amber-600 text-xs">{smmOrd.remains || "0"}</span>
-                        </div>
-                      </div>
-
-                      {/* Paid Amount & Date */}
-                      <div className="flex items-center justify-between text-[11px] pt-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#7E7998]">
-                            Paid: <span className="font-black font-mono text-[#181432]">{formatBalanceInCurrentCurrency(orderChargeCents)}</span>
-                          </span>
-                          {selectedCurrency === "LKR" ? (
-                            <span className="text-[10px] text-[#9490A8] font-mono">
-                              (${(orderChargeCents / 100).toFixed(2)})
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-[#9490A8] font-mono">
-                              (Rs. {Math.round((orderChargeCents / 100) * lkrRate).toLocaleString()})
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-[#7E7998]">
-                          {smmOrd.createdAt ? format(new Date(smmOrd.createdAt), "MMM d • HH:mm") : "Recent"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* SANDROMANIA DIGITAL AUTO-DELIVERY ORDERS SECTION */}
-            {sandromaniaOrdersList.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5" /> Digital License & CDK Orders ({sandromaniaOrdersList.length})
-                  </h3>
-                  <button
-                    onClick={() => refetchSandromaniaOrders()}
-                    className="text-[10px] font-bold text-[#7E7998] hover:text-emerald-600 flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Sync
-                  </button>
-                </div>
-
-                {sandromaniaOrdersList.map((sandroOrd: any) => {
-                  const conf = getProviderConfig(sandroOrd.product?.title || "", sandroOrd.product?.category || "");
-                  const status = (sandroOrd.status || "Completed").toLowerCase();
-
-                  let statusBadge = (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-                      Auto-Delivered
-                    </span>
-                  );
-                  if (status.includes("fail") || status.includes("cancel")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                        Failed
-                      </span>
-                    );
-                  } else if (status.includes("pend") || status.includes("process")) {
-                    statusBadge = (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-                        Processing
-                      </span>
-                    );
-                  }
-
-                  const deliveredData =
-                    sandroOrd.deliveredData ||
-                    (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload || ""));
-
-                  return (
-                    <div
-                      key={`sandro-ord-${sandroOrd.id}`}
-                      className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
-                            {conf.tag}
-                          </span>
-                          <span className="text-[10px] font-mono text-[#7E7998]">
-                            #{sandroOrd.externalOrderId ? `SANDRO-${sandroOrd.externalOrderId}` : `ORD-${sandroOrd.id}`}
-                          </span>
+                          {ord.statusBadge}
+                          <ChevronRight className="w-4 h-4 text-[#9490A8] group-hover:text-[#5B42F3] group-hover:translate-x-0.5 transition-all" />
                         </div>
-                        {statusBadge}
                       </div>
 
-                      <h4 className="text-xs font-black text-[#181432] mb-1.5">
-                        {sandroOrd.product?.title || `Sandromania Item #${sandroOrd.productId}`}
+                      {/* Product Title */}
+                      <h4 className="text-[13.5px] font-black text-[#181432] leading-snug group-hover:text-[#5B42F3] transition-colors">
+                        {ord.title}
                       </h4>
 
-                      {/* Delivered Key / Credentials Display */}
-                      {deliveredData ? (
-                        <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200 mb-2">
+                      {/* Target Link for SMM */}
+                      {ord.smmLink && (
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                            <ExternalLink className="w-3 h-3 text-[#5B42F3] shrink-0" />
+                            <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
+                              {ord.smmLink}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(ord.smmLink, "Link Copied")}
+                            className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      )}
+
+                      {/* SMM 3-Box Metrics Grid */}
+                      {ord.orderType === "smm" && (
+                        <div className="grid grid-cols-3 gap-2 bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] text-center">
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                            <span className="text-[9px] font-bold text-[#9490A8] uppercase block">Quantity</span>
+                            <span className="font-black text-[#181432] text-xs">{ord.quantity?.toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                            <span className="text-[9px] font-bold text-sky-600 uppercase block">Start Count</span>
+                            <span className="font-black text-sky-600 text-xs">{ord.startCount || "0"}</span>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8]/80">
+                            <span className="text-[9px] font-bold text-amber-600 uppercase block">Remains</span>
+                            <span className="font-black text-amber-600 text-xs">{ord.remains || "0"}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2FA Live TOTP for Account Orders */}
+                      {ord.twoFactorSecret && (
+                        <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                          <LiveTOTP
+                            secret={ord.twoFactorSecret}
+                            onCopy={(c) => copyToClipboard(c, "2FA Code Copied")}
+                          />
+                        </div>
+                      )}
+
+                      {/* Credential Data for Account Orders */}
+                      {ord.credentialData && (
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                            <KeyRound className="w-3 h-3 text-[#5B42F3] shrink-0" />
+                            <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
+                              {ord.credentialData}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(ord.credentialData, "Credentials Copied")}
+                            className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Digital License / CDK for Sandromania Orders */}
+                      {ord.licenseKey && (
+                        <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wide flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
                             </span>
                             <button
-                              onClick={() => copyToClipboard(deliveredData, "License Data Copied")}
-                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-xs"
+                              onClick={() => copyToClipboard(ord.licenseKey, "License Data Copied")}
+                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs"
                             >
                               <Copy className="w-2.5 h-2.5" /> Copy
                             </button>
                           </div>
                           <div className="font-mono text-[11px] text-emerald-950 font-bold bg-white/80 p-2 rounded-xl border border-emerald-100 break-all select-all whitespace-pre-wrap">
-                            {deliveredData}
+                            {ord.licenseKey}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="bg-[#F8F7FD] p-2 rounded-2xl border border-[#ECEEF8] mb-2 text-[10px] text-[#7E7998]">
-                          Awaiting license key generation...
                         </div>
                       )}
 
-                      {/* Quantity, Cost & Date */}
-                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#F5F4FC]">
+                      {/* Footer: Qty, Paid Amount, Formatted Date & View Details Prompt */}
+                      <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-[#F5F4FC]">
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-[#181432]">
-                            Qty: <span className="font-black text-[#5B42F3]">{sandroOrd.quantity || 1}</span>
+                            Qty: <span className="font-black text-[#5B42F3]">{ord.quantity?.toLocaleString() || 1}</span>
                           </span>
                           <span className="font-bold text-[#7E7998]">
-                            Paid: <span className="font-black text-[#181432]">{formatBalanceInCurrentCurrency(sandroOrd.amountPaid || 0)}</span>
+                            Paid: <span className="font-black font-mono text-[#181432]">{formatBalanceInCurrentCurrency(ord.priceCents)}</span>
+                          </span>
+                          {selectedCurrency === "LKR" ? (
+                            <span className="text-[10px] text-[#9490A8] font-mono">
+                              (${(ord.priceCents / 100).toFixed(2)})
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#9490A8] font-mono">
+                              (Rs. {Math.round((ord.priceCents / 100) * lkrRate).toLocaleString()})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-[#7E7998]">
+                            {ord.date && ord.date.getTime() > 0 ? format(ord.date, "MMM d, yyyy • HH:mm") : "Recent"}
+                          </span>
+                          <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
+                            <FileText className="w-2.5 h-2.5" /> Details
                           </span>
                         </div>
-                        <span className="text-[10px] text-[#7E7998]">
-                          {sandroOrd.createdAt ? format(new Date(sandroOrd.createdAt), "MMM d • HH:mm") : "Recent"}
-                        </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-
-            {/* CLOUD & ACCOUNT PURCHASES SECTION */}
-            <div className="space-y-3">
-              {(smmOrdersList.length > 0 || sandromaniaOrdersList.length > 0) && orders.length > 0 && (
-                <h3 className="text-xs font-black text-[#7E7998] uppercase tracking-wider flex items-center gap-1.5 pt-2">
-                  <Package className="w-3.5 h-3.5" /> Cloud & Account Orders ({orders.length})
-                </h3>
-              )}
-
-              {orders.length === 0 && smmOrdersList.length === 0 && sandromaniaOrdersList.length === 0 ? (
-                <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
-                  <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
-                  <h4 className="text-sm font-bold text-[#181432]">No orders yet</h4>
-                  <p className="text-xs text-[#7E7998] mt-1">Explore our catalog and make your first purchase!</p>
-                  <Button
-                    onClick={() => setActiveTab("home")}
-                    className="mt-4 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] hover:opacity-95 text-white rounded-full text-xs font-bold px-6 shadow-md shadow-[#6C5CE7]/25"
-                  >
-                    Start Shopping
-                  </Button>
-                </div>
-              ) : (
-                orders.map((ord: any) => (
-                  <div
-                    key={ord.id}
-                    className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold text-[#5B42F3] bg-[#EDE9FE] px-2.5 py-0.5 rounded-full">
-                        Order #{ord.id}
-                      </span>
-                      <span className="text-[10px] text-[#7E7998]">
-                        {ord.createdAt ? format(new Date(ord.createdAt), "MMM d, yyyy • HH:mm") : "Recent"}
-                      </span>
-                    </div>
-
-                    <h4 className="text-xs font-black text-[#181432] mb-1">
-                      {ord.product?.name || "Cloud Account Order"}
-                    </h4>
-
-                    {/* Show 2FA if credential exists */}
-                    {ord.credential?.twoFactorSecret && (
-                      <div className="mt-3">
-                        <LiveTOTP
-                          secret={ord.credential.twoFactorSecret}
-                          onCopy={(c) => copyToClipboard(c, "2FA Code Copied")}
-                        />
-                      </div>
-                    )}
-
-                    {ord.credential?.data && (
-                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] mt-2 flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-[#5B42F3] truncate max-w-[220px]">
-                          {ord.credential.data}
-                        </span>
-                        <button
-                          onClick={() => copyToClipboard(ord.credential.data, "Credentials Copied")}
-                          className="text-xs font-bold text-[#D92078] hover:underline"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
           </motion.div>
         )}
 
@@ -3757,12 +4138,12 @@ export default function MiniAppShopModern() {
                   </div>
                 </div>
 
-                {/* Profile Sub-Tabs Navigation Pills (2 Tabs) */}
-                <div className="bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-2 gap-1">
+                {/* Profile Sub-Tabs Navigation Pills (3 Tabs) */}
+                <div className="bg-[#F8F7FD] p-1 rounded-2xl border border-[#ECEEF8] grid grid-cols-3 gap-1">
                   <button
                     type="button"
                     onClick={() => setProfileSubTab("overview")}
-                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-1 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1 ${
                       profileSubTab === "overview" || profileSubTab === "api"
                         ? "bg-white text-[#5B42F3] shadow-sm"
                         : "text-[#7E7998] hover:text-[#181432]"
@@ -3772,16 +4153,32 @@ export default function MiniAppShopModern() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setProfileSubTab("tickets")}
+                    className={`py-2 px-1 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1 ${
+                      profileSubTab === "tickets"
+                        ? "bg-white text-[#5B42F3] shadow-sm"
+                        : "text-[#7E7998] hover:text-[#181432]"
+                    }`}
+                  >
+                    <Ticket className="w-3.5 h-3.5 text-[#5B42F3]" /> Tickets
+                    {supportTicketsList.length > 0 && (
+                      <span className="text-[9.5px] bg-purple-100 text-[#5B42F3] px-1.5 py-0.2 rounded-full font-mono font-bold">
+                        {supportTicketsList.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setProfileSubTab("transactions")}
-                    className={`py-2 px-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-1 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1 ${
                       profileSubTab === "transactions"
                         ? "bg-white text-[#5B42F3] shadow-sm"
                         : "text-[#7E7998] hover:text-[#181432]"
                     }`}
                   >
-                    <Receipt className="w-3.5 h-3.5" /> Transactions
+                    <Receipt className="w-3.5 h-3.5" /> History
                     {transactionsList.length > 0 && (
-                      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-full font-mono">
+                      <span className="text-[9.5px] bg-purple-100 text-[#5B42F3] px-1.5 py-0.2 rounded-full font-mono font-bold">
                         {transactionsList.length}
                       </span>
                     )}
@@ -3791,6 +4188,29 @@ export default function MiniAppShopModern() {
                 {/* SUBTAB 1: OVERVIEW */}
                 {profileSubTab === "overview" && (
                   <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
+                    {/* Support Ticket Quick Action Card */}
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsSupportModalOpen(true)}
+                        className="w-full px-3.5 py-3 flex items-center justify-between text-xs font-black text-purple-950 bg-gradient-to-r from-purple-100/90 via-indigo-50 to-purple-100/80 hover:from-purple-200/90 hover:to-indigo-100 rounded-2xl transition-all border border-purple-300 shadow-xs active:scale-[0.99]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-[#5B42F3] text-white flex items-center justify-center shadow-xs shrink-0">
+                            <Ticket className="w-4 h-4" />
+                          </div>
+                          <span className="text-left">
+                            <span className="flex items-center gap-1.5 flex-wrap">
+                              <span className="block font-black text-purple-950">Open Support Ticket</span>
+                              <span className="text-[8.5px] bg-[#5B42F3] text-white px-1.5 py-0.2 rounded-md font-bold uppercase tracking-wider">Recommended</span>
+                            </span>
+                            <span className="block text-[10px] font-semibold text-purple-700">Official order, payment & 2FA support</span>
+                          </span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-purple-700 shrink-0" />
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => setActiveTab("orders")}
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
@@ -3843,6 +4263,19 @@ export default function MiniAppShopModern() {
                     </div>
 
                     <button
+                      onClick={() => setProfileSubTab("tickets")}
+                      className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Ticket className="w-4 h-4 text-[#5B42F3]" /> View My Support Tickets
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10.5px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{supportTicketsList.length} Tickets</span>
+                        <ChevronRight className="w-4 h-4 text-[#9490A8]" />
+                      </div>
+                    </button>
+
+                    <button
                       onClick={() => setProfileSubTab("transactions")}
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
@@ -3873,7 +4306,7 @@ export default function MiniAppShopModern() {
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 AI Concierge
+                        <MessageCircle className="w-4 h-4 text-[#FF5E62]" /> 24/7 Live AI Concierge
                       </span>
                       <ChevronRight className="w-4 h-4 text-[#9490A8]" />
                     </button>
@@ -3889,6 +4322,121 @@ export default function MiniAppShopModern() {
                         </span>
                         <ChevronRight className="w-4 h-4 text-red-300" />
                       </button>
+                    )}
+                  </div>
+                )}
+
+                {/* SUBTAB: SUPPORT TICKETS LIST */}
+                {profileSubTab === "tickets" && (
+                  <div className="space-y-3">
+                    {/* Top Action Header */}
+                    <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 p-4 rounded-3xl border border-purple-200 shadow-xs flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-[#181432] flex items-center gap-1.5">
+                          <Ticket className="w-4 h-4 text-[#5B42F3]" /> Support Tickets Center
+                        </h4>
+                        <p className="text-[10.5px] text-[#7E7998] mt-0.5">
+                          Direct assistance with orders, top-ups & replacements.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setIsSupportModalOpen(true)}
+                        className="px-3.5 py-2 bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:opacity-95 text-white rounded-2xl text-xs font-black shadow-md shadow-[#5B42F3]/25 flex items-center gap-1.5 shrink-0 active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Open Ticket
+                      </button>
+                    </div>
+
+                    {/* Tickets List */}
+                    {supportTicketsList.length === 0 ? (
+                      <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
+                        <Ticket className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
+                        <h4 className="text-sm font-bold text-[#181432]">No Support Tickets Yet</h4>
+                        <p className="text-xs text-[#7E7998] mt-1 max-w-xs mx-auto">
+                          Have a question about an order, payment, or replacement? Open a ticket for priority support.
+                        </p>
+                        <Button
+                          onClick={() => setIsSupportModalOpen(true)}
+                          className="mt-4 bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:opacity-95 text-white rounded-full text-xs font-bold px-6 shadow-md shadow-[#5B42F3]/25"
+                        >
+                          Open Support Ticket (Recommended)
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {supportTicketsList.map((tick: any) => {
+                          let statusBadge = (
+                            <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" /> Pending Review
+                            </span>
+                          );
+                          if (tick.status === "in_progress") {
+                            statusBadge = (
+                              <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                                <MessageCircle className="w-2.5 h-2.5" /> Admin Replied 💬
+                              </span>
+                            );
+                          } else if (tick.status === "resolved") {
+                            statusBadge = (
+                              <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Resolved ✅
+                              </span>
+                            );
+                          } else if (tick.status === "closed") {
+                            statusBadge = (
+                              <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                Closed
+                              </span>
+                            );
+                          }
+
+                          let lastMsg = tick.details || "";
+                          if (tick.messages) {
+                            try {
+                              const parsed = JSON.parse(tick.messages);
+                              if (Array.isArray(parsed) && parsed.length > 0) {
+                                const last = parsed[parsed.length - 1];
+                                lastMsg = (last.sender === "admin" ? "Admin: " : "You: ") + last.text;
+                              }
+                            } catch {}
+                          }
+
+                          return (
+                            <div
+                              key={tick.id}
+                              onClick={() => setSupportSelectedTicket(tick)}
+                              className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] hover:border-[#5B42F3] hover:shadow-md transition-all cursor-pointer space-y-2 group"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-md border border-purple-200/60">
+                                    #TICK-{tick.id < 2000 ? tick.id + 2000 : tick.id}
+                                  </span>
+                                  <span className="text-[9.5px] font-bold text-[#7E7998] bg-[#F8F7FD] px-2 py-0.5 rounded-full border border-[#ECEEF8]">
+                                    {tick.issueType || "Support"}
+                                  </span>
+                                </div>
+                                {statusBadge}
+                              </div>
+
+                              <h4 className="text-xs font-black text-[#181432] group-hover:text-[#5B42F3] transition-colors leading-snug">
+                                {tick.subject || tick.issueType}
+                              </h4>
+
+                              <p className="text-[11px] text-[#6B658B] line-clamp-2 bg-[#F8F7FD] p-2 rounded-xl border border-[#ECEEF8]/70">
+                                {lastMsg}
+                              </p>
+
+                              <div className="flex items-center justify-between text-[10px] text-[#9490A8] pt-1">
+                                <span>{tick.createdAt ? format(new Date(tick.createdAt), "MMM d, yyyy • HH:mm") : "Recent"}</span>
+                                <span className="text-[#5B42F3] font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                                  View Thread →
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
@@ -5079,7 +5627,10 @@ export default function MiniAppShopModern() {
               activeTab === "home" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
-            <StoreIcon className="w-5 h-5" />
+            {/* Custom Modern Solid Rounded House Home Icon */}
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+              <path d="M12 2.3c-.62 0-1.22.25-1.66.7L3.6 9.74C2.58 10.76 2 12.14 2 13.58V19c0 1.66 1.34 3 3 3h4c.55 0 1-.45 1-1v-4c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5v4c0 .55.45 1 1 1h4c1.66 0 3-1.34 3-3v-5.42c0-1.44-.58-2.82-1.6-3.84L13.66 3C13.22 2.55 12.62 2.3 12 2.3z" />
+            </svg>
             <span className="text-[9px] font-bold">Home</span>
             {activeTab === "home" && <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7]" />}
           </button>
@@ -5101,7 +5652,20 @@ export default function MiniAppShopModern() {
               activeTab === "orders" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
-            <Package className="w-5 h-5" />
+            {/* Custom Orders Document + Box + Sync Icon */}
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H19C20.1 3 21 3.9 21 5V19C21 20.1 20.1 21 19 21H8C6.9 21 6 20.1 6 19" />
+              <path d="M14 6.2A2.3 2.3 0 0 1 16.5 8.5" />
+              <path d="M16 6.2L17.5 7.7l-1.5 1.3" strokeWidth="1.4" />
+              <path d="M15 10.8A2.3 2.3 0 0 1 12.5 8.5" />
+              <path d="M13 10.8L11.5 9.3l1.5-1.3" strokeWidth="1.4" />
+              <line x1="13.5" y1="13" x2="17.5" y2="13" strokeWidth="1.6" />
+              <line x1="11" y1="16" x2="17.5" y2="16" strokeWidth="1.6" />
+              <line x1="11" y1="18.5" x2="17.5" y2="18.5" strokeWidth="1.6" />
+              <path d="M2 9.5L5.5 7.5L9 9.5L5.5 11.5Z" fill="currentColor" fillOpacity="0.2" strokeWidth="1.6" />
+              <path d="M2 9.5V13.5L5.5 15.5V11.5" strokeWidth="1.6" />
+              <path d="M9 9.5V13.5L5.5 15.5" strokeWidth="1.6" />
+            </svg>
             <span className="text-[9px] font-bold">Orders</span>
             {activeTab === "orders" && <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7]" />}
           </button>
@@ -5146,6 +5710,26 @@ export default function MiniAppShopModern() {
               <Sparkles className="w-4 h-4 text-[#D92078]" /> 24/7 AI Cloud Concierge
             </DialogTitle>
           </DialogHeader>
+
+          {/* Support Ticket Quick Redirect Banner inside AI Concierge */}
+          <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 p-3 rounded-2xl border border-[#5B42F3]/20 flex items-center justify-between gap-2 shadow-2xs mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Ticket className="w-4 h-4 text-[#5B42F3] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-[#181432] truncate">Official Admin Support</p>
+                <p className="text-[9.5px] text-[#7E7998] truncate">Open direct ticket for orders & issues</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsChatOpen(false);
+                setIsSupportModalOpen(true);
+              }}
+              className="px-2.5 py-1.5 bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] hover:opacity-95 text-white rounded-xl text-[10px] font-black shrink-0 shadow-xs flex items-center gap-1 transition-all active:scale-95"
+            >
+              Open Ticket
+            </button>
+          </div>
 
           <div className="h-64 overflow-y-auto space-y-2.5 pr-1 text-xs">
             {chatHistory.map((m, idx) => (
@@ -5268,6 +5852,443 @@ export default function MiniAppShopModern() {
               I Understand & Agree
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ORDER DETAILS & CREDENTIALS DOWNLOAD MODAL DIALOG */}
+      <Dialog
+        open={!!selectedOrderDetails}
+        onOpenChange={(open) => {
+          if (!open) setSelectedOrderDetails(null);
+        }}
+      >
+        <DialogContent hideClose={true} className="w-[94vw] max-w-md bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] sm:rounded-[32px] p-4 sm:p-5 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50">
+          {selectedOrderDetails && (() => {
+            const ord = selectedOrderDetails;
+            const priceUsd = (ord.priceCents / 100).toFixed(2);
+            const priceLkr = Math.round((ord.priceCents / 100) * lkrRate).toLocaleString();
+            const dateStr = ord.date && ord.date.getTime() > 0 ? format(ord.date, "MMM d, yyyy • HH:mm:ss") : "Recent";
+
+            return (
+              <div className="space-y-3.5">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>{ord.title} Details</DialogTitle>
+                  <DialogDescription>Order credentials and receipts</DialogDescription>
+                </DialogHeader>
+
+                {/* Top Header: Close Button & Status Badge */}
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setSelectedOrderDetails(null)}
+                    className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8] shrink-0 active:scale-95"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                    <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2.5 py-1 rounded-full border border-purple-200/60">
+                      {ord.orderNumber}
+                    </span>
+                    {ord.statusBadge}
+                  </div>
+                </div>
+
+                {/* Product Title & Category */}
+                <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-[#ECEEF8] shadow-xs">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full border ${ord.badgeBg}`}>
+                      {ord.categoryTag}
+                    </span>
+                    <span className="text-[9.5px] text-[#7E7998] font-semibold">
+                      {dateStr}
+                    </span>
+                  </div>
+                  <h3 className="text-[14px] sm:text-[15px] font-black text-[#181432] leading-snug break-words">
+                    {ord.title}
+                  </h3>
+
+                  {/* Pricing and Quantity Pill Box */}
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-[#F5F4FC] text-center">
+                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight">Quantity</span>
+                      <span className="font-black text-[#181432] text-[11px] sm:text-xs truncate block">{ord.quantity?.toLocaleString() || 1}</span>
+                    </div>
+                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#5B42F3] uppercase block tracking-tight">USD Price</span>
+                      <span className="font-black font-mono text-[#5B42F3] text-[11px] sm:text-xs truncate block">${priceUsd}</span>
+                    </div>
+                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#D92078] uppercase block tracking-tight">LKR Total</span>
+                      <span className="font-black font-mono text-[#D92078] text-[11px] sm:text-xs truncate block">Rs. {priceLkr}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delivered Credentials Box (Cloud / Accounts) */}
+                {ord.credentialData && (
+                  <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-purple-200/80 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-[#5B42F3]">
+                        <KeyRound className="w-4 h-4 text-[#5B42F3]" />
+                        Delivered Credentials / Access
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(ord.credentialData, "Credentials Copied")}
+                        className="text-[10px] font-bold text-[#5B42F3] hover:text-[#4A32D6] bg-[#F5F4FC] px-2 py-0.5 rounded-xl border border-purple-200 flex items-center gap-1 shadow-2xs active:scale-95"
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                    </div>
+
+                    <div className="bg-[#181432] text-emerald-400 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-[#2B2353] break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
+                      {ord.credentialData}
+                    </div>
+
+                    {/* Live TOTP Generator if 2FA secret is included */}
+                    {ord.twoFactorSecret && (
+                      <div className="pt-2 border-t border-[#F5F4FC]">
+                        <div className="text-[10px] font-bold text-[#7E7998] mb-1.5 flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Live 2FA One-Time Passcode (TOTP):
+                        </div>
+                        <LiveTOTP
+                          secret={ord.twoFactorSecret}
+                          onCopy={(c) => copyToClipboard(c, "2FA Code Copied")}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Delivered Digital License / CDK (Sandromania) */}
+                {ord.licenseKey && (
+                  <div className="bg-[#F0FDF4] rounded-3xl p-3.5 sm:p-4 border border-emerald-200 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-emerald-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Digital License / Activation CDK
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(ord.licenseKey, "License Data Copied")}
+                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2 py-0.5 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95"
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                    </div>
+
+                    <div className="bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold">
+                      {ord.licenseKey}
+                    </div>
+                  </div>
+                )}
+
+                {/* SMM Social Boost Details */}
+                {ord.orderType === "smm" && (
+                  <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-black text-[#D92078]">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-[#D92078]" />
+                        Social Boost Target & Stats
+                      </div>
+                    </div>
+
+                    {ord.smmLink && (
+                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                          <ExternalLink className="w-3.5 h-3.5 text-[#5B42F3] shrink-0" />
+                          <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
+                            {ord.smmLink}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(ord.smmLink, "Link Copied")}
+                          className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                        <span className="text-[8.5px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight">Quantity</span>
+                        <span className="font-black text-[#181432] text-[11px] sm:text-xs truncate block">{ord.quantity?.toLocaleString()}</span>
+                      </div>
+                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                        <span className="text-[8.5px] sm:text-[9px] font-bold text-sky-600 uppercase block tracking-tight">Start Count</span>
+                        <span className="font-black text-sky-600 text-[11px] sm:text-xs truncate block">{ord.startCount || "0"}</span>
+                      </div>
+                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
+                        <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-600 uppercase block tracking-tight">Remains</span>
+                        <span className="font-black text-amber-600 text-[11px] sm:text-xs truncate block">{ord.remains || "0"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Primary Action Buttons: Download .txt File & Copy */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    onClick={() => downloadOrderTxt(ord)}
+                    className="w-full py-3 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] hover:opacity-95 text-white rounded-2xl text-xs font-black shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" /> {ord.orderType === "smm" ? "Download .txt Receipt (Boost Summary)" : "Download .txt File (Credentials)"}
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        const rawText = `Order ID: ${ord.orderNumber}\nProduct: ${ord.title}\nPrice: $${priceUsd} (Rs. ${priceLkr})\nCredentials:\n${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
+                        copyToClipboard(rawText, "Full Order Details Copied");
+                      }}
+                      className="py-2.5 bg-white hover:bg-[#F5F4FC] text-[#181432] border border-[#ECEEF8] rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-2xs"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-[#5B42F3]" /> Copy Details
+                    </button>
+
+                    <a
+                      href={`https://t.me/${supportUser.replace("@", "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 bg-white hover:bg-[#F5F4FC] text-[#181432] border border-[#ECEEF8] rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-2xs"
+                    >
+                      <FaTelegramPlane className="w-3.5 h-3.5 text-sky-500" /> Need Help?
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* OPEN SUPPORT TICKET MODAL */}
+      <Dialog open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
+        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-base font-black text-[#181432] flex items-center gap-2">
+              <LifeBuoy className="w-5 h-5 text-[#5B42F3]" />
+              Open Support Ticket
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#7E7998]">
+              Direct communication with store administration. We typically reply within minutes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 pt-2">
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                Issue Category
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { id: "Order Delivery Issue", label: "Order & Credentials", icon: PackageCheck },
+                  { id: "Payment / Top-up", label: "Payment & Top-up", icon: CreditCard },
+                  { id: "2FA / Credentials Problem", label: "2FA & Auth Issue", icon: ShieldCheck },
+                  { id: "SMM Boost Service", label: "SMM Boost Issue", icon: Rocket },
+                  { id: "API Key / Developer", label: "Developer API", icon: Code2 },
+                  { id: "Other / Inquiry", label: "Other Inquiries", icon: HelpCircle },
+                ].map((cat) => {
+                  const Icon = cat.icon;
+                  const isSelected = ticketIssueType === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setTicketIssueType(cat.id)}
+                      className={`p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all ${
+                        isSelected
+                          ? "bg-[#5B42F3] text-white border-[#5B42F3] shadow-sm shadow-[#5B42F3]/25 font-bold"
+                          : "bg-white hover:bg-[#F5F4FC] text-[#3D3656] border-[#ECEEF8]"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isSelected ? "text-white" : "text-[#5B42F3]"}`} />
+                      <span className="text-[11px] truncate leading-tight">{cat.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {orders.length > 0 && (
+              <div>
+                <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                  Related Order (Optional)
+                </label>
+                <select
+                  value={ticketOrderId}
+                  onChange={(e) => setTicketOrderId(e.target.value)}
+                  className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                >
+                  <option value="">-- No specific order --</option>
+                  {orders.slice(0, 15).map((o: any) => (
+                    <option key={o.id} value={`#ORD-${o.id}`}>
+                      #ORD-{o.id} - {o.productId ? `Product #${o.productId}` : "Item"} (${((o.priceCents || o.price || 0) / 100).toFixed(2)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                Subject
+              </label>
+              <input
+                type="text"
+                placeholder="E.g. Cannot access credentials or 2FA code"
+                value={ticketSubject}
+                onChange={(e) => setTicketSubject(e.target.value)}
+                className="w-full bg-white border border-[#ECEEF8] rounded-2xl px-3.5 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                Detailed Message <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={4}
+                placeholder="Please describe your issue with all necessary details..."
+                value={ticketDetails}
+                onChange={(e) => setTicketDetails(e.target.value)}
+                className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-3 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3] resize-none"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleCreateSupportTicket}
+                disabled={isSubmittingTicket || !ticketDetails.trim()}
+                className="w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-2xl font-black text-xs shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-all active:scale-[0.98]"
+              >
+                {isSubmittingTicket ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Submitting Ticket...
+                  </>
+                ) : (
+                  <>
+                    <SendHorizontal className="w-4 h-4" /> Submit Support Ticket
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TICKET CONVERSATION THREAD & REPLY DIALOG */}
+      <Dialog open={!!supportSelectedTicket} onOpenChange={(open) => !open && setSupportSelectedTicket(null)}>
+        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 shadow-2xl overflow-hidden max-h-[88vh] flex flex-col z-50">
+          {supportSelectedTicket && (
+            <>
+              <DialogHeader className="mb-2 shrink-0 border-b border-[#ECEEF8] pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <DialogTitle className="text-sm font-black text-[#181432] flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-[#5B42F3]" />
+                    Ticket #{supportSelectedTicket.id}
+                  </DialogTitle>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    supportSelectedTicket.status === "resolved" || supportSelectedTicket.status === "closed"
+                      ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                      : supportSelectedTicket.status === "in_progress" || supportSelectedTicket.status === "admin_replied"
+                      ? "bg-purple-50 text-purple-600 border border-purple-200"
+                      : "bg-amber-50 text-amber-600 border border-amber-200"
+                  }`}>
+                    {supportSelectedTicket.status === "resolved" ? "Resolved ✅" : supportSelectedTicket.status === "open" ? "Pending Admin" : "Active"}
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-[#3D3656] text-left mt-1">
+                  {supportSelectedTicket.subject || supportSelectedTicket.issueType}
+                </p>
+                <p className="text-[10px] text-[#9490A8] text-left">
+                  Opened on {supportSelectedTicket.createdAt ? format(new Date(supportSelectedTicket.createdAt), "yyyy-MM-dd HH:mm") : "N/A"}
+                </p>
+              </DialogHeader>
+
+              {/* Message Thread History */}
+              <div className="flex-1 overflow-y-auto space-y-3 py-2 pr-1 min-h-[160px] max-h-[300px]">
+                {/* Initial Ticket Details Bubble */}
+                <div className="p-3 bg-white border border-[#ECEEF8] rounded-2xl space-y-1 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#5B42F3]">Initial Request</span>
+                    <span className="text-[9px] text-[#9490A8]">{supportSelectedTicket.issueType}</span>
+                  </div>
+                  <p className="text-xs text-[#181432] whitespace-pre-wrap leading-relaxed">
+                    {supportSelectedTicket.details}
+                  </p>
+                </div>
+
+                {/* Parsed JSON Message Array */}
+                {(() => {
+                  let thread: any[] = [];
+                  if (supportSelectedTicket.messages) {
+                    try {
+                      thread = typeof supportSelectedTicket.messages === "string" 
+                        ? JSON.parse(supportSelectedTicket.messages) 
+                        : supportSelectedTicket.messages;
+                    } catch {
+                      thread = [];
+                    }
+                  }
+                  // Skip the first message if identical to details
+                  const displayThread = thread.filter((m: any, idx: number) => {
+                    if (idx === 0 && m.text === supportSelectedTicket.details) return false;
+                    return true;
+                  });
+
+                  return displayThread.map((msg: any, i: number) => {
+                    const isAdmin = msg.sender === "admin" || msg.sender === "staff" || msg.role === "admin";
+                    return (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-2xl max-w-[90%] shadow-2xs space-y-1 ${
+                          isAdmin
+                            ? "mr-auto bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200/70 text-[#181432] rounded-tl-none"
+                            : "ml-auto bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white rounded-br-none"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[10px] font-black flex items-center gap-1 ${isAdmin ? "text-[#5B42F3]" : "text-white/80"}`}>
+                            {isAdmin ? "👨‍💼 YouuHost Admin" : "👤 You"}
+                          </span>
+                          {msg.timestamp && (
+                            <span className={`text-[9px] ${isAdmin ? "text-[#9490A8]" : "text-white/70"}`}>
+                              {format(new Date(msg.timestamp), "HH:mm")}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs whitespace-pre-wrap leading-relaxed font-medium">
+                          {msg.text || msg.content}
+                        </p>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Reply Input Bar */}
+              <div className="pt-2 border-t border-[#ECEEF8] shrink-0">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={ticketReplyMsg}
+                    onChange={(e) => setTicketReplyMsg(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendTicketReply(supportSelectedTicket.id)}
+                    placeholder="Type a follow-up reply..."
+                    className="flex-1 bg-white border border-[#ECEEF8] rounded-full px-4 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                  />
+                  <button
+                    onClick={() => handleSendTicketReply(supportSelectedTicket.id)}
+                    disabled={isReplyingTicket || !ticketReplyMsg.trim()}
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95"
+                  >
+                    {isReplyingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
