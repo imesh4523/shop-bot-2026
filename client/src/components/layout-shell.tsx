@@ -30,6 +30,7 @@ import {
   Puzzle,
   Mail,
   Sparkles,
+  Flame,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
     { name: 'Hero Banners & Slider', href: '/imeshadmindashbord/hero-banners', icon: Sparkles },
+    { name: 'Best Sellers & Hot Deals', href: '/imeshadmindashbord/best-sellers', icon: Flame },
     { name: 'Categories & Badges', href: '/imeshadmindashbord/categories-manager', icon: Tag },
     { name: 'N1Panel SMM', href: '/imeshadmindashbord/n1panel', icon: Share2 },
     { name: 'Sandromania Shop', href: '/imeshadmindashbord/sandromania', icon: ShoppingBag },

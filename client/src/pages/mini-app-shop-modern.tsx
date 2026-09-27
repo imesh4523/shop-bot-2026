@@ -74,7 +74,7 @@ import {
   Paperclip
 } from "lucide-react";
 import { format } from "date-fns";
-import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
+import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode, FaWhatsapp } from "react-icons/fa";
 import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude, SiVisa, SiMastercard } from "react-icons/si";
 import { VscAzure } from "react-icons/vsc";
 import youuHostLogo from "@/assets/youuhost_logo.png";
@@ -105,6 +105,16 @@ function ShopBagIcon({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGE
     >
       <path d="M8 7.5V5.5C8 3.57 9.57 2 11.5 2h1C14.43 2 16 3.57 16 5.5v2" />
       <path d="M4.5 7.5h15l-1.4 12.6c-.1.9-.9 1.6-1.8 1.6H7.7c-.9 0-1.7-.7-1.8-1.6L4.5 7.5z" />
+    </svg>
+  );
+}
+
+// Official Blue Verified Badge Icon with white checkmark
+function VerifiedBadgeIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={`${className} text-[#0095F6] shrink-0 inline-block`} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10.29 2.308a2.4 2.4 0 0 1 3.42 0l.738.749a2.4 2.4 0 0 0 2.01.693l1.04-.153a2.4 2.4 0 0 1 2.624 2.19l.088 1.05a2.4 2.4 0 0 0 1.242 1.763l.942.47a2.4 2.4 0 0 1 1.252 3.197l-.417.967a2.4 2.4 0 0 0 0 2.152l.417.967a2.4 2.4 0 0 1-1.252 3.197l-.942.47a2.4 2.4 0 0 0-1.242 1.763l-.088 1.05a2.4 2.4 0 0 1-2.624 2.19l-1.04-.153a2.4 2.4 0 0 0-2.01.693l-.738.749a2.4 2.4 0 0 1-3.42 0l-.738-.749a2.4 2.4 0 0 0-2.01-.693l-1.04.153a2.4 2.4 0 0 1-2.624-2.19l-.088-1.05a2.4 2.4 0 0 0-1.242-1.763l-.942-.47a2.4 2.4 0 0 1-1.252-3.197l.417-.967a2.4 2.4 0 0 0 0-2.152l-.417-.967a2.4 2.4 0 0 1 1.252-3.197l.942-.47a2.4 2.4 0 0 0 1.242-1.763l.088-1.05a2.4 2.4 0 0 1 2.624-2.19l1.04.153a2.4 2.4 0 0 0 2.01-.693l.738-.749z" />
+      <path fill="#ffffff" d="M9.5 12.5l-2-2 1.4-1.4 1.6 1.6 4.6-4.6 1.4 1.4-7 7z" />
     </svg>
   );
 }
@@ -1064,6 +1074,19 @@ export default function MiniAppShopModern() {
       return res.json();
     },
     enabled: activeTab === "wallet" || activeTab === "profile",
+  });
+
+  const { data: bestSellersData } = useQuery<{ featured: any[]; allStats: Record<number, any> }>({
+    queryKey: ["/api/mini/best-sellers"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/best-sellers");
+        if (!res.ok) return { featured: [], allStats: {} };
+        return res.json();
+      } catch {
+        return { featured: [], allStats: {} };
+      }
+    },
   });
 
   // SMM Services & Orders Queries
@@ -2929,58 +2952,72 @@ Support: https://t.me/youuhost_support
                     msOverflowStyle: "none",
                   }}
                 >
-                  {products.slice(0, 6).map((p, idx) => {
-                    const priceFormatted = formatProductPrice(p);
-                    const isFav = favorites.includes(p.id);
-                    const badgeLabels = ["BEST SELLER", "INSTANT 2FA", "TOP PICK", "HOT DEAL", "99.9% UPTIME"];
-                    const badgeLabel = (p as any).badge || badgeLabels[idx % badgeLabels.length];
-                    const badgeGradient = idx % 2 === 0
-                      ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
-                      : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
+                  {(() => {
+                    const featuredList = (bestSellersData?.featured && bestSellersData.featured.length > 0)
+                      ? bestSellersData.featured.map((f: any) => {
+                          const real = products.find((p) => p.id === f.id);
+                          return real ? { ...real, ...f } : f;
+                        })
+                      : products.slice(0, 6);
 
-                    return (
-                      <div
-                        key={`bestseller-${p.id}`}
-                        onClick={() => {
-                          setDetailProduct(p);
-                          setQuantity(1);
-                        }}
-                        className="relative min-w-[200px] w-[200px] h-[215px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden"
-                      >
-                        {/* Top-Right 45° Corner Angle Ribbon */}
-                        <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
-                          <div
-                            className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badgeGradient}`}
-                            style={{ letterSpacing: '0.04em' }}
-                          >
-                            {badgeLabel}
+                    return featuredList.map((p: any, idx: number) => {
+                      const priceFormatted = formatProductPrice(p);
+                      const isFav = favorites.includes(p.id);
+                      const stats = bestSellersData?.allStats?.[p.id] || p;
+                      const totalSold = stats?.totalSoldCount || 3000;
+                      const badgeLabel = stats?.badge || p.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
+                      const badgeGradient = idx % 2 === 0
+                        ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
+                        : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
+
+                      return (
+                        <div
+                          key={`bestseller-${p.id}`}
+                          onClick={() => {
+                            const realProd = products.find((pr) => pr.id === p.id) || p;
+                            setDetailProduct(realProd);
+                            setQuantity(1);
+                          }}
+                          className="relative min-w-[205px] w-[205px] h-[220px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden"
+                        >
+                          {/* Top-Right 45° Corner Angle Ribbon */}
+                          <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                            <div
+                              className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badgeGradient}`}
+                              style={{ letterSpacing: '0.04em' }}
+                            >
+                              {badgeLabel}
+                            </div>
+                          </div>
+
+                          {/* Center Brand Icon & Title */}
+                          <div className="flex flex-col items-center text-center mt-5">
+                            <div className="w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+                              <BrandIcon name={p.name} type={p.type} className="w-7 h-7" />
+                            </div>
+                            <h4 className="text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1">
+                              {p.name}
+                            </h4>
+                            <span className="text-[10px] font-bold text-[#7E7998] mt-1 inline-flex items-center gap-1">
+                              <span>{totalSold.toLocaleString()} sold</span>
+                              <span className="text-gray-300">•</span>
+                              <span className="text-[#181432] font-black flex items-center gap-0.5">
+                                Verified <VerifiedBadgeIcon className="w-3.5 h-3.5" />
+                              </span>
+                            </span>
+                          </div>
+
+                          {/* Bottom Price & Action */}
+                          <div className="flex items-center justify-between pt-2 border-t border-[#F5F4FC]">
+                            <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                            <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity">
+                              Buy Now
+                            </span>
                           </div>
                         </div>
-
-                        {/* Center Brand Icon & Title */}
-                        <div className="flex flex-col items-center text-center mt-6">
-                          <div className="w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-2 shadow-2xs group-hover:scale-105 transition-transform">
-                            <BrandIcon name={p.name} type={p.type} className="w-7 h-7" />
-                          </div>
-                          <h4 className="text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1">
-                            {p.name}
-                          </h4>
-                          <span className="text-[10px] font-bold text-[#7E7998] mt-0.5 inline-flex items-center gap-1">
-                            {p.stockCount && p.stockCount > 0 ? `${p.stockCount} in stock` : "Verified"}
-                            <ShopBagIcon className="w-2.5 h-2.5 text-[#5B42F3]" />
-                          </span>
-                        </div>
-
-                        {/* Bottom Price & Action */}
-                        <div className="flex items-center justify-between pt-2 border-t border-[#F5F4FC]">
-                          <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
-                          <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity">
-                            Buy Now
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             )}
@@ -3216,6 +3253,22 @@ Support: https://t.me/youuhost_support
                         <p className="text-[10px] text-[#7E7998] line-clamp-1 mt-0.5">
                           {prod.description || `${prod.type} Verified Account`}
                         </p>
+                        {(() => {
+                          const stats = bestSellersData?.allStats?.[prod.id];
+                          const totalSold = stats?.totalSoldCount || 3000;
+                          const rating = stats?.customRating || 4.9;
+                          return (
+                            <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                              <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                                <span className="text-amber-500 font-black">★ {rating}</span>
+                                <span>({totalSold.toLocaleString()} sold)</span>
+                              </span>
+                              <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
+                                Verified <VerifiedBadgeIcon className="w-3 h-3" />
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Bottom Price & Add (+) Button */}
@@ -6128,21 +6181,21 @@ Support: https://t.me/youuhost_support
                   <div className="grid grid-cols-2 gap-2 w-full">
                     <button
                       onClick={() => {
-                        const rawText = `Order ID: ${ord.orderNumber}\nProduct: ${ord.title}\nPrice: $${priceUsd} (Rs. ${priceLkr})\nCredentials:\n${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
-                        copyToClipboard(rawText, "Full Order Details Copied");
+                        const credsOnly = ord.credentialData || ord.licenseKey || ord.smmLink || ord.deliveredData || ord.status;
+                        copyToClipboard(credsOnly, "Credentials Copied to Clipboard! 🔑");
                       }}
-                      className="py-2.5 bg-white hover:bg-[#F5F4FC] text-[#181432] border border-[#ECEEF8] rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-2xs"
+                      className="py-2.5 bg-white hover:bg-[#F5F4FC] text-[#181432] border border-[#ECEEF8] rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-2xs cursor-pointer"
                     >
                       <Copy className="w-3.5 h-3.5 text-[#5B42F3]" /> Copy Details
                     </button>
 
                     <a
-                      href={`https://t.me/${supportUser.replace("@", "")}`}
+                      href={`https://wa.me/94770314260?text=${encodeURIComponent(`Hello YouuHost Support, I need help regarding my Order ${ord.orderNumber} (${ord.title})`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="py-2.5 bg-white hover:bg-[#F5F4FC] text-[#181432] border border-[#ECEEF8] rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-2xs"
+                      className="py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-[10.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-md shadow-emerald-500/20 cursor-pointer"
                     >
-                      <FaTelegramPlane className="w-3.5 h-3.5 text-sky-500" /> Need Help?
+                      <FaWhatsapp className="w-4 h-4 text-white" /> Need Help?
                     </a>
                   </div>
                 </div>

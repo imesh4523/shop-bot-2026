@@ -2877,6 +2877,121 @@ export async function registerRoutes(
     }
   });
 
+  // --- Featured Best Sellers & Hot Deals Configuration Endpoints ---
+  app.get("/api/admin/best-sellers", isAuth, async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const allOrders = await db.select({ productId: orders.productId, count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, "completed")).groupBy(orders.productId);
+      const orderCountMap: Record<number, number> = {};
+      allOrders.forEach(o => {
+        if (o.productId) orderCountMap[o.productId] = Number(o.count || 0);
+      });
+
+      const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
+      let config: any[] = [];
+      if (setting && setting.value) {
+        try {
+          config = JSON.parse(setting.value);
+        } catch {
+          config = [];
+        }
+      }
+
+      const productsWithStats = allProducts.map(p => {
+        const conf = (Array.isArray(config) ? config : []).find((c: any) => c.productId === p.id) || {};
+        const realCount = orderCountMap[p.id] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        return {
+          ...p,
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured !== false,
+          badge: conf.badge || "BEST SELLER",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        };
+      });
+
+      res.json({ products: productsWithStats, config });
+    } catch (err: any) {
+      console.error("GET /api/admin/best-sellers error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/best-sellers", isAuth, async (req, res) => {
+    try {
+      const { config } = req.body;
+      await storage.setSetting("FEATURED_BEST_SELLERS_CONFIG", JSON.stringify(config || []));
+      res.json({ success: true, message: "Best Sellers & Sold Counts updated successfully" });
+    } catch (err: any) {
+      console.error("POST /api/admin/best-sellers error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/mini/best-sellers", async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const allOrders = await db.select({ productId: orders.productId, count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, "completed")).groupBy(orders.productId);
+      const orderCountMap: Record<number, number> = {};
+      allOrders.forEach(o => {
+        if (o.productId) orderCountMap[o.productId] = Number(o.count || 0);
+      });
+
+      const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
+      let config: any[] = [];
+      if (setting && setting.value) {
+        try {
+          config = JSON.parse(setting.value);
+        } catch {
+          config = [];
+        }
+      }
+
+      const productsWithStats = allProducts.map(p => {
+        const conf = (Array.isArray(config) ? config : []).find((c: any) => c.productId === p.id) || {};
+        const realCount = orderCountMap[p.id] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        return {
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          type: p.type,
+          description: p.description,
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured !== false,
+          badge: conf.badge || "BEST SELLER",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        };
+      });
+
+      // Featured only sorted by orderIndex
+      const featured = productsWithStats
+        .filter(p => p.isFeatured)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
+      res.json({
+        featured,
+        allStats: productsWithStats.reduce((acc: any, curr) => {
+          acc[curr.id] = curr;
+          return acc;
+        }, {})
+      });
+    } catch (err: any) {
+      console.error("GET /api/mini/best-sellers error:", err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
 
 
   // Mini App Deposit Methods & Cryptomus Invoice
