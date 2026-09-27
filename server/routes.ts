@@ -1133,10 +1133,34 @@ export async function registerRoutes(
         sent_at TIMESTAMP DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id SERIAL PRIMARY KEY,
+        telegram_user_id INTEGER REFERENCES telegram_users(id),
+        issue_type TEXT NOT NULL DEFAULT 'General Support',
+        subject TEXT,
+        status TEXT NOT NULL DEFAULT 'open',
+        details TEXT,
+        messages TEXT,
+        attachment_url TEXT,
+        user_telegram_id TEXT,
+        username TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS subject TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS details TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS messages TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS user_telegram_id TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS username TEXT;
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open';
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS issue_type TEXT DEFAULT 'General Support';
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     `);
-    console.log('[DB] referrals, promo_codes, broadcast_logs, and email_logs tables verified/created');
+    console.log('[DB] referrals, promo_codes, broadcast_logs, email_logs, and support_tickets tables verified/created');
   } catch (err: any) {
-    console.error('Error verifying referrals table:', err.message);
+    console.error('Error verifying database schema tables:', err.message);
   }
 
   const isAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -2010,7 +2034,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Please sign in to open a support ticket." });
       }
 
-      const { issueType = "General Support", subject, details, orderId } = req.body;
+      const { issueType = "General Support", subject, details, attachmentUrl } = req.body;
       if (!details || !details.trim()) {
         return res.status(400).json({ message: "Ticket message details are required" });
       }
@@ -2020,6 +2044,7 @@ export async function registerRoutes(
         {
           sender: "user",
           text: details.trim(),
+          attachmentUrl: attachmentUrl || null,
           timestamp: new Date().toISOString()
         }
       ];
@@ -2031,6 +2056,7 @@ export async function registerRoutes(
         issueType: issueType,
         subject: ticketSubject,
         details: details.trim(),
+        attachmentUrl: attachmentUrl || null,
         status: "open",
         messages: JSON.stringify(initialMessages),
         createdAt: new Date(),
@@ -2069,9 +2095,9 @@ export async function registerRoutes(
       if (!dbUser) return res.status(401).json({ message: "Sign in required" });
 
       const ticketId = parseInt(req.params.id, 10);
-      const { message } = req.body;
-      if (!message || !message.trim()) {
-        return res.status(400).json({ message: "Message cannot be empty" });
+      const { message, attachmentUrl } = req.body;
+      if (!message && !attachmentUrl) {
+        return res.status(400).json({ message: "Message or attachment is required" });
       }
 
       const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, ticketId));
@@ -2088,7 +2114,8 @@ export async function registerRoutes(
 
       messagesList.push({
         sender: "user",
-        text: message.trim(),
+        text: (message || "").trim(),
+        attachmentUrl: attachmentUrl || null,
         timestamp: new Date().toISOString()
       });
 
@@ -2101,7 +2128,7 @@ export async function registerRoutes(
       io.emit("admin_notification", {
         type: "support_message",
         title: `New Message on Ticket #${ticketId}`,
-        message: message.trim(),
+        message: (message || "Sent an attachment").trim(),
         ticketId,
         createdAt: new Date()
       });
@@ -2109,6 +2136,85 @@ export async function registerRoutes(
       res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to send message" });
+    }
+  });
+
+  // --- Admin Dashboard Support Tickets Management Endpoints ---
+  app.get("/api/support-tickets", async (_req, res) => {
+    try {
+      const tickets = await db
+        .select()
+        .from(supportTickets)
+        .orderBy(desc(supportTickets.id));
+      res.json(tickets);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch support tickets" });
+    }
+  });
+
+  app.patch("/api/support-tickets/:id/status", async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id, 10);
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ message: "Status required" });
+
+      const [updated] = await db
+        .update(supportTickets)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+
+      if (!updated) return res.status(404).json({ message: "Ticket not found" });
+
+      io.emit("ticket_status_changed", { ticketId, status });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to update status" });
+    }
+  });
+
+  app.post("/api/support-tickets/:id/reply", async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id, 10);
+      const { replyText, attachmentUrl } = req.body;
+      if (!replyText && !attachmentUrl) {
+        return res.status(400).json({ message: "Reply text or attachment is required" });
+      }
+
+      const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, ticketId));
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+      let messagesList: any[] = [];
+      if (ticket.messages) {
+        try {
+          messagesList = JSON.parse(ticket.messages);
+        } catch {
+          messagesList = [];
+        }
+      }
+
+      messagesList.push({
+        sender: "admin",
+        text: (replyText || "").trim(),
+        attachmentUrl: attachmentUrl || null,
+        timestamp: new Date().toISOString()
+      });
+
+      const [updated] = await db
+        .update(supportTickets)
+        .set({
+          messages: JSON.stringify(messagesList),
+          status: "in_progress",
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+
+      io.emit("ticket_reply", { ticketId, replyText, attachmentUrl });
+
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to send reply" });
     }
   });
 

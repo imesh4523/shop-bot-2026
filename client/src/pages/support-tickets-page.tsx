@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   Image as ImageIcon,
+  Camera,
   Send,
   Loader2,
   Zap,
@@ -28,8 +29,9 @@ import { useToast } from "@/hooks/use-toast";
 import type { SupportTicket } from "@shared/schema";
 
 interface TicketMessage {
-  sender: 'user' | 'admin';
+  sender: 'user' | 'admin' | 'staff';
   text: string;
+  attachmentUrl?: string;
   timestamp?: string;
 }
 
@@ -41,6 +43,42 @@ const QUICK_REPLIES = [
   "👍 Your issue has been resolved. Thank you!"
 ];
 
+// Canvas Image Compression Helper (< 300KB)
+async function compressImageToDataUrl(file: File, maxDim = 1200, quality = 0.75): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function SupportTicketsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,6 +86,8 @@ export default function SupportTicketsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
+  const [replyAttachments, setReplyAttachments] = useState<Record<number, string>>({});
+  const [isCompressingMap, setIsCompressingMap] = useState<Record<number, boolean>>({});
 
   const { data: tickets = [], isLoading } = useQuery<SupportTicket[]>({
     queryKey: ["/api/support-tickets"],
@@ -81,11 +121,11 @@ export default function SupportTicketsPage() {
   });
 
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ id, replyText }: { id: number; replyText: string }) => {
+    mutationFn: async ({ id, replyText, attachmentUrl }: { id: number; replyText: string; attachmentUrl?: string }) => {
       const res = await fetch(`/api/support-tickets/${id}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replyText }),
+        body: JSON.stringify({ replyText, attachmentUrl }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -96,6 +136,11 @@ export default function SupportTicketsPage() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/support-tickets"] });
       setReplyTexts(prev => ({ ...prev, [variables.id]: "" }));
+      setReplyAttachments(prev => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
       toast({
         title: "Reply Sent to Customer",
         description: `Your reply was sent to Telegram user for ticket #${variables.id < 2000 ? variables.id + 2000 : variables.id}`,
@@ -118,16 +163,17 @@ export default function SupportTicketsPage() {
   };
 
   const handleSendReply = (ticketId: number) => {
-    const text = replyTexts[ticketId]?.trim();
-    if (!text) {
+    const text = replyTexts[ticketId]?.trim() || "";
+    const attach = replyAttachments[ticketId];
+    if (!text && !attach) {
       toast({
         title: "Empty Reply",
-        description: "Please enter a reply message first.",
+        description: "Please enter a reply message or attach a photo first.",
         variant: "destructive"
       });
       return;
     }
-    sendReplyMutation.mutate({ id: ticketId, replyText: text });
+    sendReplyMutation.mutate({ id: ticketId, replyText: text, attachmentUrl: attach });
   };
 
   const copyTemplate = (ticket: SupportTicket) => {
@@ -418,40 +464,55 @@ export default function SupportTicketsPage() {
                       <p className="text-sm text-white/40 italic">Waiting for details from customer...</p>
                     ) : (
                       <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                        {parsedMessages.map((msg, index) => (
-                          <div 
-                            key={index} 
-                            className={`p-3.5 rounded-xl text-sm leading-relaxed border ${
-                              msg.sender === 'admin' 
-                                ? 'bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6' 
-                                : 'bg-white/5 border-white/10 text-white mr-6'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className={`text-xs font-bold flex items-center gap-1.5 ${
-                                msg.sender === 'admin' ? 'text-purple-300' : 'text-yellow-400'
-                              }`}>
-                                {msg.sender === 'admin' ? (
-                                  <>
-                                    <Bot className="w-3.5 h-3.5" />
-                                    Admin Reply:
-                                  </>
-                                ) : (
-                                  <>
-                                    <User className="w-3.5 h-3.5" />
-                                    Submitted Message (Customer):
-                                  </>
-                                )}
-                              </span>
-                              {msg.timestamp && (
-                                <span className="text-[10px] text-white/40">
-                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {parsedMessages.map((msg, index) => {
+                          const msgAttach = msg.attachmentUrl || (msg as any).attachment_url || (msg as any).image;
+                          return (
+                            <div 
+                              key={index} 
+                              className={`p-3.5 rounded-xl text-sm leading-relaxed border space-y-2 ${
+                                msg.sender === 'admin' || msg.sender === 'staff'
+                                  ? 'bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6' 
+                                  : 'bg-white/5 border-white/10 text-white mr-6'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-xs font-bold flex items-center gap-1.5 ${
+                                  msg.sender === 'admin' || msg.sender === 'staff' ? 'text-purple-300' : 'text-yellow-400'
+                                }`}>
+                                  {msg.sender === 'admin' || msg.sender === 'staff' ? (
+                                    <>
+                                      <Bot className="w-3.5 h-3.5" />
+                                      Admin Reply:
+                                    </>
+                                  ) : (
+                                    <>
+                                      <User className="w-3.5 h-3.5" />
+                                      Submitted Message (Customer):
+                                    </>
+                                  )}
                                 </span>
+                                {msg.timestamp && (
+                                  <span className="text-[10px] text-white/40">
+                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                              {msg.text && (
+                                <p className="whitespace-pre-wrap font-mono text-xs">{msg.text}</p>
+                              )}
+                              {msgAttach && (
+                                <div className="pt-1">
+                                  <img 
+                                    src={msgAttach} 
+                                    alt="Message Attachment" 
+                                    className="max-h-48 max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => window.open(msgAttach, "_blank")}
+                                  />
+                                </div>
                               )}
                             </div>
-                            <p className="whitespace-pre-wrap font-mono text-xs">{msg.text}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -461,7 +522,7 @@ export default function SupportTicketsPage() {
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
                         <Zap className="w-4 h-4 text-purple-400" />
-                        Reply to Telegram Customer:
+                        Reply to Customer:
                       </label>
                       <span className="text-xs text-white/40">Quick preset response chips:</span>
                     </div>
@@ -480,18 +541,71 @@ export default function SupportTicketsPage() {
                       ))}
                     </div>
 
-                    <div className="flex gap-3">
+                    {replyAttachments[ticket.id] && (
+                      <div className="relative inline-block rounded-xl border border-white/10 bg-black/40 p-1">
+                        <img 
+                          src={replyAttachments[ticket.id]} 
+                          alt="Reply attachment" 
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setReplyAttachments(prev => {
+                            const next = { ...prev };
+                            delete next[ticket.id];
+                            return next;
+                          })}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 items-end">
+                      <label className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors">
+                        {isCompressingMap[ticket.id] ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Camera className="w-5 h-5" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isCompressingMap[ticket.id]}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsCompressingMap(prev => ({ ...prev, [ticket.id]: true }));
+                            try {
+                              const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                              setReplyAttachments(prev => ({ ...prev, [ticket.id]: compressed }));
+                            } catch (err) {
+                              toast({
+                                title: "Image Upload Failed",
+                                description: "Could not compress image.",
+                                variant: "destructive"
+                              });
+                            } finally {
+                              setIsCompressingMap(prev => ({ ...prev, [ticket.id]: false }));
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </label>
+
                       <Textarea
-                        placeholder="Type reply message to send directly to customer's Telegram..."
+                        placeholder="Type reply message to send to customer..."
                         value={replyTexts[ticket.id] || ""}
                         onChange={(e) => setReplyTexts(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                        className="glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm"
+                        className="glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm flex-1"
                       />
 
                       <Button
                         onClick={() => handleSendReply(ticket.id)}
-                        disabled={isReplyingThis || !(replyTexts[ticket.id]?.trim())}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 self-end h-12"
+                        disabled={isReplyingThis || (!(replyTexts[ticket.id]?.trim()) && !replyAttachments[ticket.id]) || isCompressingMap[ticket.id]}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 h-12 shrink-0 cursor-pointer"
                       >
                         {isReplyingThis ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

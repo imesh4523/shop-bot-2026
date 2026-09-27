@@ -66,7 +66,10 @@ import {
   HelpCircle,
   SendHorizontal,
   PackageCheck,
-  Rocket
+  Rocket,
+  Camera,
+  Image as ImageIcon,
+  Paperclip
 } from "lucide-react";
 import { format } from "date-fns";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
@@ -84,6 +87,47 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// Canvas-based Image Compressor (reduces photo size before uploading)
+const compressImageToDataUrl = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      return reject(new Error("Please select a valid image file (PNG, JPG, JPEG, WEBP)"));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Failed to process image"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
 
 // Helper for MiniApp API requests
 const miniApiRequest = async (method: string, path: string, body?: any) => {
@@ -1329,12 +1373,17 @@ Support: https://t.me/youuhost_support
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [supportSelectedTicket, setSupportSelectedTicket] = useState<any | null>(null);
   const [ticketIssueType, setTicketIssueType] = useState("Order Delivery Issue");
-  const [ticketSubject, setTicketSubject] = useState("");
   const [ticketDetails, setTicketDetails] = useState("");
   const [ticketOrderId, setTicketOrderId] = useState("");
+  const [ticketPaymentId, setTicketPaymentId] = useState("");
+  const [ticketSmmOrderId, setTicketSmmOrderId] = useState("");
+  const [ticketAttachment, setTicketAttachment] = useState<string | null>(null);
+  const [replyAttachment, setReplyAttachment] = useState<string | null>(null);
   const [ticketReplyMsg, setTicketReplyMsg] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
   const [isReplyingTicket, setIsReplyingTicket] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [previewLightboxImage, setPreviewLightboxImage] = useState<string | null>(null);
 
   // Customer Support Tickets Query
   const { data: supportTicketsList = [], refetch: refetchSupportTickets } = useQuery<any[]>({
@@ -1363,11 +1412,25 @@ Support: https://t.me/youuhost_support
 
     setIsSubmittingTicket(true);
     try {
+      let finalSubject = ticketIssueType;
+      let finalDetails = ticketDetails.trim();
+
+      if (ticketIssueType === "Order Delivery Issue" && ticketOrderId) {
+        finalSubject = `Order Issue (${ticketOrderId})`;
+        finalDetails = `[Related Order: ${ticketOrderId}]\n${finalDetails}`;
+      } else if (ticketIssueType === "Payment / Top-up" && ticketPaymentId) {
+        finalSubject = `Payment Issue (${ticketPaymentId})`;
+        finalDetails = `[Related Payment: ${ticketPaymentId}]\n${finalDetails}`;
+      } else if (ticketIssueType === "SMM Boost Service" && ticketSmmOrderId) {
+        finalSubject = `SMM Boost Issue (${ticketSmmOrderId})`;
+        finalDetails = `[Related SMM Boost: ${ticketSmmOrderId}]\n${finalDetails}`;
+      }
+
       const payload: any = {
         issueType: ticketIssueType,
-        subject: ticketSubject.trim() || `${ticketIssueType}${ticketOrderId ? ` (${ticketOrderId})` : ""}`,
-        details: ticketOrderId ? `[Related Order: ${ticketOrderId}]\n${ticketDetails.trim()}` : ticketDetails.trim(),
-        orderId: ticketOrderId || undefined,
+        subject: finalSubject,
+        details: finalDetails,
+        attachmentUrl: ticketAttachment || undefined,
       };
 
       const res = await miniApiRequest("POST", "/api/mini/support/tickets", payload);
@@ -1379,9 +1442,11 @@ Support: https://t.me/youuhost_support
       const created = await res.json();
       await refetchSupportTickets();
       setIsSupportModalOpen(false);
-      setTicketSubject("");
       setTicketDetails("");
       setTicketOrderId("");
+      setTicketPaymentId("");
+      setTicketSmmOrderId("");
+      setTicketAttachment(null);
 
       toast({
         title: "Support Ticket Opened! 🎫",
@@ -1404,25 +1469,27 @@ Support: https://t.me/youuhost_support
   };
 
   const handleSendTicketReply = async (ticketId: number) => {
-    if (!ticketReplyMsg.trim()) return;
+    if (!ticketReplyMsg.trim() && !replyAttachment) return;
     setIsReplyingTicket(true);
     try {
       const res = await miniApiRequest("POST", `/api/mini/support/tickets/${ticketId}/message`, {
-        message: ticketReplyMsg.trim()
+        message: ticketReplyMsg.trim(),
+        attachmentUrl: replyAttachment || undefined,
       });
       if (!res.ok) throw new Error("Failed to send reply");
       const updated = await res.json();
       await refetchSupportTickets();
       setSupportSelectedTicket(updated);
       setTicketReplyMsg("");
+      setReplyAttachment(null);
       toast({
         title: "Message Sent! 💬",
         description: `Your reply was sent to Ticket #${ticketId}.`
       });
     } catch (err: any) {
       toast({
-        title: "Failed to Send",
-        description: err.message || "Please try again.",
+        title: "Message Failed",
+        description: err.message || "Failed to send reply",
         variant: "destructive"
       });
     } finally {
@@ -4206,29 +4273,6 @@ Support: https://t.me/youuhost_support
                 {/* SUBTAB 1: OVERVIEW */}
                 {profileSubTab === "overview" && (
                   <div className="bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]">
-                    {/* Support Ticket Quick Action Card */}
-                    <div className="p-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsSupportModalOpen(true)}
-                        className="w-full px-3.5 py-3 flex items-center justify-between text-xs font-black text-purple-950 bg-gradient-to-r from-purple-100/90 via-indigo-50 to-purple-100/80 hover:from-purple-200/90 hover:to-indigo-100 rounded-2xl transition-all border border-purple-300 shadow-xs active:scale-[0.99]"
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-[#5B42F3] text-white flex items-center justify-center shadow-xs shrink-0">
-                            <Ticket className="w-4 h-4" />
-                          </div>
-                          <span className="text-left">
-                            <span className="flex items-center gap-1.5 flex-wrap">
-                              <span className="block font-black text-purple-950">Open Support Ticket</span>
-                              <span className="text-[8.5px] bg-[#5B42F3] text-white px-1.5 py-0.2 rounded-md font-bold uppercase tracking-wider">Recommended</span>
-                            </span>
-                            <span className="block text-[10px] font-semibold text-purple-700">Official order, payment & 2FA support</span>
-                          </span>
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-purple-700 shrink-0" />
-                      </button>
-                    </div>
-
                     <button
                       onClick={() => setActiveTab("orders")}
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
@@ -6088,6 +6132,7 @@ Support: https://t.me/youuhost_support
       </Dialog>
 
       {/* OPEN SUPPORT TICKET MODAL */}
+      {/* OPEN SUPPORT TICKET MODAL */}
       <Dialog open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
         <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50">
           <DialogHeader className="mb-2">
@@ -6101,6 +6146,7 @@ Support: https://t.me/youuhost_support
           </DialogHeader>
 
           <div className="space-y-3.5 pt-2">
+            {/* 1. Category Selection */}
             <div>
               <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
                 Issue Category
@@ -6120,8 +6166,13 @@ Support: https://t.me/youuhost_support
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setTicketIssueType(cat.id)}
-                      className={`p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all ${
+                      onClick={() => {
+                        setTicketIssueType(cat.id);
+                        setTicketOrderId("");
+                        setTicketPaymentId("");
+                        setTicketSmmOrderId("");
+                      }}
+                      className={`p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
                         isSelected
                           ? "bg-[#5B42F3] text-white border-[#5B42F3] shadow-sm shadow-[#5B42F3]/25 font-bold"
                           : "bg-white hover:bg-[#F5F4FC] text-[#3D3656] border-[#ECEEF8]"
@@ -6135,8 +6186,9 @@ Support: https://t.me/youuhost_support
               </div>
             </div>
 
-            {orders.length > 0 && (
-              <div>
+            {/* 2. Dynamic Related Selector based on selected Category */}
+            {ticketIssueType === "Order Delivery Issue" && orders.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-top-1">
                 <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
                   Related Order (Optional)
                 </label>
@@ -6145,29 +6197,70 @@ Support: https://t.me/youuhost_support
                   onChange={(e) => setTicketOrderId(e.target.value)}
                   className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
                 >
-                  <option value="">-- No specific order --</option>
-                  {orders.slice(0, 15).map((o: any) => (
-                    <option key={o.id} value={`#ORD-${o.id}`}>
-                      #ORD-{o.id} - {o.productId ? `Product #${o.productId}` : "Item"} (${((o.priceCents || o.price || 0) / 100).toFixed(2)})
-                    </option>
-                  ))}
+                  <option value="">-- Select related order --</option>
+                  {orders.map((o: any) => {
+                    const prodName = o.product?.name || (o.productId ? `Product #${o.productId}` : "Cloud/Account Order");
+                    const price = ((o.product?.price || o.priceCents || o.price || 0) / 100).toFixed(2);
+                    return (
+                      <option key={o.id} value={`#ORD-${o.id} - ${prodName}`}>
+                        #ORD-{o.id} • {prodName} (${price})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             )}
 
-            <div>
-              <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
-                Subject
-              </label>
-              <input
-                type="text"
-                placeholder="E.g. Cannot access credentials or 2FA code"
-                value={ticketSubject}
-                onChange={(e) => setTicketSubject(e.target.value)}
-                className="w-full bg-white border border-[#ECEEF8] rounded-2xl px-3.5 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
-              />
-            </div>
+            {ticketIssueType === "Payment / Top-up" && payments.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-top-1">
+                <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                  Related Payment / Top-up (Optional)
+                </label>
+                <select
+                  value={ticketPaymentId}
+                  onChange={(e) => setTicketPaymentId(e.target.value)}
+                  className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                >
+                  <option value="">-- Select related payment / deposit --</option>
+                  {payments.map((p: any) => {
+                    const amt = ((p.amountCents || p.amount || 0) / 100).toFixed(2);
+                    const method = p.gateway || p.method || p.provider || "Top-up";
+                    const dateStr = p.createdAt ? format(new Date(p.createdAt), "yyyy-MM-dd") : "";
+                    return (
+                      <option key={p.id} value={`Deposit #${p.id} ($${amt} via ${method})`}>
+                        Deposit #{p.id} • ${amt} ({method}) • {p.status || "Completed"} {dateStr ? `• ${dateStr}` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
 
+            {ticketIssueType === "SMM Boost Service" && smmOrdersList.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-top-1">
+                <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                  Related SMM Boost Order (Optional)
+                </label>
+                <select
+                  value={ticketSmmOrderId}
+                  onChange={(e) => setTicketSmmOrderId(e.target.value)}
+                  className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+                >
+                  <option value="">-- Select related SMM boost order --</option>
+                  {smmOrdersList.map((s: any) => {
+                    const title = s.serviceName || (s.smmService?.name) || `SMM Service #${s.smmServiceId || s.serviceId}`;
+                    const qty = s.quantity || 1000;
+                    return (
+                      <option key={s.id} value={`SMM #${s.id} - ${title} (Qty: ${qty})`}>
+                        SMM #{s.id} • {title} • Qty: {qty} ({s.status || "Pending"})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
+            {/* 3. Detailed Message Area */}
             <div>
               <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
                 Detailed Message <span className="text-rose-500">*</span>
@@ -6181,12 +6274,83 @@ Support: https://t.me/youuhost_support
               />
             </div>
 
+            {/* 4. Canvas-Compressed Photo / Screenshot Upload */}
+            <div>
+              <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
+                Attach Screenshot / Photo (Optional)
+              </label>
+              {ticketAttachment ? (
+                <div className="relative inline-block rounded-2xl border border-[#ECEEF8] bg-white p-2 shadow-2xs">
+                  <img
+                    src={ticketAttachment}
+                    alt="Ticket attachment"
+                    onClick={() => setPreviewLightboxImage(ticketAttachment)}
+                    className="w-24 h-24 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTicketAttachment(null)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-600 transition-colors"
+                  >
+                    ✕
+                  </button>
+                  <div className="text-[9px] text-[#7E7998] text-center mt-1 font-semibold">
+                    Tap to view
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#D6D3E6] hover:border-[#5B42F3] bg-white rounded-2xl p-3 text-xs text-[#5B42F3] font-bold transition-colors">
+                    {isProcessingImage ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#5B42F3]" />
+                        <span>Compressing image...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 text-[#5B42F3]" />
+                        <span>Upload Screenshot / Photo</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isProcessingImage}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsProcessingImage(true);
+                        try {
+                          const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                          setTicketAttachment(compressed);
+                        } catch (err) {
+                          toast({
+                            title: "Image Upload Failed",
+                            description: "Could not compress image. Please choose another.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsProcessingImage(false);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                  <p className="text-[10px] text-[#9490A8] mt-1">
+                    PNG, JPG (auto-compressed with Canvas for fast delivery)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="button"
                 onClick={handleCreateSupportTicket}
-                disabled={isSubmittingTicket || !ticketDetails.trim()}
-                className="w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-2xl font-black text-xs shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-all active:scale-[0.98]"
+                disabled={isSubmittingTicket || !ticketDetails.trim() || isProcessingImage}
+                className="w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-2xl font-black text-xs shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-all active:scale-[0.98] cursor-pointer"
               >
                 {isSubmittingTicket ? (
                   <>
@@ -6235,7 +6399,7 @@ Support: https://t.me/youuhost_support
               {/* Message Thread History */}
               <div className="flex-1 overflow-y-auto space-y-3 py-2 pr-1 min-h-[160px] max-h-[300px]">
                 {/* Initial Ticket Details Bubble */}
-                <div className="p-3 bg-white border border-[#ECEEF8] rounded-2xl space-y-1 shadow-2xs">
+                <div className="p-3 bg-white border border-[#ECEEF8] rounded-2xl space-y-2 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-[#5B42F3]">Initial Request</span>
                     <span className="text-[9px] text-[#9490A8]">{supportSelectedTicket.issueType}</span>
@@ -6243,6 +6407,16 @@ Support: https://t.me/youuhost_support
                   <p className="text-xs text-[#181432] whitespace-pre-wrap leading-relaxed">
                     {supportSelectedTicket.details}
                   </p>
+                  {(supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url) && (
+                    <div className="pt-1">
+                      <img
+                        src={supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url}
+                        alt="Initial Attachment"
+                        onClick={() => setPreviewLightboxImage(supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url)}
+                        className="max-h-36 max-w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border border-[#ECEEF8]"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Parsed JSON Message Array */}
@@ -6265,10 +6439,11 @@ Support: https://t.me/youuhost_support
 
                   return displayThread.map((msg: any, i: number) => {
                     const isAdmin = msg.sender === "admin" || msg.sender === "staff" || msg.role === "admin";
+                    const attach = msg.attachmentUrl || msg.attachment_url || msg.image;
                     return (
                       <div
                         key={i}
-                        className={`p-3 rounded-2xl max-w-[90%] shadow-2xs space-y-1 ${
+                        className={`p-3 rounded-2xl max-w-[90%] shadow-2xs space-y-1.5 ${
                           isAdmin
                             ? "mr-auto bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200/70 text-[#181432] rounded-tl-none"
                             : "ml-auto bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white rounded-br-none"
@@ -6284,9 +6459,21 @@ Support: https://t.me/youuhost_support
                             </span>
                           )}
                         </div>
-                        <p className="text-xs whitespace-pre-wrap leading-relaxed font-medium">
-                          {msg.text || msg.content}
-                        </p>
+                        {msg.text && (
+                          <p className="text-xs whitespace-pre-wrap leading-relaxed font-medium">
+                            {msg.text || msg.content}
+                          </p>
+                        )}
+                        {attach && (
+                          <div className="pt-1">
+                            <img
+                              src={attach}
+                              alt="Attachment"
+                              onClick={() => setPreviewLightboxImage(attach)}
+                              className="max-h-36 max-w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border border-white/20"
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   });
@@ -6294,8 +6481,56 @@ Support: https://t.me/youuhost_support
               </div>
 
               {/* Reply Input Bar */}
-              <div className="pt-2 border-t border-[#ECEEF8] shrink-0">
+              <div className="pt-2 border-t border-[#ECEEF8] shrink-0 space-y-2">
+                {replyAttachment && (
+                  <div className="relative inline-block rounded-xl border border-[#ECEEF8] bg-white p-1 shadow-2xs">
+                    <img
+                      src={replyAttachment}
+                      alt="Reply attachment"
+                      onClick={() => setPreviewLightboxImage(replyAttachment)}
+                      className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setReplyAttachment(null)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
+                  <label className="w-10 h-10 rounded-full bg-white border border-[#ECEEF8] hover:bg-[#F5F4FC] text-[#5B42F3] flex items-center justify-center cursor-pointer shrink-0 shadow-2xs">
+                    {isProcessingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#5B42F3]" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isProcessingImage}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsProcessingImage(true);
+                        try {
+                          const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                          setReplyAttachment(compressed);
+                        } catch (err) {
+                          toast({
+                            title: "Image Upload Failed",
+                            description: "Could not compress image.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsProcessingImage(false);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
                   <input
                     type="text"
                     value={ticketReplyMsg}
@@ -6306,14 +6541,44 @@ Support: https://t.me/youuhost_support
                   />
                   <button
                     onClick={() => handleSendTicketReply(supportSelectedTicket.id)}
-                    disabled={isReplyingTicket || !ticketReplyMsg.trim()}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95"
+                    disabled={isReplyingTicket || (!ticketReplyMsg.trim() && !replyAttachment)}
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95 cursor-pointer"
                   >
                     {isReplyingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PHOTO LIGHTBOX PREVIEW MODAL */}
+      <Dialog open={!!previewLightboxImage} onOpenChange={() => setPreviewLightboxImage(null)}>
+        <DialogContent className="max-w-2xl w-[95vw] bg-[#111019]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center justify-center z-[100]">
+          {previewLightboxImage && (
+            <div className="relative w-full flex flex-col items-center">
+              <img
+                src={previewLightboxImage}
+                alt="Full preview"
+                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+              />
+              <div className="mt-4 flex items-center gap-3">
+                <a
+                  href={previewLightboxImage}
+                  download="support-attachment.jpg"
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-full text-xs font-bold transition-all"
+                >
+                  Download Photo
+                </a>
+                <button
+                  onClick={() => setPreviewLightboxImage(null)}
+                  className="px-5 py-2 bg-white text-[#181432] rounded-full text-xs font-black shadow-md hover:bg-white/90 transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

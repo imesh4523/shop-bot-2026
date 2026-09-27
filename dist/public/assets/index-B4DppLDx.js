@@ -11485,6 +11485,16 @@ const Calendar = createLucideIcon("Calendar", [
   ["rect", { width: "18", height: "18", x: "3", y: "4", rx: "2", key: "1hopcy" }],
   ["path", { d: "M3 10h18", key: "8toen8" }]
 ]);
+const Camera = createLucideIcon("Camera", [
+  [
+    "path",
+    {
+      d: "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z",
+      key: "1tc9qg"
+    }
+  ],
+  ["circle", { cx: "12", cy: "13", r: "3", key: "1vg3eu" }]
+]);
 const Check = createLucideIcon("Check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
 const ChevronDown = createLucideIcon("ChevronDown", [
   ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]
@@ -74085,7 +74095,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-COiSVwEF.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BZ6GGzxK.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90189,6 +90199,40 @@ const QUICK_REPLIES = [
   "📷 Please send a clear screenshot of your payment receipt.",
   "👍 Your issue has been resolved. Thank you!"
 ];
+async function compressImageToDataUrl$1(file, maxDim = 1200, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round(height * maxDim / width);
+            width = maxDim;
+          } else {
+            width = Math.round(width * maxDim / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 function SupportTicketsPage() {
   const { toast: toast2 } = useToast();
   const queryClient2 = useQueryClient();
@@ -90196,6 +90240,8 @@ function SupportTicketsPage() {
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
   const [copiedId, setCopiedId] = reactExports.useState(null);
   const [replyTexts, setReplyTexts] = reactExports.useState({});
+  const [replyAttachments, setReplyAttachments] = reactExports.useState({});
+  const [isCompressingMap, setIsCompressingMap] = reactExports.useState({});
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["/api/support-tickets"],
     refetchInterval: 3e3
@@ -90226,11 +90272,11 @@ function SupportTicketsPage() {
     }
   });
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ id: id2, replyText }) => {
+    mutationFn: async ({ id: id2, replyText, attachmentUrl }) => {
       const res = await fetch(`/api/support-tickets/${id2}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replyText })
+        body: JSON.stringify({ replyText, attachmentUrl })
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -90241,6 +90287,11 @@ function SupportTicketsPage() {
     onSuccess: (_2, variables) => {
       queryClient2.invalidateQueries({ queryKey: ["/api/support-tickets"] });
       setReplyTexts((prev) => ({ ...prev, [variables.id]: "" }));
+      setReplyAttachments((prev) => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
       toast2({
         title: "Reply Sent to Customer",
         description: `Your reply was sent to Telegram user for ticket #${variables.id < 2e3 ? variables.id + 2e3 : variables.id}`
@@ -90261,16 +90312,17 @@ function SupportTicketsPage() {
     }));
   };
   const handleSendReply = (ticketId) => {
-    const text2 = replyTexts[ticketId]?.trim();
-    if (!text2) {
+    const text2 = replyTexts[ticketId]?.trim() || "";
+    const attach = replyAttachments[ticketId];
+    if (!text2 && !attach) {
       toast2({
         title: "Empty Reply",
-        description: "Please enter a reply message first.",
+        description: "Please enter a reply message or attach a photo first.",
         variant: "destructive"
       });
       return;
     }
-    sendReplyMutation.mutate({ id: ticketId, replyText: text2 });
+    sendReplyMutation.mutate({ id: ticketId, replyText: text2, attachmentUrl: attach });
   };
   const copyTemplate = (ticket) => {
     const template = `Order ID:
@@ -90487,32 +90539,44 @@ Problem details: ${ticket.details || ticket.issueType}`;
             /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { className: "w-4 h-4" }),
             "Ticket Conversation Thread:"
           ] }),
-          parsedMessages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 italic", children: "Waiting for details from customer..." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3 max-h-96 overflow-y-auto pr-1", children: parsedMessages.map((msg, index2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              className: `p-3.5 rounded-xl text-sm leading-relaxed border ${msg.sender === "admin" ? "bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6" : "bg-white/5 border-white/10 text-white mr-6"}`,
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2 mb-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-xs font-bold flex items-center gap-1.5 ${msg.sender === "admin" ? "text-purple-300" : "text-yellow-400"}`, children: msg.sender === "admin" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-3.5 h-3.5" }),
-                    "Admin Reply:"
-                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5" }),
-                    "Submitted Message (Customer):"
-                  ] }) }),
-                  msg.timestamp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "whitespace-pre-wrap font-mono text-xs", children: msg.text })
-              ]
-            },
-            index2
-          )) })
+          parsedMessages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 italic", children: "Waiting for details from customer..." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3 max-h-96 overflow-y-auto pr-1", children: parsedMessages.map((msg, index2) => {
+            const msgAttach = msg.attachmentUrl || msg.attachment_url || msg.image;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                className: `p-3.5 rounded-xl text-sm leading-relaxed border space-y-2 ${msg.sender === "admin" || msg.sender === "staff" ? "bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6" : "bg-white/5 border-white/10 text-white mr-6"}`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-xs font-bold flex items-center gap-1.5 ${msg.sender === "admin" || msg.sender === "staff" ? "text-purple-300" : "text-yellow-400"}`, children: msg.sender === "admin" || msg.sender === "staff" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-3.5 h-3.5" }),
+                      "Admin Reply:"
+                    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5" }),
+                      "Submitted Message (Customer):"
+                    ] }) }),
+                    msg.timestamp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
+                  ] }),
+                  msg.text && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "whitespace-pre-wrap font-mono text-xs", children: msg.text }),
+                  msgAttach && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "img",
+                    {
+                      src: msgAttach,
+                      alt: "Message Attachment",
+                      className: "max-h-48 max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity",
+                      onClick: () => window.open(msgAttach, "_blank")
+                    }
+                  ) })
+                ]
+              },
+              index2
+            );
+          }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 space-y-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-purple-400" }),
-              "Reply to Telegram Customer:"
+              "Reply to Customer:"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Quick preset response chips:" })
           ] }),
@@ -90526,22 +90590,75 @@ Problem details: ${ticket.details || ticket.issueType}`;
             },
             idx
           )) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3", children: [
+          replyAttachments[ticket.id] && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative inline-block rounded-xl border border-white/10 bg-black/40 p-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "img",
+              {
+                src: replyAttachments[ticket.id],
+                alt: "Reply attachment",
+                className: "w-20 h-20 object-cover rounded-lg"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setReplyAttachments((prev) => {
+                  const next = { ...prev };
+                  delete next[ticket.id];
+                  return next;
+                }),
+                className: "absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow",
+                children: "✕"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3 items-end", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors", children: [
+              isCompressingMap[ticket.id] ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Camera, { className: "w-5 h-5" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "file",
+                  accept: "image/*",
+                  className: "hidden",
+                  disabled: isCompressingMap[ticket.id],
+                  onChange: async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: true }));
+                    try {
+                      const compressed = await compressImageToDataUrl$1(file, 1200, 1200, 0.75);
+                      setReplyAttachments((prev) => ({ ...prev, [ticket.id]: compressed }));
+                    } catch (err) {
+                      toast2({
+                        title: "Image Upload Failed",
+                        description: "Could not compress image.",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: false }));
+                      e.target.value = "";
+                    }
+                  }
+                }
+              )
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Textarea,
               {
-                placeholder: "Type reply message to send directly to customer's Telegram...",
+                placeholder: "Type reply message to send to customer...",
                 value: replyTexts[ticket.id] || "",
                 onChange: (e) => setReplyTexts((prev) => ({ ...prev, [ticket.id]: e.target.value })),
-                className: "glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm"
+                className: "glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm flex-1"
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               Button,
               {
                 onClick: () => handleSendReply(ticket.id),
-                disabled: isReplyingThis || !replyTexts[ticket.id]?.trim(),
-                className: "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 self-end h-12",
+                disabled: isReplyingThis || !replyTexts[ticket.id]?.trim() && !replyAttachments[ticket.id] || isCompressingMap[ticket.id],
+                className: "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 h-12 shrink-0 cursor-pointer",
                 children: [
                   isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
                   "Send Reply"
@@ -103473,6 +103590,45 @@ function CategoriesManagerPage() {
   ] });
 }
 const youuHostLogo = "/assets/youuhost_logo-DHO_k5Bj.png";
+const compressImageToDataUrl = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      return reject(new Error("Please select a valid image file (PNG, JPG, JPEG, WEBP)"));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round(height * maxWidth / width);
+            width = maxWidth;
+          } else {
+            width = Math.round(width * maxHeight / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(e.target?.result);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Failed to process image"));
+      img.src = e.target?.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
 const miniApiRequest = async (method, path, body) => {
   const initData = getTelegramInitData();
   const res = await fetch(path, {
@@ -104519,12 +104675,17 @@ Support: https://t.me/youuhost_support
   const [isSupportModalOpen, setIsSupportModalOpen] = reactExports.useState(false);
   const [supportSelectedTicket, setSupportSelectedTicket] = reactExports.useState(null);
   const [ticketIssueType, setTicketIssueType] = reactExports.useState("Order Delivery Issue");
-  const [ticketSubject, setTicketSubject] = reactExports.useState("");
   const [ticketDetails, setTicketDetails] = reactExports.useState("");
   const [ticketOrderId, setTicketOrderId] = reactExports.useState("");
+  const [ticketPaymentId, setTicketPaymentId] = reactExports.useState("");
+  const [ticketSmmOrderId, setTicketSmmOrderId] = reactExports.useState("");
+  const [ticketAttachment, setTicketAttachment] = reactExports.useState(null);
+  const [replyAttachment, setReplyAttachment] = reactExports.useState(null);
   const [ticketReplyMsg, setTicketReplyMsg] = reactExports.useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = reactExports.useState(false);
   const [isReplyingTicket, setIsReplyingTicket] = reactExports.useState(false);
+  const [isProcessingImage, setIsProcessingImage] = reactExports.useState(false);
+  const [previewLightboxImage, setPreviewLightboxImage] = reactExports.useState(null);
   const { data: supportTicketsList = [], refetch: refetchSupportTickets } = useQuery({
     queryKey: ["/api/mini/support/tickets"],
     queryFn: async () => {
@@ -104549,12 +104710,26 @@ Support: https://t.me/youuhost_support
     }
     setIsSubmittingTicket(true);
     try {
+      let finalSubject = ticketIssueType;
+      let finalDetails = ticketDetails.trim();
+      if (ticketIssueType === "Order Delivery Issue" && ticketOrderId) {
+        finalSubject = `Order Issue (${ticketOrderId})`;
+        finalDetails = `[Related Order: ${ticketOrderId}]
+${finalDetails}`;
+      } else if (ticketIssueType === "Payment / Top-up" && ticketPaymentId) {
+        finalSubject = `Payment Issue (${ticketPaymentId})`;
+        finalDetails = `[Related Payment: ${ticketPaymentId}]
+${finalDetails}`;
+      } else if (ticketIssueType === "SMM Boost Service" && ticketSmmOrderId) {
+        finalSubject = `SMM Boost Issue (${ticketSmmOrderId})`;
+        finalDetails = `[Related SMM Boost: ${ticketSmmOrderId}]
+${finalDetails}`;
+      }
       const payload = {
         issueType: ticketIssueType,
-        subject: ticketSubject.trim() || `${ticketIssueType}${ticketOrderId ? ` (${ticketOrderId})` : ""}`,
-        details: ticketOrderId ? `[Related Order: ${ticketOrderId}]
-${ticketDetails.trim()}` : ticketDetails.trim(),
-        orderId: ticketOrderId || void 0
+        subject: finalSubject,
+        details: finalDetails,
+        attachmentUrl: ticketAttachment || void 0
       };
       const res = await miniApiRequest("POST", "/api/mini/support/tickets", payload);
       if (!res.ok) {
@@ -104564,9 +104739,11 @@ ${ticketDetails.trim()}` : ticketDetails.trim(),
       const created = await res.json();
       await refetchSupportTickets();
       setIsSupportModalOpen(false);
-      setTicketSubject("");
       setTicketDetails("");
       setTicketOrderId("");
+      setTicketPaymentId("");
+      setTicketSmmOrderId("");
+      setTicketAttachment(null);
       toast2({
         title: "Support Ticket Opened! 🎫",
         description: `Ticket #${created.id} submitted. Our team will review and reply shortly.`
@@ -104585,25 +104762,27 @@ ${ticketDetails.trim()}` : ticketDetails.trim(),
     }
   };
   const handleSendTicketReply = async (ticketId) => {
-    if (!ticketReplyMsg.trim()) return;
+    if (!ticketReplyMsg.trim() && !replyAttachment) return;
     setIsReplyingTicket(true);
     try {
       const res = await miniApiRequest("POST", `/api/mini/support/tickets/${ticketId}/message`, {
-        message: ticketReplyMsg.trim()
+        message: ticketReplyMsg.trim(),
+        attachmentUrl: replyAttachment || void 0
       });
       if (!res.ok) throw new Error("Failed to send reply");
       const updated = await res.json();
       await refetchSupportTickets();
       setSupportSelectedTicket(updated);
       setTicketReplyMsg("");
+      setReplyAttachment(null);
       toast2({
         title: "Message Sent! 💬",
         description: `Your reply was sent to Ticket #${ticketId}.`
       });
     } catch (err) {
       toast2({
-        title: "Failed to Send",
-        description: err.message || "Please try again.",
+        title: "Message Failed",
+        description: err.message || "Failed to send reply",
         variant: "destructive"
       });
     } finally {
@@ -106983,27 +107162,6 @@ ${ticketDetails.trim()}` : ticketDetails.trim(),
             )
           ] }),
           profileSubTab === "overview" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-2 shadow-sm border border-[#ECEEF8] divide-y divide-[#F5F4FC]", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                type: "button",
-                onClick: () => setIsSupportModalOpen(true),
-                className: "w-full px-3.5 py-3 flex items-center justify-between text-xs font-black text-purple-950 bg-gradient-to-r from-purple-100/90 via-indigo-50 to-purple-100/80 hover:from-purple-200/90 hover:to-indigo-100 rounded-2xl transition-all border border-purple-300 shadow-xs active:scale-[0.99]",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-[#5B42F3] text-white flex items-center justify-center shadow-xs shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Ticket, { className: "w-4 h-4" }) }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-left", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5 flex-wrap", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block font-black text-purple-950", children: "Open Support Ticket" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[8.5px] bg-[#5B42F3] text-white px-1.5 py-0.2 rounded-md font-bold uppercase tracking-wider", children: "Recommended" })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-[10px] font-semibold text-purple-700", children: "Official order, payment & 2FA support" })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-purple-700 shrink-0" })
-                ]
-              }
-            ) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
@@ -108687,8 +108845,13 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
               "button",
               {
                 type: "button",
-                onClick: () => setTicketIssueType(cat.id),
-                className: `p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all ${isSelected ? "bg-[#5B42F3] text-white border-[#5B42F3] shadow-sm shadow-[#5B42F3]/25 font-bold" : "bg-white hover:bg-[#F5F4FC] text-[#3D3656] border-[#ECEEF8]"}`,
+                onClick: () => {
+                  setTicketIssueType(cat.id);
+                  setTicketOrderId("");
+                  setTicketPaymentId("");
+                  setTicketSmmOrderId("");
+                },
+                className: `p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all cursor-pointer ${isSelected ? "bg-[#5B42F3] text-white border-[#5B42F3] shadow-sm shadow-[#5B42F3]/25 font-bold" : "bg-white hover:bg-[#F5F4FC] text-[#3D3656] border-[#ECEEF8]"}`,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: `w-4 h-4 shrink-0 ${isSelected ? "text-white" : "text-[#5B42F3]"}` }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] truncate leading-tight", children: cat.label })
@@ -108698,7 +108861,7 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
             );
           }) })
         ] }),
-        orders2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        ticketIssueType === "Order Delivery Issue" && orders2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "animate-in fade-in slide-in-from-top-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5", children: "Related Order (Optional)" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "select",
@@ -108707,30 +108870,81 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
               onChange: (e) => setTicketOrderId(e.target.value),
               className: "w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "-- No specific order --" }),
-                orders2.slice(0, 15).map((o2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `#ORD-${o2.id}`, children: [
-                  "#ORD-",
-                  o2.id,
-                  " - ",
-                  o2.productId ? `Product #${o2.productId}` : "Item",
-                  " ($",
-                  ((o2.priceCents || o2.price || 0) / 100).toFixed(2),
-                  ")"
-                ] }, o2.id))
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "-- Select related order --" }),
+                orders2.map((o2) => {
+                  const prodName = o2.product?.name || (o2.productId ? `Product #${o2.productId}` : "Cloud/Account Order");
+                  const price = ((o2.product?.price || o2.priceCents || o2.price || 0) / 100).toFixed(2);
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `#ORD-${o2.id} - ${prodName}`, children: [
+                    "#ORD-",
+                    o2.id,
+                    " • ",
+                    prodName,
+                    " ($",
+                    price,
+                    ")"
+                  ] }, o2.id);
+                })
               ]
             }
           )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5", children: "Subject" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
+        ticketIssueType === "Payment / Top-up" && payments2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "animate-in fade-in slide-in-from-top-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5", children: "Related Payment / Top-up (Optional)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "select",
             {
-              type: "text",
-              placeholder: "E.g. Cannot access credentials or 2FA code",
-              value: ticketSubject,
-              onChange: (e) => setTicketSubject(e.target.value),
-              className: "w-full bg-white border border-[#ECEEF8] rounded-2xl px-3.5 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+              value: ticketPaymentId,
+              onChange: (e) => setTicketPaymentId(e.target.value),
+              className: "w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "-- Select related payment / deposit --" }),
+                payments2.map((p2) => {
+                  const amt = ((p2.amountCents || p2.amount || 0) / 100).toFixed(2);
+                  const method = p2.gateway || p2.method || p2.provider || "Top-up";
+                  const dateStr = p2.createdAt ? format(new Date(p2.createdAt), "yyyy-MM-dd") : "";
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `Deposit #${p2.id} ($${amt} via ${method})`, children: [
+                    "Deposit #",
+                    p2.id,
+                    " • $",
+                    amt,
+                    " (",
+                    method,
+                    ") • ",
+                    p2.status || "Completed",
+                    " ",
+                    dateStr ? `• ${dateStr}` : ""
+                  ] }, p2.id);
+                })
+              ]
+            }
+          )
+        ] }),
+        ticketIssueType === "SMM Boost Service" && smmOrdersList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "animate-in fade-in slide-in-from-top-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5", children: "Related SMM Boost Order (Optional)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "select",
+            {
+              value: ticketSmmOrderId,
+              onChange: (e) => setTicketSmmOrderId(e.target.value),
+              className: "w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "-- Select related SMM boost order --" }),
+                smmOrdersList.map((s2) => {
+                  const title = s2.serviceName || s2.smmService?.name || `SMM Service #${s2.smmServiceId || s2.serviceId}`;
+                  const qty = s2.quantity || 1e3;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `SMM #${s2.id} - ${title} (Qty: ${qty})`, children: [
+                    "SMM #",
+                    s2.id,
+                    " • ",
+                    title,
+                    " • Qty: ",
+                    qty,
+                    " (",
+                    s2.status || "Pending",
+                    ")"
+                  ] }, s2.id);
+                })
+              ]
             }
           )
         ] }),
@@ -108750,13 +108964,75 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
             }
           )
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5", children: "Attach Screenshot / Photo (Optional)" }),
+          ticketAttachment ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative inline-block rounded-2xl border border-[#ECEEF8] bg-white p-2 shadow-2xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "img",
+              {
+                src: ticketAttachment,
+                alt: "Ticket attachment",
+                onClick: () => setPreviewLightboxImage(ticketAttachment),
+                className: "w-24 h-24 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setTicketAttachment(null),
+                className: "absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-600 transition-colors",
+                children: "✕"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[9px] text-[#7E7998] text-center mt-1 font-semibold", children: "Tap to view" })
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#D6D3E6] hover:border-[#5B42F3] bg-white rounded-2xl p-3 text-xs text-[#5B42F3] font-bold transition-colors", children: [
+              isProcessingImage ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-[#5B42F3]" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Compressing image..." })
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Camera, { className: "w-4 h-4 text-[#5B42F3]" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Upload Screenshot / Photo" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "file",
+                  accept: "image/*",
+                  className: "hidden",
+                  disabled: isProcessingImage,
+                  onChange: async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsProcessingImage(true);
+                    try {
+                      const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                      setTicketAttachment(compressed);
+                    } catch (err) {
+                      toast2({
+                        title: "Image Upload Failed",
+                        description: "Could not compress image. Please choose another.",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsProcessingImage(false);
+                      e.target.value = "";
+                    }
+                  }
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-[#9490A8] mt-1", children: "PNG, JPG (auto-compressed with Canvas for fast delivery)" })
+          ] })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             type: "button",
             onClick: handleCreateSupportTicket,
-            disabled: isSubmittingTicket || !ticketDetails.trim(),
-            className: "w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-2xl font-black text-xs shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-all active:scale-[0.98]",
+            disabled: isSubmittingTicket || !ticketDetails.trim() || isProcessingImage,
+            className: "w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-2xl font-black text-xs shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition-all active:scale-[0.98] cursor-pointer",
             children: isSubmittingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
               " Submitting Ticket..."
@@ -108785,12 +109061,21 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto space-y-3 py-2 pr-1 min-h-[160px] max-h-[300px]", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 bg-white border border-[#ECEEF8] rounded-2xl space-y-1 shadow-2xs", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 bg-white border border-[#ECEEF8] rounded-2xl space-y-2 shadow-2xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#5B42F3]", children: "Initial Request" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#9490A8]", children: supportSelectedTicket.issueType })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#181432] whitespace-pre-wrap leading-relaxed", children: supportSelectedTicket.details })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#181432] whitespace-pre-wrap leading-relaxed", children: supportSelectedTicket.details }),
+          (supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url) && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "img",
+            {
+              src: supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url,
+              alt: "Initial Attachment",
+              onClick: () => setPreviewLightboxImage(supportSelectedTicket.attachmentUrl || supportSelectedTicket.attachment_url),
+              className: "max-h-36 max-w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border border-[#ECEEF8]"
+            }
+          ) })
         ] }),
         (() => {
           let thread = [];
@@ -108807,16 +109092,26 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
           });
           return displayThread.map((msg, i2) => {
             const isAdmin = msg.sender === "admin" || msg.sender === "staff" || msg.role === "admin";
+            const attach = msg.attachmentUrl || msg.attachment_url || msg.image;
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "div",
               {
-                className: `p-3 rounded-2xl max-w-[90%] shadow-2xs space-y-1 ${isAdmin ? "mr-auto bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200/70 text-[#181432] rounded-tl-none" : "ml-auto bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white rounded-br-none"}`,
+                className: `p-3 rounded-2xl max-w-[90%] shadow-2xs space-y-1.5 ${isAdmin ? "mr-auto bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200/70 text-[#181432] rounded-tl-none" : "ml-auto bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white rounded-br-none"}`,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-black flex items-center gap-1 ${isAdmin ? "text-[#5B42F3]" : "text-white/80"}`, children: isAdmin ? "👨‍💼 YouuHost Admin" : "👤 You" }),
                     msg.timestamp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] ${isAdmin ? "text-[#9490A8]" : "text-white/70"}`, children: format(new Date(msg.timestamp), "HH:mm") })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs whitespace-pre-wrap leading-relaxed font-medium", children: msg.text || msg.content })
+                  msg.text && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs whitespace-pre-wrap leading-relaxed font-medium", children: msg.text || msg.content }),
+                  attach && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "img",
+                    {
+                      src: attach,
+                      alt: "Attachment",
+                      onClick: () => setPreviewLightboxImage(attach),
+                      className: "max-h-36 max-w-full rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity border border-white/20"
+                    }
+                  ) })
                 ]
               },
               i2
@@ -108824,28 +109119,109 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
           });
         })()
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-2 border-t border-[#ECEEF8] shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2 border-t border-[#ECEEF8] shrink-0 space-y-2", children: [
+        replyAttachment && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative inline-block rounded-xl border border-[#ECEEF8] bg-white p-1 shadow-2xs", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "img",
+            {
+              src: replyAttachment,
+              alt: "Reply attachment",
+              onClick: () => setPreviewLightboxImage(replyAttachment),
+              className: "w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-90"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setReplyAttachment(null),
+              className: "absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow",
+              children: "✕"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "w-10 h-10 rounded-full bg-white border border-[#ECEEF8] hover:bg-[#F5F4FC] text-[#5B42F3] flex items-center justify-center cursor-pointer shrink-0 shadow-2xs", children: [
+            isProcessingImage ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-[#5B42F3]" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Camera, { className: "w-4 h-4" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                type: "file",
+                accept: "image/*",
+                className: "hidden",
+                disabled: isProcessingImage,
+                onChange: async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setIsProcessingImage(true);
+                  try {
+                    const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                    setReplyAttachment(compressed);
+                  } catch (err) {
+                    toast2({
+                      title: "Image Upload Failed",
+                      description: "Could not compress image.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setIsProcessingImage(false);
+                    e.target.value = "";
+                  }
+                }
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              type: "text",
+              value: ticketReplyMsg,
+              onChange: (e) => setTicketReplyMsg(e.target.value),
+              onKeyDown: (e) => e.key === "Enter" && handleSendTicketReply(supportSelectedTicket.id),
+              placeholder: "Type a follow-up reply...",
+              className: "flex-1 bg-white border border-[#ECEEF8] rounded-full px-4 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => handleSendTicketReply(supportSelectedTicket.id),
+              disabled: isReplyingTicket || !ticketReplyMsg.trim() && !replyAttachment,
+              className: "w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95 cursor-pointer",
+              children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
+            }
+          )
+        ] })
+      ] })
+    ] }) }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!previewLightboxImage, onOpenChange: () => setPreviewLightboxImage(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-2xl w-[95vw] bg-[#111019]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center justify-center z-[100]", children: previewLightboxImage && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full flex flex-col items-center", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "img",
+        {
+          src: previewLightboxImage,
+          alt: "Full preview",
+          className: "max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex items-center gap-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "input",
+          "a",
           {
-            type: "text",
-            value: ticketReplyMsg,
-            onChange: (e) => setTicketReplyMsg(e.target.value),
-            onKeyDown: (e) => e.key === "Enter" && handleSendTicketReply(supportSelectedTicket.id),
-            placeholder: "Type a follow-up reply...",
-            className: "flex-1 bg-white border border-[#ECEEF8] rounded-full px-4 py-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
+            href: previewLightboxImage,
+            download: "support-attachment.jpg",
+            className: "px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-full text-xs font-bold transition-all",
+            children: "Download Photo"
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
-            onClick: () => handleSendTicketReply(supportSelectedTicket.id),
-            disabled: isReplyingTicket || !ticketReplyMsg.trim(),
-            className: "w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95",
-            children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
+            onClick: () => setPreviewLightboxImage(null),
+            className: "px-5 py-2 bg-white text-[#181432] rounded-full text-xs font-black shadow-md hover:bg-white/90 transition-all cursor-pointer",
+            children: "Close"
           }
         )
-      ] }) })
+      ] })
     ] }) }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       PaymentProcessingModal,
