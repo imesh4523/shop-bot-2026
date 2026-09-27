@@ -104,14 +104,7 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "gemini": return <SiGooglegemini className={`${className} text-[#1BA0E2]`} />;
     case "claude": return <SiClaude className={`${className} text-[#D97757]`} />;
     case "capcut": return <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png" alt="CapCut" className={`${className} object-contain mix-blend-multiply dark:brightness-125`} />;
-    case "kamatera": return (
-      <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
-        <rect width="100" height="100" rx="22" fill="#FF5E00" />
-        <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
-        <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
-        <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
-      </svg>
-    );
+    case "kamatera": return <img src="/assets/kamatera.png" alt="Kamatera" className={`${className} object-contain`} />;
     case "duolingo": return <SiDuolingo className={`${className} text-[#58CC02]`} />;
     default: return <Tag className={className} />;
   }

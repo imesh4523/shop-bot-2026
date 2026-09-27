@@ -128,12 +128,11 @@ const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
-    <rect width="100" height="100" rx="22" fill="#FF5E00" />
-    <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
-    <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
-    <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
-  </svg>
+  <img
+    src="/assets/kamatera.png"
+    alt="Kamatera"
+    className={`${className} shrink-0 object-contain`}
+  />
 );
 
 const API_TRANSACTION_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA24Ajtr-PQkSbpxwfGmNvEW3OyYTz1i5p3FBnTgE3yQ&s=10";
