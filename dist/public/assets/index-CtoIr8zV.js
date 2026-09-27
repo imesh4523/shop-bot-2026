@@ -12012,7 +12012,7 @@ const Smile = createLucideIcon("Smile", [
   ["line", { x1: "9", x2: "9.01", y1: "9", y2: "9", key: "yxxnd0" }],
   ["line", { x1: "15", x2: "15.01", y1: "9", y2: "9", key: "1p4y9e" }]
 ]);
-const Sparkles$1 = createLucideIcon("Sparkles", [
+const Sparkles = createLucideIcon("Sparkles", [
   [
     "path",
     {
@@ -61600,7 +61600,7 @@ function SettingsPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2 text-white", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400 animate-pulse" }),
               "MiniApp Storefront Theme"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30", children: "Live Switcher" })
@@ -61651,7 +61651,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
             "Telegram Integration"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Telegram Bot token here. Changes are applied instantly." })
@@ -61744,7 +61744,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
           "AI Support Assistant (Gemini)"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your Google AI Studio Gemini API Key to power the live support chat bot." })
@@ -62123,7 +62123,7 @@ function SettingsPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 text-purple-400" }),
             "Branding & Customization"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Personalize your store and support contact information." })
@@ -62642,7 +62642,7 @@ function SettingsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-base font-bold text-white flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
                 "Payment Gateway Mode Switcher"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/60 mt-1", children: "Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices." })
@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-8cUeZ2vI.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BjhZ-bL6.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85642,7 +85642,7 @@ function LoginPage() {
                 )
               ] }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-primary animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-primary animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
               ] })
             ] })
@@ -88023,7 +88023,7 @@ function TelegramInspectorPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-lg font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400" }),
             "Quick Text & Custom Emoji Inspector"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Paste raw text, HTML tag, or Emoji ID below to analyze instantly" })
@@ -88074,7 +88074,7 @@ function TelegramInspectorPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: filteredTraces.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-8 h-8" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-8 h-8" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-white mb-2", children: "No Telegram Traces Found" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 max-w-md mx-auto", children: "Forward any formatted message or send custom emojis to your Telegram Bot. The trace and extracted emoji IDs will appear here instantly!" })
     ] }) : filteredTraces.map((trace) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -88727,7 +88727,7 @@ function TelegramClientPage() {
                   }
                 ),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-purple-400 animate-pulse" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Encrypted Session Active" })
                 ] })
               ] })
@@ -88844,7 +88844,7 @@ function TelegramClientPage() {
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 pt-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3 h-3 text-emerald-400 animate-pulse" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-white/30", children: "Secure MTProto Link" })
               ] })
             ] })
@@ -89688,7 +89688,7 @@ function ForwardPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black text-white tracking-tight flex items-center gap-2", children: [
             "Auto Forward System",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-400 animate-pulse" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-400 animate-pulse" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/50 text-sm mt-1", children: "Automatically forward messages from a channel to groups using a dedicated bot" })
         ] })
@@ -102990,7 +102990,7 @@ function CategoriesManagerPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#181432] via-[#2A1F52] to-[#181432] p-8 rounded-3xl text-white shadow-xl border border-white/10", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 text-xs font-black uppercase tracking-widest text-[#FF5E62] bg-white/10 px-3 py-1 rounded-full w-fit mb-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5" }),
           " Mini-App Category & Badges Manager"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl sm:text-3xl font-black tracking-tight", children: "Categories, Brands & Corner Badges" }),
@@ -103057,7 +103057,7 @@ function CategoriesManagerPage() {
           onClick: () => setActiveTab("productBadges"),
           className: `px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${activeTab === "productBadges" ? "bg-white text-[#181432] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#FF5E62]" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#FF5E62]" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
               "Product Angle Badges & Special Offers (",
               allProducts.length,
@@ -103206,7 +103206,7 @@ function CategoriesManagerPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#ECEEF8]", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-base font-black text-[#181432] flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-[#FF5E62]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-[#FF5E62]" }),
               " Product Card Angle Badges & Special Offers (",
               allProducts.length,
               ")"
@@ -103915,8 +103915,8 @@ const getSmmPlatformConfig = (category = "", name = "") => {
     accent: "#6C5CE7",
     bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
     blobColor: "from-purple-100/80 to-indigo-200/50",
-    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-12 h-12 text-[#6C5CE7]" }),
-    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#6C5CE7]" })
+    icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-12 h-12 text-[#6C5CE7]" }),
+    smallIcon: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#6C5CE7]" })
   };
 };
 function LiveTOTP({ secret, onCopy }) {
@@ -106056,6 +106056,10 @@ function MiniAppShopModern() {
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/qplus.png", alt: "Q+ Payment", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#0054A6]", children: "Q+ Payment" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-emerald-200/80 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/genie_wallet.png", alt: "Genie", className: "h-3.5 w-3.5 object-contain rounded-full shadow-xs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-black text-[#00A859]", children: "Genie" })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -106236,16 +106240,13 @@ function MiniAppShopModern() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-3.5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-[#1C1838] flex items-center justify-center shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CryptomusLogo, { className: "w-6 h-6" }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-[#181432]", children: "Cryptomus" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998]", children: "USDT • TRC20 • BEP20 • TON • BTC" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold text-[#5B42F3] bg-[#EDE9FE] px-2.5 py-1 rounded-full border border-[#5B42F3]/20", children: "AUTO CREDIT" })
-            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-3.5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-[#1C1838] flex items-center justify-center shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CryptomusLogo, { className: "w-6 h-6" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-[#181432]", children: "Cryptomus" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-[#7E7998]", children: "USDT • TRC20 • BEP20 • TON • BTC" })
+              ] })
+            ] }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-3.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -107759,7 +107760,7 @@ function MiniAppShopModern() {
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isChatOpen, onOpenChange: setIsChatOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-white border border-[#ECEEF8] rounded-[32px] p-5 shadow-2xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { className: "mb-3 flex flex-row items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-sm font-black text-[#181432] flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-4 h-4 text-[#D92078]" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-[#D92078]" }),
         " 24/7 AI Cloud Concierge"
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-64 overflow-y-auto space-y-2.5 pr-1 text-xs", children: [
@@ -109812,7 +109813,7 @@ function SandromaniaPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showImportModal, onOpenChange: setShowImportModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col p-6 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-600" }),
           " Import Products from Sandromania"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Select products from Sandromania live catalog and set your profit markup percentage." })
@@ -110452,7 +110453,7 @@ function CssxApiPage() {
             value: "overview",
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 mr-2" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 mr-2" }),
               "Overview"
             ]
           }
@@ -111619,7 +111620,7 @@ function DomainAutomationPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold mb-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5" }),
           " Domain & Infrastructure Automation"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black tracking-tight text-white flex items-center gap-3", children: [
@@ -111782,7 +111783,7 @@ function DomainAutomationPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3.5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-600/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-6 h-6 animate-pulse" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-600/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-6 h-6 animate-pulse" }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 flex-wrap", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl font-black text-white", children: "Zero-Touch Auto-Pilot Pipeline & Diagnostics" }),
@@ -111867,7 +111868,7 @@ function DomainAutomationPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 text-purple-400" }),
                   " 7-Step Auto-Provisioning Pipeline"
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Automated end-to-end cloud orchestration" })
@@ -112246,7 +112247,7 @@ function DomainAutomationPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-5 h-5 animate-spin" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Configuring Cloudflare & Resend DNS..." })
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-amber-300" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-amber-300" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⚡ Auto-Configure Everything (Cloudflare + Resend + Subdomain)" })
                 ] })
               }
@@ -115441,7 +115442,7 @@ function EmailHubPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-card/60 border-white/10 backdrop-blur-md", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-4", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-semibold flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "h-4 w-4 text-emerald-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "h-4 w-4 text-emerald-400" }),
               " Template Configuration"
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Choose template style and configure custom receipt variables" })
@@ -116555,7 +116556,7 @@ function HeroBannersPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 space-y-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-purple-200 border border-white/10", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-3.5 h-3.5 text-yellow-300 animate-pulse" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 text-yellow-300 animate-pulse" }),
           "Mini-App Hero Slider Manager"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl md:text-4xl font-black tracking-tight text-white", children: "Hero Banners & Slider Studio" }),
@@ -116817,7 +116818,7 @@ function HeroBannersPage() {
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isDialogOpen, onOpenChange: setIsDialogOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-2xl max-h-[90vh] overflow-y-auto", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-xl font-black flex items-center gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles$1, { className: "w-5 h-5 text-purple-600" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-5 h-5 text-purple-600" }),
         editingBanner?.id.startsWith("banner_") ? "Create New Slide" : "Edit Slide"
       ] }) }),
       editingBanner && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5 py-2", children: [
