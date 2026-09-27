@@ -93,18 +93,16 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
   return res;
 };
 
-// Custom Crisp Vector & Brand Logos
-const ORACLE_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10";
-const KAMATERA_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSji3gQmT-Rgim3tUz_IJD9o15dGe8si09LDF7mm2qQMQ&s=10";
-const CAPCUT_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwqyJe8cXE-btMxT-WsTMJQOcoV0C88_7iv7rbZok-Pw&s";
-const API_TRANSACTION_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA24Ajtr-PQkSbpxwfGmNvEW3OyYTz1i5p3FBnTgE3yQ&s=10";
-
+// Custom Crisp Vector & Brand Logos (Transparent Backgrounds)
 const OracleLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <img
-    src={ORACLE_IMG}
-    alt="Oracle"
-    className={`${className} shrink-0 object-contain rounded-lg`}
-  />
+  <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M16.54 4.5H7.46C3.34 4.5 0 7.84 0 11.96c0 4.12 3.34 7.46 7.46 7.46h9.08c4.12 0 7.46-3.34 7.46-7.46 0-4.12-3.34-7.46-7.46-7.46zm-9.08 11.72c-2.35 0-4.26-1.91-4.26-4.26 0-2.35 1.91-4.26 4.26-4.26h9.08c2.35 0 4.26 1.91 4.26 4.26 0 2.35-1.91 4.26-4.26 4.26H7.46z"
+      fill="#F80000"
+    />
+  </svg>
 );
 
 const LinodeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
@@ -119,21 +117,26 @@ const ClaudeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </span>
 );
 
+const CAPCUT_TRANSPARENT_IMG = "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png";
+
 const CapCutLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <img
-    src={CAPCUT_IMG}
+    src={CAPCUT_TRANSPARENT_IMG}
     alt="CapCut"
-    className={`${className} shrink-0 object-contain rounded-lg`}
+    className={`${className} shrink-0 object-contain mix-blend-multiply dark:brightness-125`}
   />
 );
 
 const KamateraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <img
-    src={KAMATERA_IMG}
-    alt="Kamatera"
-    className={`${className} shrink-0 object-contain rounded-lg`}
-  />
+  <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="22" fill="#FF5E00" />
+    <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
+    <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
+    <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
+  </svg>
 );
+
+const API_TRANSACTION_IMG = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA24Ajtr-PQkSbpxwfGmNvEW3OyYTz1i5p3FBnTgE3yQ&s=10";
 
 const GoogleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">

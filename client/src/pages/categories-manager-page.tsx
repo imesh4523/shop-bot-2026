@@ -87,7 +87,11 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "aws": return <FaAws className={`${className} text-[#FF9900]`} />;
     case "digitalocean": return <SiDigitalocean className={`${className} text-[#0080FF]`} />;
     case "azure": return <VscAzure className={`${className} text-[#0089D6]`} />;
-    case "oracle": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMAQ49SaAlrwOnCzQy6QOmsGINCPOMrvWkNUjKmTw1Zg&s=10" alt="Oracle" className={`${className} object-contain rounded-md`} />;
+    case "oracle": return (
+      <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
+        <path fillRule="evenodd" clipRule="evenodd" d="M16.54 4.5H7.46C3.34 4.5 0 7.84 0 11.96c0 4.12 3.34 7.46 7.46 7.46h9.08c4.12 0 7.46-3.34 7.46-7.46 0-4.12-3.34-7.46-7.46-7.46zm-9.08 11.72c-2.35 0-4.26-1.91-4.26-4.26 0-2.35 1.91-4.26 4.26-4.26h9.08c2.35 0 4.26 1.91 4.26 4.26 0 2.35-1.91 4.26-4.26 4.26H7.46z" fill="#F80000" />
+      </svg>
+    );
     case "linode": return <FaLinode className={`${className} text-[#00A95C]`} />;
     case "google": return <SiGooglecloud className={`${className} text-[#4285F4]`} />;
     case "telegram": return <FaTelegramPlane className={`${className} text-[#24A1DE]`} />;
@@ -99,8 +103,15 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "chatgpt": return <SiOpenai className={`${className} text-[#10A37F]`} />;
     case "gemini": return <SiGooglegemini className={`${className} text-[#1BA0E2]`} />;
     case "claude": return <SiClaude className={`${className} text-[#D97757]`} />;
-    case "capcut": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwqyJe8cXE-btMxT-WsTMJQOcoV0C88_7iv7rbZok-Pw&s" alt="CapCut" className={`${className} object-contain rounded-md`} />;
-    case "kamatera": return <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSji3gQmT-Rgim3tUz_IJD9o15dGe8si09LDF7mm2qQMQ&s=10" alt="Kamatera" className={`${className} object-contain rounded-md`} />;
+    case "capcut": return <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png" alt="CapCut" className={`${className} object-contain mix-blend-multiply dark:brightness-125`} />;
+    case "kamatera": return (
+      <svg className={`${className} shrink-0`} viewBox="0 0 100 100" fill="none">
+        <rect width="100" height="100" rx="22" fill="#FF5E00" />
+        <rect x="22" y="22" width="13" height="56" rx="3" fill="#FFFFFF" />
+        <path d="M42 47L68 22H82L53 50L84 78H70L42 53V47Z" fill="#FFFFFF" />
+        <circle cx="74" cy="27" r="5" fill="#FFFFFF" />
+      </svg>
+    );
     case "duolingo": return <SiDuolingo className={`${className} text-[#58CC02]`} />;
     default: return <Tag className={className} />;
   }
