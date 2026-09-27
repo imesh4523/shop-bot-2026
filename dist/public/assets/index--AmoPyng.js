@@ -12050,7 +12050,7 @@ const Sun = createLucideIcon("Sun", [
   ["path", { d: "m6.34 17.66-1.41 1.41", key: "1m8zz5" }],
   ["path", { d: "m19.07 4.93-1.41 1.41", key: "1shlcs" }]
 ]);
-const Tag$1 = createLucideIcon("Tag", [
+const Tag = createLucideIcon("Tag", [
   [
     "path",
     {
@@ -20248,7 +20248,7 @@ function LayoutShell({ children }) {
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
     { name: "Broadcast", href: "/imeshadmindashbord/broadcast", icon: Megaphone },
     { name: "Products", href: "/imeshadmindashbord/products", icon: Package },
-    { name: "Categories & Badges", href: "/imeshadmindashbord/categories-manager", icon: Tag$1 },
+    { name: "Categories & Badges", href: "/imeshadmindashbord/categories-manager", icon: Tag },
     { name: "N1Panel SMM", href: "/imeshadmindashbord/n1panel", icon: Share2 },
     { name: "Sandromania Shop", href: "/imeshadmindashbord/sandromania", icon: ShoppingBag },
     { name: "Reseller API (CSxStore)", href: "/imeshadmindashbord/cssx-api", icon: Puzzle },
@@ -20257,7 +20257,7 @@ function LayoutShell({ children }) {
     { name: "Support Tickets", href: "/imeshadmindashbord/support-tickets", icon: LifeBuoy },
     { name: "Payments", href: "/imeshadmindashbord/payments", icon: User },
     { name: "Database Backup", href: "/imeshadmindashbord/backups", icon: Database },
-    { name: "Special Offers", href: "/imeshadmindashbord/special-offers", icon: Tag$1 },
+    { name: "Special Offers", href: "/imeshadmindashbord/special-offers", icon: Tag },
     { name: "Promo Codes", href: "/imeshadmindashbord/promo-codes", icon: Ticket },
     { name: "AWS Checker", href: "/imeshadmindashbord/aws-checker", icon: ShieldCheck },
     { name: "Users", href: "/imeshadmindashbord/users", icon: Users },
@@ -73984,7 +73984,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CsI6RB1M.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DhPVuCEy.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85705,7 +85705,7 @@ function SpecialOffersPage() {
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoading ? Array.from({ length: 3 }).map((_2, i2) => /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { className: "border-white/5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 6, className: "py-8", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin text-white/20 mx-auto" }) }) }, i2)) : offers?.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 6, className: "h-48 text-center text-white/20 font-black text-sm uppercase tracking-tighter", children: "No special offers found." }) }) : offers?.map((offer) => /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/[0.03] transition-all duration-300 group", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pl-6 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-105 transition-transform duration-300 shadow-md", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Tag$1, { className: "w-5 h-5" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-105 transition-transform duration-300 shadow-md", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className: "w-5 h-5" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-0", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-white tracking-tight leading-tight", children: offer.name }),
@@ -85764,7 +85764,7 @@ function SpecialOffersPage() {
                   className: "rounded-lg px-2.5 py-2 text-xs font-bold text-white hover:bg-white/5 cursor-pointer flex items-center gap-2",
                   onSelect: () => setEditingOffer(offer),
                   children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Tag$1, { className: "w-3.5 h-3.5" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className: "w-3.5 h-3.5" }),
                     "Edit Offer"
                   ]
                 }
@@ -86021,7 +86021,7 @@ function EditOfferDialog({ offer, onOpenChange }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: offer !== null, onOpenChange, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "glass-panel border-white/5 bg-[#0b0718]/95 backdrop-blur-3xl sm:max-w-[380px] rounded-2xl p-4 shadow-4xl animate-in fade-in zoom-in duration-300 text-white", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { className: "mb-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-xl font-black text-white tracking-tighter flex items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-md", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Tag$1, { className: "w-4 h-4" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-md", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className: "w-4 h-4" }) }),
         "Edit Special Offer"
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-white/40 font-medium text-xs", children: "Update the details of this bundle deal." })
@@ -88120,7 +88120,7 @@ function TelegramInspectorPage() {
               {
                 className: "text-xs px-3 py-1 bg-white/5 border border-white/10 rounded-xl text-purple-300 font-semibold flex items-center gap-1.5",
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Tag$1, { className: "w-3 h-3 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className: "w-3 h-3 text-purple-400" }),
                   entity.type,
                   " (",
                   entity.count,
@@ -102786,7 +102786,7 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
     case "duolingo":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(SiDuolingo, { className: `${className} text-[#58CC02]` });
     default:
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(Tag$1, { className });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(Tag, { className });
   }
 };
 function CategoriesManagerPage() {
@@ -114086,12 +114086,22 @@ function PayHereGatewayPage() {
   const [payhereGatewayUrl, setPayhereGatewayUrl] = reactExports.useState("");
   const [payhereMerchantId, setPayhereMerchantId] = reactExports.useState("");
   const [payhereMerchantSecret, setPayhereMerchantSecret] = reactExports.useState("");
+  const [payhereBillingEmail, setPayhereBillingEmail] = reactExports.useState("imeshcheak@gmail.com");
   const [payhereSandboxMode, setPayhereSandboxMode] = reactExports.useState(true);
   const [payherePairingUrl, setPayherePairingUrl] = reactExports.useState("");
   const [payhereStatus, setPayhereStatus] = reactExports.useState("disconnected");
   const [payherePairedAt, setPayherePairedAt] = reactExports.useState("");
   const [pingLoading, setPingLoading] = reactExports.useState(false);
   const [pingResult, setPingResult] = reactExports.useState(null);
+  const { data: allSettings = [] } = useQuery({
+    queryKey: ["/api/settings"],
+    onSuccess: (data) => {
+      const emailSetting = data.find((s2) => s2.key === "PAYHERE_BILLING_EMAIL");
+      if (emailSetting && emailSetting.value) {
+        setPayhereBillingEmail(emailSetting.value);
+      }
+    }
+  });
   const { data: liveStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["/api/payhere/status"],
     refetchInterval: 4e3
@@ -114454,6 +114464,36 @@ function PayHereGatewayPage() {
               )
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "Used for MD5 security hash generation on the proxy." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5 md:col-span-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/70 uppercase tracking-wider", children: "PayHere Internal Merchant Email (Receipt Recipient)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Input,
+                {
+                  placeholder: "imeshcheak@gmail.com",
+                  className: "glass-panel border-white/10 bg-white/5 text-white h-11 text-xs font-mono",
+                  value: payhereBillingEmail,
+                  onChange: (e) => setPayhereBillingEmail(e.target.value)
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  onClick: () => togglePaymentMutation.mutate({ key: "PAYHERE_BILLING_EMAIL", value: payhereBillingEmail }),
+                  disabled: togglePaymentMutation.isPending,
+                  className: "h-11 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold",
+                  children: togglePaymentMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/40", children: [
+              "PayHere automatic transaction receipt emails will be sent ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "ONLY to this address" }),
+              " (e.g. ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "imeshcheak@gmail.com" }),
+              "). Customers never see the proxy domain receipt and only receive your official YouuHost invoices."
+            ] })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 space-y-2", children: [

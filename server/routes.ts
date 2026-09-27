@@ -2981,6 +2981,9 @@ export async function registerRoutes(
 
       const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;
       const payhereEnabled = (await storage.getSetting('PAYHERE_ENABLED'))?.value === "true";
+      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "imeshcheak@gmail.com";
+      const billingName = (await storage.getSetting('PAYHERE_BILLING_NAME'))?.value || "Direct Client";
+      const billingPhone = (await storage.getSetting('PAYHERE_BILLING_PHONE'))?.value || "0770000000";
 
       if (!gatewayUrl || !payhereEnabled) {
         return res.status(400).json({ message: "PayHere Host Gateway is not connected or is disabled by administrator." });
@@ -3009,7 +3012,19 @@ export async function registerRoutes(
       });
 
       const cleanGatewayUrl = gatewayUrl.replace(/\/$/, "");
-      const checkoutUrl = `${cleanGatewayUrl}/checkout?payment_id=${payment.id}`;
+      const params = new URLSearchParams({
+        payment_id: payment.id.toString(),
+        email: billingEmail,
+        first_name: billingName.split(" ")[0] || "Customer",
+        last_name: billingName.split(" ").slice(1).join(" ") || "Client",
+        phone: billingPhone,
+        address: "Central Billing",
+        city: "Colombo",
+        country: "Sri Lanka",
+        custom_1: userId.toString(),
+        custom_2: payment.id.toString()
+      });
+      const checkoutUrl = `${cleanGatewayUrl}/checkout?${params.toString()}`;
 
       res.json({
         success: true,
@@ -3023,6 +3038,44 @@ export async function registerRoutes(
       res.status(500).json({ message: err.message || "Failed to create PayHere checkout session" });
     }
   });
+
+  // Public Gateway Info Endpoint for PayHere Proxy Host
+  const handleGetPaymentForGateway = async (req: any, res: any) => {
+    try {
+      const paymentId = parseInt(req.params.id, 10);
+      if (isNaN(paymentId)) return res.status(400).json({ message: "Invalid Payment ID" });
+
+      const payment = await storage.getPayment(paymentId);
+      if (!payment) return res.status(404).json({ message: "Payment session not found" });
+
+      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "imeshcheak@gmail.com";
+      const billingName = (await storage.getSetting('PAYHERE_BILLING_NAME'))?.value || "Direct Client";
+      const billingPhone = (await storage.getSetting('PAYHERE_BILLING_PHONE'))?.value || "0770000000";
+
+      res.json({
+        payment_id: payment.id,
+        amount: (payment.amount / 100).toFixed(2),
+        currency: payment.currency || "USD",
+        status: payment.status,
+        email: billingEmail,
+        first_name: billingName.split(" ")[0] || "Customer",
+        last_name: billingName.split(" ").slice(1).join(" ") || "Client",
+        phone: billingPhone,
+        address: "Central Billing",
+        city: "Colombo",
+        country: "Sri Lanka",
+        items: `API Checking Service #${payment.id}`,
+        custom_1: payment.telegramUserId,
+        custom_2: payment.id
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  app.get("/api/payhere/payment/:id", handleGetPaymentForGateway);
+  app.get("/api/payment/:id", handleGetPaymentForGateway);
+  app.get("/api/payments/:id", handleGetPaymentForGateway);
 
   // Admin: PayHere Host Gateway Pairing Handshake
   app.post("/api/payhere/pair", isAuth, async (req, res) => {

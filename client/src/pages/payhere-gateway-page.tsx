@@ -15,12 +15,24 @@ export default function PayHereGatewayPage() {
   const [payhereGatewayUrl, setPayhereGatewayUrl] = useState("");
   const [payhereMerchantId, setPayhereMerchantId] = useState("");
   const [payhereMerchantSecret, setPayhereMerchantSecret] = useState("");
+  const [payhereBillingEmail, setPayhereBillingEmail] = useState("imeshcheak@gmail.com");
   const [payhereSandboxMode, setPayhereSandboxMode] = useState(true);
   const [payherePairingUrl, setPayherePairingUrl] = useState("");
   const [payhereStatus, setPayhereStatus] = useState("disconnected");
   const [payherePairedAt, setPayherePairedAt] = useState("");
   const [pingLoading, setPingLoading] = useState(false);
   const [pingResult, setPingResult] = useState<{ success: boolean; latencyMs?: number; message?: string } | null>(null);
+
+  // Fetch Settings
+  const { data: allSettings = [] } = useQuery<any[]>({
+    queryKey: ["/api/settings"],
+    onSuccess: (data) => {
+      const emailSetting = data.find((s: any) => s.key === "PAYHERE_BILLING_EMAIL");
+      if (emailSetting && emailSetting.value) {
+        setPayhereBillingEmail(emailSetting.value);
+      }
+    }
+  });
 
   // Live Status Query (Refetches every 4 seconds)
   const { data: liveStatus, refetch: refetchStatus } = useQuery<{
@@ -414,6 +426,28 @@ export default function PayHereGatewayPage() {
                   </Button>
                 </div>
                 <p className="text-[11px] text-white/40">Used for MD5 security hash generation on the proxy.</p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5 md:col-span-2">
+                <Label className="text-xs font-bold text-white/70 uppercase tracking-wider">PayHere Internal Merchant Email (Receipt Recipient)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="imeshcheak@gmail.com"
+                    className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs font-mono"
+                    value={payhereBillingEmail}
+                    onChange={(e) => setPayhereBillingEmail(e.target.value)}
+                  />
+                  <Button
+                    onClick={() => togglePaymentMutation.mutate({ key: "PAYHERE_BILLING_EMAIL", value: payhereBillingEmail })}
+                    disabled={togglePaymentMutation.isPending}
+                    className="h-11 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
+                  >
+                    {togglePaymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-white/40">
+                  PayHere automatic transaction receipt emails will be sent <strong>ONLY to this address</strong> (e.g. <code>imeshcheak@gmail.com</code>). Customers never see the proxy domain receipt and only receive your official YouuHost invoices.
+                </p>
               </div>
             </div>
 
