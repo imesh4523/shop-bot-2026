@@ -26,6 +26,30 @@ export interface TransactionEmailProps {
   ctaText?: string;
   ctaUrl?: string;
   customNote?: string;
+  credentials?: string[];
+  newBalance?: string;
+}
+
+export interface OrderCredentialsEmailProps {
+  toEmail: string;
+  recipientName?: string;
+  subject?: string;
+  orderId: string | number;
+  productName: string;
+  quantity: number;
+  amount: string; // e.g. "$5.50 USD" or "Rs. 1,650 LKR"
+  credentials: string[];
+  dateStr?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+}
+
+export interface OtpEmailProps {
+  toEmail: string;
+  recipientName?: string;
+  otpCode: string;
+  expiryMinutes?: number;
+  ipAddress?: string;
 }
 
 export interface CustomEmailProps {
@@ -469,6 +493,185 @@ export function buildCustomEmailHtml(props: CustomEmailProps): string {
         <p><a href="https://www.youuhost.com" style="color: #3B82F6; text-decoration: underline;">www.youuhost.com</a></p>
         <p>You received this message from YouuHost. Please contact support if you have questions.</p>
       </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Order Confirmation & Product Credentials Delivery Email Template
+ */
+export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  const orderId = props.orderId || `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+  const prodName = props.productName || "Cloud VPS / Service";
+  const qty = props.quantity || 1;
+  const amount = props.amount || "$5.50 USD";
+  const ctaText = props.ctaText || "Access Your Dashboard";
+  const ctaUrl = props.ctaUrl || "https://youuhost.com/shop";
+  const logoUri = getLogoDataUri();
+  const credentials = props.credentials && props.credentials.length > 0 ? props.credentials : ["Your digital product is ready in your account dashboard."];
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmed #${orderId} - YouuHost</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1E293B;">
+  <div style="width: 100%; background-color: #F8FAFC; padding: 40px 16px 48px 16px; box-sizing: border-box;">
+    <div style="max-width: 500px; margin: 0 auto;">
+
+      <!-- TOP YOUUHOST GRADIENT LOGO -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none; display: inline-block;">
+          <img src="${logoUri}" alt="youuhost" style="max-width: 180px; height: auto; display: block; border: 0; outline: none; background: transparent;" />
+        </a>
+      </div>
+
+      <!-- MAIN WHITE CARD -->
+      <div style="background-color: #FFFFFF; border-radius: 28px; padding: 36px 26px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); border: 1px solid #F1F5F9;">
+        
+        <!-- Header -->
+        <h1 style="text-align: center; font-size: 23px; font-weight: 800; color: #0F172A; margin: 0 0 12px 0; letter-spacing: -0.5px;">
+          Order Confirmed & Credentials
+          <span style="display: inline-block; vertical-align: middle; width: 22px; height: 22px; background-color: #38BDF8; border-radius: 50%; color: #FFFFFF; font-size: 13px; font-weight: 900; line-height: 22px; text-align: center; margin-left: 6px;">&#10003;</span>
+        </h1>
+
+        <div style="text-align: center; font-size: 14.5px; font-weight: 600; color: #475569; margin-bottom: 8px;">Hello ${name},</div>
+        <p style="text-align: center; font-size: 13px; color: #64748B; line-height: 1.5; margin: 0 auto 24px auto;">
+          Your purchase has been processed successfully. Below are your instant credentials and access details for Order <strong>#${orderId}</strong>.
+        </p>
+
+        <!-- ORDER SUMMARY STRIP -->
+        <table style="width: 100%; border-collapse: collapse; background-color: #F8FAFC; border-radius: 16px; padding: 14px; margin-bottom: 22px; border: 1px solid #ECEEF8;" cellpadding="12" cellspacing="0">
+          <tr>
+            <td style="font-size: 12.5px; color: #64748B;">Item: <strong style="color: #0F172A;">${prodName}</strong></td>
+            <td align="right" style="font-size: 12.5px; color: #64748B;">Qty: <strong style="color: #0F172A;">${qty}</strong> &bull; Total: <strong style="color: #00C269;">${amount}</strong></td>
+          </tr>
+        </table>
+
+        <!-- CREDENTIALS CONTAINER -->
+        <div style="margin-bottom: 24px;">
+          <div style="font-size: 12px; font-weight: 800; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center;">
+            <span style="display: inline-block; width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; margin-right: 6px;"></span>
+            Delivered Credentials & Activation Keys
+          </div>
+
+          ${credentials.map((c, i) => `
+            <div style="background-color: #0B1120; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid #1E293B;">
+              <div style="font-size: 10px; font-weight: 700; color: #38BDF8; margin-bottom: 6px; text-transform: uppercase;">Credential Item #${i + 1}</div>
+              <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; color: #F1F5F9; word-break: break-all; line-height: 1.5; white-space: pre-wrap;">${c}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- CTA BUTTON -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${ctaUrl}" style="display: inline-block; width: 100%; max-width: 320px; padding: 14px 24px; background-color: #00C269; color: #FFFFFF !important; font-weight: 700; font-size: 15px; text-align: center; text-decoration: none; border-radius: 9999px; box-shadow: 0 6px 18px rgba(0, 194, 105, 0.32); box-sizing: border-box;">
+            ${ctaText}
+          </a>
+        </div>
+
+        <!-- FOOTER SIGN-OFF -->
+        <div style="text-align: center; font-size: 12.5px; color: #64748B; line-height: 1.5; margin-bottom: 16px;">
+          Your official PDF receipt has also been attached to this email.<br>
+          Best Regards, <strong style="color: #0F172A;">YouuHost Team</strong>
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div style="text-align: center; margin-top: 24px; font-size: 11.5px; color: #94A3B8; line-height: 1.6;">
+        <p style="margin: 0 0 6px 0;"><a href="https://www.youuhost.com" style="color: #3B82F6; text-decoration: underline;">www.youuhost.com</a></p>
+        <p style="margin: 0;">Automated delivery dispatch. Keep your credentials secure.</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+/**
+ * YouuHost OTP Security Verification Code Email Template
+ */
+export function buildOtpVerificationEmailHtml(props: OtpEmailProps): string {
+  const name = props.recipientName || "Valued Customer";
+  const code = props.otpCode || "839201";
+  const expiry = props.expiryMinutes || 10;
+  const logoUri = getLogoDataUri();
+
+  // Split code into spaced digits
+  const spacedCode = code.split('').join('  ');
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification Code: ${code} - YouuHost</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B;">
+  <div style="width: 100%; background-color: #F8FAFC; padding: 40px 16px;">
+    <div style="max-width: 480px; margin: 0 auto;">
+
+      <!-- TOP LOGO -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="https://youuhost.com" target="_blank" style="text-decoration: none; display: inline-block;">
+          <img src="${logoUri}" alt="youuhost" style="max-width: 180px; height: auto; display: block; border: 0; outline: none; background: transparent;" />
+        </a>
+      </div>
+
+      <!-- MAIN CARD -->
+      <div style="background-color: #FFFFFF; border-radius: 28px; padding: 38px 28px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); border: 1px solid #F1F5F9; text-align: center;">
+        
+        <div style="width: 52px; height: 52px; background-color: #ECFDF5; border-radius: 16px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center; line-height: 52px; font-size: 24px;">
+          &#128274;
+        </div>
+
+        <h1 style="font-size: 22px; font-weight: 800; color: #0F172A; margin: 0 0 10px 0;">
+          Account Verification Code
+        </h1>
+
+        <p style="font-size: 13.5px; color: #64748B; line-height: 1.5; margin: 0 0 24px 0;">
+          Hello ${name}, please use the 6-digit one-time verification code below to complete your authentication with YouuHost.
+        </p>
+
+        <!-- BIG OTP CODE BOX -->
+        <div style="background-color: #F1F5F9; border-radius: 18px; padding: 18px 20px; margin: 0 auto 20px auto; border: 2px dashed #CBD5E1; max-width: 320px;">
+          <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 32px; font-weight: 900; color: #0F172A; letter-spacing: 6px;">
+            ${code}
+          </div>
+        </div>
+
+        <div style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; border-radius: 9999px; font-size: 11.5px; font-weight: 700; color: #92400E; margin-bottom: 24px;">
+          &#9200; Expires in ${expiry} minutes
+        </div>
+
+        <p style="font-size: 12px; color: #94A3B8; line-height: 1.5; margin: 0 0 20px 0; border-top: 1px solid #F1F5F9; padding-top: 18px;">
+          If you did not request this verification code, please ignore this email or contact security support immediately. Do not share this code with anyone.
+        </p>
+
+        <div style="font-size: 12.5px; color: #64748B;">
+          Best Regards,<br>
+          <strong style="color: #0F172A;">YouuHost Security Team</strong>
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div style="text-align: center; margin-top: 24px; font-size: 11.5px; color: #94A3B8;">
+        <p><a href="https://www.youuhost.com" style="color: #3B82F6; text-decoration: underline;">www.youuhost.com</a></p>
+        <p>Security Notification &bull; YouuHost Identity Gateway</p>
+      </div>
+
     </div>
   </div>
 </body>

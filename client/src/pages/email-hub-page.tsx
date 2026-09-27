@@ -63,16 +63,19 @@ export default function EmailHubPage() {
   const [activeTab, setActiveTab] = useState("compose");
 
   // Form states
-  const [templateType, setTemplateType] = useState<"payment_success" | "custom_broadcast" | "security_alert">("payment_success");
+  const [templateType, setTemplateType] = useState<"payment_success" | "order_credentials" | "otp_verification" | "custom_broadcast">("payment_success");
   const [recipientMode, setRecipientMode] = useState<"single" | "broadcast">("single");
   const [toEmail, setToEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [subject, setSubject] = useState("Payment Successful - Your Transaction Invoice");
-  const [amount, setAmount] = useState("LKR 14,990.00");
+  const [amount, setAmount] = useState("LKR 14,990.00 (≈ $50.00 USD)");
   const [planName, setPlanName] = useState("Enterprise Cloud & Bot Hosting");
   const [billingCycle, setBillingCycle] = useState("Monthly");
   const [paymentMethod, setPaymentMethod] = useState("mastercard");
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-2026-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [orderId, setOrderId] = useState(`ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [credentialsText, setCredentialsText] = useState("username: client_root\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291");
+  const [otpCode, setOtpCode] = useState("839201");
   const [bodyHeading, setBodyHeading] = useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
   const [ctaText, setCtaText] = useState("Manage Orders");
@@ -110,6 +113,9 @@ export default function EmailHubPage() {
           billingCycle,
           paymentMethod,
           invoiceNumber,
+          orderId,
+          credentialsText,
+          otpCode,
           bodyHeading,
           bodyMessage,
           ctaText,
@@ -126,7 +132,7 @@ export default function EmailHubPage() {
     };
     const timeout = setTimeout(fetchPreview, 300);
     return () => clearTimeout(timeout);
-  }, [templateType, toEmail, recipientName, subject, amount, planName, billingCycle, paymentMethod, invoiceNumber, bodyHeading, bodyMessage, ctaText, ctaUrl]);
+  }, [templateType, toEmail, recipientName, subject, amount, planName, billingCycle, paymentMethod, invoiceNumber, orderId, credentialsText, otpCode, bodyHeading, bodyMessage, ctaText, ctaUrl]);
 
   // Dispatch email mutation
   const sendEmailMutation = useMutation({
@@ -142,6 +148,9 @@ export default function EmailHubPage() {
         billingCycle,
         paymentMethod,
         invoiceNumber,
+        orderId,
+        credentialsText,
+        otpCode,
         bodyHeading,
         bodyMessage,
         ctaText,
@@ -356,12 +365,17 @@ export default function EmailHubPage() {
                         if (val === "payment_success") {
                           setSubject("Payment Successful - Your Transaction Invoice");
                           setBodyHeading("Payment Successful");
-                        } else if (val === "custom_broadcast") {
+                        } else if (val === "order_credentials") {
+                          setSubject(`Order #${orderId} Confirmed - Your Product Credentials`);
+                          setBodyHeading("Order Confirmed & Credentials");
+                          setPlanName("Cloud VPS - 4 vCPU 8GB RAM");
+                          setAmount("$5.50 USD (≈ Rs. 1,815 LKR)");
+                        } else if (val === "otp_verification") {
+                          setSubject(`Verification Code: ${otpCode} - YouuHost`);
+                          setBodyHeading("Account Verification Code");
+                        } else {
                           setSubject("Important Update from YouuHost");
                           setBodyHeading("Platform Announcement");
-                        } else {
-                          setSubject("Security Alert - Action Required");
-                          setBodyHeading("Account Security Notice");
                         }
                       }}
                     >
@@ -372,19 +386,25 @@ export default function EmailHubPage() {
                         <SelectItem value="payment_success">
                           <div className="flex items-center gap-2">
                             <FileCheck className="h-4 w-4 text-emerald-400" />
-                            <span>Payment Successful Invoice (Receipt)</span>
+                            <span>Payment & Wallet Topup Invoice (Receipt)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="order_credentials">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-cyan-400" />
+                            <span>Order Confirmation & Credentials Delivery</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="otp_verification">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-amber-400" />
+                            <span>YouuHost 6-Digit OTP Security Code</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="custom_broadcast">
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-cyan-400" />
+                            <Mail className="h-4 w-4 text-purple-400" />
                             <span>Custom Marketing / Announcement</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="security_alert">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-amber-400" />
-                            <span>Security & Account Notice</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -573,6 +593,84 @@ export default function EmailHubPage() {
                             <SelectItem value="wallet">💎 YouuHost Instant Balance Wallet</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Order Credentials Specific Fields */}
+                  {templateType === "order_credentials" && (
+                    <div className="space-y-3 pt-2 border-t border-white/10">
+                      <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <CreditCard className="h-3.5 w-3.5" /> Order & Digital Credentials Delivery
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Order #</Label>
+                          <Input
+                            value={orderId}
+                            onChange={(e) => setOrderId(e.target.value)}
+                            className="bg-background/80 border-white/10 text-xs h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Total Paid</Label>
+                          <Input
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="bg-background/80 border-white/10 text-xs h-8"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Product / Service Name</Label>
+                        <Input
+                          value={planName}
+                          onChange={(e) => setPlanName(e.target.value)}
+                          className="bg-background/80 border-white/10 text-xs h-8"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-cyan-300">Credentials & Access Keys (1 per line)</Label>
+                        <Textarea
+                          rows={4}
+                          value={credentialsText}
+                          onChange={(e) => setCredentialsText(e.target.value)}
+                          placeholder="username: user&#10;password: secret&#10;license: KEY-1234"
+                          className="bg-background/80 border-cyan-500/30 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OTP Verification Specific Fields */}
+                  {templateType === "otp_verification" && (
+                    <div className="space-y-3 pt-2 border-t border-white/10">
+                      <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5" /> 6-Digit OTP Security Code
+                      </p>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">One-Time Security Code</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value)}
+                            maxLength={8}
+                            className="bg-background/80 border-amber-500/30 text-center font-mono font-bold tracking-widest text-base h-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOtpCode(`${Math.floor(100000 + Math.random() * 900000)}`)}
+                            className="text-xs h-10 border-white/10"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Re-roll
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}

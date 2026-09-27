@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
-import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps } from "./email-template";
+import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import { storage } from "./storage";
@@ -633,13 +633,18 @@ export async function sendLuxuryEmail({
 
   try {
     const resendApiKey = (await storage.getSetting("RESEND_API_KEY"))?.value || process.env.RESEND_API_KEY;
-    const fromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || (await storage.getSetting("SMTP_FROM"))?.value || `"YouuHost" <no-reply@youuhost.com>`;
+    let fromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || (await storage.getSetting("SMTP_FROM"))?.value || `"YouuHost" <onboarding@resend.dev>`;
 
     const cleanToEmail = toEmail.trim();
     let sentSuccessfully = false;
 
     if (resendApiKey && resendApiKey.startsWith("re_")) {
       try {
+        // If sending to owner test email on unverified domain, ensure from uses onboarding@resend.dev
+        if (cleanToEmail.toLowerCase() === "rochanaimeah@gmail.com" && !fromEmail.includes("resend.dev")) {
+          fromEmail = "YouuHost <onboarding@resend.dev>";
+        }
+
         // 1. Send via Resend API (Transactional Engine)
         const resendAttachments = attachments && attachments.length > 0
           ? attachments.map((a) => {
@@ -651,7 +656,7 @@ export async function sendLuxuryEmail({
             })
           : undefined;
 
-        const res = await fetch("https://api.resend.com/emails", {
+        let res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -666,12 +671,33 @@ export async function sendLuxuryEmail({
           }),
         });
 
-        const data = await res.json().catch(() => ({}));
+        let data = await res.json().catch(() => ({}));
+        
+        // If failed because from address wasn't onboarding@resend.dev in testing mode, retry once with onboarding@resend.dev
+        if (!res.ok && data.message && data.message.includes("verify a domain") && fromEmail !== "YouuHost <onboarding@resend.dev>") {
+          console.warn("[Email Hub] Resend rejected custom from domain in testing mode. Retrying with onboarding@resend.dev...");
+          res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendApiKey.trim()}`,
+            },
+            body: JSON.stringify({
+              from: "YouuHost <onboarding@resend.dev>",
+              to: [cleanToEmail],
+              subject,
+              html,
+              attachments: resendAttachments,
+            }),
+          });
+          data = await res.json().catch(() => ({}));
+        }
+
         if (!res.ok) {
           throw new Error(`Resend Error: ${data.message || data.error || res.statusText}`);
         }
 
-        console.log(`[Email Hub - Resend API] Sent "${subject}" to ${cleanToEmail} from ${fromEmail} (ID: ${data.id})`);
+        console.log(`[Email Hub - Resend API] Sent "${subject}" to ${cleanToEmail} (ID: ${data.id})`);
         sentSuccessfully = true;
       } catch (resendErr: any) {
         console.warn(`[Email Hub - Resend Warning] Resend attempt failed: ${resendErr.message}. Checking SMTP fallback...`);
@@ -3892,6 +3918,59 @@ export async function registerRoutes(
       };
 
       sendChunked();
+
+      // Auto-send Order Confirmation & Credentials Email to customer
+      (async () => {
+        try {
+          const userRec = await storage.getTelegramUser(tgUser.id?.toString());
+          const targetEmail = tgUser.email || userRec?.email;
+          if (targetEmail && targetEmail.includes("@")) {
+            const orderCreds = result.availableItems.map((item: any) => item.content);
+            const orderNo = `ORD-2026-${result.availableItems[0]?.id || Math.floor(100000 + Math.random() * 900000)}`;
+            const orderTotalFormatted = `$${((result.finalDeductAmount || result.product.price * result.quantity) / 100).toFixed(2)} USD`;
+            const emailHtml = buildOrderCredentialsEmailHtml({
+              toEmail: targetEmail,
+              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              orderId: orderNo,
+              productName: result.product.name,
+              quantity: result.quantity,
+              amount: orderTotalFormatted,
+              credentials: orderCreds,
+              ctaText: "Manage Your Orders",
+              ctaUrl: "https://youuhost.com/shop",
+            });
+
+            const pdfBuf = generateInvoicePdf({
+              toEmail: targetEmail,
+              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              amount: orderTotalFormatted,
+              planTitle: result.product.name,
+              billingCycle: "One-Time / Digital License",
+              paymentMethod: "wallet_balance",
+              referenceId: orderNo,
+            });
+
+            await sendLuxuryEmail({
+              toEmail: targetEmail,
+              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              subject: `Order #${orderNo} Confirmed - Your Product Credentials`,
+              html: emailHtml,
+              templateType: "order_credentials",
+              metadata: { orderId: orderNo, productId: result.product.id, quantity: result.quantity },
+              attachments: [
+                {
+                  filename: `invoice_${orderNo}.pdf`,
+                  content: pdfBuf,
+                  contentType: "application/pdf",
+                },
+              ],
+            });
+            console.log(`[Email Hub - Purchase Auto-Dispatch] Sent credentials for Order #${orderNo} to ${targetEmail}`);
+          }
+        } catch (e: any) {
+          console.error("[Email Hub - Purchase Auto-Dispatch Error]:", e?.message);
+        }
+      })();
 
       // Emit real-time notification to Admin Dashboard
       io.emit('admin_notification', {
@@ -15095,6 +15174,55 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           }
         });
 
+        // Auto-send deposit confirmation invoice email to customer
+        if (user && user.email && user.email.includes("@")) {
+          const txRef = `TX-${payment.id}`;
+          const usdFormatted = `$${(payment.amount / 100).toFixed(2)} USD`;
+          const lkrFormatted = `Rs. ${Math.round((payment.amount / 100) * 330).toLocaleString()} LKR`;
+          const emailHtml = buildPaymentSuccessEmailHtml({
+            toEmail: user.email,
+            recipientName: user.firstName || user.username || "Valued Customer",
+            subject: `Payment Successful - Deposit Confirmed (${usdFormatted})`,
+            amount: `${usdFormatted} (≈ ${lkrFormatted})`,
+            planTitle: "Wallet Deposit & Instant Balance Topup",
+            billingCycle: "Instant Credit",
+            paymentMethod: "cryptomus",
+            referenceId: txRef,
+            ctaText: "Go to Wallet & Orders",
+            ctaUrl: "https://youuhost.com/shop",
+          });
+
+          try {
+            const pdfBuf = generateInvoicePdf({
+              toEmail: user.email,
+              recipientName: user.firstName || user.username || "Valued Customer",
+              amount: `${usdFormatted} (≈ ${lkrFormatted})`,
+              planTitle: "Wallet Deposit & Instant Balance Topup",
+              billingCycle: "Instant Credit",
+              paymentMethod: "cryptomus",
+              referenceId: txRef,
+            });
+
+            sendLuxuryEmail({
+              toEmail: user.email,
+              recipientName: user.firstName || user.username || "Valued Customer",
+              subject: `Payment Successful - Deposit Confirmed (${usdFormatted})`,
+              html: emailHtml,
+              templateType: "payment_success",
+              metadata: { paymentId: payment.id, amount: payment.amount, method: "cryptomus" },
+              attachments: [
+                {
+                  filename: `invoice_${txRef}.pdf`,
+                  content: pdfBuf,
+                  contentType: "application/pdf",
+                },
+              ],
+            }).catch(e => console.error("[Auto-Email Cryptomus Deposit Error]:", e));
+          } catch (pErr) {
+            console.error("[Auto-Email Cryptomus Deposit PDF Error]:", pErr);
+          }
+        }
+
         sendAdminPushNotification(
           'New Cryptomus Deposit',
           `${userDisplayName} deposited $${(payment.amount / 100).toFixed(2)}`
@@ -15883,7 +16011,8 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           id: users.id,
           username: users.username,
           email: users.email,
-          fullName: users.fullName,
+          firstName: users.firstName,
+          lastName: users.lastName,
         })
         .from(users)
         .where(sql`email IS NOT NULL AND email != ''`);
@@ -15891,12 +16020,13 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         for (const u of staffUsers) {
           if (u.email && u.email.includes("@")) {
             const cleanEmail = u.email.trim().toLowerCase();
+            const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "Admin";
             if (!emailMap.has(cleanEmail)) {
               emailMap.set(cleanEmail, {
                 id: u.id + 1000000,
                 username: u.username || "admin",
                 email: u.email.trim(),
-                fullName: u.fullName || u.username || "Admin",
+                fullName,
                 source: "admin",
               });
             }
@@ -15930,6 +16060,9 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         bodyMessage = "Your subscription invoice for your plan has been processed successfully. Thank you for your business!",
         ctaText = "Manage Subscription",
         ctaUrl = "https://youuhost.com/userdashbord/dashboard",
+        orderId = "ORD-2026-88120",
+        credentialsText = "username: client_admin\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291",
+        otpCode = "839201",
       } = req.body;
 
       let html = "";
@@ -15945,6 +16078,27 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           referenceId: invoiceNumber,
           ctaText,
           ctaUrl,
+        });
+      } else if (templateType === "order_credentials") {
+        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+        html = buildOrderCredentialsEmailHtml({
+          toEmail,
+          recipientName,
+          subject: subject || `Order #${orderId} Confirmed - Your Product Credentials`,
+          orderId,
+          productName: planName || "Cloud VPS / AI License",
+          quantity: 1,
+          amount: amount || "$5.50 USD",
+          credentials: credsList,
+          ctaText: ctaText || "Access Your Dashboard",
+          ctaUrl: ctaUrl || "https://youuhost.com/shop",
+        });
+      } else if (templateType === "otp_verification") {
+        html = buildOtpVerificationEmailHtml({
+          toEmail,
+          recipientName,
+          otpCode: otpCode || "839201",
+          expiryMinutes: 10,
         });
       } else {
         html = buildCustomEmailHtml({
@@ -16010,6 +16164,9 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         billingCycle = "Monthly",
         paymentMethod = "mastercard",
         invoiceNumber = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        orderId = `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        credentialsText,
+        otpCode = `${Math.floor(100000 + Math.random() * 900000)}`,
         bodyHeading = "Payment Successful",
         bodyMessage = "Your subscription invoice for your plan has been processed successfully.",
         ctaText = "Manage Subscription",
@@ -16045,7 +16202,8 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
         try {
           const staffUsers = await db.select({
-            fullName: users.fullName,
+            firstName: users.firstName,
+            lastName: users.lastName,
             username: users.username,
             email: users.email,
           })
@@ -16055,7 +16213,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           for (const u of staffUsers) {
             if (u.email && u.email.includes("@")) {
               const clean = u.email.trim().toLowerCase();
-              const name = u.fullName || u.username || "Admin";
+              const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "Admin";
               if (!emailMap.has(clean)) {
                 emailMap.set(clean, { email: u.email.trim(), name });
               }
@@ -16104,6 +16262,27 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
                 contentType: "application/pdf",
               });
             } catch (pErr) {}
+          } else if (templateType === "order_credentials") {
+            const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+            emailHtml = buildOrderCredentialsEmailHtml({
+              toEmail: u.email!,
+              recipientName: uName,
+              subject: subject || `Order #${orderId} Confirmed - Your Product Credentials`,
+              orderId,
+              productName: planName,
+              quantity: 1,
+              amount,
+              credentials: credsList,
+              ctaText: ctaText || "Access Your Dashboard",
+              ctaUrl: ctaUrl || "https://youuhost.com/shop",
+            });
+          } else if (templateType === "otp_verification") {
+            emailHtml = buildOtpVerificationEmailHtml({
+              toEmail: u.email!,
+              recipientName: uName,
+              otpCode,
+              expiryMinutes: 10,
+            });
           } else {
             emailHtml = buildCustomEmailHtml({
               toEmail: u.email!,
@@ -16173,6 +16352,46 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         } catch (pdfErr: any) {
           console.error("[Email Hub] PDF Error:", pdfErr.message);
         }
+      } else if (templateType === "order_credentials") {
+        const credsList = credentialsText ? credentialsText.split("\n").filter((c: string) => c.trim().length > 0) : ["username: client_admin", "password: P@ssword#2026"];
+        emailHtml = buildOrderCredentialsEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Valued Customer",
+          subject: subject || `Order #${orderId} Confirmed - Your Product Credentials`,
+          orderId,
+          productName: planName || "Cloud VPS Service",
+          quantity: 1,
+          amount: amount || "$5.50 USD",
+          credentials: credsList,
+          ctaText: ctaText || "Access Your Dashboard",
+          ctaUrl: ctaUrl || "https://youuhost.com/shop",
+        });
+
+        try {
+          const pdfBuf = generateInvoicePdf({
+            toEmail,
+            recipientName: recipientName || "Valued Customer",
+            amount: amount || "$5.50 USD",
+            planTitle: planName || "Cloud VPS Service",
+            billingCycle: "One-Time / Digital License",
+            paymentMethod: paymentMethod || "wallet",
+            referenceId: orderId,
+          });
+          attachments.push({
+            filename: `invoice_${orderId}.pdf`,
+            content: pdfBuf,
+            contentType: "application/pdf",
+          });
+        } catch (pdfErr: any) {
+          console.error("[Email Hub] Order PDF Error:", pdfErr.message);
+        }
+      } else if (templateType === "otp_verification") {
+        emailHtml = buildOtpVerificationEmailHtml({
+          toEmail,
+          recipientName: recipientName || "Valued Customer",
+          otpCode,
+          expiryMinutes: 10,
+        });
       } else {
         emailHtml = buildCustomEmailHtml({
           toEmail,

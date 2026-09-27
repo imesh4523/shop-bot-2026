@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es--j93zN8q.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-mxZ4qkE8.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115224,11 +115224,14 @@ function EmailHubPage() {
   const [toEmail, setToEmail] = reactExports.useState("");
   const [recipientName, setRecipientName] = reactExports.useState("");
   const [subject, setSubject] = reactExports.useState("Payment Successful - Your Transaction Invoice");
-  const [amount, setAmount] = reactExports.useState("LKR 14,990.00");
+  const [amount, setAmount] = reactExports.useState("LKR 14,990.00 (≈ $50.00 USD)");
   const [planName, setPlanName] = reactExports.useState("Enterprise Cloud & Bot Hosting");
   const [billingCycle, setBillingCycle] = reactExports.useState("Monthly");
   const [paymentMethod, setPaymentMethod] = reactExports.useState("mastercard");
   const [invoiceNumber, setInvoiceNumber] = reactExports.useState(`INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
+  const [orderId, setOrderId] = reactExports.useState(`ORD-2026-${Math.floor(1e5 + Math.random() * 9e5)}`);
+  const [credentialsText, setCredentialsText] = reactExports.useState("username: client_root\npassword: P@ssword#2026\nhost: vps.youuhost.com:22\nlicense_key: YOUU-AI-PRO-9881-2291");
+  const [otpCode, setOtpCode] = reactExports.useState("839201");
   const [bodyHeading, setBodyHeading] = reactExports.useState("Payment Successful");
   const [bodyMessage, setBodyMessage] = reactExports.useState("Your subscription invoice for your plan has been processed successfully. Thank you for choosing YouuHost!");
   const [ctaText, setCtaText] = reactExports.useState("Manage Orders");
@@ -115258,6 +115261,9 @@ function EmailHubPage() {
           billingCycle,
           paymentMethod,
           invoiceNumber,
+          orderId,
+          credentialsText,
+          otpCode,
           bodyHeading,
           bodyMessage,
           ctaText,
@@ -115274,7 +115280,7 @@ function EmailHubPage() {
     };
     const timeout = setTimeout(fetchPreview, 300);
     return () => clearTimeout(timeout);
-  }, [templateType, toEmail, recipientName, subject, amount, planName, billingCycle, paymentMethod, invoiceNumber, bodyHeading, bodyMessage, ctaText, ctaUrl]);
+  }, [templateType, toEmail, recipientName, subject, amount, planName, billingCycle, paymentMethod, invoiceNumber, orderId, credentialsText, otpCode, bodyHeading, bodyMessage, ctaText, ctaUrl]);
   const sendEmailMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -115288,6 +115294,9 @@ function EmailHubPage() {
         billingCycle,
         paymentMethod,
         invoiceNumber,
+        orderId,
+        credentialsText,
+        otpCode,
         bodyHeading,
         bodyMessage,
         ctaText,
@@ -115464,12 +115473,17 @@ function EmailHubPage() {
                     if (val === "payment_success") {
                       setSubject("Payment Successful - Your Transaction Invoice");
                       setBodyHeading("Payment Successful");
-                    } else if (val === "custom_broadcast") {
+                    } else if (val === "order_credentials") {
+                      setSubject(`Order #${orderId} Confirmed - Your Product Credentials`);
+                      setBodyHeading("Order Confirmed & Credentials");
+                      setPlanName("Cloud VPS - 4 vCPU 8GB RAM");
+                      setAmount("$5.50 USD (≈ Rs. 1,815 LKR)");
+                    } else if (val === "otp_verification") {
+                      setSubject(`Verification Code: ${otpCode} - YouuHost`);
+                      setBodyHeading("Account Verification Code");
+                    } else {
                       setSubject("Important Update from YouuHost");
                       setBodyHeading("Platform Announcement");
-                    } else {
-                      setSubject("Security Alert - Action Required");
-                      setBodyHeading("Account Security Notice");
                     }
                   },
                   children: [
@@ -115477,15 +115491,19 @@ function EmailHubPage() {
                     /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "payment_success", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx(FileCheck, { className: "h-4 w-4 text-emerald-400" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Payment Successful Invoice (Receipt)" })
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Payment & Wallet Topup Invoice (Receipt)" })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "order_credentials", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "h-4 w-4 text-cyan-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Order Confirmation & Credentials Delivery" })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "otp_verification", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "h-4 w-4 text-amber-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "YouuHost 6-Digit OTP Security Code" })
                       ] }) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "custom_broadcast", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-4 w-4 text-cyan-400" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "h-4 w-4 text-purple-400" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Custom Marketing / Announcement" })
-                      ] }) }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "security_alert", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "h-4 w-4 text-amber-400" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Security & Account Notice" })
                       ] }) })
                     ] })
                   ]
@@ -115673,6 +115691,94 @@ function EmailHubPage() {
                     /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "cryptomus", children: "🟢 Cryptomus (Official Hex Badge)" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "wallet", children: "💎 YouuHost Instant Balance Wallet" })
                   ] })
+                ] })
+              ] })
+            ] }),
+            templateType === "order_credentials" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-white/10", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "h-3.5 w-3.5" }),
+                " Order & Digital Credentials Delivery"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Order #" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: orderId,
+                      onChange: (e) => setOrderId(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Total Paid" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: amount,
+                      onChange: (e) => setAmount(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs h-8"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "Product / Service Name" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    value: planName,
+                    onChange: (e) => setPlanName(e.target.value),
+                    className: "bg-background/80 border-white/10 text-xs h-8"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px] font-semibold text-cyan-300", children: "Credentials & Access Keys (1 per line)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Textarea,
+                  {
+                    rows: 4,
+                    value: credentialsText,
+                    onChange: (e) => setCredentialsText(e.target.value),
+                    placeholder: "username: user\npassword: secret\nlicense: KEY-1234",
+                    className: "bg-background/80 border-cyan-500/30 text-xs font-mono"
+                  }
+                )
+              ] })
+            ] }),
+            templateType === "otp_verification" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-2 border-t border-white/10", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "h-3.5 w-3.5" }),
+                " 6-Digit OTP Security Code"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-[11px]", children: "One-Time Security Code" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      value: otpCode,
+                      onChange: (e) => setOtpCode(e.target.value),
+                      maxLength: 8,
+                      className: "bg-background/80 border-amber-500/30 text-center font-mono font-bold tracking-widest text-base h-10"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      type: "button",
+                      variant: "outline",
+                      size: "sm",
+                      onClick: () => setOtpCode(`${Math.floor(1e5 + Math.random() * 9e5)}`),
+                      className: "text-xs h-10 border-white/10",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-3.5 w-3.5 mr-1" }),
+                        " Re-roll"
+                      ]
+                    }
+                  )
                 ] })
               ] })
             ] }),
