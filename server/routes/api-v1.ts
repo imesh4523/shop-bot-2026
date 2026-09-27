@@ -148,7 +148,7 @@ apiV1Router.get("/products", async (req: AuthenticatedApiRequest, res: Response)
  */
 apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) => {
   try {
-    const { product_id, quantity = 1 } = req.body;
+    const { product_id, quantity = 1, coupon_code, couponCode } = req.body;
 
     if (!product_id || typeof product_id !== "number") {
       return res.status(400).json({
@@ -171,7 +171,22 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
     const totalCost = prod.price * qtyInt;
     const user = req.telegramUser!;
 
-    if (user.balance < totalCost) {
+    const rawCoupon = coupon_code || couponCode;
+    let discountCents = 0;
+    if (rawCoupon && typeof rawCoupon === "string" && rawCoupon.trim()) {
+      const promo = await storage.getPromoCodeByCode(rawCoupon.trim().toUpperCase());
+      if (promo && promo.status === "active" && promo.usesCount < promo.maxUses) {
+        if (promo.discountType === "percentage") {
+          const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+          discountCents = Math.round((totalCost * pct) / 100);
+        } else {
+          discountCents = Math.min(totalCost, promo.discountValue || promo.reward || 0);
+        }
+      }
+    }
+    const finalCost = Math.max(0, totalCost - discountCents);
+
+    if (user.balance < finalCost) {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
       try {
         await storage.createOrder({
@@ -186,7 +201,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       return res.status(400).json({
         success: false,
         error: "insufficient_balance",
-        message: `Insufficient balance. Required: $${(totalCost / 100).toFixed(2)}, Available: $${(user.balance / 100).toFixed(2)}.`
+        message: `Insufficient balance. Required: $${(finalCost / 100).toFixed(2)}, Available: $${(user.balance / 100).toFixed(2)}.`
       });
     }
 
@@ -215,8 +230,8 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         createdOrders.push(newOrder);
       }
 
-      await storage.deductBalance(user.id, totalCost);
-      await storage.updateApiKeyStats(req.apiKey!.id, true, totalCost);
+      await storage.deductBalance(user.id, finalCost);
+      await storage.updateApiKeyStats(req.apiKey!.id, true, finalCost);
 
       return res.json({
         success: true,
@@ -226,7 +241,9 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           order_ids: createdOrders.map(o => o.id),
           product_name: prod.name,
           quantity: qtyInt,
-          total_price_usd: (totalCost / 100).toFixed(2),
+          original_price_usd: (totalCost / 100).toFixed(2),
+          discount_usd: (discountCents / 100).toFixed(2),
+          total_price_usd: (finalCost / 100).toFixed(2),
           delivered_items: fulfilledCreds,
           created_at: new Date()
         }

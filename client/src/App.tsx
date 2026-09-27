@@ -42,6 +42,7 @@ import PayHereGatewayPage from "@/pages/payhere-gateway-page";
 import AllOrdersPage from "@/pages/all-orders-page";
 import EmailHubPage from "@/pages/email-hub-page";
 import CategoriesManagerPage from "@/pages/categories-manager-page";
+import ConnectedStoresTrackerPage from "@/pages/connected-stores-tracker-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -163,6 +164,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/store-mesh">
         <ProtectedRoute component={StoreMeshPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/connected-stores">
+        <ProtectedRoute component={ConnectedStoresTrackerPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/payhere">

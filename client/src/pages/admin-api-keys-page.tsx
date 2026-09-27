@@ -502,140 +502,156 @@ export default function AdminApiKeysPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="keys" className="w-full pt-4">
-            <TabsList className="bg-slate-900 border border-slate-800">
-              <TabsTrigger value="keys" className="text-xs gap-2">
-                <Key className="h-3.5 w-3.5" />
-                API Keys History ({userApiDetails?.keys?.length || 0})
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="text-xs gap-2">
-                <PackageCheck className="h-3.5 w-3.5" />
-                Delivered Orders & Credentials ({userApiDetails?.orders?.length || 0})
-              </TabsTrigger>
-            </TabsList>
+          {(() => {
+            const displayedKeys = (userApiDetails?.keys && userApiDetails.keys.length > 0) 
+              ? userApiDetails.keys 
+              : (selectedCustomer?.allKeys || []);
+            const displayedOrders = userApiDetails?.orders || [];
 
-            {/* Keys History Tab */}
-            <TabsContent value="keys" className="space-y-4 pt-3">
-              {isLoadingUserDetails ? (
-                <div className="text-center py-8 text-slate-500">Loading user API keys...</div>
-              ) : !userApiDetails?.keys || userApiDetails.keys.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">No API keys found for this customer.</div>
-              ) : (
-                <div className="rounded-xl border border-slate-800 overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-slate-900">
-                      <TableRow>
-                        <TableHead className="text-xs text-slate-400">API Key String</TableHead>
-                        <TableHead className="text-xs text-slate-400">Status</TableHead>
-                        <TableHead className="text-xs text-slate-400 text-right">Orders (S/F)</TableHead>
-                        <TableHead className="text-xs text-slate-400 text-right">Revenue</TableHead>
-                        <TableHead className="text-xs text-slate-400">Created At</TableHead>
-                        <TableHead className="text-xs text-slate-400 text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userApiDetails.keys.map((k: any) => (
-                        <TableRow key={k.id} className="border-slate-800/60">
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <code className="text-xs font-mono bg-slate-900 px-2 py-1 rounded text-purple-300">
-                                {k.key}
-                              </code>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                className="h-6 w-6 text-slate-400 hover:text-white"
-                                onClick={() => copyToClipboard(k.key, k.id)}
-                              >
-                                {copiedKeyId === k.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                              </Button>
+            return (
+              <Tabs defaultValue="keys" className="w-full pt-4">
+                <TabsList className="bg-slate-900 border border-slate-800">
+                  <TabsTrigger value="keys" className="text-xs gap-2">
+                    <Key className="h-3.5 w-3.5 text-purple-400" />
+                    API Keys History ({displayedKeys.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="orders" className="text-xs gap-2">
+                    <PackageCheck className="h-3.5 w-3.5 text-emerald-400" />
+                    Delivered Orders & Credentials ({displayedOrders.length})
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Keys History Tab */}
+                <TabsContent value="keys" className="space-y-4 pt-3">
+                  {isLoadingUserDetails && displayedKeys.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">Loading user API keys...</div>
+                  ) : displayedKeys.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">No API keys found for this customer.</div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-800 overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-slate-900">
+                          <TableRow>
+                            <TableHead className="text-xs text-slate-400">API Key String</TableHead>
+                            <TableHead className="text-xs text-slate-400">Status</TableHead>
+                            <TableHead className="text-xs text-slate-400 text-right">Orders (S/F)</TableHead>
+                            <TableHead className="text-xs text-slate-400 text-right">Revenue</TableHead>
+                            <TableHead className="text-xs text-slate-400">Created At</TableHead>
+                            <TableHead className="text-xs text-slate-400 text-right">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {displayedKeys.map((k: any) => (
+                            <TableRow key={k.id} className="border-slate-800/60">
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <code className="text-xs font-mono bg-slate-900 px-2 py-1 rounded text-purple-300">
+                                    {k.key}
+                                  </code>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-6 w-6 text-slate-400 hover:text-white"
+                                    onClick={() => copyToClipboard(k.key, k.id)}
+                                  >
+                                    {copiedKeyId === k.id ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  </Button>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                {k.status === "active" ? (
+                                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px]">
+                                    Active Key
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px]">
+                                    Revoked
+                                  </Badge>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="text-right font-mono text-xs text-slate-300">
+                                {k.totalOrders || 0} ({k.successOrders || 0} / {k.failedOrders || 0})
+                              </TableCell>
+
+                              <TableCell className="text-right font-mono text-xs font-bold text-emerald-400">
+                                ${((k.revenue || 0) / 100).toFixed(2)}
+                              </TableCell>
+
+                              <TableCell className="text-xs text-slate-400">
+                                {k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "N/A"}
+                              </TableCell>
+
+                              <TableCell className="text-right">
+                                {k.status === "active" && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => revokeMutation.mutate(k.id)}
+                                    disabled={revokeMutation.isPending}
+                                    className="h-7 text-xs gap-1"
+                                  >
+                                    <Ban className="h-3 w-3" />
+                                    Revoke
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Orders & Delivered Credentials Tab */}
+                <TabsContent value="orders" className="space-y-4 pt-3">
+                  {isLoadingUserDetails ? (
+                    <div className="text-center py-8 text-slate-500">Loading order credentials...</div>
+                  ) : displayedOrders.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 bg-slate-900/40 rounded-xl border border-dashed border-slate-800">
+                      No purchases made via API by this customer yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {displayedOrders.map((ord: any) => (
+                        <Card key={ord.id} className="bg-slate-900/90 border-slate-800 shadow-sm">
+                          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-slate-800/60">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-xs font-mono text-purple-400 font-bold">#{ord.id}</span>
+                              <span className="text-sm font-bold text-white">{ord.productName}</span>
+                              <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[10px]">
+                                ${ord.priceUsd} USD
+                              </Badge>
+                              {ord.apiKey && (
+                                <Badge variant="secondary" className="bg-purple-950/60 text-purple-300 border-purple-800 text-[10px] font-mono">
+                                  {ord.apiKey.substring(0, 10)}...
+                                </Badge>
+                              )}
                             </div>
-                          </TableCell>
-
-                          <TableCell>
-                            {k.status === "active" ? (
-                              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px]">
-                                Active Key
-                              </Badge>
+                            <span className="text-xs text-slate-400">
+                              {ord.createdAt ? new Date(ord.createdAt).toLocaleString() : "N/A"}
+                            </span>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <span className="text-xs text-slate-400 block mb-1.5 font-medium">Delivered Credential / Content:</span>
+                            {ord.deliveredContent ? (
+                              <pre className="bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs font-mono text-emerald-300 overflow-x-auto select-all whitespace-pre-wrap break-all">
+                                {ord.deliveredContent}
+                              </pre>
                             ) : (
-                              <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px]">
-                                Revoked
-                              </Badge>
+                              <span className="text-xs text-amber-400 italic">No credential content linked (Pre-order or custom fulfillment).</span>
                             )}
-                          </TableCell>
-
-                          <TableCell className="text-right font-mono text-xs text-slate-300">
-                            {k.totalOrders || 0} ({k.successOrders || 0} / {k.failedOrders || 0})
-                          </TableCell>
-
-                          <TableCell className="text-right font-mono text-xs font-bold text-emerald-400">
-                            ${((k.revenue || 0) / 100).toFixed(2)}
-                          </TableCell>
-
-                          <TableCell className="text-xs text-slate-400">
-                            {k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "N/A"}
-                          </TableCell>
-
-                          <TableCell className="text-right">
-                            {k.status === "active" && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => revokeMutation.mutate(k.id)}
-                                disabled={revokeMutation.isPending}
-                                className="h-7 text-xs gap-1"
-                              >
-                                <Ban className="h-3 w-3" />
-                                Revoke
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Orders & Delivered Credentials Tab */}
-            <TabsContent value="orders" className="space-y-4 pt-3">
-              {isLoadingUserDetails ? (
-                <div className="text-center py-8 text-slate-500">Loading order credentials...</div>
-              ) : !userApiDetails?.orders || userApiDetails.orders.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">No purchases made via API by this customer yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {userApiDetails.orders.map((ord: any) => (
-                    <Card key={ord.id} className="bg-slate-900/90 border-slate-800">
-                      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-slate-800/60">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-xs font-mono text-purple-400 font-bold">#{ord.id}</span>
-                          <span className="text-sm font-bold text-white">{ord.productName}</span>
-                          <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[10px]">
-                            ${ord.priceUsd} USD
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-slate-400">
-                          {ord.createdAt ? new Date(ord.createdAt).toLocaleString() : "N/A"}
-                        </span>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <span className="text-xs text-slate-400 block mb-1.5 font-medium">Delivered Credential / Content:</span>
-                        {ord.deliveredContent ? (
-                          <pre className="bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs font-mono text-emerald-300 overflow-x-auto select-all">
-                            {ord.deliveredContent}
-                          </pre>
-                        ) : (
-                          <span className="text-xs text-amber-400 italic">No credential content linked (Pre-order or custom fulfillment).</span>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

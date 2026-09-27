@@ -25,6 +25,9 @@ interface PromoCode {
   id: number;
   code: string;
   reward: number; // in cents
+  discountType?: string | null;
+  discountValue?: number | null;
+  minOrderAmount?: number | null; // in cents
   maxUses: number;
   usesCount: number;
   status: string;
@@ -47,6 +50,8 @@ interface Redemption {
     id: number;
     code: string;
     reward: number;
+    discountType?: string | null;
+    discountValue?: number | null;
   } | null;
 }
 
@@ -57,7 +62,9 @@ export default function PromoCodesPage() {
   
   // Form states
   const [code, setCode] = useState("");
-  const [reward, setReward] = useState("");
+  const [discountType, setDiscountType] = useState<"fixed" | "percentage">("fixed");
+  const [discountValue, setDiscountValue] = useState("");
+  const [minOrderAmount, setMinOrderAmount] = useState("");
   const [maxUses, setMaxUses] = useState("1");
 
   // Query Promo Codes
@@ -80,7 +87,14 @@ export default function PromoCodesPage() {
 
   // Create Mutation
   const createMutation = useMutation({
-    mutationFn: async (newPromo: { code: string; reward: number; maxUses: number }) => {
+    mutationFn: async (newPromo: { 
+      code: string; 
+      reward: number; 
+      discountType: string;
+      discountValue: number;
+      minOrderAmount: number;
+      maxUses: number;
+    }) => {
       const res = await apiRequest("POST", "/api/promo-codes", newPromo);
       return res.json();
     },
@@ -91,7 +105,8 @@ export default function PromoCodesPage() {
         description: `Code "${code}" created successfully!`,
       });
       setCode("");
-      setReward("");
+      setDiscountValue("");
+      setMinOrderAmount("");
       setMaxUses("1");
     },
     onError: (err: any) => {
@@ -149,17 +164,33 @@ export default function PromoCodesPage() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !reward || isNaN(parseFloat(reward)) || parseFloat(reward) <= 0) {
+    const val = parseFloat(discountValue);
+    if (!code.trim() || isNaN(val) || val <= 0) {
       toast({
         title: "Invalid Input",
-        description: "Please enter a valid code and positive reward amount.",
+        description: "Please enter a valid code and positive discount value.",
         variant: "destructive"
       });
       return;
     }
+
+    if (discountType === "percentage" && val > 100) {
+      toast({
+        title: "Invalid Percentage",
+        description: "Percentage discount cannot exceed 100%.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const minAmount = minOrderAmount ? parseFloat(minOrderAmount) : 0;
+
     createMutation.mutate({
       code: code.trim().toUpperCase(),
-      reward: parseFloat(reward),
+      reward: discountType === "percentage" ? Math.round(val) : val,
+      discountType,
+      discountValue: discountType === "percentage" ? Math.round(val) : Math.round(val * 100),
+      minOrderAmount: Math.round((minAmount || 0) * 100),
       maxUses: parseInt(maxUses) || 1
     });
   };
@@ -256,38 +287,83 @@ export default function PromoCodesPage() {
                 Create Promo Code
               </CardTitle>
               <CardDescription>
-                Issue new balance top-up coupons for Telegram bot users.
+                Issue new percentage or fixed discount coupons for Store purchases.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Code (e.g. WELCOME5)</Label>
+                  <Label htmlFor="code">Coupon Code (e.g. SAVE20 / FLAT5)</Label>
                   <Input 
                     id="code" 
-                    placeholder="WELCOME5" 
+                    placeholder="SAVE20" 
                     value={code} 
                     onChange={e => setCode(e.target.value)} 
                     required
                     className="font-mono uppercase"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="reward">Reward Amount (USD)</Label>
+                  <Label htmlFor="discountType">Discount Type</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={discountType === "percentage" ? "default" : "outline"}
+                      onClick={() => setDiscountType("percentage")}
+                      className={`text-xs ${discountType === "percentage" ? "bg-purple-600 hover:bg-purple-500 text-white" : "border-slate-800"}`}
+                    >
+                      % Percentage
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={discountType === "fixed" ? "default" : "outline"}
+                      onClick={() => setDiscountType("fixed")}
+                      className={`text-xs ${discountType === "fixed" ? "bg-purple-600 hover:bg-purple-500 text-white" : "border-slate-800"}`}
+                    >
+                      $ Fixed Amount
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="discountValue">
+                    {discountType === "percentage" ? "Percentage Off (%)" : "Discount Amount (USD $)"}
+                  </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">
+                      {discountType === "percentage" ? "%" : "$"}
+                    </span>
                     <Input 
-                      id="reward" 
+                      id="discountValue" 
                       type="number"
-                      step="0.01"
-                      placeholder="5.00" 
-                      value={reward} 
-                      onChange={e => setReward(e.target.value)} 
+                      step={discountType === "percentage" ? "1" : "0.01"}
+                      max={discountType === "percentage" ? "100" : undefined}
+                      placeholder={discountType === "percentage" ? "20" : "5.00"} 
+                      value={discountValue} 
+                      onChange={e => setDiscountValue(e.target.value)} 
                       required
                       className="pl-7"
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="minOrderAmount">Min Order Threshold (USD $ - Optional)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      id="minOrderAmount" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00 (No minimum)" 
+                      value={minOrderAmount} 
+                      onChange={e => setMinOrderAmount(e.target.value)} 
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="maxUses">Max Allowed Redemptions</Label>
                   <Input 
@@ -299,10 +375,11 @@ export default function PromoCodesPage() {
                     required
                   />
                 </div>
+
                 <Button 
                   type="submit" 
                   disabled={createMutation.isPending} 
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Promo Code"}
                 </Button>
@@ -340,7 +417,7 @@ export default function PromoCodesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Code</TableHead>
-                        <TableHead>Reward</TableHead>
+                        <TableHead>Discount / Reward</TableHead>
                         <TableHead>Uses</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -349,10 +426,29 @@ export default function PromoCodesPage() {
                     <TableBody>
                       {filteredPromoCodes.map(promo => {
                         const isExpired = promo.usesCount >= promo.maxUses;
+                        const isPercentage = promo.discountType === "percentage";
+                        const discountDisplay = isPercentage 
+                          ? `${promo.discountValue || promo.reward}% OFF` 
+                          : `$${((promo.discountValue || promo.reward) / 100).toFixed(2)} OFF`;
+                        const minOrderUSD = (promo.minOrderAmount || 0) / 100;
+
                         return (
                           <TableRow key={promo.id}>
-                            <TableCell className="font-mono font-bold text-white">{promo.code}</TableCell>
-                            <TableCell>${(promo.reward / 100).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="font-mono font-bold text-white text-sm">
+                                {promo.code}
+                              </div>
+                              {minOrderUSD > 0 && (
+                                <span className="text-[10px] text-slate-400 block">
+                                  Min order: ${minOrderUSD.toFixed(2)}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`font-mono font-bold text-xs ${isPercentage ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40'}`}>
+                                {discountDisplay}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               <span className="text-white font-bold">{promo.usesCount}</span> / {promo.maxUses}
                             </TableCell>

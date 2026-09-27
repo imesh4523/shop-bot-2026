@@ -6,7 +6,7 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
 import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, generateInvoicePdf, TransactionEmailProps, CustomEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
@@ -3283,29 +3283,30 @@ export async function registerRoutes(
       const userKeys = await storage.getUserApiKeys(tgUserId);
       const keyIds = userKeys.map(k => k.id);
 
-      let keyOrders: any[] = [];
-      if (keyIds.length > 0) {
-        const rows = await db.select()
-          .from(orders)
-          .leftJoin(products, eq(orders.productId, products.id))
-          .leftJoin(credentials, eq(orders.credentialId, credentials.id))
-          .leftJoin(apiKeys, eq(orders.apiKeyId, apiKeys.id))
-          .where(inArray(orders.apiKeyId, keyIds))
-          .orderBy(desc(orders.createdAt));
+      const rows = await db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+        .leftJoin(apiKeys, eq(orders.apiKeyId, apiKeys.id))
+        .where(
+          keyIds.length > 0
+            ? or(eq(orders.telegramUserId, tgUserId), inArray(orders.apiKeyId, keyIds))
+            : eq(orders.telegramUserId, tgUserId)
+        )
+        .orderBy(desc(orders.createdAt));
 
-        keyOrders = rows.map((r) => ({
-          id: r.orders.id,
-          productId: r.orders.productId,
-          productName: r.products?.name || "Unknown Product",
-          priceCents: r.products?.price || 0,
-          priceUsd: ((r.products?.price || 0) / 100).toFixed(2),
-          status: r.orders.status,
-          apiKey: r.api_keys?.key || null,
-          apiKeyStatus: r.api_keys?.status || null,
-          deliveredContent: r.credentials?.content || null,
-          createdAt: r.orders.createdAt
-        }));
-      }
+      const keyOrders = rows.map((r) => ({
+        id: r.orders.id,
+        productId: r.orders.productId,
+        productName: r.products?.name || "Unknown Product",
+        priceCents: r.products?.price || 0,
+        priceUsd: ((r.products?.price || 0) / 100).toFixed(2),
+        status: r.orders.status,
+        apiKey: r.api_keys?.key || null,
+        apiKeyStatus: r.api_keys?.status || null,
+        deliveredContent: r.credentials?.content || null,
+        createdAt: r.orders.createdAt
+      }));
 
       res.json({
         keys: userKeys,
@@ -3356,13 +3357,197 @@ export async function registerRoutes(
     }
   });
 
+  // Validate Coupon Code for Mini App / Checkout
+  app.post("/api/mini/validate-coupon", verifyMiniAppAuth, async (req, res) => {
+    try {
+      const { code, amountCents = 0 } = req.body;
+      if (!code || typeof code !== "string" || !code.trim()) {
+        return res.status(400).json({ success: false, message: "Please enter a valid coupon code." });
+      }
+      const cleanCode = code.trim().toUpperCase();
+      const promo = await storage.getPromoCodeByCode(cleanCode);
+      if (!promo) {
+        return res.status(404).json({ success: false, message: `Coupon code "${cleanCode}" is invalid.` });
+      }
+      if (promo.status !== "active") {
+        return res.status(400).json({ success: false, message: `Coupon code "${cleanCode}" is inactive or expired.` });
+      }
+      if (promo.usesCount >= promo.maxUses) {
+        return res.status(400).json({ success: false, message: `Coupon code "${cleanCode}" redemption limit has been reached.` });
+      }
+      if (promo.minOrderAmount && promo.minOrderAmount > 0 && amountCents < promo.minOrderAmount) {
+        return res.status(400).json({ success: false, message: `Minimum order of $${(promo.minOrderAmount / 100).toFixed(2)} required for this coupon.` });
+      }
+
+      let discountCents = 0;
+      if (promo.discountType === "percentage") {
+        const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+        discountCents = Math.round((amountCents * pct) / 100);
+      } else {
+        discountCents = Math.min(amountCents, promo.discountValue || promo.reward || 0);
+      }
+
+      const finalAmountCents = Math.max(0, amountCents - discountCents);
+
+      return res.json({
+        success: true,
+        valid: true,
+        code: promo.code,
+        discountType: promo.discountType || "fixed",
+        discountValue: promo.discountValue || (promo.reward / 100),
+        discountCents,
+        discountUsd: (discountCents / 100).toFixed(2),
+        finalAmountCents,
+        finalAmountUsd: (finalAmountCents / 100).toFixed(2),
+        message: `🎉 Coupon applied: ${promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `$${(discountCents / 100).toFixed(2)} OFF`}!`
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // Connected Stores & Peer Partners Analytics
+  app.get("/api/admin/connected-stores/analytics", isAuth, async (req, res) => {
+    try {
+      const { storeId, timeRange = "30d", startDate, endDate } = req.query;
+      
+      const now = new Date();
+      let dateFrom = new Date(0);
+      if (timeRange === "24h" || timeRange === "today") {
+        dateFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      } else if (timeRange === "7d") {
+        dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (timeRange === "30d") {
+        dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (timeRange === "custom" && startDate) {
+        dateFrom = new Date(String(startDate));
+      }
+      let dateTo = now;
+      if (timeRange === "custom" && endDate) {
+        dateTo = new Date(String(endDate));
+        dateTo.setHours(23, 59, 59, 999);
+      }
+
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
+      const meshNodes = await getAllMeshNodes();
+      const allKeys = await storage.getAllApiKeys();
+
+      const allOrders = await db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+        .leftJoin(apiKeys, eq(orders.apiKeyId, apiKeys.id))
+        .leftJoin(telegramUsers, eq(orders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(orders.createdAt));
+
+      let filteredOrders = allOrders.filter(o => {
+        const orderDate = o.orders.createdAt ? new Date(o.orders.createdAt) : new Date();
+        if (orderDate < dateFrom || orderDate > dateTo) return false;
+
+        if (storeId && storeId !== "all") {
+          if (String(storeId).startsWith("key_")) {
+            const kId = parseInt(String(storeId).replace("key_", ""), 10);
+            return o.orders.apiKeyId === kId;
+          } else if (String(storeId) === "direct") {
+            return !o.orders.apiKeyId;
+          }
+        }
+        return true;
+      });
+
+      const formattedOrders = filteredOrders.map(o => {
+        const isApi = Boolean(o.orders.apiKeyId);
+        const priceCents = o.products?.price || 0;
+        const priceUsd = (priceCents / 100).toFixed(2);
+        const priceLkr = Math.round((priceCents / 100) * lkrRate).toLocaleString();
+        const buyerName = o.telegram_users?.username 
+          ? `@${o.telegram_users.username}` 
+          : o.telegram_users?.email || (o.telegram_users?.telegramId ? `TG:${o.telegram_users.telegramId}` : `User #${o.orders.telegramUserId}`);
+        
+        const storeSource = isApi 
+          ? `API Partner (${o.api_keys?.key ? o.api_keys.key.substring(0, 10) + '...' : 'Key #' + o.orders.apiKeyId})` 
+          : 'Direct Store (Web/MiniApp)';
+
+        return {
+          id: isApi ? `YH-API-${o.orders.id}` : `ORD-${o.orders.id}`,
+          rawId: o.orders.id,
+          isApiOrder: isApi,
+          apiKeyId: o.orders.apiKeyId,
+          apiKey: o.api_keys?.key || null,
+          storeSource,
+          productId: o.orders.productId,
+          productName: o.products?.name || 'Digital Cloud Product',
+          buyer: buyerName,
+          buyerId: o.orders.telegramUserId,
+          priceCents,
+          priceUsd,
+          priceLkr,
+          status: o.orders.status,
+          deliveredContent: o.credentials?.content || null,
+          createdAt: o.orders.createdAt
+        };
+      });
+
+      const totalOrders = formattedOrders.length;
+      const completedOrders = formattedOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success').length;
+      const failedOrders = formattedOrders.filter(o => (o.status || '').toLowerCase() === 'failed').length;
+      const totalRevenueCents = formattedOrders
+        .filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success')
+        .reduce((acc, o) => acc + o.priceCents, 0);
+      const totalRevenueUsd = (totalRevenueCents / 100).toFixed(2);
+      const totalRevenueLkr = Math.round((totalRevenueCents / 100) * lkrRate).toLocaleString();
+
+      const partnerBreakdown: Record<string, { name: string; count: number; revenueCents: number }> = {};
+      formattedOrders.forEach(o => {
+        const src = o.storeSource;
+        if (!partnerBreakdown[src]) {
+          partnerBreakdown[src] = { name: src, count: 0, revenueCents: 0 };
+        }
+        partnerBreakdown[src].count++;
+        if (o.status === 'completed' || o.status === 'success') {
+          partnerBreakdown[src].revenueCents += o.priceCents;
+        }
+      });
+
+      res.json({
+        success: true,
+        timeRange,
+        dateFrom,
+        dateTo,
+        metrics: {
+          totalOrders,
+          completedOrders,
+          failedOrders,
+          totalRevenueCents,
+          totalRevenueUsd,
+          totalRevenueLkr,
+          activeMeshNodesCount: meshNodes.filter(n => n.status === 'online').length,
+          activeApiKeysCount: allKeys.filter(k => k.status === 'active').length,
+        },
+        stores: [
+          { id: "all", name: "All Connected Stores & APIs" },
+          { id: "direct", name: "Direct Mini Store Customers" },
+          ...meshNodes.map(n => ({ id: `mesh_${n.id}`, name: `StoreMesh: ${n.nodeName} (${n.status})` })),
+          ...allKeys.map(k => ({ id: `key_${k.id}`, name: `API Key: ${k.telegramUser?.username ? '@' + k.telegramUser.username : 'User #' + k.telegramUserId} (${k.key.substring(0, 12)}...)` }))
+        ],
+        partnerBreakdown: Object.values(partnerBreakdown),
+        orders: formattedOrders
+      });
+    } catch (err: any) {
+      console.error("Connected stores analytics error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
   // Purchase a product via Mini App
   app.post("/api/mini/purchase", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
     if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
       return res.status(401).json({ message: "Sign in required to complete purchase. Please log in first." });
     }
-    const { productId, quantity = 1 } = req.body;
+    const { productId, quantity = 1, couponCode } = req.body;
 
     if (!productId) return res.status(400).json({ message: "Product ID required" });
     if (quantity < 1) return res.status(400).json({ message: "Invalid quantity" });
@@ -3381,7 +3566,26 @@ export async function registerRoutes(
           throw new Error("User or product not found");
         }
 
-        const totalPrice = product.price * quantity;
+        const originalTotal = product.price * quantity;
+        let finalDeductAmount = originalTotal;
+        let appliedPromo: any = null;
+
+        // Check and apply coupon discount if provided
+        if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+          const cleanCode = couponCode.trim().toUpperCase();
+          const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode));
+          if (promo && promo.status === "active" && promo.usesCount < promo.maxUses) {
+            let discount = 0;
+            if (promo.discountType === "percentage") {
+              const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+              discount = Math.round((originalTotal * pct) / 100);
+            } else {
+              discount = Math.min(originalTotal, promo.discountValue || promo.reward || 0);
+            }
+            finalDeductAmount = Math.max(0, originalTotal - discount);
+            appliedPromo = promo;
+          }
+        }
 
         // 2. Check stock first
         const availableItems = await tx.select()
@@ -3398,13 +3602,24 @@ export async function registerRoutes(
         const [updatedUser] = await tx
           .update(telegramUsers)
           .set({
-            balance: sql`${telegramUsers.balance} - ${totalPrice}`
+            balance: sql`${telegramUsers.balance} - ${finalDeductAmount}`
           })
-          .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, totalPrice)))
+          .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, finalDeductAmount)))
           .returning();
 
         if (!updatedUser) {
           throw new Error("Insufficient balance");
+        }
+
+        // Update promo usage if applied
+        if (appliedPromo) {
+          await tx.update(promoCodes)
+            .set({ usesCount: sql`${promoCodes.usesCount} + 1` })
+            .where(eq(promoCodes.id, appliedPromo.id));
+          await tx.insert(promoCodeRedemptions).values({
+            telegramUserId: user.id,
+            promoCodeId: appliedPromo.id,
+          });
         }
 
         const itemIds = availableItems.map(item => item.id);
@@ -3423,7 +3638,7 @@ export async function registerRoutes(
         );
         await Promise.all(orderPromises);
 
-        return { product, availableItems, newBalance: updatedUser.balance, quantity };
+        return { product, availableItems, newBalance: updatedUser.balance, quantity, finalDeductAmount, appliedPromo };
       });
 
       // 5. Send credentials to user via Telegram Bot (Non-blocking)
@@ -5676,11 +5891,24 @@ app.get("/api/promo-codes", isAuth, async (req, res) => {
 app.post("/api/promo-codes", isAuth, async (req, res) => {
   try {
     const body = { ...req.body };
-    if (body.reward !== undefined) {
-      body.reward = Math.round(Number(body.reward) * 100); // convert USD to cents
+    const discountType = body.discountType === "percentage" ? "percentage" : "fixed";
+    body.discountType = discountType;
+
+    if (discountType === "percentage") {
+      const pct = Math.min(100, Math.max(1, parseInt(body.discountValue || body.percentage || body.reward || 10, 10)));
+      body.discountValue = pct;
+      body.reward = pct * 100; // placeholder cents representation
+    } else {
+      const valCents = Math.round(Number(body.discountValue || body.reward || 1) * 100);
+      body.discountValue = valCents;
+      body.reward = valCents;
+    }
+
+    if (body.minOrderAmount !== undefined) {
+      body.minOrderAmount = Math.round(Number(body.minOrderAmount) * 100);
     }
     if (body.maxUses !== undefined) {
-      body.maxUses = parseInt(body.maxUses);
+      body.maxUses = parseInt(body.maxUses, 10) || 1;
     }
     
     const parsed = insertPromoCodeSchema.parse(body);
@@ -5709,10 +5937,13 @@ app.patch("/api/promo-codes/:id", isAuth, async (req, res) => {
     const id = Number(req.params.id);
     const body = { ...req.body };
     if (body.reward !== undefined) {
-      body.reward = Math.round(Number(body.reward) * 100); // convert USD to cents
+      body.reward = Math.round(Number(body.reward) * 100);
+    }
+    if (body.discountValue !== undefined && body.discountType !== "percentage") {
+      body.discountValue = Math.round(Number(body.discountValue) * 100);
     }
     if (body.maxUses !== undefined) {
-      body.maxUses = parseInt(body.maxUses);
+      body.maxUses = parseInt(body.maxUses, 10);
     }
 
     const parsed = insertPromoCodeSchema.partial().parse(body);

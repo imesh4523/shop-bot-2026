@@ -63,6 +63,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Domain Automation', href: '/imeshadmindashbord/domain-automation', icon: Globe },
     { name: 'PayHere Gateway', href: '/imeshadmindashbord/payhere', icon: CreditCard },
     { name: 'Store Mesh Connect', href: '/imeshadmindashbord/store-mesh', icon: Network },
+    { name: 'Connected Stores Tracker', href: '/imeshadmindashbord/connected-stores', icon: Network },
     { name: 'Pre-Orders', href: '/imeshadmindashbord/preorders', icon: Clock },
     { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },

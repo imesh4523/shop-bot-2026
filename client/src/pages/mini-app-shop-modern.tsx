@@ -640,6 +640,21 @@ export default function MiniAppShopModern() {
   const [quantity, setQuantity] = useState(1);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
+  // Purchase Coupon Code State
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountCents: number;
+    discountUsd: string;
+    discountType: string;
+    discountValue: number;
+    finalPriceCents: number;
+    finalPriceUsd: string;
+    finalPriceLkr: number;
+  } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [isCouponSectionOpen, setIsCouponSectionOpen] = useState(false);
+
   // AI Support Chat Drawer
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMsg, setChatMsg] = useState("");
@@ -1663,6 +1678,42 @@ export default function MiniAppShopModern() {
     }
   };
 
+  // Coupon Code Handlers
+  const handleApplyCoupon = async () => {
+    if (!detailProduct || !couponCodeInput.trim()) return;
+    setIsValidatingCoupon(true);
+    try {
+      const totalPriceCents = detailProduct.price * quantity;
+      const res = await miniApiRequest("POST", "/api/mini/validate-coupon", {
+        code: couponCodeInput.trim(),
+        amountCents: totalPriceCents,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.message || data.error || "Invalid coupon code");
+      }
+      setAppliedCoupon(data);
+      toast({
+        title: "🎉 Coupon Applied!",
+        description: `You saved $${data.discountUsd} with coupon ${data.code}!`,
+      });
+    } catch (err: any) {
+      setAppliedCoupon(null);
+      toast({
+        title: "Coupon Error",
+        description: err.message || "Invalid or expired coupon code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCodeInput("");
+  };
+
   // Handle Quick Purchase (Enforce authentication)
   const handlePurchase = async () => {
     if (!detailProduct) return;
@@ -1679,10 +1730,13 @@ export default function MiniAppShopModern() {
     }
 
     const userBalanceUsd = (user?.balance || 0) / 100;
-    const totalPriceUsd = (detailProduct.price * quantity) / 100;
+    const originalPriceUsd = (detailProduct.price * quantity) / 100;
+    const finalPriceUsd = appliedCoupon 
+      ? (appliedCoupon.finalPriceCents / 100) 
+      : originalPriceUsd;
 
-    if (userBalanceUsd < totalPriceUsd) {
-      const neededStr = formatProductPrice(detailProduct, quantity);
+    if (userBalanceUsd < finalPriceUsd) {
+      const neededStr = `$${finalPriceUsd.toFixed(2)} USD`;
       const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
 
       toast({
@@ -1699,7 +1753,9 @@ export default function MiniAppShopModern() {
     setPaymentModal({
       isOpen: true,
       title: "Processing Instant Purchase...",
-      subtitle: "Connecting to automated delivery system & generating credentials...",
+      subtitle: appliedCoupon 
+        ? `Applying coupon ${appliedCoupon.code} & generating credentials...` 
+        : "Connecting to automated delivery system & generating credentials...",
     });
 
     try {
@@ -1709,6 +1765,7 @@ export default function MiniAppShopModern() {
       const res = await miniApiRequest("POST", "/api/mini/purchase", {
         productId: detailProduct.id,
         quantity,
+        couponCode: appliedCoupon?.code || undefined,
       });
       const data = await res.json();
       
@@ -1721,6 +1778,8 @@ export default function MiniAppShopModern() {
       queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/mini/orders"] });
       setDetailProduct(null);
+      setAppliedCoupon(null);
+      setCouponCodeInput("");
       setActiveTab("orders");
     } catch (err: any) {
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
@@ -4190,19 +4249,25 @@ export default function MiniAppShopModern() {
               </p>
 
               {/* Quantity Stepper & Price Summary */}
-              <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-3">
+              <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black text-[#181432]">Quantity</span>
                   <div className="flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5">
                     <button
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      onClick={() => {
+                        setQuantity((q) => Math.max(1, q - 1));
+                        setAppliedCoupon(null);
+                      }}
                       className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
                     >
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">{quantity}</span>
                     <button
-                      onClick={() => setQuantity((q) => q + 1)}
+                      onClick={() => {
+                        setQuantity((q) => q + 1);
+                        setAppliedCoupon(null);
+                      }}
                       className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
                     >
                       <Plus className="w-3 h-3" />
@@ -4212,8 +4277,74 @@ export default function MiniAppShopModern() {
 
                 <div className="text-right">
                   <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
-                  <span className="text-sm font-black text-[#181432]">{formatProductPrice(detailProduct, quantity)}</span>
+                  {appliedCoupon ? (
+                    <div className="inline-flex flex-col items-end">
+                      <span className="text-[11px] line-through text-slate-400 font-semibold">
+                        {formatProductPrice(detailProduct, quantity)}
+                      </span>
+                      <span className="text-sm font-black text-emerald-600">
+                        ${appliedCoupon.finalPriceUsd} USD
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-black text-[#181432]">{formatProductPrice(detailProduct, quantity)}</span>
+                  )}
                 </div>
+              </div>
+
+              {/* Promo / Coupon Code Section */}
+              <div className="bg-[#FAF9FE] rounded-2xl p-2.5 border border-[#ECEEF8] mb-3">
+                {!appliedCoupon ? (
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="w-3.5 h-3.5 text-[#6C5CE7] absolute left-2.5 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Add Coupon Code..."
+                        value={couponCodeInput}
+                        onChange={(e) => setCouponCodeInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        className="w-full bg-white border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono uppercase text-[#181432] placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-[#6C5CE7]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isValidatingCoupon || !couponCodeInput.trim()}
+                      className="px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5B42F3] text-white rounded-xl text-xs font-bold shrink-0 disabled:opacity-50 transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      {isValidatingCoupon ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Apply"
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
+                        <span className="text-emerald-700 font-semibold ml-1.5">
+                          (-${appliedCoupon.discountUsd} USD saved)
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-xs font-bold text-emerald-700 hover:text-red-600 underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Terms & Conditions Agreement Rule */}
@@ -4253,7 +4384,9 @@ export default function MiniAppShopModern() {
                     ) : (
                       <>
                         <Zap className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
-                        <span>Purchase Now • {formatProductPrice(detailProduct, quantity)}</span>
+                        <span>
+                          Purchase Now • {appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)}
+                        </span>
                       </>
                     )}
                   </button>
