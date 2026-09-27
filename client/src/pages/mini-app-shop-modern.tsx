@@ -112,48 +112,17 @@ function ShopBagIcon({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGE
 // Official Telegram / Meta 8-point Dual-Tone Verified Badge (100% Transparent Background)
 function VerifiedBadgeIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 512 512"
-      className={`${className} inline-block shrink-0 align-middle`}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <clipPath id="left-half-badge">
-          <rect x="0" y="0" width="256" height="512" />
-        </clipPath>
-        <clipPath id="right-half-badge">
-          <rect x="256" y="0" width="256" height="512" />
-        </clipPath>
-      </defs>
-
-      {/* Left Cyan Half (#38B6FF) */}
-      <path
-        clipPath="url(#left-half-badge)"
-        d="M485.6 209.6c4.6 14.8 7 30.5 7 46.4s-2.4 31.6-7 46.4c-9.1 29.5-27.6 54.9-52.2 72.1-7.8 5.5-12.8 14.2-13.8 23.8-3.1 30.8-15.8 59.4-36.2 81.9-20.4 22.4-47.4 37.5-77.4 43.1-9.5 1.8-17.5 7.6-21.9 16.2-14 27.6-35.8 50.1-62.8 64.7-27 14.6-57.9 20.3-88.6 16.3s-59.2-18.1-81.8-40.4c-7.2-7.1-17.2-10.7-27.3-9.9-30.8 2.6-61.2-5.4-86.8-22.9-25.6-17.5-44.5-43.1-53.9-73.1-2.9-9.3-9.7-16.7-18.7-20.3-28.7-11.4-52.7-32-68.5-58.8-15.8-26.8-22.7-58.1-19.6-89.2 1-9.8-3-19.5-10.8-25.6-24.6-19.3-40.9-46.7-46.3-77.9-5.4-31.2-.4-63.5 14.2-91.8 4.6-9 4.6-19.6 0-28.6-14.6-28.3-19.6-60.6-14.2-91.8 5.4-31.2 21.7-58.6 46.3-77.9 7.8-6.1 11.8-15.8 10.8-25.6-3.1-31.1 3.8-62.4 19.6-89.2 15.8-26.8 39.8-47.4 68.5-58.8 9-3.6 15.8-11 18.7-20.3 9.4-30 28.3-55.6 53.9-73.1 25.6-17.5 56-25.5 86.8-22.9 10.1.8 20.1-2.8 27.3-9.9 22.6-22.3 51.1-36.4 81.8-40.4 30.7-4 61.6 1.7 88.6 16.3 27 14.6 48.8 37.1 62.8 64.7 4.4 8.6 12.4 14.4 21.9 16.2 30 5.6 57 20.7 77.4 43.1 20.4 22.5 33.1 51.1 36.2 81.9 1 9.6 6 18.3 13.8 23.8 24.6 17.2 43.1 42.6 52.2 72.1z"
-        fill="#38B6FF"
-        transform="matrix(0.95 0 0 0.95 12.8 12.8)"
-      />
-
-      {/* Right Royal Blue Half (#2979FF) */}
-      <path
-        clipPath="url(#right-half-badge)"
-        d="M485.6 209.6c4.6 14.8 7 30.5 7 46.4s-2.4 31.6-7 46.4c-9.1 29.5-27.6 54.9-52.2 72.1-7.8 5.5-12.8 14.2-13.8 23.8-3.1 30.8-15.8 59.4-36.2 81.9-20.4 22.4-47.4 37.5-77.4 43.1-9.5 1.8-17.5 7.6-21.9 16.2-14 27.6-35.8 50.1-62.8 64.7-27 14.6-57.9 20.3-88.6 16.3s-59.2-18.1-81.8-40.4c-7.2-7.1-17.2-10.7-27.3-9.9-30.8 2.6-61.2-5.4-86.8-22.9-25.6-17.5-44.5-43.1-53.9-73.1-2.9-9.3-9.7-16.7-18.7-20.3-28.7-11.4-52.7-32-68.5-58.8-15.8-26.8-22.7-58.1-19.6-89.2 1-9.8-3-19.5-10.8-25.6-24.6-19.3-40.9-46.7-46.3-77.9-5.4-31.2-.4-63.5 14.2-91.8 4.6-9 4.6-19.6 0-28.6-14.6-28.3-19.6-60.6-14.2-91.8 5.4-31.2 21.7-58.6 46.3-77.9 7.8-6.1 11.8-15.8 10.8-25.6-3.1-31.1 3.8-62.4 19.6-89.2 15.8-26.8 39.8-47.4 68.5-58.8 9-3.6 15.8-11 18.7-20.3 9.4-30 28.3-55.6 53.9-73.1 25.6-17.5 56-25.5 86.8-22.9 10.1.8 20.1-2.8 27.3-9.9 22.6-22.3 51.1-36.4 81.8-40.4 30.7-4 61.6 1.7 88.6 16.3 27 14.6 48.8 37.1 62.8 64.7 4.4 8.6 12.4 14.4 21.9 16.2 30 5.6 57 20.7 77.4 43.1 20.4 22.5 33.1 51.1 36.2 81.9 1 9.6 6 18.3 13.8 23.8 24.6 17.2 43.1 42.6 52.2 72.1z"
-        fill="#2979FF"
-        transform="matrix(0.95 0 0 0.95 12.8 12.8)"
-      />
-
-      {/* Pure White Rounded Checkmark */}
-      <path
-        d="M218.4 346.8c-7.3 0-14.3-2.9-19.5-8.1l-68.8-68.8c-10.8-10.8-10.8-28.2 0-39s28.2-10.8 39 0l49.3 49.3 134.1-134.1c10.8-10.8 28.2-10.8 39 0s10.8 28.2 0 39l-153.6 153.6c-5.2 5.3-12.2 8.1-19.5 8.1z"
-        fill="#FFFFFF"
-      />
-    </svg>
+    <img
+      src="/assets/verified_badge.svg"
+      className={`${className} inline-block shrink-0 align-middle object-contain pointer-events-none select-none`}
+      alt="Verified"
+      loading="lazy"
+    />
   );
 }
 
 // Canvas-based Image Compressor (reduces photo size before uploading)
-const compressImageToDataUrl = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<string> => {
+const compressImageToDataUrl = (file: File, maxWidth = 1000, maxHeight = 1000, quality = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
       return reject(new Error("Please select a valid image file (PNG, JPG, JPEG, WEBP)"));
@@ -2413,6 +2382,30 @@ Support: https://t.me/youuhost_support
       });
       setDetailProduct(null);
       setActiveTab("profile");
+      return;
+    }
+
+    // Strict Stock Limit Check
+    const liveStockCount = typeof detailProduct.stockCount === 'number' 
+      ? detailProduct.stockCount 
+      : (products.find(p => p.id === detailProduct.id)?.stockCount ?? 0);
+
+    if (liveStockCount <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This item is currently out of stock. Please check back later.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (quantity > liveStockCount) {
+      toast({
+        title: "Stock Limit Exceeded",
+        description: `Only ${liveStockCount} ${liveStockCount === 1 ? 'unit is' : 'units are'} currently available in stock.`,
+        variant: "destructive"
+      });
+      setQuantity(Math.max(1, liveStockCount));
       return;
     }
 
@@ -5168,205 +5161,252 @@ Support: https://t.me/youuhost_support
                 </div>
               </div>
 
-              {/* Title, Badge, Rating & Price */}
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div>
-                  <h3 className="text-lg font-black text-[#181432] leading-tight">{detailProduct.name}</h3>
-                  <span className="text-[11px] font-bold text-[#6B658B] block mt-0.5">
-                    {detailProduct.type} Verified Account
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-[#181432]">
-                    {formatProductPrice(detailProduct, quantity)}
-                  </span>
-                  <span className="text-[9px] text-[#7E7998] block">total price</span>
-                </div>
-              </div>
+              {(() => {
+                const liveStockCount = typeof detailProduct.stockCount === 'number' 
+                  ? detailProduct.stockCount 
+                  : (products.find(p => p.id === detailProduct.id)?.stockCount ?? 0);
 
-              {/* Rating & Reviews pill */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center gap-1 text-[11px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9
-                </div>
-                <span className="text-[11px] text-[#7E7998] font-medium">(120+ reviews)</span>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
-                {detailProduct.description ||
-                  "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring."}
-              </p>
-
-              {/* Quantity Stepper & Price Summary */}
-              <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-[#181432]">Quantity</span>
-                  <div className="flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5">
-                    <button
-                      onClick={() => {
-                        setQuantity((q) => Math.max(1, q - 1));
-                        setAppliedCoupon(null);
-                      }}
-                      className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">{quantity}</span>
-                    <button
-                      onClick={() => {
-                        setQuantity((q) => q + 1);
-                        setAppliedCoupon(null);
-                      }}
-                      className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] font-bold"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
-                  {appliedCoupon ? (
-                    <div className="inline-flex flex-col items-end">
-                      <span className="text-[11px] line-through text-slate-400 font-semibold">
-                        {formatProductPrice(detailProduct, quantity)}
-                      </span>
-                      <span className="text-sm font-black text-emerald-600">
-                        ${appliedCoupon.finalPriceUsd} USD
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-sm font-black text-[#181432]">{formatProductPrice(detailProduct, quantity)}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Promo / Coupon Code Section */}
-              <div className="bg-[#FAF9FE] rounded-2xl p-2.5 border border-[#ECEEF8] mb-3">
-                {!appliedCoupon ? (
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Tag className="w-3.5 h-3.5 text-[#6C5CE7] absolute left-2.5 top-2.5" />
-                      <input
-                        type="text"
-                        placeholder="Add Coupon Code..."
-                        value={couponCodeInput}
-                        onChange={(e) => setCouponCodeInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleApplyCoupon();
-                          }
-                        }}
-                        className="w-full bg-white border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono uppercase text-[#181432] placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-[#6C5CE7]"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleApplyCoupon}
-                      disabled={isValidatingCoupon || !couponCodeInput.trim()}
-                      className="px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5B42F3] text-white rounded-xl text-xs font-bold shrink-0 disabled:opacity-50 transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      {isValidatingCoupon ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        "Apply"
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                return (
+                  <>
+                    {/* Title, Badge, Rating & Price */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
-                        <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
-                        <span className="text-emerald-700 font-semibold ml-1.5">
-                          (-${appliedCoupon.discountUsd} USD saved)
+                        <h3 className="text-lg font-black text-[#181432] leading-tight">{detailProduct.name}</h3>
+                        <span className="text-[11px] font-bold text-[#6B658B] block mt-0.5">
+                          {detailProduct.type} Verified Account
                         </span>
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveCoupon}
-                      className="text-xs font-bold text-emerald-700 hover:text-red-600 underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Terms & Conditions Agreement Rule */}
-              <div className="flex items-center gap-2 mb-3.5 px-1">
-                <input
-                  type="checkbox"
-                  id="agreeTermsModal"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#6C5CE7] focus:ring-[#6C5CE7] border-[#ECEEF8] cursor-pointer"
-                />
-                <label htmlFor="agreeTermsModal" className="text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none">
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setTermsModalProduct(detailProduct?.name || "Cloud Account");
-                      setTermsModalCustomText((detailProduct as any)?.termsAndConditions || null);
-                      setIsTermsModalOpen(true);
-                    }}
-                    className="text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer"
-                  >
-                    Terms of Service
-                  </button>{" "}
-                  & Instant Delivery
-                </label>
-              </div>
-
-              {/* Purchase Now / Sign In Button */}
-              <div className="mb-4">
-                {!isCustomerLoggedIn ? (
-                  <button
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all"
-                  >
-                    <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
-                  </button>
-                ) : (
-                  <button
-                    onClick={handlePurchase}
-                    disabled={!agreedToTerms || isPurchasing}
-                    className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#6C5CE7]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
-                  >
-                    {isPurchasing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
-                        <span>Processing Order...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ShopBagIcon className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                        <span>
-                          Purchase Now • {appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)}
+                      <div className="text-right">
+                        <span className="text-lg font-black text-[#181432]">
+                          {formatProductPrice(detailProduct, liveStockCount <= 0 ? 1 : quantity)}
                         </span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
+                        <span className="text-[9px] text-[#7E7998] block">total price</span>
+                      </div>
+                    </div>
 
-              {/* Instant Delivery Footer Badge */}
-              <div className="bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]">
-                <div className="flex items-center gap-2">
-                  <ShopBagIcon className="w-4 h-4 text-[#5B42F3]" />
-                  <span className="text-[11px] font-bold text-[#5B42F3]">Automated 2FA Instant Delivery</span>
-                </div>
-                <span className="text-[10px] text-[#7E7998] font-semibold inline-flex items-center gap-1">
-                  0-2 Mins <ShopBagIcon className="w-2.5 h-2.5 text-emerald-600" />
-                </span>
-              </div>
+                    {/* Stock Status & Rating pill */}
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      {liveStockCount > 0 ? (
+                        <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>In Stock: {liveStockCount} available</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-rose-500" />
+                          <span>⚠️ Out of Stock</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9
+                      </div>
+                      <span className="text-[11px] text-[#7E7998] font-medium">
+                        ({(bestSellersData?.allStats?.[detailProduct.id]?.totalSoldCount || 3000).toLocaleString()} sold)
+                      </span>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
+                      {detailProduct.description ||
+                        "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring."}
+                    </p>
+
+                    {/* Quantity Stepper & Price Summary */}
+                    <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-[#181432]">Quantity</span>
+                        <div className="flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5">
+                          <button
+                            onClick={() => {
+                              setQuantity((q) => Math.max(1, q - 1));
+                              setAppliedCoupon(null);
+                            }}
+                            disabled={quantity <= 1 || liveStockCount <= 0}
+                            className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">
+                            {liveStockCount <= 0 ? 0 : quantity}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (liveStockCount <= 0) {
+                                toast({
+                                  title: "Out of Stock",
+                                  description: "This product is currently out of stock.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              if (quantity >= liveStockCount) {
+                                toast({
+                                  title: "Max Stock Reached",
+                                  description: `Only ${liveStockCount} ${liveStockCount === 1 ? 'unit is' : 'units are'} currently available in stock.`,
+                                });
+                                return;
+                              }
+                              setQuantity((q) => q + 1);
+                              setAppliedCoupon(null);
+                            }}
+                            disabled={quantity >= liveStockCount || liveStockCount <= 0}
+                            className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
+                        {appliedCoupon ? (
+                          <div className="inline-flex flex-col items-end">
+                            <span className="text-[11px] line-through text-slate-400 font-semibold">
+                              {formatProductPrice(detailProduct, quantity)}
+                            </span>
+                            <span className="text-sm font-black text-emerald-600">
+                              ${appliedCoupon.finalPriceUsd} USD
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-black text-[#181432]">
+                            {formatProductPrice(detailProduct, liveStockCount <= 0 ? 1 : quantity)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Promo / Coupon Code Section */}
+                    <div className="bg-[#FAF9FE] rounded-2xl p-2.5 border border-[#ECEEF8] mb-3">
+                      {!appliedCoupon ? (
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Tag className="w-3.5 h-3.5 text-[#6C5CE7] absolute left-2.5 top-2.5" />
+                            <input
+                              type="text"
+                              placeholder="Add Coupon Code..."
+                              value={couponCodeInput}
+                              onChange={(e) => setCouponCodeInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyCoupon();
+                                }
+                              }}
+                              className="w-full bg-white border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono uppercase text-[#181432] placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-[#6C5CE7]"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={isValidatingCoupon || !couponCodeInput.trim() || liveStockCount <= 0}
+                            className="px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5B42F3] text-white rounded-xl text-xs font-bold shrink-0 disabled:opacity-50 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            {isValidatingCoupon ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              "Apply"
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <div>
+                              <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
+                              <span className="text-emerald-700 font-semibold ml-1.5">
+                                (-${appliedCoupon.discountUsd} USD saved)
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCoupon}
+                            className="text-xs font-bold text-emerald-700 hover:text-red-600 underline cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Terms & Conditions Agreement Rule */}
+                    <div className="flex items-center gap-2 mb-3.5 px-1">
+                      <input
+                        type="checkbox"
+                        id="agreeTermsModal"
+                        checked={agreedToTerms}
+                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#6C5CE7] focus:ring-[#6C5CE7] border-[#ECEEF8] cursor-pointer"
+                      />
+                      <label htmlFor="agreeTermsModal" className="text-[11px] font-semibold text-[#7E7998] cursor-pointer select-none">
+                        I agree to the{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setTermsModalProduct(detailProduct?.name || "Cloud Account");
+                            setTermsModalCustomText((detailProduct as any)?.termsAndConditions || null);
+                            setIsTermsModalOpen(true);
+                          }}
+                          className="text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer"
+                        >
+                          Terms of Service
+                        </button>{" "}
+                        & Instant Delivery
+                      </label>
+                    </div>
+
+                    {/* Purchase Now / Sign In Button */}
+                    <div className="mb-4">
+                      {!isCustomerLoggedIn ? (
+                        <button
+                          onClick={() => setIsAuthModalOpen(true)}
+                          className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all"
+                        >
+                          <UserIcon className="w-4 h-4 text-pink-200" /> Sign In to Purchase
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handlePurchase}
+                          disabled={!agreedToTerms || isPurchasing || liveStockCount <= 0}
+                          className="w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#6C5CE7] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#6C5CE7]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
+                        >
+                          {liveStockCount <= 0 ? (
+                            <span>⚠️ Out of Stock</span>
+                          ) : isPurchasing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>Processing Order...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShopBagIcon className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                              <span>
+                                Purchase Now • {appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Instant Delivery Footer Badge */}
+                    <div className="bg-[#F3EFFE] rounded-2xl p-2.5 flex items-center justify-between border border-[#E9E4FC]">
+                      <div className="flex items-center gap-2">
+                        <ShopBagIcon className="w-4 h-4 text-[#5B42F3]" />
+                        <span className="text-[11px] font-bold text-[#5B42F3]">Instant Delivery</span>
+                      </div>
+                      <span className="text-[10px] text-[#7E7998] font-semibold inline-flex items-center gap-1">
+                        0-2 Mins <ShopBagIcon className="w-2.5 h-2.5 text-emerald-600" />
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
