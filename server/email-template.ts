@@ -66,16 +66,9 @@ export interface CustomEmailProps {
 }
 
 /**
- * Helper to get YouuHost Transparent Gradient Logo data URI
+ * Helper to get YouuHost Logo Public URL (Lightweight & Email-Safe, prevents Gmail clipping)
  */
 function getLogoDataUri(): string {
-  try {
-    const logoPath = path.join(process.cwd(), "public", "youuhost_gradient_logo.png");
-    if (fs.existsSync(logoPath)) {
-      const buf = fs.readFileSync(logoPath);
-      return `data:image/png;base64,${buf.toString("base64")}`;
-    }
-  } catch (e) {}
   return "https://youuhost.com/youuhost_gradient_logo.png";
 }
 
