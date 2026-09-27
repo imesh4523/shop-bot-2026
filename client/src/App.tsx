@@ -57,11 +57,28 @@ function PageLoader() {
   );
 }
 
+function isAdminHost(): boolean {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname.toLowerCase();
+  return (
+    host === "imeshmain2.youuhost.com" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".localhost")
+  );
+}
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return <PageLoader />;
+  }
+
+  // Admin dashboard is ONLY accessible from imeshmain2.youuhost.com (or localhost)
+  // On youuhost.com, never redirect - render NotFound directly so admin stays private
+  if (!isAdminHost()) {
+    return <NotFound />;
   }
 
   if (!user) {
@@ -121,12 +138,12 @@ function Router() {
         <MiniAppShop />
       </Route>
 
-      {/* Admin Route Login */}
+      {/* Admin Route Login - Only accessible on imeshmain2.youuhost.com */}
       <Route path="/imeshadmindashbord/login">
-        <LoginPage />
+        {isAdminHost() ? <LoginPage /> : <NotFound />}
       </Route>
       <Route path="/login">
-        <Redirect to="/imeshadmindashbord/login" />
+        {isAdminHost() ? <Redirect to="/imeshadmindashbord/login" /> : <NotFound />}
       </Route>
 
       {/* Secret Admin Routes (/imeshadmindashbord/*) */}

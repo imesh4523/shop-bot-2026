@@ -12178,7 +12178,7 @@ const UserX = createLucideIcon("UserX", [
   ["line", { x1: "17", x2: "22", y1: "8", y2: "13", key: "3nzzx3" }],
   ["line", { x1: "22", x2: "17", y1: "8", y2: "13", key: "1swrse" }]
 ]);
-const User$1 = createLucideIcon("User", [
+const User = createLucideIcon("User", [
   ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
   ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
 ]);
@@ -20320,7 +20320,7 @@ function LayoutShell({ children }) {
     { name: "Inventory", href: "/imeshadmindashbord/inventory", icon: Package },
     { name: "Orders", href: "/imeshadmindashbord/orders", icon: ShoppingCart },
     { name: "Support Tickets", href: "/imeshadmindashbord/support-tickets", icon: LifeBuoy },
-    { name: "Payments", href: "/imeshadmindashbord/payments", icon: User$1 },
+    { name: "Payments", href: "/imeshadmindashbord/payments", icon: User },
     { name: "Database Backup", href: "/imeshadmindashbord/backups", icon: Database },
     { name: "Special Offers", href: "/imeshadmindashbord/special-offers", icon: Tag },
     { name: "Promo Codes", href: "/imeshadmindashbord/promo-codes", icon: Ticket },
@@ -60376,7 +60376,7 @@ function OrdersPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight", children: order.product?.name || "Deleted Product" })
         ] }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-white/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-4 h-4" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-white/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }) }),
           order.telegramUser ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight truncate", children: order.telegramUser.username ? `@${order.telegramUser.username}` : order.telegramUser.email || "No Username" }),
             order.telegramUser.email && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-purple-300 font-mono truncate", children: [
@@ -74096,7 +74096,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DIx-_Ig-.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-GTRluO44.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -77178,7 +77178,7 @@ function AwsCheckerPage() {
                   category === "sensitive" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-blue-500 hover:bg-blue-600 text-white text-[7px] font-black h-4 px-1 rounded-sm uppercase tracking-tighter border-0", children: "Sensitive" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[10px] text-white/30", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-3 h-3" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3 h-3" }),
                   " ",
                   act.userName,
                   !focusedAccountId && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "ml-2 border-white/5 bg-white/5 text-[8px] h-4 py-0 px-1.5", children: act.account?.name })
@@ -88133,7 +88133,7 @@ function TelegramInspectorPage() {
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm", children: trace.userFirstName ? trace.userFirstName[0].toUpperCase() : /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-5 h-5" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm", children: trace.userFirstName ? trace.userFirstName[0].toUpperCase() : /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-5 h-5" }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white text-base", children: trace.userFirstName || trace.username || "Telegram User" }),
@@ -89020,7 +89020,7 @@ function TelegramClientPage() {
                   chat.type === "group" && /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "h-3 w-3 text-indigo-400 shrink-0" }),
                   chat.type === "channel" && /* @__PURE__ */ jsxRuntimeExports.jsx(Megaphone, { className: "h-3 w-3 text-cyan-400 shrink-0" }),
                   chat.isBot && /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "h-3 w-3 text-cyan-400 shrink-0" }),
-                  chat.type === "user" && !chat.isBot && /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "h-3 w-3 text-slate-400 shrink-0" }),
+                  chat.type === "user" && !chat.isBot && /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "h-3 w-3 text-slate-400 shrink-0" }),
                   chat.name
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-slate-500 shrink-0", children: chat.date ? new Date(chat.date * 1e3).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "" })
@@ -90466,7 +90466,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
             /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xl font-black text-white", children: ticket.issueType }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 text-sm text-white/60", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5 font-bold text-purple-300", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-4 h-4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                 "@",
                 cleanUser
               ] }),
@@ -90552,7 +90552,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
                       /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-3.5 h-3.5" }),
                       "Admin Reply:"
                     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-3.5 h-3.5" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5" }),
                       "Submitted Message (Customer):"
                     ] }) }),
                     msg.timestamp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
@@ -90780,7 +90780,7 @@ function CustomerTrackerPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/60 border-purple-500/20 backdrop-blur-xl shadow-xl lg:col-span-1 flex flex-col h-[700px]", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-5 h-5 text-purple-400" }),
             " Customers (",
             filteredUsers.length,
             ")"
@@ -92012,7 +92012,7 @@ function MiniAppShop$1() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[3rem] p-10 border border-purple-50 relative overflow-hidden", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 flex flex-col items-center text-center space-y-6", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-24 h-24 rounded-[30%] bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center text-white shadow-xl rotate-12 group hover:rotate-0 transition-transform duration-500 overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserAvatar, { fallback: User$1, className: "w-full h-full -rotate-12 group-hover:rotate-0 transition-transform duration-500" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-24 h-24 rounded-[30%] bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center text-white shadow-xl rotate-12 group hover:rotate-0 transition-transform duration-500 overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserAvatar, { fallback: User, className: "w-full h-full -rotate-12 group-hover:rotate-0 transition-transform duration-500" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-green-500 border-4 border-white flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-white" }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
@@ -92118,7 +92118,7 @@ function MiniAppShop$1() {
           {
             whileHover: { rotate: 10 },
             className: "w-11 h-11 rounded-2xl bg-neutral-900 flex items-center justify-center shadow-lg transition-all overflow-hidden",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserAvatar, { fallback: User$1, className: "w-full h-full" })
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(UserAvatar, { fallback: User, className: "w-full h-full" })
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col", children: [
@@ -92193,7 +92193,7 @@ function MiniAppShop$1() {
         {
           active: activeTab === "profile",
           onClick: () => setActiveTab("profile"),
-          icon: /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-5 h-5" }),
+          icon: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-5 h-5" }),
           label: "ID"
         }
       ),
@@ -104746,7 +104746,7 @@ ${finalDetails}`;
       setTicketSmmOrderId("");
       setTicketAttachment(null);
       toast2({
-        title: "Support Ticket Opened! 🎫",
+        title: "Support Ticket Opened",
         description: `Ticket #${created.id} submitted. Our team will review and reply shortly.`
       });
       setActiveTab("profile");
@@ -104777,7 +104777,7 @@ ${finalDetails}`;
       setTicketReplyMsg("");
       setReplyAttachment(null);
       toast2({
-        title: "Message Sent! 💬",
+        title: "Message Sent",
         description: `Your reply was sent to Ticket #${ticketId}.`
       });
     } catch (err) {
@@ -105730,7 +105730,7 @@ ${finalDetails}`;
                     e.target.style.display = "none";
                   }
                 }
-              ) : isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] bg-clip-text text-transparent", children: displayName.charAt(0).toUpperCase() }) : /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-5 h-5 text-[#5B42F3]" })
+              ) : isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] bg-clip-text text-transparent", children: displayName.charAt(0).toUpperCase() }) : /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-5 h-5 text-[#5B42F3]" })
             }
           )
         ] })
@@ -106947,7 +106947,7 @@ ${finalDetails}`;
       activeTab === "profile" && /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, className: "space-y-4", children: !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#6C5CE7]/15 to-[#FF5E62]/15 blur-3xl rounded-full -translate-y-12 translate-x-12 pointer-events-none" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center mb-6 relative z-10", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#6C5CE7] to-[#FF5E62] text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/25", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-8 h-8" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#6C5CE7] to-[#FF5E62] text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/25", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-8 h-8" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-black text-[#181432]", children: "Sign in to youuhost" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#7E7998] mt-1 max-w-xs mx-auto", children: "Access your cloud server orders, manage balance, and top-up with instant verification." })
         ] }),
@@ -107130,7 +107130,7 @@ ${finalDetails}`;
                 onClick: () => setProfileSubTab("overview"),
                 className: `py-2 px-1 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1 ${profileSubTab === "overview" || profileSubTab === "api" ? "bg-white text-[#5B42F3] shadow-sm" : "text-[#7E7998] hover:text-[#181432]"}`,
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-3.5 h-3.5" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5" }),
                   " Overview"
                 ]
               }
@@ -107336,18 +107336,18 @@ ${finalDetails}`;
               )
             ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2.5", children: supportTicketsList.map((tick) => {
               let statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-amber-500" }),
                 " Pending Review"
               ] });
-              if (tick.status === "in_progress") {
-                statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(MessageCircle, { className: "w-2.5 h-2.5" }),
-                  " Admin Replied 💬"
+              if (tick.status === "in_progress" || tick.status === "admin_replied") {
+                statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Headphones, { className: "w-2.5 h-2.5 text-[#5B42F3]" }),
+                  " Staff Replied"
                 ] });
               } else if (tick.status === "resolved") {
                 statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-2.5 h-2.5" }),
-                  " Resolved ✅"
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-2.5 h-2.5 text-emerald-500" }),
+                  " Resolved"
                 ] });
               } else if (tick.status === "closed") {
                 statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200", children: "Closed" });
@@ -108016,7 +108016,7 @@ ${finalDetails}`;
           onClick: () => setIsAuthModalOpen(true),
           className: "w-full py-3.5 bg-gradient-to-r from-[#FF5E62] via-[#D92078] to-[#5B42F3] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/25 hover:opacity-95 active:scale-98 transition-all",
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-4 h-4 text-pink-200" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4 text-pink-200" }),
             " Sign In to Purchase"
           ]
         }
@@ -108239,7 +108239,7 @@ ${finalDetails}`;
               disabled: isSmmPurchasing,
               className: "w-full py-3.5 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#5B42F3]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
               children: isSmmPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-4 h-4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                 " Sign In to Order Boost"
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4" }),
@@ -108393,7 +108393,7 @@ ${finalDetails}`;
                 disabled: isSandromaniaPurchasing,
                 className: "w-full py-3.5 bg-gradient-to-r from-[#10A37F] via-[#059669] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#10A37F]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
                 children: isSandromaniaPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                   " Sign In to Purchase"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4" }),
@@ -108472,7 +108472,7 @@ ${finalDetails}`;
           onClick: () => setActiveTab("profile"),
           className: `flex flex-col items-center gap-0.5 transition-all ${activeTab === "profile" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"}`,
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(User$1, { className: "w-5 h-5" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-5 h-5" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold", children: "Profile" }),
             activeTab === "profile" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7]" })
           ]
@@ -118920,10 +118920,18 @@ class ErrorBoundary extends reactExports.Component {
 function PageLoader() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 160 }) });
 }
+function isAdminHost() {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname.toLowerCase();
+  return host === "imeshmain2.youuhost.com" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+}
 function ProtectedRoute({ component: Component }) {
   const { user, isLoading } = useAuth();
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(PageLoader, {});
+  }
+  if (!isAdminHost()) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(NotFound, {});
   }
   if (!user) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" });
@@ -118954,8 +118962,8 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/docs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ApiDocsPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/api-docs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ApiDocsPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/shop", children: /* @__PURE__ */ jsxRuntimeExports.jsx(MiniAppShop, {}) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {}) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/login", children: isAdminHost() ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(NotFound, {}) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/login", children: isAdminHost() ? /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(NotFound, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: Dashboard }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/email-hub", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: EmailHubPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/all-orders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: AllOrdersPage }) }),

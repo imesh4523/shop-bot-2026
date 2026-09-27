@@ -11,6 +11,7 @@ import { DEFAULT_CATEGORIES, BADGE_COLOR_STYLES, renderCategoryBrandIcon, Custom
 import {
   Loader2,
   ShoppingCart,
+  User,
   User as UserIcon,
   Package,
   Wallet,
@@ -1449,7 +1450,7 @@ Support: https://t.me/youuhost_support
       setTicketAttachment(null);
 
       toast({
-        title: "Support Ticket Opened! 🎫",
+        title: "Support Ticket Opened",
         description: `Ticket #${created.id} submitted. Our team will review and reply shortly.`
       });
 
@@ -1483,7 +1484,7 @@ Support: https://t.me/youuhost_support
       setTicketReplyMsg("");
       setReplyAttachment(null);
       toast({
-        title: "Message Sent! 💬",
+        title: "Message Sent",
         description: `Your reply was sent to Ticket #${ticketId}.`
       });
     } catch (err: any) {
@@ -4429,19 +4430,19 @@ Support: https://t.me/youuhost_support
                         {supportTicketsList.map((tick: any) => {
                           let statusBadge = (
                             <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                              <Clock className="w-2.5 h-2.5" /> Pending Review
+                              <Clock className="w-2.5 h-2.5 text-amber-500" /> Pending Review
                             </span>
                           );
-                          if (tick.status === "in_progress") {
+                          if (tick.status === "in_progress" || tick.status === "admin_replied") {
                             statusBadge = (
-                              <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                                <MessageCircle className="w-2.5 h-2.5" /> Admin Replied 💬
+                              <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                                <Headphones className="w-2.5 h-2.5 text-[#5B42F3]" /> Staff Replied
                               </span>
                             );
                           } else if (tick.status === "resolved") {
                             statusBadge = (
                               <span className="text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                                <CheckCircle2 className="w-2.5 h-2.5" /> Resolved ✅
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" /> Resolved
                               </span>
                             );
                           } else if (tick.status === "closed") {
