@@ -28,6 +28,7 @@ export const products = pgTable("products", {
   status: text("status").notNull().default("available"),
   isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
   preorderQuota: integer("preorder_quota").notNull().default(50),
+  termsAndConditions: text("terms_and_conditions"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

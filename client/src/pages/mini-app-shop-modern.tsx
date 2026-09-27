@@ -765,6 +765,7 @@ export default function MiniAppShopModern() {
   // Terms & Conditions Modal State
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [termsModalProduct, setTermsModalProduct] = useState<string | null>(null);
+  const [termsModalCustomText, setTermsModalCustomText] = useState<string | null>(null);
 
   // Dynamic Hero Banners Query
   const { data: dynamicHeroBannersData } = useQuery<{ banners: any[] }>({
@@ -4590,6 +4591,7 @@ export default function MiniAppShopModern() {
                       e.stopPropagation();
                       e.preventDefault();
                       setTermsModalProduct(detailProduct?.name || "Cloud Account");
+                      setTermsModalCustomText((detailProduct as any)?.termsAndConditions || null);
                       setIsTermsModalOpen(true);
                     }}
                     className="text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer"
@@ -5194,6 +5196,18 @@ export default function MiniAppShopModern() {
           </DialogHeader>
 
           <div className="space-y-3.5 text-xs text-[#3D3656] pt-2">
+            {/* Custom Product Terms & Warranty (if defined by Admin) */}
+            {termsModalCustomText && (
+              <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 rounded-2xl p-4 border border-purple-200/80 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 text-[#5B42F3] font-black text-xs">
+                  <ShieldCheck className="w-4 h-4 text-[#5B42F3]" /> Specific Product Warranty & Guarantee
+                </div>
+                <p className="text-[11.5px] text-[#181432] font-semibold leading-relaxed whitespace-pre-wrap">
+                  {termsModalCustomText}
+                </p>
+              </div>
+            )}
+
             {/* Policy 1: Instant Auto-Delivery */}
             <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
               <div className="flex items-center gap-2 text-emerald-700 font-black text-xs">

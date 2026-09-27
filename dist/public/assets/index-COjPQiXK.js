@@ -30441,6 +30441,7 @@ const products = pgTable("products", {
   status: text("status").notNull().default("available"),
   isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
   preorderQuota: integer("preorder_quota").notNull().default(50),
+  termsAndConditions: text("terms_and_conditions"),
   createdAt: timestamp("created_at").defaultNow()
 });
 const credentials = pgTable("credentials", {
@@ -59283,7 +59284,8 @@ const productFormSchema = insertProductSchema.extend({
   priceLkr: z$1.coerce.number().optional().nullable(),
   customEmojiId: z$1.string().optional().nullable(),
   isPreorderEnabled: z$1.boolean().default(false),
-  preorderQuota: z$1.coerce.number().default(50)
+  preorderQuota: z$1.coerce.number().default(50),
+  termsAndConditions: z$1.string().optional().nullable()
 });
 function ProductsPage() {
   const { data: products2, isLoading } = useProducts();
@@ -59481,7 +59483,8 @@ function EditProductDialog({
       priceLkr: product.priceLkr ?? null,
       customEmojiId: product.customEmojiId || "",
       isPreorderEnabled: product.isPreorderEnabled ?? false,
-      preorderQuota: product.preorderQuota ?? 50
+      preorderQuota: product.preorderQuota ?? 50,
+      termsAndConditions: product.termsAndConditions || ""
     }
   });
   const updateMutation = useMutation({
@@ -59657,6 +59660,27 @@ function EditProductDialog({
           ] })
         }
       ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        FormField,
+        {
+          control: form.control,
+          name: "termsAndConditions",
+          render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-emerald-400/90 ml-0.5", children: "Product Terms of Service & Warranty Policy" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Textarea,
+              {
+                placeholder: "e.g. 24h replacement warranty for login or quota issues. No prohibited misuse (crypto mining, DDoS, spam).",
+                className: "glass-panel rounded-xl border-emerald-500/20 bg-emerald-950/10 text-xs text-white placeholder:text-white/20 focus:border-emerald-500/50 transition-all min-h-[55px] py-1.5",
+                ...field,
+                value: field.value ?? ""
+              }
+            ) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FormDescription, { className: "text-[9px] text-white/30", children: "Custom warranty & terms shown in customer shop popup." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, { className: "text-red-400 font-bold text-xs" })
+          ] })
+        }
+      ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogFooter, { className: "pt-2 border-t border-white/5 gap-2 sticky bottom-0 bg-background/95 backdrop-blur-xl py-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { type: "button", variant: "ghost", onClick: () => onOpenChange(false), className: "h-8 px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]", children: "Cancel" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { type: "submit", disabled: updateMutation.isPending, className: "h-8 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:opacity-90 font-black uppercase tracking-widest text-[9px] shadow-xl transition-all active:scale-95", children: updateMutation.isPending ? "Updating..." : "Update Product" })
@@ -59742,7 +59766,8 @@ function CreateProductDialog({ open: open2, onOpenChange }) {
       priceLkr: null,
       customEmojiId: "",
       isPreorderEnabled: false,
-      preorderQuota: 50
+      preorderQuota: 50,
+      termsAndConditions: ""
     }
   });
   const selectedType = form.watch("type");
@@ -59923,6 +59948,27 @@ function CreateProductDialog({ open: open2, onOpenChange }) {
                   value: field.value ?? ""
                 }
               ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, { className: "text-red-400 font-bold text-xs" })
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          FormField,
+          {
+            control: form.control,
+            name: "termsAndConditions",
+            render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-emerald-400/90 ml-0.5", children: "Product Terms of Service & Warranty Policy" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Textarea,
+                {
+                  placeholder: "e.g. 24h replacement warranty for login or quota issues. No prohibited misuse (crypto mining, DDoS, spam).",
+                  className: "glass-panel rounded-xl border-emerald-500/20 bg-emerald-950/10 text-xs text-white placeholder:text-white/20 focus:border-emerald-500/50 transition-all min-h-[55px] py-1.5",
+                  ...field,
+                  value: field.value ?? ""
+                }
+              ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FormDescription, { className: "text-[9px] text-white/30", children: "Custom warranty & terms shown in customer shop popup." }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, { className: "text-red-400 font-bold text-xs" })
             ] })
           }
@@ -74001,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-x3aoLckt.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-8cUeZ2vI.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103981,6 +104027,7 @@ function MiniAppShopModern() {
   const chatEndRef = reactExports.useRef(null);
   const [isTermsModalOpen, setIsTermsModalOpen] = reactExports.useState(false);
   const [termsModalProduct, setTermsModalProduct] = reactExports.useState(null);
+  const [termsModalCustomText, setTermsModalCustomText] = reactExports.useState(null);
   const { data: dynamicHeroBannersData } = useQuery({
     queryKey: ["/api/mini/hero-banners"]
   });
@@ -107234,6 +107281,7 @@ function MiniAppShopModern() {
                 e.stopPropagation();
                 e.preventDefault();
                 setTermsModalProduct(detailProduct?.name || "Cloud Account");
+                setTermsModalCustomText(detailProduct?.termsAndConditions || null);
                 setIsTermsModalOpen(true);
               },
               className: "text-[#6C5CE7] font-bold underline hover:text-[#5B42F3] cursor-pointer",
@@ -107761,6 +107809,13 @@ function MiniAppShopModern() {
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-[#7E7998]", children: "Official policy guidelines, instant warranty coverage, and customer rights." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5 text-xs text-[#3D3656] pt-2", children: [
+        termsModalCustomText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 rounded-2xl p-4 border border-purple-200/80 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-[#5B42F3] font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-[#5B42F3]" }),
+            " Specific Product Warranty & Guarantee"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11.5px] text-[#181432] font-semibold leading-relaxed whitespace-pre-wrap", children: termsModalCustomText })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-emerald-700 font-black text-xs", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-emerald-500" }),

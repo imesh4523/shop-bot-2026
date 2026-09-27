@@ -4501,6 +4501,7 @@ try {
   `).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT FALSE;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS terms_and_conditions TEXT;`).catch(() => {});
   db.execute(sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS expected_crypto_amount TEXT;`).catch(() => {});
   console.log("[DB] preorders table & product preorder columns verified/created");
 } catch (err) {
@@ -7078,6 +7079,7 @@ async function initBot() {
         ALTER TABLE products ADD COLUMN IF NOT EXISTS custom_emoji_id TEXT;
         ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT false;
         ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS terms_and_conditions TEXT;
       `);
       console.log('[DB] Complete schema columns verified/migrated successfully!');
     } catch (e) {

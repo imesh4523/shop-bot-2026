@@ -193,6 +193,7 @@ const productFormSchema = insertProductSchema.extend({
   customEmojiId: z.string().optional().nullable(),
   isPreorderEnabled: z.boolean().default(false),
   preorderQuota: z.coerce.number().default(50),
+  termsAndConditions: z.string().optional().nullable(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -442,6 +443,7 @@ function EditProductDialog({
       customEmojiId: product.customEmojiId || "",
       isPreorderEnabled: (product as any).isPreorderEnabled ?? false,
       preorderQuota: (product as any).preorderQuota ?? 50,
+      termsAndConditions: (product as any).termsAndConditions || "",
     },
   });
 
@@ -639,6 +641,30 @@ function EditProductDialog({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="termsAndConditions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-emerald-400/90 ml-0.5">
+                    Product Terms of Service & Warranty Policy
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g. 24h replacement warranty for login or quota issues. No prohibited misuse (crypto mining, DDoS, spam)." 
+                      className="glass-panel rounded-xl border-emerald-500/20 bg-emerald-950/10 text-xs text-white placeholder:text-white/20 focus:border-emerald-500/50 transition-all min-h-[55px] py-1.5"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-[9px] text-white/30">
+                    Custom warranty & terms shown in customer shop popup.
+                  </FormDescription>
+                  <FormMessage className="text-red-400 font-bold text-xs" />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter className="pt-2 border-t border-white/5 gap-2 sticky bottom-0 bg-background/95 backdrop-blur-xl py-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-8 px-4 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px]">
                 Cancel
@@ -748,6 +774,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
       customEmojiId: "",
       isPreorderEnabled: false,
       preorderQuota: 50,
+      termsAndConditions: "",
     },
   });
 
@@ -950,6 +977,30 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                       value={field.value ?? ""}
                     />
                   </FormControl>
+                  <FormMessage className="text-red-400 font-bold text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="termsAndConditions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[9px] font-black uppercase tracking-widest text-emerald-400/90 ml-0.5">
+                    Product Terms of Service & Warranty Policy
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g. 24h replacement warranty for login or quota issues. No prohibited misuse (crypto mining, DDoS, spam)." 
+                      className="glass-panel rounded-xl border-emerald-500/20 bg-emerald-950/10 text-xs text-white placeholder:text-white/20 focus:border-emerald-500/50 transition-all min-h-[55px] py-1.5"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-[9px] text-white/30">
+                    Custom warranty & terms shown in customer shop popup.
+                  </FormDescription>
                   <FormMessage className="text-red-400 font-bold text-xs" />
                 </FormItem>
               )}
