@@ -971,6 +971,10 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 9999;
 }
 
+.z-\[999\]{
+  z-index: 999;
+}
+
 .col-span-2{
   grid-column: span 2 / span 2;
 }
@@ -5995,6 +5999,10 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 6.5px;
 }
 
+.text-\[7\.5px\]{
+  font-size: 7.5px;
+}
+
 .text-\[7px\]{
   font-size: 7px;
 }
@@ -6282,6 +6290,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .text-\[\#5B42F3\]\/40{
   color: rgb(91 66 243 / 0.4);
+}
+
+.text-\[\#5B42F3\]\/80{
+  color: rgb(91 66 243 / 0.8);
 }
 
 .text-\[\#6B658B\]{

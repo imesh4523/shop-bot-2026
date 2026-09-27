@@ -2203,10 +2203,10 @@ export async function registerRoutes(
         const costLkr = Math.round(costUsd * lkrRate);
 
         return {
-          id: `YH-${s.smm_orders.id}`,
+          id: `YH-API-${s.smm_orders.id}`,
           rawId: s.smm_orders.id,
           type: "smm" as const,
-          category: "YouuHost Social Boost",
+          category: "YouuHost API Service",
           title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
           smmCategory: s.smm_services?.category || "Social Media",
           smmLink: s.smm_orders.link || "",
@@ -2221,7 +2221,8 @@ export async function registerRoutes(
           currency: "USD",
           method: "wallet_balance",
           status: s.smm_orders.status || "Pending", // "Completed", "In progress", "Pending", "Canceled", "Partial"
-          reference: `#YH-${s.smm_orders.id}`,
+          reference: `#YH-API-${s.smm_orders.id}`,
+          isApiOrder: true,
           details: `Target: ${s.smm_orders.link || "N/A"} (${s.smm_orders.quantity || 0} units)`,
           createdAt: s.smm_orders.createdAt || new Date(),
           updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()

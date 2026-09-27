@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product, TelegramUser, Order, Payment, SpecialOffer } from "@shared/schema";
 import { getTelegramInitData, expandTelegramWebApp } from "@/lib/telegram";
 import { queryClient } from "@/lib/queryClient";
-import { PaymentProcessingModal } from "@/components/lottie-loader";
+import { PaymentProcessingModal, LottiePayment } from "@/components/lottie-loader";
 import { SlideToPurchase } from "@/components/slide-to-purchase";
 import { DEFAULT_CATEGORIES, BADGE_COLOR_STYLES, renderCategoryBrandIcon, CustomCategoryItem } from "@/pages/categories-manager-page";
 import {
@@ -928,15 +928,23 @@ export default function MiniAppShopModern() {
   // API Key Mutations
   const generateKeyMutation = useMutation({
     mutationFn: async () => {
+      setPaymentModal({
+        isOpen: true,
+        title: "Generating Developer API Key...",
+        subtitle: "Configuring API gateway endpoints & securing credentials",
+      });
+      await new Promise((resolve) => setTimeout(resolve, 2600));
       const res = await miniApiRequest("POST", "/api/mini/api-keys/generate");
       return res.json();
     },
     onSuccess: () => {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast({ title: "API Key Generated! 🔑", description: "Your Developer API key is now active." });
       refetchApiKeys();
       setShowApiKeySecret(true);
     },
     onError: (err: any) => {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast({ title: "Failed to generate key", description: err.message, variant: "destructive" });
     }
   });
@@ -2124,9 +2132,11 @@ export default function MiniAppShopModern() {
 
             {/* Products, Sandromania & SMM Services Grid */}
             {productsLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-[#7E7998]">
-                <Loader2 className="w-7 h-7 animate-spin mb-2 text-[#5B42F3]" />
-                <span className="text-xs font-semibold">Loading catalog...</span>
+              <div className="flex flex-col items-center justify-center py-12 text-[#7E7998] col-span-2">
+                <LottiePayment size={140} />
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-1">
+                  Loading Catalog...
+                </span>
               </div>
             ) : (filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0) ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
@@ -2382,9 +2392,11 @@ export default function MiniAppShopModern() {
                       setSelectedCategory(cat.id);
                       setActiveTab("home");
                     }}
-                    className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all"
+                    className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all group"
                   >
-                    <div className="mb-2 h-8 w-8 flex items-center justify-center">{cat.renderIcon()}</div>
+                    <div className="mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                      {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
+                    </div>
                     <h4 className="text-sm font-bold text-[#181432]">{cat.label}</h4>
                     <span className="text-[10px] text-[#7E7998] mt-0.5">
                       {getCategoryCount(cat.id)} Available
@@ -2466,8 +2478,11 @@ export default function MiniAppShopModern() {
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                             {conf.tag}
                           </span>
-                          <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.2 rounded-md">
-                            #YH-{smmOrd.id}
+                          <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                            #YH-API-{smmOrd.id}
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs">
+                              <Key className="w-2 h-2" /> API
+                            </span>
                           </span>
                         </div>
                         {statusBadge}
@@ -3790,12 +3805,23 @@ export default function MiniAppShopModern() {
                                   <TransactionBrandIcon tx={tx} />
                                   <div className="min-w-0">
                                     <div className="text-xs font-black text-[#181432] truncate flex items-center gap-1.5">
-                                      <span>{tx.title}</span>
+                                      <span className="truncate">{tx.title}</span>
+                                      {(tx.type === "smm" || tx.isApiOrder || (tx.reference && tx.reference.includes("API")) || tx.id?.includes("API")) && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8px] font-black shadow-xs shrink-0">
+                                          <Key className="w-2 h-2" /> API Key
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="text-[10px] text-[#7E7998] flex items-center gap-1 font-mono mt-0.5">
                                       <span>{new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span>
                                       <span>•</span>
                                       <span className="truncate text-[#5B42F3] font-semibold">{tx.reference}</span>
+                                      {tx.smmCategory && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="truncate text-[#7E7998] font-sans">{tx.smmCategory}</span>
+                                        </>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -4216,8 +4242,11 @@ export default function MiniAppShopModern() {
                       <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`}>
                         {conf.tag}
                       </span>
-                      <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono">
-                        #YH-{detailSmmService.id}
+                      <span className="text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                        #YH-API-{detailSmmService.id}
+                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs">
+                          <Key className="w-2 h-2" /> API
+                        </span>
                       </span>
                     </div>
                   );

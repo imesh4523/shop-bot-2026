@@ -45,10 +45,15 @@ import CategoriesManagerPage from "@/pages/categories-manager-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
+import { LottiePayment } from "@/components/lottie-loader";
+
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
-      <Loader2 className="w-8 h-8 animate-spin text-[#6C5CE7]" />
+    <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200">
+      <LottiePayment size={160} />
+      <span className="text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-2">
+        Loading YouuHost...
+      </span>
     </div>
   );
 }

@@ -73978,7 +73978,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CHGJ1bwr.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-u1G74Onc.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103947,15 +103947,23 @@ function MiniAppShopModern() {
   });
   const generateKeyMutation = useMutation({
     mutationFn: async () => {
+      setPaymentModal({
+        isOpen: true,
+        title: "Generating Developer API Key...",
+        subtitle: "Configuring API gateway endpoints & securing credentials"
+      });
+      await new Promise((resolve) => setTimeout(resolve, 2600));
       const res = await miniApiRequest("POST", "/api/mini/api-keys/generate");
       return res.json();
     },
     onSuccess: () => {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast2({ title: "API Key Generated! 🔑", description: "Your Developer API key is now active." });
       refetchApiKeys();
       setShowApiKeySecret(true);
     },
     onError: (err) => {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast2({ title: "Failed to generate key", description: err.message, variant: "destructive" });
     }
   });
@@ -104953,9 +104961,9 @@ function MiniAppShopModern() {
             }
           )
         ] }),
-        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center py-16 text-[#7E7998]", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-7 h-7 animate-spin mb-2 text-[#5B42F3]" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold", children: "Loading catalog..." })
+        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center py-12 text-[#7E7998] col-span-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-1", children: "Loading Catalog..." })
         ] }) : filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-10 h-10 mx-auto text-[#8FA597] mb-2" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#1C3324]", children: "No products found" }),
@@ -105163,9 +105171,9 @@ function MiniAppShopModern() {
               setSelectedCategory(cat.id);
               setActiveTab("home");
             },
-            className: "bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all",
+            className: "bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all group",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-2 h-8 w-8 flex items-center justify-center", children: cat.renderIcon() }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#181432]", children: cat.label }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#7E7998] mt-0.5", children: [
                 getCategoryCount(cat.id),
@@ -105227,9 +105235,13 @@ function MiniAppShopModern() {
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.2 rounded-md", children: [
-                        "#YH-",
-                        smmOrd.id
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-1.5 py-0.5 rounded-md flex items-center gap-1", children: [
+                        "#YH-API-",
+                        smmOrd.id,
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
+                          " API"
+                        ] })
                       ] })
                     ] }),
                     statusBadge
@@ -106405,11 +106417,21 @@ function MiniAppShopModern() {
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(TransactionBrandIcon, { tx }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-black text-[#181432] truncate flex items-center gap-1.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: tx.title }) }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs font-black text-[#181432] truncate flex items-center gap-1.5", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: tx.title }),
+                          (tx.type === "smm" || tx.isApiOrder || tx.reference && tx.reference.includes("API") || tx.id?.includes("API")) && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8px] font-black shadow-xs shrink-0", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
+                            " API Key"
+                          ] })
+                        ] }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-[#7E7998] flex items-center gap-1 font-mono mt-0.5", children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: new Date(tx.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate text-[#5B42F3] font-semibold", children: tx.reference })
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate text-[#5B42F3] font-semibold", children: tx.reference }),
+                          tx.smmCategory && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate text-[#7E7998] font-sans", children: tx.smmCategory })
+                          ] })
                         ] })
                       ] })
                     ] }),
@@ -106728,9 +106750,13 @@ function MiniAppShopModern() {
               const conf = getSmmPlatformConfig(detailSmmService.category, detailSmmService.name);
               return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-extrabold px-3 py-1 rounded-full ${conf.bgBadge}`, children: conf.tag }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono", children: [
-                  "#YH-",
-                  detailSmmService.id
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#5B42F3] bg-[#F5F4FC] px-2 py-0.5 rounded-full font-mono flex items-center gap-1", children: [
+                  "#YH-API-",
+                  detailSmmService.id,
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-0.5 px-1 py-0.2 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[7.5px] font-black shadow-xs", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-2 h-2" }),
+                    " API"
+                  ] })
                 ] })
               ] });
             })(),
@@ -115300,7 +115326,10 @@ class ErrorBoundary extends reactExports.Component {
   }
 }
 function PageLoader() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center bg-[#F8F9FD]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-[#6C5CE7]" }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 160 }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-2", children: "Loading YouuHost..." })
+  ] });
 }
 function ProtectedRoute({ component: Component }) {
   const { user, isLoading } = useAuth();
