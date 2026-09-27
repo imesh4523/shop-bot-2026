@@ -2666,7 +2666,13 @@ export async function registerRoutes(
       const cloudItems = directOrders.map(o => {
         const costUsd = ((o.products?.price || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
-        const buyer = o.telegram_users ? (o.telegram_users.username ? `@${o.telegram_users.username}` : (o.telegram_users.email || `ID: ${o.telegram_users.telegramId}`)) : "Guest User";
+        const user = o.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyer = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
 
         return {
           id: `ORD-${o.orders.id}`,
@@ -2676,6 +2682,9 @@ export async function registerRoutes(
           title: o.products?.name || "Digital Cloud Product",
           category: o.products?.type || "Cloud",
           buyer,
+          buyerUsername,
+          buyerEmail,
+          buyerTelegramId: buyerTgId,
           buyerId: o.orders.telegramUserId,
           amountCents: o.products?.price || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
@@ -2697,7 +2706,13 @@ export async function registerRoutes(
       const smmItems = smmItemsRaw.map(s => {
         const costUsd = ((s.smm_orders.charge || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
-        const buyer = s.telegram_users ? (s.telegram_users.username ? `@${s.telegram_users.username}` : (s.telegram_users.email || `ID: ${s.telegram_users.telegramId}`)) : "Guest User";
+        const user = s.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyer = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
 
         return {
           id: `YH-${s.smm_orders.id}`,
@@ -2707,6 +2722,9 @@ export async function registerRoutes(
           title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
           category: s.smm_services?.category || "Social Media",
           buyer,
+          buyerUsername,
+          buyerEmail,
+          buyerTelegramId: buyerTgId,
           buyerId: s.smm_orders.telegramUserId,
           amountCents: s.smm_orders.charge || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
@@ -2732,7 +2750,13 @@ export async function registerRoutes(
       const partnerItems = partnerItemsRaw.map(sp => {
         const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
-        const buyer = sp.telegram_users ? (sp.telegram_users.username ? `@${sp.telegram_users.username}` : (sp.telegram_users.email || `ID: ${sp.telegram_users.telegramId}`)) : "Guest User";
+        const user = sp.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyer = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
 
         return {
           id: `PARTNER-${sp.sandromania_orders.id}`,
@@ -2742,6 +2766,9 @@ export async function registerRoutes(
           title: sp.sandromania_orders.productTitle || "Partner Digital Good",
           category: sp.sandromania_products?.category || "Digital Goods",
           buyer,
+          buyerUsername,
+          buyerEmail,
+          buyerTelegramId: buyerTgId,
           buyerId: sp.sandromania_orders.telegramUserId,
           amountCents: sp.sandromania_orders.amountPaid || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
@@ -3549,10 +3576,11 @@ export async function registerRoutes(
     }
   });
 
-  // Connected Stores & Peer Partners Analytics
+  // Connected Stores & Peer Partners Analytics (Multi-Channel: Sandromania, CSSX/SMM, N1Panel, API Keys, Direct)
   app.get("/api/admin/connected-stores/analytics", isAuth, async (req, res) => {
     try {
-      const { storeId, timeRange = "30d", startDate, endDate } = req.query;
+      const selectedStore = String(req.query.store || req.query.storeId || "all");
+      const { timeRange = "30d", startDate, endDate } = req.query;
       
       const now = new Date();
       let dateFrom = new Date(0);
@@ -3577,7 +3605,8 @@ export async function registerRoutes(
       const meshNodes = await getAllMeshNodes();
       const allKeys = await storage.getAllApiKeys();
 
-      const allOrders = await db.select()
+      // 1. Direct Cloud & Reseller API Orders
+      const allDirectOrders = await db.select()
         .from(orders)
         .leftJoin(products, eq(orders.productId, products.id))
         .leftJoin(credentials, eq(orders.credentialId, credentials.id))
@@ -3585,30 +3614,38 @@ export async function registerRoutes(
         .leftJoin(telegramUsers, eq(orders.telegramUserId, telegramUsers.id))
         .orderBy(desc(orders.createdAt));
 
-      let filteredOrders = allOrders.filter(o => {
-        const orderDate = o.orders.createdAt ? new Date(o.orders.createdAt) : new Date();
-        if (orderDate < dateFrom || orderDate > dateTo) return false;
+      // 2. SMM Boost Orders (CSSX / N1Panel)
+      const allSmmOrders = await db.select()
+        .from(smmOrders)
+        .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+        .leftJoin(telegramUsers, eq(smmOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(smmOrders.createdAt));
 
-        if (storeId && storeId !== "all") {
-          if (String(storeId).startsWith("key_")) {
-            const kId = parseInt(String(storeId).replace("key_", ""), 10);
-            return o.orders.apiKeyId === kId;
-          } else if (String(storeId) === "direct") {
-            return !o.orders.apiKeyId;
-          }
-        }
-        return true;
-      });
+      // 3. Sandromania Partner Goods Orders
+      const allSandromaniaOrders = await db.select()
+        .from(sandromaniaOrders)
+        .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
+        .leftJoin(telegramUsers, eq(sandromaniaOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(sandromaniaOrders.createdAt));
 
-      const formattedOrders = filteredOrders.map(o => {
+      // Map Direct & API Orders
+      const directAndApiMapped = allDirectOrders.map(o => {
         const isApi = Boolean(o.orders.apiKeyId);
         const priceCents = o.products?.price || 0;
         const priceUsd = (priceCents / 100).toFixed(2);
         const priceLkr = Math.round((priceCents / 100) * lkrRate).toLocaleString();
-        const buyerName = o.telegram_users?.username 
-          ? `@${o.telegram_users.username}` 
-          : o.telegram_users?.email || (o.telegram_users?.telegramId ? `TG:${o.telegram_users.telegramId}` : `User #${o.orders.telegramUserId}`);
+        const user = o.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyerName = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${o.orders.telegramUserId}`));
         
+        const storeType = isApi ? "reseller_api" : "direct";
+        const storeName = isApi 
+          ? `API: ${o.api_keys?.key ? o.api_keys.key.substring(0, 10) + '...' : 'Key #' + o.orders.apiKeyId}`
+          : "Direct Cloud Store";
         const storeSource = isApi 
           ? `API Partner (${o.api_keys?.key ? o.api_keys.key.substring(0, 10) + '...' : 'Key #' + o.orders.apiKeyId})` 
           : 'Direct Store (Web/MiniApp)';
@@ -3619,37 +3656,151 @@ export async function registerRoutes(
           isApiOrder: isApi,
           apiKeyId: o.orders.apiKeyId,
           apiKey: o.api_keys?.key || null,
+          storeType,
+          storeName,
           storeSource,
+          channelId: isApi ? `key_${o.orders.apiKeyId}` : "direct",
           productId: o.orders.productId,
           productName: o.products?.name || 'Digital Cloud Product',
           buyer: buyerName,
+          customerName: buyerUsername || buyerName,
+          customerEmail: buyerEmail,
+          buyerUsername,
+          buyerEmail,
           buyerId: o.orders.telegramUserId,
           priceCents,
           priceUsd,
           priceLkr,
-          status: o.orders.status,
+          status: o.orders.status || "completed",
           deliveredContent: o.credentials?.content || null,
-          createdAt: o.orders.createdAt
+          createdAt: o.orders.createdAt || new Date()
         };
       });
 
-      const totalOrders = formattedOrders.length;
-      const completedOrders = formattedOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success').length;
-      const failedOrders = formattedOrders.filter(o => (o.status || '').toLowerCase() === 'failed').length;
-      const totalRevenueCents = formattedOrders
-        .filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success')
+      // Map SMM Orders
+      const smmMapped = allSmmOrders.map(s => {
+        const costUsd = ((s.smm_orders.charge || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate).toLocaleString();
+        const user = s.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyerName = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${s.smm_orders.telegramUserId}`));
+
+        return {
+          id: `YH-SMM-${s.smm_orders.id}`,
+          rawId: s.smm_orders.id,
+          isApiOrder: true,
+          apiKeyId: null,
+          apiKey: null,
+          storeType: "cssx_smm",
+          storeName: "CSSX / SMM Boost Platform",
+          storeSource: "CSSX / SMM Social Boost",
+          channelId: "cssx_smm",
+          productId: s.smm_orders.smmServiceId || 0,
+          productName: s.smm_services?.name || `SMM Service #${s.smm_orders.smmServiceId}`,
+          buyer: buyerName,
+          customerName: buyerUsername || buyerName,
+          customerEmail: buyerEmail,
+          buyerUsername,
+          buyerEmail,
+          buyerId: s.smm_orders.telegramUserId,
+          priceCents: s.smm_orders.charge || 0,
+          priceUsd: costUsd.toFixed(2),
+          priceLkr,
+          status: s.smm_orders.status || "pending",
+          deliveredContent: s.smm_orders.link ? `Link: ${s.smm_orders.link} | Qty: ${s.smm_orders.quantity}` : null,
+          createdAt: s.smm_orders.createdAt || new Date()
+        };
+      });
+
+      // Map Sandromania Orders
+      const sandromaniaMapped = allSandromaniaOrders.map(sp => {
+        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const costLkr = Math.round(costUsd * lkrRate).toLocaleString();
+        const user = sp.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyerName = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${sp.sandromania_orders.telegramUserId}`));
+
+        return {
+          id: `PARTNER-${sp.sandromania_orders.id}`,
+          rawId: sp.sandromania_orders.id,
+          isApiOrder: true,
+          apiKeyId: null,
+          apiKey: null,
+          storeType: "sandromania",
+          storeName: "Sandromania CDK Shop",
+          storeSource: "Sandromania CDK Goods",
+          channelId: "sandromania",
+          productId: sp.sandromania_orders.sandromaniaProductId || 0,
+          productName: sp.sandromania_orders.productTitle || "Partner Digital Good",
+          buyer: buyerName,
+          customerName: buyerUsername || buyerName,
+          customerEmail: buyerEmail,
+          buyerUsername,
+          buyerEmail,
+          buyerId: sp.sandromania_orders.telegramUserId,
+          priceCents: sp.sandromania_orders.amountPaid || 0,
+          priceUsd: costUsd.toFixed(2),
+          priceLkr,
+          status: sp.sandromania_orders.status || "approved",
+          deliveredContent: sp.sandromania_orders.deliveryText || null,
+          createdAt: sp.sandromania_orders.createdAt || new Date()
+        };
+      });
+
+      // Combine all orders
+      const combinedAllOrders = [...directAndApiMapped, ...smmMapped, ...sandromaniaMapped].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      // Date Filtering
+      const dateFilteredOrders = combinedAllOrders.filter(o => {
+        const orderDate = o.createdAt ? new Date(o.createdAt) : new Date();
+        return orderDate >= dateFrom && orderDate <= dateTo;
+      });
+
+      // Store/Channel Filtering
+      const finalFilteredOrders = dateFilteredOrders.filter(o => {
+        if (!selectedStore || selectedStore === "all") return true;
+        if (selectedStore === "direct") return o.channelId === "direct";
+        if (selectedStore === "sandromania") return o.storeType === "sandromania";
+        if (selectedStore === "cssx_smm" || selectedStore === "smm") return o.storeType === "cssx_smm";
+        if (selectedStore === "n1panel") return o.storeType === "cssx_smm" || o.storeName.toLowerCase().includes("n1panel");
+        if (selectedStore.startsWith("key_")) return o.channelId === selectedStore;
+        return true;
+      });
+
+      const totalOrders = finalFilteredOrders.length;
+      const completedOrders = finalFilteredOrders.filter(o => {
+        const s = (o.status || '').toLowerCase();
+        return s === 'completed' || s === 'success' || s === 'approved';
+      }).length;
+      const failedOrders = finalFilteredOrders.filter(o => (o.status || '').toLowerCase() === 'failed').length;
+      const totalRevenueCents = finalFilteredOrders
+        .filter(o => {
+          const s = (o.status || '').toLowerCase();
+          return s === 'completed' || s === 'success' || s === 'approved';
+        })
         .reduce((acc, o) => acc + o.priceCents, 0);
       const totalRevenueUsd = (totalRevenueCents / 100).toFixed(2);
       const totalRevenueLkr = Math.round((totalRevenueCents / 100) * lkrRate).toLocaleString();
 
       const partnerBreakdown: Record<string, { name: string; count: number; revenueCents: number }> = {};
-      formattedOrders.forEach(o => {
+      finalFilteredOrders.forEach(o => {
         const src = o.storeSource;
         if (!partnerBreakdown[src]) {
           partnerBreakdown[src] = { name: src, count: 0, revenueCents: 0 };
         }
         partnerBreakdown[src].count++;
-        if (o.status === 'completed' || o.status === 'success') {
+        const s = (o.status || '').toLowerCase();
+        if (s === 'completed' || s === 'success' || s === 'approved') {
           partnerBreakdown[src].revenueCents += o.priceCents;
         }
       });
@@ -3666,16 +3817,23 @@ export async function registerRoutes(
         activeApiKeysCount: allKeys.filter(k => k.status === 'active').length,
       };
 
+      // Full Selectable Channel List
+      const sandromaniaCount = dateFilteredOrders.filter(o => o.storeType === "sandromania").length;
+      const smmCount = dateFilteredOrders.filter(o => o.storeType === "cssx_smm").length;
+      const directCount = dateFilteredOrders.filter(o => o.channelId === "direct").length;
+
       const storeList = [
-        { id: "all", name: "All Connected Stores & APIs", type: "system", totalOrders: totalOrders, totalRevenueUsd: totalRevenueUsd, totalRevenueLkr: totalRevenueLkr },
-        { id: "direct", name: "Direct Mini Store Customers", type: "direct", totalOrders: formattedOrders.filter(o => !o.isApiOrder).length, totalRevenueUsd: (formattedOrders.filter(o => !o.isApiOrder && (o.status === 'completed' || o.status === 'success')).reduce((a, b) => a + b.priceCents, 0) / 100).toFixed(2), totalRevenueLkr: Math.round((formattedOrders.filter(o => !o.isApiOrder && (o.status === 'completed' || o.status === 'success')).reduce((a, b) => a + b.priceCents, 0) / 100) * lkrRate).toLocaleString() },
-        ...meshNodes.map(n => ({ id: `mesh_${n.id}`, name: `StoreMesh: ${n.nodeName}`, type: "mesh", totalOrders: 0, totalRevenueUsd: "0.00", totalRevenueLkr: 0 })),
+        { id: "all", name: "All Connected Channels & APIs", type: "all", totalOrders: dateFilteredOrders.length, totalRevenueUsd: (dateFilteredOrders.reduce((a, b) => a + b.priceCents, 0) / 100).toFixed(2), totalRevenueLkr: 0 },
+        { id: "sandromania", name: "Sandromania CDK Partner Shop", type: "sandromania", totalOrders: sandromaniaCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
+        { id: "cssx_smm", name: "CSSX / CDX Social Boost API", type: "cssx_smm", totalOrders: smmCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
+        { id: "n1panel", name: "N1Panel SMM Platform", type: "n1panel", totalOrders: smmCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
+        { id: "direct", name: "Direct Cloud Store (Web/MiniApp)", type: "direct", totalOrders: directCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
         ...allKeys.map(k => {
-          const keyOrders = formattedOrders.filter(o => o.apiKeyId === k.id);
-          const revCents = keyOrders.filter(o => o.status === 'completed' || o.status === 'success').reduce((a, b) => a + b.priceCents, 0);
+          const keyOrders = dateFilteredOrders.filter(o => o.channelId === `key_${k.id}`);
+          const revCents = keyOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success').reduce((a, b) => a + b.priceCents, 0);
           return {
             id: `key_${k.id}`,
-            name: `API: ${k.telegramUser?.username ? '@' + k.telegramUser.username : 'User #' + k.telegramUserId}`,
+            name: `API: ${k.telegramUser?.username ? '@' + k.telegramUser.username : (k.telegramUser?.email || 'User #' + k.telegramUserId)}`,
             type: "api",
             totalOrders: keyOrders.length,
             totalRevenueUsd: (revCents / 100).toFixed(2),
@@ -3693,7 +3851,7 @@ export async function registerRoutes(
         metrics: summary,
         stores: storeList,
         partnerBreakdown: Object.values(partnerBreakdown),
-        orders: formattedOrders
+        orders: finalFilteredOrders
       });
     } catch (err: any) {
       console.error("Connected stores analytics error:", err);

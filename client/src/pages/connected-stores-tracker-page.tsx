@@ -161,18 +161,21 @@ export default function ConnectedStoresTrackerPage() {
             {/* Store / Peer Selector */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                <Store className="w-3.5 h-3.5 text-purple-400" /> Connected Store / Client
+                <Store className="w-3.5 h-3.5 text-purple-400" /> Channel / Provider Filter
               </label>
               <Select value={selectedStore} onValueChange={setSelectedStore}>
                 <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-200 text-xs">
                   <SelectValue placeholder="All Connected Stores" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-950 border-slate-800 text-slate-200">
-                  <SelectItem value="all">All Stores & API Clients</SelectItem>
-                  <SelectItem value="direct">Direct Web / Bot Users</SelectItem>
-                  {data?.stores?.filter(st => st.id !== 'all' && st.id !== 'direct').map(st => (
+                  <SelectItem value="all">🌐 All Channels & API Stores</SelectItem>
+                  <SelectItem value="sandromania">🛍️ Sandromania CDK Shop</SelectItem>
+                  <SelectItem value="cssx_smm">🚀 CSSX / CDX Social Boost API</SelectItem>
+                  <SelectItem value="n1panel">⚡ N1Panel SMM Platform</SelectItem>
+                  <SelectItem value="direct">🛒 Direct Cloud Store (Web/MiniApp)</SelectItem>
+                  {data?.stores?.filter(st => !['all', 'sandromania', 'cssx_smm', 'n1panel', 'direct'].includes(st.id)).map(st => (
                     <SelectItem key={st.id} value={st.id}>
-                      {st.name} {st.type ? `(${String(st.type).toUpperCase()})` : ""}
+                      🔑 {st.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -203,7 +206,7 @@ export default function ConnectedStoresTrackerPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                 <Input 
-                  placeholder="Search item, order #, key..." 
+                  placeholder="Search item, order #, buyer email, key..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 bg-slate-950 border-slate-800 text-xs text-slate-200 h-9"
@@ -307,7 +310,7 @@ export default function ConnectedStoresTrackerPage() {
               {(data?.stores || []).length} connected
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              Mesh nodes & API customers
+              Sandromania, CSSX, N1Panel, API & Direct
             </p>
           </CardContent>
         </Card>
@@ -322,24 +325,30 @@ export default function ConnectedStoresTrackerPage() {
               Connected Channel Performance Overview
             </CardTitle>
             <CardDescription className="text-xs">
-              Breakdown of purchase volumes and revenue generated per connected store or partner API key.
+              Filter by Sandromania, CSSX / CDX SMM, N1Panel, Direct Shop, or Reseller API Keys.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {data.stores.map((st) => (
                 <div 
                   key={st.id} 
                   onClick={() => setSelectedStore(st.id)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
                     selectedStore === st.id 
-                      ? 'bg-purple-950/40 border-purple-600 shadow-[0_0_15px_rgba(168,85,247,0.15)]' 
+                      ? 'bg-purple-950/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]' 
                       : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-1.5">
                     <span className="text-xs font-bold text-white truncate">{st.name}</span>
-                    <Badge variant="outline" className="text-[10px] uppercase border-slate-700 text-purple-300">
+                    <Badge variant="outline" className={`text-[9.5px] uppercase font-bold shrink-0 ${
+                      st.id === "sandromania" 
+                        ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" 
+                        : st.id === "cssx_smm" || st.id === "n1panel"
+                        ? "border-purple-500/30 text-purple-300 bg-purple-500/10"
+                        : "border-slate-700 text-blue-300"
+                    }`}>
                       {st.type ? String(st.type).toUpperCase() : "STORE"}
                     </Badge>
                   </div>
@@ -387,9 +396,10 @@ export default function ConnectedStoresTrackerPage() {
               <Table>
                 <TableHeader className="bg-slate-950/80">
                   <TableRow className="border-slate-800">
-                    <TableHead className="text-xs text-slate-400 w-20">Order #</TableHead>
+                    <TableHead className="text-xs text-slate-400 w-24">Order #</TableHead>
                     <TableHead className="text-xs text-slate-400">Product / Item</TableHead>
-                    <TableHead className="text-xs text-slate-400">Connected Store / Client</TableHead>
+                    <TableHead className="text-xs text-slate-400">Buyer Details</TableHead>
+                    <TableHead className="text-xs text-slate-400">Channel / Provider</TableHead>
                     <TableHead className="text-xs text-slate-400 text-right">Amount (USD / LKR)</TableHead>
                     <TableHead className="text-xs text-slate-400 text-center">Status</TableHead>
                     <TableHead className="text-xs text-slate-400">Timestamp</TableHead>
@@ -397,97 +407,126 @@ export default function ConnectedStoresTrackerPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((ord) => (
-                    <TableRow key={ord.id} className="border-slate-800/60 hover:bg-slate-800/30 transition-colors">
-                      <TableCell className="font-mono text-xs font-bold text-purple-400">
-                        #{ord.id}
-                      </TableCell>
+                  {filteredOrders.map((ord) => {
+                    const isSandromania = (ord as any).storeType === "sandromania" || ord.id.toString().includes("PARTNER");
+                    const isSmm = (ord as any).storeType === "cssx_smm" || ord.id.toString().includes("SMM");
 
-                      <TableCell>
-                        <div className="font-semibold text-xs text-white">
-                          {ord.productName}
-                        </div>
-                        {ord.customerEmail && (
-                          <div className="text-[11px] text-slate-400">
-                            {ord.customerEmail}
+                    return (
+                      <TableRow key={ord.id} className="border-slate-800/60 hover:bg-slate-800/30 transition-colors">
+                        <TableCell className="font-mono text-xs font-bold text-purple-400">
+                          #{ord.id}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="font-semibold text-xs text-white max-w-[200px] truncate">
+                            {ord.productName}
                           </div>
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        <Badge variant="outline" className="bg-slate-950 border-slate-700 text-slate-300 text-[11px] gap-1.5 py-0.5">
-                          <Store className="w-3 h-3 text-purple-400" />
-                          {ord.storeName}
-                        </Badge>
-                        {ord.apiKey && (
-                          <div className="text-[10px] font-mono text-slate-500 mt-1">
-                            Key: {ord.apiKey.substring(0, 12)}...
+                          <div className="text-[10px] text-slate-500">
+                            ID: {ord.productId}
                           </div>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="text-right font-mono">
-                        <div className="text-xs font-bold text-emerald-400">
-                          ${ord.priceUsd}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          Rs. {ord.priceLkr?.toLocaleString() || "0"}
-                        </div>
-                      </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5 max-w-[200px]">
+                            {ord.customerName && (
+                              <div className="text-xs font-bold text-slate-200 truncate">
+                                {ord.customerName}
+                              </div>
+                            )}
+                            {ord.customerEmail && (
+                              <div className="text-[11px] text-purple-300 font-mono truncate">
+                                ✉️ {ord.customerEmail}
+                              </div>
+                            )}
+                            {!ord.customerName && !ord.customerEmail && (
+                              <div className="text-xs text-slate-400">
+                                {ord.buyer || "Customer"}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
 
-                      <TableCell className="text-center">
-                        {ord.status === "completed" ? (
-                          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-medium">
-                            Completed
+                        <TableCell>
+                          <Badge variant="outline" className={`text-[11px] gap-1.5 py-0.5 font-bold ${
+                            isSandromania 
+                              ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                              : isSmm
+                              ? "bg-purple-950/40 border-purple-500/40 text-purple-300"
+                              : "bg-slate-950 border-slate-700 text-slate-300"
+                          }`}>
+                            <Store className="w-3 h-3" />
+                            {ord.storeName || ord.storeSource}
                           </Badge>
-                        ) : ord.status === "pending" ? (
-                          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-[10px] font-medium">
-                            Pending
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-medium">
-                            {ord.status}
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-xs text-slate-400 whitespace-nowrap">
-                        {ord.createdAt ? new Date(ord.createdAt).toLocaleString() : "N/A"}
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          {ord.deliveredContent ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800"
-                                onClick={() => setViewingOrder(ord)}
-                              >
-                                <Eye className="w-3 h-3 text-blue-400" /> View
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800"
-                                onClick={() => copyToClipboard(ord.deliveredContent!, ord.id)}
-                              >
-                                {copiedOrderId === ord.id ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-3 h-3 text-purple-400" />
-                                )}
-                                Copy
-                              </Button>
-                            </>
-                          ) : (
-                            <span className="text-[11px] text-amber-400/80 italic">Manual/Pending</span>
+                          {ord.apiKey && (
+                            <div className="text-[10px] font-mono text-slate-500 mt-1">
+                              Key: {ord.apiKey.substring(0, 12)}...
+                            </div>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+
+                        <TableCell className="text-right font-mono">
+                          <div className="text-xs font-bold text-emerald-400">
+                            ${ord.priceUsd}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Rs. {ord.priceLkr?.toLocaleString() || "0"}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          {ord.status === "completed" || ord.status === "approved" || ord.status === "success" ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-medium">
+                              Completed
+                            </Badge>
+                          ) : ord.status === "pending" ? (
+                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-[10px] font-medium">
+                              Pending
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-medium">
+                              {ord.status}
+                            </Badge>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-xs text-slate-400 whitespace-nowrap">
+                          {ord.createdAt ? new Date(ord.createdAt).toLocaleString() : "N/A"}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            {ord.deliveredContent ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800"
+                                  onClick={() => setViewingOrder(ord)}
+                                >
+                                  <Eye className="w-3 h-3 text-blue-400" /> View
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800"
+                                  onClick={() => copyToClipboard(ord.deliveredContent!, ord.id)}
+                                >
+                                  {copiedOrderId === ord.id ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3 text-purple-400" />
+                                  )}
+                                  Copy
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-amber-400/80 italic">Manual/Pending</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

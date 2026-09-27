@@ -336,7 +336,27 @@ export default function AllOrdersPage() {
                     </TableCell>
 
                     <TableCell className="text-xs font-medium text-white/80">
-                      {order.buyer}
+                      <div className="space-y-0.5 max-w-[200px]">
+                        {order.buyerUsername ? (
+                          <div className="font-bold text-white truncate">
+                            {order.buyerUsername}
+                          </div>
+                        ) : (
+                          <div className="font-bold text-white truncate">
+                            {order.buyer || "Customer"}
+                          </div>
+                        )}
+                        {order.buyerEmail && (
+                          <div className="text-[11px] text-purple-300 font-mono truncate flex items-center gap-1">
+                            <span>✉️</span> {order.buyerEmail}
+                          </div>
+                        )}
+                        {!order.buyerUsername && !order.buyerEmail && order.buyerTelegramId && (
+                          <div className="text-[10px] text-white/40 font-mono">
+                            ID: {order.buyerTelegramId}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell className="font-mono font-black text-xs text-white">
@@ -413,9 +433,16 @@ export default function AllOrdersPage() {
               </DialogHeader>
 
               <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 text-xs font-mono">
-                <div>
+                <div className="space-y-1">
                   <span className="text-white/40 text-[10px] block uppercase font-bold">Buyer</span>
-                  <span className="font-bold text-white">{viewOrderDetail.buyer}</span>
+                  <div className="font-bold text-white">
+                    {viewOrderDetail.buyerUsername || viewOrderDetail.buyer || "Customer"}
+                  </div>
+                  {viewOrderDetail.buyerEmail && (
+                    <div className="text-[11px] text-purple-300 font-mono">
+                      {viewOrderDetail.buyerEmail}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <span className="text-white/40 text-[10px] block uppercase font-bold">Price</span>

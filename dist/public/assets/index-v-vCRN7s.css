@@ -1125,6 +1125,10 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 2rem;
 }
 
+.ml-0{
+  margin-left: 0px;
+}
+
 .ml-0\.5{
   margin-left: 0.125rem;
 }
@@ -1151,6 +1155,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .ml-auto{
   margin-left: auto;
+}
+
+.mr-0{
+  margin-right: 0px;
 }
 
 .mr-1{
@@ -2057,6 +2065,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .max-w-\[85\%\]{
   max-width: 85%;
+}
+
+.max-w-\[88\%\]{
+  max-width: 88%;
 }
 
 .max-w-\[90\%\]{
@@ -2991,6 +3003,11 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgb(228 220 250 / var(--tw-border-opacity, 1));
 }
 
+.border-\[\#E5E7F2\]{
+  --tw-border-opacity: 1;
+  border-color: rgb(229 231 242 / var(--tw-border-opacity, 1));
+}
+
 .border-\[\#E6F5FC\]{
   --tw-border-opacity: 1;
   border-color: rgb(230 245 252 / var(--tw-border-opacity, 1));
@@ -2999,6 +3016,11 @@ h1, h2, h3, h4, h5, h6 {
 .border-\[\#E9E4FC\]{
   --tw-border-opacity: 1;
   border-color: rgb(233 228 252 / var(--tw-border-opacity, 1));
+}
+
+.border-\[\#E9EAF5\]{
+  --tw-border-opacity: 1;
+  border-color: rgb(233 234 245 / var(--tw-border-opacity, 1));
 }
 
 .border-\[\#EB001B\]\/20{
@@ -3231,10 +3253,6 @@ h1, h2, h3, h4, h5, h6 {
 .border-indigo-200{
   --tw-border-opacity: 1;
   border-color: rgb(199 210 254 / var(--tw-border-opacity, 1));
-}
-
-.border-indigo-200\/70{
-  border-color: rgb(199 210 254 / 0.7);
 }
 
 .border-indigo-500\/20{
@@ -4386,6 +4404,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(243 232 255 / var(--tw-bg-opacity, 1));
 }
 
+.bg-purple-100\/80{
+  background-color: rgb(243 232 255 / 0.8);
+}
+
 .bg-purple-400{
   --tw-bg-opacity: 1;
   background-color: rgb(192 132 252 / var(--tw-bg-opacity, 1));
@@ -4477,6 +4499,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .bg-purple-950\/40{
   background-color: rgb(59 7 100 / 0.4);
+}
+
+.bg-purple-950\/50{
+  background-color: rgb(59 7 100 / 0.5);
 }
 
 .bg-purple-950\/60{
@@ -5099,12 +5125,6 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
-.from-indigo-50{
-  --tw-gradient-from: #eef2ff var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(238 242 255 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
 .from-indigo-600{
   --tw-gradient-from: #4f46e5 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(79 70 229 / 0) var(--tw-gradient-to-position);
@@ -5384,6 +5404,11 @@ h1, h2, h3, h4, h5, h6 {
 .via-\[\#2A1F52\]{
   --tw-gradient-to: rgb(42 31 82 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #2A1F52 var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
+.via-\[\#7042F3\]{
+  --tw-gradient-to: rgb(112 66 243 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), #7042F3 var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
 .via-\[\#8E54E9\]{
@@ -5862,10 +5887,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .to-pink-600{
   --tw-gradient-to: #db2777 var(--tw-gradient-to-position);
-}
-
-.to-purple-50{
-  --tw-gradient-to: #faf5ff var(--tw-gradient-to-position);
 }
 
 .to-purple-500\/10{
@@ -7756,8 +7777,8 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
-.shadow-\[0_0_15px_rgba\(168\2c 85\2c 247\2c 0\.15\)\]{
-  --tw-shadow: 0 0 15px rgba(168,85,247,0.15);
+.shadow-\[0_0_15px_rgba\(168\2c 85\2c 247\2c 0\.25\)\]{
+  --tw-shadow: 0 0 15px rgba(168,85,247,0.25);
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
@@ -8082,6 +8103,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .shadow-purple-500\/10{
   --tw-shadow-color: rgb(168 85 247 / 0.1);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-purple-500\/15{
+  --tw-shadow-color: rgb(168 85 247 / 0.15);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
@@ -11811,6 +11837,10 @@ body:has(.tg-mini-app) {
 
   .lg\:grid-cols-4{
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lg\:grid-cols-5{
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .lg\:grid-cols-6{

@@ -57,11 +57,30 @@ function PageLoader() {
   );
 }
 
+function isAllowedAdminDomain(): boolean {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname.toLowerCase();
+  return (
+    host === "imeshmain2.youuhost.com" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".localhost")
+  );
+}
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return <PageLoader />;
+  }
+
+  // Enforce admin dashboard access ONLY from imeshmain2.youuhost.com
+  if (!isAllowedAdminDomain()) {
+    if (typeof window !== "undefined") {
+      window.location.href = `https://imeshmain2.youuhost.com${window.location.pathname}${window.location.search}`;
+      return <PageLoader />;
+    }
   }
 
   if (!user) {
@@ -76,8 +95,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     </LayoutShell>
   );
 }
-
-
 
 function RootRouteHandler() {
   const { user, isLoading } = useAuth();
@@ -94,22 +111,13 @@ function RootRouteHandler() {
     return <ApiDocsPage />;
   }
 
-  // 2. Check if accessing via custom admin subdomain (e.g. imeshmain2.youuhost.com or admin.youuhost.com)
-  const isAdminSubdomain =
-    host.startsWith("imesh") ||
-    host.startsWith("admin") ||
-    host.includes("imeshmain");
-
-  if (isAdminSubdomain) {
+  // 2. Check if accessing via dedicated admin subdomain (imeshmain2.youuhost.com)
+  if (host === "imeshmain2.youuhost.com") {
     if (user) {
       return <Redirect to="/imeshadmindashbord" />;
     } else {
       return <Redirect to="/imeshadmindashbord/login" />;
     }
-  }
-
-  if (user) {
-    return <Redirect to="/imeshadmindashbord" />;
   }
 
   return <MiniAppShop />;
@@ -131,9 +139,15 @@ function Router() {
         <MiniAppShop />
       </Route>
 
-      {/* Secret Admin Route Login */}
+      {/* Secret Admin Route Login (Restricted to imeshmain2.youuhost.com) */}
       <Route path="/imeshadmindashbord/login">
-        <LoginPage />
+        {(() => {
+          if (!isAllowedAdminDomain() && typeof window !== "undefined") {
+            window.location.href = `https://imeshmain2.youuhost.com/imeshadmindashbord/login`;
+            return <PageLoader />;
+          }
+          return <LoginPage />;
+        })()}
       </Route>
       <Route path="/login">
         <Redirect to="/imeshadmindashbord/login" />
