@@ -8164,6 +8164,77 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
   await sendOrEditScreenWithPhoto(targetBot, chatId, ordersBannerPath, ordersCaption, { inline_keyboard }, messageId);
 };
 
+// Reusable Referral Commission Processor - Awards commission ONLY when deposit >= $1.00 (100 cents)
+async function processReferralDepositCommission(referredTelegramId: string, depositAmountCents: number) {
+  try {
+    if (!referredTelegramId || typeof depositAmountCents !== "number" || depositAmountCents < 100) {
+      if (typeof depositAmountCents === "number" && depositAmountCents < 100) {
+        console.log(`[Referral System] Deposit of $${(depositAmountCents / 100).toFixed(2)} is under $1.00 threshold. Referral commission skipped.`);
+      }
+      return;
+    }
+
+    const cleanReferredId = referredTelegramId.toString().trim();
+
+    // Check if there is a pending referral record for this invited user
+    const pendingRefs = await db.select().from(referrals)
+      .where(and(eq(referrals.referredTelegramId, cleanReferredId), eq(referrals.status, 'pending')))
+      .limit(1);
+
+    if (pendingRefs.length === 0) {
+      return;
+    }
+
+    const ref = pendingRefs[0];
+    const rewardUsdtSetting = (await storage.getSetting("REFERRAL_REWARD_USDT"))?.value || "0.15";
+    const rewardCents = Math.round(parseFloat(rewardUsdtSetting) * 100) || ref.rewardAmount || 15;
+
+    // 1. Mark referral record as confirmed
+    await db.update(referrals)
+      .set({
+        status: 'confirmed',
+        rewardAmount: rewardCents,
+        confirmedAt: new Date()
+      })
+      .where(eq(referrals.id, ref.id));
+
+    // 2. Credit referral commission to referrer's balance
+    const inviter = await storage.getTelegramUser(ref.referrerTelegramId);
+    if (inviter) {
+      const currentRefBal = (inviter as any).referralBalance || 0;
+      const newRefBal = currentRefBal + rewardCents;
+
+      await storage.updateTelegramUser(inviter.id, {
+        referralBalance: newRefBal
+      } as any);
+
+      console.log(`[Referral System] Successfully credited $${(rewardCents / 100).toFixed(2)} USDT to referrer ${ref.referrerTelegramId} for $${(depositAmountCents / 100).toFixed(2)} qualifying deposit from user ${cleanReferredId}`);
+
+      // 3. Notify referrer via Telegram Bot in real-time
+      try {
+        const botToUse = (typeof bot !== "undefined" && bot) ? bot : (await getBroadcastBot() || (await getBotToken() ? new TelegramBot((await getBotToken())!) : null));
+        if (botToUse) {
+          const rewardUSD = (rewardCents / 100).toFixed(2);
+          const totalRefUSD = (newRefBal / 100).toFixed(2);
+          await botToUse.sendMessage(
+            parseInt(ref.referrerTelegramId, 10),
+            `<tg-emoji emoji-id="5429518319243775957">🎁</tg-emoji> <b>Referral Reward Credited!</b>\n\n` +
+            `Your invited friend made a qualifying deposit of <b>+$${(depositAmountCents / 100).toFixed(2)} USD</b> (≥ $1.00)!\n\n` +
+            `<tg-emoji emoji-id="6113971389935391397">💰</tg-emoji> You earned <b>+${rewardUSD} USDT</b> referral commission.\n` +
+            `Total Available Referral Balance: <b>${totalRefUSD} USDT</b>.\n\n` +
+            `You can convert your referral balance to store balance or withdraw anytime!`,
+            { parse_mode: 'HTML' }
+          ).catch(() => {});
+        }
+      } catch (notifyErr) {
+        console.warn("[Referral Notify Error]:", notifyErr);
+      }
+    }
+  } catch (err: any) {
+    console.error("[Referral Commission Error]:", err);
+  }
+}
+
 const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
   const tgUser = await storage.getTelegramUser(userId);
   const rewardUsdtSetting = (await storage.getSetting("REFERRAL_REWARD_USDT"))?.value || "0.15";
@@ -8188,12 +8259,12 @@ const sendReferralProgramScreen = async (targetBot: TelegramBot, chatId: number,
   const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
 
   const refCaption = `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> <b>Referral program</b>\n\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎁</tg-emoji> Reward: <b>${rewardUsdtSetting} USDT</b> per new user\n` +
-    `<tg-emoji emoji-id="5429518319243775957">💰</tg-emoji> Available: <b>${refBalUSD} USDT</b> ≈ <b>${refBalRUB} RUB</b>\n` +
-    `<tg-emoji emoji-id="5206356981094310220">⏳</tg-emoji> Pending for ${pendingHoursSetting} hours: <b>${pendingCount}</b>\n` +
-    `<tg-emoji emoji-id="5812250560161649509">✅</tg-emoji> Confirmed: <b>${confirmedCount}</b>\n\n` +
-    `The reward is credited when a new user opens the bot through your link, subscribes to the channel and remains subscribed for ${pendingHoursSetting} hours.\n\n` +
-    `<tg-emoji emoji-id="5332755643822520488">🔗</tg-emoji> Your link:\n` +
+    `<tg-emoji emoji-id="6113971389935391397">🎁</tg-emoji> Reward: <b>${rewardUsdtSetting} USDT</b> per qualifying friend\n` +
+    `<tg-emoji emoji-id="5429518319243775957">💰</tg-emoji> Available balance: <b>${refBalUSD} USDT</b> ≈ <b>${refBalRUB} RUB</b>\n` +
+    `<tg-emoji emoji-id="5206356981094310220">⏳</tg-emoji> Pending referrals: <b>${pendingCount}</b>\n` +
+    `<tg-emoji emoji-id="5812250560161649509">✅</tg-emoji> Confirmed (Earned): <b>${confirmedCount}</b>\n\n` +
+    `💡 <i>Referral commission is credited when a user joins through your link and completes a deposit of <b>$1.00 USD or more</b>.</i>\n\n` +
+    `<tg-emoji emoji-id="5332755643822520488">🔗</tg-emoji> Your referral link:\n` +
     `<code>${refLink}</code>\n\n` +
     `Manual withdrawal: minimum <b>${minWithdrawSetting} USDT</b>, <b>BEP-20</b> network.`;
 
@@ -13848,6 +13919,9 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
             const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
 
+            // Trigger referral commission if deposit >= $1.00 (100 cents)
+            await processReferralDepositCommission(tgUser.telegramId.toString(), depositAmountCents);
+
             await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
             await targetBot.sendMessage(
               chatId,
@@ -14902,6 +14976,9 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             });
 
             if (txResult.success) {
+              // Trigger referral commission if deposit >= $1.00 (100 cents)
+              await processReferralDepositCommission(tgUser.telegramId.toString(), txResult.creditAmountCents || Math.round(result.actualAmount * 100));
+
               await targetBot.sendMessage(chatId, 
                 `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>TRC20 Payment Verified successfully!</b>\n\n` +
                 `<tg-emoji emoji-id="5388622778817589921">💰</tg-emoji> Credited: <b>$${result.actualAmount.toFixed(2)}</b> has been added to your balance.\n` +
@@ -15090,6 +15167,9 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             });
 
             if (txResult.success) {
+              // Trigger referral commission if deposit >= $1.00 (100 cents)
+              await processReferralDepositCommission(tgUser.telegramId.toString(), txResult.creditAmountCents || Math.round(result.actualAmount * 100));
+
               await targetBot.sendMessage(chatId, 
                 `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Aptos Payment Verified successfully!</b>\n\n` +
                 `<tg-emoji emoji-id="5388622778817589921">💰</tg-emoji> Credited: <b>$${result.actualAmount.toFixed(2)}</b> has been added to your balance.\n` +
@@ -15258,6 +15338,9 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
         const user = result.user!;
         const chatId = user.telegramId;
 
+        // Trigger referral commission if deposit >= $1.00 (100 cents)
+        await processReferralDepositCommission(user.telegramId.toString(), payment.amount);
+
         const activeBot = bot || (await getBotToken() ? new TelegramBot((await getBotToken())!) : null);
         if (activeBot) {
           try {
@@ -15388,6 +15471,11 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount} WHERE id = ${updatedPayment.telegramUserId}`);
 
             const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, updatedPayment.telegramUserId));
+
+            if (user) {
+              // Trigger referral commission if deposit >= $1.00 (100 cents)
+              await processReferralDepositCommission(user.telegramId.toString(), updatedPayment.amount);
+            }
 
             const activeBot = await getBroadcastBot();
             if (activeBot && user) {
