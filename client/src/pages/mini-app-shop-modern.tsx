@@ -6225,12 +6225,34 @@ Support: https://t.me/youuhost_support
                 >
                   <option value="">-- Select related payment / deposit --</option>
                   {payments.map((p: any) => {
-                    const amt = ((p.amountCents || p.amount || 0) / 100).toFixed(2);
-                    const method = p.gateway || p.method || p.provider || "Top-up";
+                    const isLkr = (p.currency || "").toUpperCase() === "LKR" || 
+                                  (p.paymentMethod || "").toLowerCase().includes("payhere") || 
+                                  (p.gateway || "").toLowerCase().includes("payhere") ||
+                                  (p.method || "").toLowerCase().includes("payhere") ||
+                                  (p.paymentMethod || "").toLowerCase().includes("card");
+
+                    let amountLabel = "";
+                    let valueLabel = "";
+
+                    if (isLkr) {
+                      const rawAmt = p.amountCents || p.amount || 0;
+                      const lkrVal = rawAmt >= 10000 ? Math.round(rawAmt / 100) : rawAmt;
+                      const usdEst = (lkrVal / (lkrRate || 330)).toFixed(2);
+                      amountLabel = `Rs. ${lkrVal.toLocaleString()} LKR (≈ $${usdEst})`;
+                      valueLabel = `Rs. ${lkrVal.toLocaleString()} LKR`;
+                    } else {
+                      const usdVal = ((p.amountCents || p.amount || 0) / 100).toFixed(2);
+                      const lkrEst = Math.round(parseFloat(usdVal) * (lkrRate || 330)).toLocaleString();
+                      amountLabel = `$${usdVal} USD (≈ Rs. ${lkrEst})`;
+                      valueLabel = `$${usdVal} USD`;
+                    }
+
+                    const method = p.gateway || p.paymentMethod || p.method || p.provider || (isLkr ? "PayHere Online Card" : "Top-up");
                     const dateStr = p.createdAt ? format(new Date(p.createdAt), "yyyy-MM-dd") : "";
+
                     return (
-                      <option key={p.id} value={`Deposit #${p.id} ($${amt} via ${method})`}>
-                        Deposit #{p.id} • ${amt} ({method}) • {p.status || "Completed"} {dateStr ? `• ${dateStr}` : ""}
+                      <option key={p.id} value={`Deposit #${p.id} (${valueLabel} via ${method})`}>
+                        Deposit #{p.id} • {amountLabel} • {method} • {p.status || "Completed"} {dateStr ? `• ${dateStr}` : ""}
                       </option>
                     );
                   })}

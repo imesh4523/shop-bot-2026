@@ -204,87 +204,87 @@ export default function SupportTicketsPage() {
   const closedCount = tickets.filter((t) => t.status === "closed").length;
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-            <LifeBuoy className="w-8 h-8 text-purple-400" />
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5 sm:gap-3">
+            <LifeBuoy className="w-7 h-7 sm:w-8 sm:h-8 text-purple-400 shrink-0" />
             Support Requests & Tickets
           </h1>
-          <p className="text-white/60 mt-1">
+          <p className="text-xs sm:text-sm text-white/60 mt-1">
             Manage customer support requests submitted via Telegram bot. Reply directly to users from here!
           </p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
         <Card className="glass-card border-0 bg-purple-950/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Total Tickets</p>
-                <h3 className="text-3xl font-black text-white mt-1">{tickets.length}</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Total Tickets</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-white mt-0.5 sm:mt-1">{tickets.length}</h3>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-                <MessageSquare className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass-card border-0 bg-yellow-950/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-yellow-400/70 uppercase tracking-wider">Open</p>
-                <h3 className="text-3xl font-black text-yellow-400 mt-1">{openCount}</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-yellow-400/70 uppercase tracking-wider">Open</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-yellow-400 mt-0.5 sm:mt-1">{openCount}</h3>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400">
-                <AlertCircle className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 shrink-0">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass-card border-0 bg-blue-950/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-blue-400/70 uppercase tracking-wider">In Progress</p>
-                <h3 className="text-3xl font-black text-blue-400 mt-1">{inProgressCount}</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-blue-400/70 uppercase tracking-wider">In Progress</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-blue-400 mt-0.5 sm:mt-1">{inProgressCount}</h3>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                <Clock className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass-card border-0 bg-emerald-950/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-emerald-400/70 uppercase tracking-wider">Resolved</p>
-                <h3 className="text-3xl font-black text-emerald-400 mt-1">{resolvedCount}</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-emerald-400/70 uppercase tracking-wider">Resolved</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-emerald-400 mt-0.5 sm:mt-1">{resolvedCount}</h3>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-0 bg-rose-950/20">
-          <CardContent className="p-5">
+        <Card className="glass-card border-0 bg-rose-950/20 col-span-2 sm:col-span-1">
+          <CardContent className="p-3.5 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-rose-400/70 uppercase tracking-wider">Closed</p>
-                <h3 className="text-3xl font-black text-rose-400 mt-1">{closedCount}</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-rose-400/70 uppercase tracking-wider">Closed</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-rose-400 mt-0.5 sm:mt-1">{closedCount}</h3>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400">
-                <XCircle className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </CardContent>
@@ -292,24 +292,24 @@ export default function SupportTicketsPage() {
       </div>
 
       {/* Filter and Search */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          <Search className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
           <Input
             placeholder="Search username, ID, issue or details..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 h-12 glass-panel border-white/10 text-white rounded-xl"
+            className="pl-10 sm:pl-12 h-10 sm:h-12 text-xs sm:text-sm glass-panel border-white/10 text-white rounded-xl"
           />
         </div>
 
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
-          <TabsList className="glass-panel border-white/10 p-1 rounded-xl">
-            <TabsTrigger value="all" className="rounded-lg font-bold">All</TabsTrigger>
-            <TabsTrigger value="open" className="rounded-lg font-bold text-yellow-400">Open ({openCount})</TabsTrigger>
-            <TabsTrigger value="in_progress" className="rounded-lg font-bold text-blue-400">In Progress ({inProgressCount})</TabsTrigger>
-            <TabsTrigger value="resolved" className="rounded-lg font-bold text-emerald-400">Resolved ({resolvedCount})</TabsTrigger>
-            <TabsTrigger value="closed" className="rounded-lg font-bold text-rose-400">Closed ({closedCount})</TabsTrigger>
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto overflow-x-auto">
+          <TabsList className="glass-panel border-white/10 p-1 rounded-xl flex overflow-x-auto w-full md:w-auto justify-start md:justify-center no-scrollbar">
+            <TabsTrigger value="all" className="rounded-lg font-bold text-xs px-2.5 py-1.5 shrink-0">All</TabsTrigger>
+            <TabsTrigger value="open" className="rounded-lg font-bold text-yellow-400 text-xs px-2.5 py-1.5 shrink-0">Open ({openCount})</TabsTrigger>
+            <TabsTrigger value="in_progress" className="rounded-lg font-bold text-blue-400 text-xs px-2.5 py-1.5 shrink-0">In Progress ({inProgressCount})</TabsTrigger>
+            <TabsTrigger value="resolved" className="rounded-lg font-bold text-emerald-400 text-xs px-2.5 py-1.5 shrink-0">Resolved ({resolvedCount})</TabsTrigger>
+            <TabsTrigger value="closed" className="rounded-lg font-bold text-rose-400 text-xs px-2.5 py-1.5 shrink-0">Closed ({closedCount})</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -319,16 +319,16 @@ export default function SupportTicketsPage() {
         <div className="py-20 text-center text-white/40">Loading support tickets...</div>
       ) : filteredTickets.length === 0 ? (
         <Card className="glass-card border-0 py-16 text-center">
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-4">
             <LifeBuoy className="w-12 h-12 text-white/20 mx-auto" />
             <h3 className="text-xl font-bold text-white">No Support Tickets Found</h3>
-            <p className="text-white/40 max-w-sm mx-auto">
+            <p className="text-white/40 max-w-sm mx-auto text-xs sm:text-sm">
               When users select support issues in the Telegram Bot, tickets will appear here automatically.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {filteredTickets.map((ticket) => {
             const cleanUser = (ticket.username || ticket.userTelegramId || "Customer").replace("@", "");
             const displayId = ticket.id < 2000 ? ticket.id + 2000 : ticket.id;
@@ -349,64 +349,69 @@ export default function SupportTicketsPage() {
             const isReplyingThis = sendReplyMutation.isPending && sendReplyMutation.variables?.id === ticket.id;
 
             return (
-              <Card key={ticket.id} className="glass-card border-0 hover:border-purple-500/30 transition-all">
-                <CardContent className="p-6 space-y-6">
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+              <Card key={ticket.id} className="glass-card border-0 hover:border-purple-500/30 transition-all overflow-hidden">
+                <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                     {/* User & Issue Header */}
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-3">
-                        <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-3 py-1 text-sm">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-2.5 py-0.5 text-xs">
                           #{displayId}
                         </Badge>
 
                         {ticket.status === "open" && (
-                          <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 font-bold">
+                          <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 font-bold text-xs">
                             Open Request
                           </Badge>
                         )}
                         {ticket.status === "in_progress" && (
-                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 font-bold">
+                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 font-bold text-xs">
                             In Progress
                           </Badge>
                         )}
                         {ticket.status === "resolved" && (
-                          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold">
+                          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold text-xs">
                             Resolved
                           </Badge>
                         )}
                         {ticket.status === "closed" && (
-                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30 font-bold">
+                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30 font-bold text-xs">
                             Closed
                           </Badge>
                         )}
 
-                        <span className="text-xs text-white/40">
+                        <span className="text-[11px] sm:text-xs text-white/40">
                           {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : ""}
                         </span>
                       </div>
 
-                      <h4 className="text-xl font-black text-white">
+                      <h4 className="text-lg sm:text-xl font-black text-white break-words">
                         {ticket.issueType}
                       </h4>
 
-                      <div className="flex items-center gap-4 text-sm text-white/60">
-                        <span className="flex items-center gap-1.5 font-bold text-purple-300">
-                          <User className="w-4 h-4" />
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-white/60">
+                        <span className="flex items-center gap-1.5 font-bold text-purple-300 break-all">
+                          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                           @{cleanUser}
                         </span>
-                        <span>Telegram ID: <code className="text-white/80 bg-white/5 px-2 py-0.5 rounded font-mono">{ticket.userTelegramId}</code></span>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="shrink-0">Telegram ID:</span>
+                          <code className="text-white/80 bg-white/5 px-2 py-0.5 rounded font-mono break-all text-[11px] sm:text-xs">
+                            {ticket.userTelegramId}
+                          </code>
+                        </div>
                       </div>
                     </div>
 
                     {/* Quick Link & Actions */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => copyTemplate(ticket)}
-                        className="glass-panel border-white/10 hover:bg-white/10 text-white gap-2 rounded-xl"
+                        className="flex-1 lg:flex-initial glass-panel border-white/10 hover:bg-white/10 text-white gap-1.5 rounded-xl text-xs sm:text-sm h-9"
                       >
-                        {copiedId === ticket.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        {copiedId === ticket.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         Copy Template
                       </Button>
 
@@ -414,10 +419,10 @@ export default function SupportTicketsPage() {
                         variant="default"
                         size="sm"
                         asChild
-                        className="bg-gradient-to-r from-purple-500 to-blue-600 font-bold text-white rounded-xl gap-2"
+                        className="flex-1 lg:flex-initial bg-gradient-to-r from-purple-500 to-blue-600 font-bold text-white rounded-xl gap-1.5 text-xs sm:text-sm h-9"
                       >
                         <a href={`https://t.me/${cleanUser}`} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3.5 h-3.5" />
                           Chat on Telegram
                         </a>
                       </Button>
@@ -426,7 +431,7 @@ export default function SupportTicketsPage() {
 
                   {/* Customer Screenshot Attachment */}
                   {ticket.attachmentUrl && (
-                    <div className="bg-white/5 border border-purple-500/20 rounded-2xl p-4 space-y-2">
+                    <div className="bg-white/5 border border-purple-500/20 rounded-2xl p-3 sm:p-4 space-y-2">
                       <p className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 text-purple-400" />
                         Attached Screenshot / Proof:
@@ -454,32 +459,33 @@ export default function SupportTicketsPage() {
                   )}
 
                   {/* Conversation History Thread */}
-                  <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-3">
+                  <div className="bg-black/30 border border-white/10 rounded-2xl p-3 sm:p-4 space-y-3">
                     <p className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4" />
+                      <MessageSquare className="w-3.5 h-3.5" />
                       Ticket Conversation Thread:
                     </p>
 
                     {parsedMessages.length === 0 ? (
-                      <p className="text-sm text-white/40 italic">Waiting for details from customer...</p>
+                      <p className="text-xs sm:text-sm text-white/40 italic">Waiting for details from customer...</p>
                     ) : (
-                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      <div className="space-y-2.5 sm:space-y-3 max-h-96 overflow-y-auto pr-1">
                         {parsedMessages.map((msg, index) => {
                           const msgAttach = msg.attachmentUrl || (msg as any).attachment_url || (msg as any).image;
+                          const isAdmin = msg.sender === 'admin' || msg.sender === 'staff';
                           return (
                             <div 
                               key={index} 
-                              className={`p-3.5 rounded-xl text-sm leading-relaxed border space-y-2 ${
-                                msg.sender === 'admin' || msg.sender === 'staff'
-                                  ? 'bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6' 
-                                  : 'bg-white/5 border-white/10 text-white mr-6'
+                              className={`p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed border space-y-1.5 ${
+                                isAdmin
+                                  ? 'bg-purple-600/15 border-purple-500/30 text-purple-100 ml-2 sm:ml-6' 
+                                  : 'bg-white/5 border-white/10 text-white mr-2 sm:mr-6'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className={`text-xs font-bold flex items-center gap-1.5 ${
-                                  msg.sender === 'admin' || msg.sender === 'staff' ? 'text-purple-300' : 'text-yellow-400'
+                                <span className={`text-[11px] sm:text-xs font-bold flex items-center gap-1.5 ${
+                                  isAdmin ? 'text-purple-300' : 'text-yellow-400'
                                 }`}>
-                                  {msg.sender === 'admin' || msg.sender === 'staff' ? (
+                                  {isAdmin ? (
                                     <>
                                       <Bot className="w-3.5 h-3.5" />
                                       Admin Reply:
@@ -498,14 +504,14 @@ export default function SupportTicketsPage() {
                                 )}
                               </div>
                               {msg.text && (
-                                <p className="whitespace-pre-wrap font-mono text-xs">{msg.text}</p>
+                                <p className="whitespace-pre-wrap font-mono text-xs break-words">{msg.text}</p>
                               )}
                               {msgAttach && (
                                 <div className="pt-1">
                                   <img 
                                     src={msgAttach} 
                                     alt="Message Attachment" 
-                                    className="max-h-48 max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity"
+                                    className="max-h-48 max-w-full sm:max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity"
                                     onClick={() => window.open(msgAttach, "_blank")}
                                   />
                                 </div>
@@ -518,23 +524,23 @@ export default function SupportTicketsPage() {
                   </div>
 
                   {/* Quick Replies & Admin Reply Form */}
-                  <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-3 sm:p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <label className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
                         <Zap className="w-4 h-4 text-purple-400" />
                         Reply to Customer:
                       </label>
-                      <span className="text-xs text-white/40">Quick preset response chips:</span>
+                      <span className="text-[11px] text-white/40">Quick preset response chips:</span>
                     </div>
 
                     {/* Quick Reply Preset Chips */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {QUICK_REPLIES.map((preset, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => handleQuickReply(ticket.id, preset)}
-                          className="text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white/80 hover:text-white px-2.5 py-1 rounded-lg transition-all"
+                          className="text-[11px] sm:text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white/80 hover:text-white px-2.5 py-1 rounded-lg transition-all text-left leading-tight"
                         >
                           {preset}
                         </button>
@@ -546,7 +552,7 @@ export default function SupportTicketsPage() {
                         <img 
                           src={replyAttachments[ticket.id]} 
                           alt="Reply attachment" 
-                          className="w-20 h-20 object-cover rounded-lg"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
                         />
                         <button
                           type="button"
@@ -562,50 +568,52 @@ export default function SupportTicketsPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-3 items-end">
-                      <label className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors">
-                        {isCompressingMap[ticket.id] ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <Camera className="w-5 h-5" />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          disabled={isCompressingMap[ticket.id]}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setIsCompressingMap(prev => ({ ...prev, [ticket.id]: true }));
-                            try {
-                              const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
-                              setReplyAttachments(prev => ({ ...prev, [ticket.id]: compressed }));
-                            } catch (err) {
-                              toast({
-                                title: "Image Upload Failed",
-                                description: "Could not compress image.",
-                                variant: "destructive"
-                              });
-                            } finally {
-                              setIsCompressingMap(prev => ({ ...prev, [ticket.id]: false }));
-                              e.target.value = "";
-                            }
-                          }}
-                        />
-                      </label>
+                    <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-end">
+                      <div className="flex gap-2.5 items-end flex-1">
+                        <label className="h-10 sm:h-12 w-10 sm:w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors">
+                          {isCompressingMap[ticket.id] ? (
+                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                          ) : (
+                            <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isCompressingMap[ticket.id]}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsCompressingMap(prev => ({ ...prev, [ticket.id]: true }));
+                              try {
+                                const compressed = await compressImageToDataUrl(file, 1200, 1200, 0.75);
+                                setReplyAttachments(prev => ({ ...prev, [ticket.id]: compressed }));
+                              } catch (err) {
+                                toast({
+                                  title: "Image Upload Failed",
+                                  description: "Could not compress image.",
+                                  variant: "destructive"
+                                });
+                              } finally {
+                                setIsCompressingMap(prev => ({ ...prev, [ticket.id]: false }));
+                                e.target.value = "";
+                              }
+                            }}
+                          />
+                        </label>
 
-                      <Textarea
-                        placeholder="Type reply message to send to customer..."
-                        value={replyTexts[ticket.id] || ""}
-                        onChange={(e) => setReplyTexts(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                        className="glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm flex-1"
-                      />
+                        <Textarea
+                          placeholder="Type reply message to send to customer..."
+                          value={replyTexts[ticket.id] || ""}
+                          onChange={(e) => setReplyTexts(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                          className="glass-panel border-white/10 text-white min-h-[60px] sm:min-h-[70px] rounded-xl text-xs sm:text-sm flex-1"
+                        />
+                      </div>
 
                       <Button
                         onClick={() => handleSendReply(ticket.id)}
                         disabled={isReplyingThis || (!(replyTexts[ticket.id]?.trim()) && !replyAttachments[ticket.id]) || isCompressingMap[ticket.id]}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 h-12 shrink-0 cursor-pointer"
+                        className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-4 sm:px-5 flex items-center justify-center gap-2 h-10 sm:h-12 shrink-0 cursor-pointer text-xs sm:text-sm"
                       >
                         {isReplyingThis ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -618,41 +626,43 @@ export default function SupportTicketsPage() {
                   </div>
 
                   {/* Status Change Buttons */}
-                  <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
-                    <span className="text-xs font-bold text-white/40 uppercase mr-auto">Change Ticket Status:</span>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 border-t border-white/10 pt-4">
+                    <span className="text-xs font-bold text-white/40 uppercase">Change Ticket Status:</span>
 
-                    {ticket.status !== "resolved" && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "resolved" })}
-                        className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-xl font-bold border border-emerald-500/30 gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        Mark Resolved
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
+                      {ticket.status !== "resolved" && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "resolved" })}
+                          className="flex-1 sm:flex-initial bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-xl font-bold border border-emerald-500/30 gap-1.5 text-xs h-8 sm:h-9"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Mark Resolved
+                        </Button>
+                      )}
 
-                    {ticket.status !== "closed" && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "closed" })}
-                        className="bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded-xl font-bold border border-rose-500/30 gap-1.5"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Close Ticket
-                      </Button>
-                    )}
+                      {ticket.status !== "closed" && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "closed" })}
+                          className="flex-1 sm:flex-initial bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded-xl font-bold border border-rose-500/30 gap-1.5 text-xs h-8 sm:h-9"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          Close Ticket
+                        </Button>
+                      )}
 
-                    {(ticket.status === "resolved" || ticket.status === "closed") && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "open" })}
-                        className="bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 rounded-xl font-bold border border-yellow-500/30 gap-1.5"
-                      >
-                        <AlertCircle className="w-4 h-4" />
-                        Reopen Ticket
-                      </Button>
-                    )}
+                      {(ticket.status === "resolved" || ticket.status === "closed") && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateStatusMutation.mutate({ id: ticket.id, status: "open" })}
+                          className="flex-1 sm:flex-initial bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 rounded-xl font-bold border border-yellow-500/30 gap-1.5 text-xs h-8 sm:h-9"
+                        >
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Reopen Ticket
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

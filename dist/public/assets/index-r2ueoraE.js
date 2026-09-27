@@ -74105,7 +74105,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-eG5VkT2U.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Dm7d3zAr.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90357,93 +90357,93 @@ Problem details: ${ticket.details || ticket.issueType}`;
   const inProgressCount = tickets.filter((t3) => t3.status === "in_progress").length;
   const resolvedCount = tickets.filter((t3) => t3.status === "resolved").length;
   const closedCount = tickets.filter((t3) => t3.status === "closed").length;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 space-y-8 max-w-7xl mx-auto", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-3xl font-black tracking-tight text-white flex items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(LifeBuoy, { className: "w-8 h-8 text-purple-400" }),
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto overflow-x-hidden", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("h1", { className: "text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5 sm:gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(LifeBuoy, { className: "w-7 h-7 sm:w-8 sm:h-8 text-purple-400 shrink-0" }),
         "Support Requests & Tickets"
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 mt-1", children: "Manage customer support requests submitted via Telegram bot. Reply directly to users from here!" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs sm:text-sm text-white/60 mt-1", children: "Manage customer support requests submitted via Telegram bot. Reply directly to users from here!" })
     ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-5 gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-purple-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-purple-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-3.5 sm:p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-white/50 uppercase tracking-wider", children: "Total Tickets" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-3xl font-black text-white mt-1", children: tickets.length })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] sm:text-xs font-bold text-white/50 uppercase tracking-wider", children: "Total Tickets" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-2xl sm:text-3xl font-black text-white mt-0.5 sm:mt-1", children: tickets.length })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { className: "w-4 h-4 sm:w-5 sm:h-5" }) })
       ] }) }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-yellow-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-yellow-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-3.5 sm:p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-yellow-400/70 uppercase tracking-wider", children: "Open" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-3xl font-black text-yellow-400 mt-1", children: openCount })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] sm:text-xs font-bold text-yellow-400/70 uppercase tracking-wider", children: "Open" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-2xl sm:text-3xl font-black text-yellow-400 mt-0.5 sm:mt-1", children: openCount })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-4 h-4 sm:w-5 sm:h-5" }) })
       ] }) }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-blue-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-blue-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-3.5 sm:p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-blue-400/70 uppercase tracking-wider", children: "In Progress" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-3xl font-black text-blue-400 mt-1", children: inProgressCount })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] sm:text-xs font-bold text-blue-400/70 uppercase tracking-wider", children: "In Progress" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-2xl sm:text-3xl font-black text-blue-400 mt-0.5 sm:mt-1", children: inProgressCount })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-4 h-4 sm:w-5 sm:h-5" }) })
       ] }) }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-emerald-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-emerald-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-3.5 sm:p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-emerald-400/70 uppercase tracking-wider", children: "Resolved" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-3xl font-black text-emerald-400 mt-1", children: resolvedCount })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] sm:text-xs font-bold text-emerald-400/70 uppercase tracking-wider", children: "Resolved" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-2xl sm:text-3xl font-black text-emerald-400 mt-0.5 sm:mt-1", children: resolvedCount })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 sm:w-5 sm:h-5" }) })
       ] }) }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-rose-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-rose-950/20 col-span-2 sm:col-span-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-3.5 sm:p-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-rose-400/70 uppercase tracking-wider", children: "Closed" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-3xl font-black text-rose-400 mt-1", children: closedCount })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] sm:text-xs font-bold text-rose-400/70 uppercase tracking-wider", children: "Closed" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-2xl sm:text-3xl font-black text-rose-400 mt-0.5 sm:mt-1", children: closedCount })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-4 h-4 sm:w-5 sm:h-5" }) })
       ] }) }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row gap-4 items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full md:w-96", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           Input,
           {
             placeholder: "Search username, ID, issue or details...",
             value: searchTerm,
             onChange: (e) => setSearchTerm(e.target.value),
-            className: "pl-12 h-12 glass-panel border-white/10 text-white rounded-xl"
+            className: "pl-10 sm:pl-12 h-10 sm:h-12 text-xs sm:text-sm glass-panel border-white/10 text-white rounded-xl"
           }
         )
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { value: statusFilter, onValueChange: setStatusFilter, className: "w-full md:w-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "glass-panel border-white/10 p-1 rounded-xl", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "all", className: "rounded-lg font-bold", children: "All" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "open", className: "rounded-lg font-bold text-yellow-400", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { value: statusFilter, onValueChange: setStatusFilter, className: "w-full md:w-auto overflow-x-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "glass-panel border-white/10 p-1 rounded-xl flex overflow-x-auto w-full md:w-auto justify-start md:justify-center no-scrollbar", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "all", className: "rounded-lg font-bold text-xs px-2.5 py-1.5 shrink-0", children: "All" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "open", className: "rounded-lg font-bold text-yellow-400 text-xs px-2.5 py-1.5 shrink-0", children: [
           "Open (",
           openCount,
           ")"
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "in_progress", className: "rounded-lg font-bold text-blue-400", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "in_progress", className: "rounded-lg font-bold text-blue-400 text-xs px-2.5 py-1.5 shrink-0", children: [
           "In Progress (",
           inProgressCount,
           ")"
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "resolved", className: "rounded-lg font-bold text-emerald-400", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "resolved", className: "rounded-lg font-bold text-emerald-400 text-xs px-2.5 py-1.5 shrink-0", children: [
           "Resolved (",
           resolvedCount,
           ")"
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "closed", className: "rounded-lg font-bold text-rose-400", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "closed", className: "rounded-lg font-bold text-rose-400 text-xs px-2.5 py-1.5 shrink-0", children: [
           "Closed (",
           closedCount,
           ")"
         ] })
       ] }) })
     ] }),
-    isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "py-20 text-center text-white/40", children: "Loading support tickets..." }) : filteredTickets.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 py-16 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-3", children: [
+    isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "py-20 text-center text-white/40", children: "Loading support tickets..." }) : filteredTickets.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 py-16 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-3 p-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(LifeBuoy, { className: "w-12 h-12 text-white/20 mx-auto" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-bold text-white", children: "No Support Tickets Found" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 max-w-sm mx-auto", children: "When users select support issues in the Telegram Bot, tickets will appear here automatically." })
-    ] }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid gap-6", children: filteredTickets.map((ticket) => {
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 max-w-sm mx-auto text-xs sm:text-sm", children: "When users select support issues in the Telegram Bot, tickets will appear here automatically." })
+    ] }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid gap-4 sm:gap-6", children: filteredTickets.map((ticket) => {
       const cleanUser = (ticket.username || ticket.userTelegramId || "Customer").replace("@", "");
       const displayId = ticket.id < 2e3 ? ticket.id + 2e3 : ticket.id;
       let parsedMessages = [];
@@ -90458,43 +90458,43 @@ Problem details: ${ticket.details || ticket.issueType}`;
         parsedMessages = [{ sender: "user", text: ticket.details }];
       }
       const isReplyingThis = sendReplyMutation.isPending && sendReplyMutation.variables?.id === ticket.id;
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 hover:border-purple-500/30 transition-all", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-6 space-y-6", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-start justify-between gap-6", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 flex-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-3 py-1 text-sm", children: [
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 hover:border-purple-500/30 transition-all overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-4 sm:p-6 space-y-4 sm:space-y-6", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col lg:flex-row lg:items-start justify-between gap-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 flex-1 min-w-0", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-purple-500/20 text-purple-300 border-purple-500/30 font-bold px-2.5 py-0.5 text-xs", children: [
                 "#",
                 displayId
               ] }),
-              ticket.status === "open" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30 font-bold", children: "Open Request" }),
-              ticket.status === "in_progress" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-blue-500/20 text-blue-300 border-blue-500/30 font-bold", children: "In Progress" }),
-              ticket.status === "resolved" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold", children: "Resolved" }),
-              ticket.status === "closed" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-rose-500/20 text-rose-300 border-rose-500/30 font-bold", children: "Closed" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "" })
+              ticket.status === "open" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30 font-bold text-xs", children: "Open Request" }),
+              ticket.status === "in_progress" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-blue-500/20 text-blue-300 border-blue-500/30 font-bold text-xs", children: "In Progress" }),
+              ticket.status === "resolved" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-bold text-xs", children: "Resolved" }),
+              ticket.status === "closed" && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-rose-500/20 text-rose-300 border-rose-500/30 font-bold text-xs", children: "Closed" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] sm:text-xs text-white/40", children: ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "" })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xl font-black text-white", children: ticket.issueType }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 text-sm text-white/60", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5 font-bold text-purple-300", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-lg sm:text-xl font-black text-white break-words", children: ticket.issueType }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-white/60", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5 font-bold text-purple-300 break-all", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" }),
                 "@",
                 cleanUser
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                "Telegram ID: ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-white/80 bg-white/5 px-2 py-0.5 rounded font-mono", children: ticket.userTelegramId })
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 min-w-0", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0", children: "Telegram ID:" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-white/80 bg-white/5 px-2 py-0.5 rounded font-mono break-all text-[11px] sm:text-xs", children: ticket.userTelegramId })
               ] })
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               Button,
               {
                 variant: "outline",
                 size: "sm",
                 onClick: () => copyTemplate(ticket),
-                className: "glass-panel border-white/10 hover:bg-white/10 text-white gap-2 rounded-xl",
+                className: "flex-1 lg:flex-initial glass-panel border-white/10 hover:bg-white/10 text-white gap-1.5 rounded-xl text-xs sm:text-sm h-9",
                 children: [
-                  copiedId === ticket.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4 text-emerald-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-4 h-4" }),
+                  copiedId === ticket.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3.5 h-3.5 text-emerald-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3.5 h-3.5" }),
                   "Copy Template"
                 ]
               }
@@ -90505,16 +90505,16 @@ Problem details: ${ticket.details || ticket.issueType}`;
                 variant: "default",
                 size: "sm",
                 asChild: true,
-                className: "bg-gradient-to-r from-purple-500 to-blue-600 font-bold text-white rounded-xl gap-2",
+                className: "flex-1 lg:flex-initial bg-gradient-to-r from-purple-500 to-blue-600 font-bold text-white rounded-xl gap-1.5 text-xs sm:text-sm h-9",
                 children: /* @__PURE__ */ jsxRuntimeExports.jsxs("a", { href: `https://t.me/${cleanUser}`, target: "_blank", rel: "noopener noreferrer", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" }),
                   "Chat on Telegram"
                 ] })
               }
             )
           ] })
         ] }),
-        ticket.attachmentUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/5 border border-purple-500/20 rounded-2xl p-4 space-y-2", children: [
+        ticket.attachmentUrl && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/5 border border-purple-500/20 rounded-2xl p-3 sm:p-4 space-y-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Image$2, { className: "w-4 h-4 text-purple-400" }),
             "Attached Screenshot / Proof:"
@@ -90544,20 +90544,21 @@ Problem details: ${ticket.details || ticket.issueType}`;
             ) })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 border border-white/10 rounded-2xl p-4 space-y-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 border border-white/10 rounded-2xl p-3 sm:p-4 space-y-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { className: "w-4 h-4" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { className: "w-3.5 h-3.5" }),
             "Ticket Conversation Thread:"
           ] }),
-          parsedMessages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/40 italic", children: "Waiting for details from customer..." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3 max-h-96 overflow-y-auto pr-1", children: parsedMessages.map((msg, index2) => {
+          parsedMessages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs sm:text-sm text-white/40 italic", children: "Waiting for details from customer..." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2.5 sm:space-y-3 max-h-96 overflow-y-auto pr-1", children: parsedMessages.map((msg, index2) => {
             const msgAttach = msg.attachmentUrl || msg.attachment_url || msg.image;
+            const isAdmin = msg.sender === "admin" || msg.sender === "staff";
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "div",
               {
-                className: `p-3.5 rounded-xl text-sm leading-relaxed border space-y-2 ${msg.sender === "admin" || msg.sender === "staff" ? "bg-purple-600/15 border-purple-500/30 text-purple-100 ml-6" : "bg-white/5 border-white/10 text-white mr-6"}`,
+                className: `p-3 sm:p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed border space-y-1.5 ${isAdmin ? "bg-purple-600/15 border-purple-500/30 text-purple-100 ml-2 sm:ml-6" : "bg-white/5 border-white/10 text-white mr-2 sm:mr-6"}`,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-xs font-bold flex items-center gap-1.5 ${msg.sender === "admin" || msg.sender === "staff" ? "text-purple-300" : "text-yellow-400"}`, children: msg.sender === "admin" || msg.sender === "staff" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[11px] sm:text-xs font-bold flex items-center gap-1.5 ${isAdmin ? "text-purple-300" : "text-yellow-400"}`, children: isAdmin ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-3.5 h-3.5" }),
                       "Admin Reply:"
                     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -90566,13 +90567,13 @@ Problem details: ${ticket.details || ticket.issueType}`;
                     ] }) }),
                     msg.timestamp && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
                   ] }),
-                  msg.text && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "whitespace-pre-wrap font-mono text-xs", children: msg.text }),
+                  msg.text && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "whitespace-pre-wrap font-mono text-xs break-words", children: msg.text }),
                   msgAttach && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pt-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "img",
                     {
                       src: msgAttach,
                       alt: "Message Attachment",
-                      className: "max-h-48 max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity",
+                      className: "max-h-48 max-w-full sm:max-w-xs object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-90 transition-opacity",
                       onClick: () => window.open(msgAttach, "_blank")
                     }
                   ) })
@@ -90582,20 +90583,20 @@ Problem details: ${ticket.details || ticket.issueType}`;
             );
           }) })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 space-y-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-purple-950/20 border border-purple-500/20 rounded-2xl p-3 sm:p-4 space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-1", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-4 h-4 text-purple-400" }),
               "Reply to Customer:"
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40", children: "Quick preset response chips:" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Quick preset response chips:" })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2", children: QUICK_REPLIES.map((preset, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5 sm:gap-2", children: QUICK_REPLIES.map((preset, idx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
               type: "button",
               onClick: () => handleQuickReply(ticket.id, preset),
-              className: "text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white/80 hover:text-white px-2.5 py-1 rounded-lg transition-all",
+              className: "text-[11px] sm:text-xs bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 text-white/80 hover:text-white px-2.5 py-1 rounded-lg transition-all text-left leading-tight",
               children: preset
             },
             idx
@@ -90606,7 +90607,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
               {
                 src: replyAttachments[ticket.id],
                 alt: "Reply attachment",
-                className: "w-20 h-20 object-cover rounded-lg"
+                className: "w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -90623,52 +90624,54 @@ Problem details: ${ticket.details || ticket.issueType}`;
               }
             )
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3 items-end", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors", children: [
-              isCompressingMap[ticket.id] ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Camera, { className: "w-5 h-5" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "input",
-                {
-                  type: "file",
-                  accept: "image/*",
-                  className: "hidden",
-                  disabled: isCompressingMap[ticket.id],
-                  onChange: async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: true }));
-                    try {
-                      const compressed = await compressImageToDataUrl$1(file, 1200, 1200, 0.75);
-                      setReplyAttachments((prev) => ({ ...prev, [ticket.id]: compressed }));
-                    } catch (err) {
-                      toast2({
-                        title: "Image Upload Failed",
-                        description: "Could not compress image.",
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: false }));
-                      e.target.value = "";
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-end", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2.5 items-end flex-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "h-10 sm:h-12 w-10 sm:w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-500/20 text-purple-300 flex items-center justify-center cursor-pointer shrink-0 transition-colors", children: [
+                isCompressingMap[ticket.id] ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 sm:w-5 sm:h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Camera, { className: "w-4 h-4 sm:w-5 sm:h-5" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    type: "file",
+                    accept: "image/*",
+                    className: "hidden",
+                    disabled: isCompressingMap[ticket.id],
+                    onChange: async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: true }));
+                      try {
+                        const compressed = await compressImageToDataUrl$1(file, 1200, 1200, 0.75);
+                        setReplyAttachments((prev) => ({ ...prev, [ticket.id]: compressed }));
+                      } catch (err) {
+                        toast2({
+                          title: "Image Upload Failed",
+                          description: "Could not compress image.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsCompressingMap((prev) => ({ ...prev, [ticket.id]: false }));
+                        e.target.value = "";
+                      }
                     }
                   }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Textarea,
+                {
+                  placeholder: "Type reply message to send to customer...",
+                  value: replyTexts[ticket.id] || "",
+                  onChange: (e) => setReplyTexts((prev) => ({ ...prev, [ticket.id]: e.target.value })),
+                  className: "glass-panel border-white/10 text-white min-h-[60px] sm:min-h-[70px] rounded-xl text-xs sm:text-sm flex-1"
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Textarea,
-              {
-                placeholder: "Type reply message to send to customer...",
-                value: replyTexts[ticket.id] || "",
-                onChange: (e) => setReplyTexts((prev) => ({ ...prev, [ticket.id]: e.target.value })),
-                className: "glass-panel border-white/10 text-white min-h-[70px] rounded-xl text-sm flex-1"
-              }
-            ),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               Button,
               {
                 onClick: () => handleSendReply(ticket.id),
                 disabled: isReplyingThis || !replyTexts[ticket.id]?.trim() && !replyAttachments[ticket.id] || isCompressingMap[ticket.id],
-                className: "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-5 flex items-center gap-2 h-12 shrink-0 cursor-pointer",
+                className: "w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-4 sm:px-5 flex items-center justify-center gap-2 h-10 sm:h-12 shrink-0 cursor-pointer text-xs sm:text-sm",
                 children: [
                   isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
                   "Send Reply"
@@ -90677,44 +90680,46 @@ Problem details: ${ticket.details || ticket.issueType}`;
             )
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-end gap-3 border-t border-white/10 pt-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-white/40 uppercase mr-auto", children: "Change Ticket Status:" }),
-          ticket.status !== "resolved" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            Button,
-            {
-              size: "sm",
-              onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "resolved" }),
-              className: "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-xl font-bold border border-emerald-500/30 gap-1.5",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4" }),
-                "Mark Resolved"
-              ]
-            }
-          ),
-          ticket.status !== "closed" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            Button,
-            {
-              size: "sm",
-              onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "closed" }),
-              className: "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded-xl font-bold border border-rose-500/30 gap-1.5",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-4 h-4" }),
-                "Close Ticket"
-              ]
-            }
-          ),
-          (ticket.status === "resolved" || ticket.status === "closed") && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            Button,
-            {
-              size: "sm",
-              onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "open" }),
-              className: "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 rounded-xl font-bold border border-yellow-500/30 gap-1.5",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-4 h-4" }),
-                "Reopen Ticket"
-              ]
-            }
-          )
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 border-t border-white/10 pt-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-white/40 uppercase", children: "Change Ticket Status:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2 items-center justify-start sm:justify-end", children: [
+            ticket.status !== "resolved" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                size: "sm",
+                onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "resolved" }),
+                className: "flex-1 sm:flex-initial bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-xl font-bold border border-emerald-500/30 gap-1.5 text-xs h-8 sm:h-9",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5" }),
+                  "Mark Resolved"
+                ]
+              }
+            ),
+            ticket.status !== "closed" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                size: "sm",
+                onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "closed" }),
+                className: "flex-1 sm:flex-initial bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded-xl font-bold border border-rose-500/30 gap-1.5 text-xs h-8 sm:h-9",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3.5 h-3.5" }),
+                  "Close Ticket"
+                ]
+              }
+            ),
+            (ticket.status === "resolved" || ticket.status === "closed") && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                size: "sm",
+                onClick: () => updateStatusMutation.mutate({ id: ticket.id, status: "open" }),
+                className: "flex-1 sm:flex-initial bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 rounded-xl font-bold border border-yellow-500/30 gap-1.5 text-xs h-8 sm:h-9",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-3.5 h-3.5" }),
+                  "Reopen Ticket"
+                ]
+              }
+            )
+          ] })
         ] })
       ] }) }, ticket.id);
     }) })
@@ -108909,17 +108914,31 @@ ${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "-- Select related payment / deposit --" }),
                 payments2.map((p2) => {
-                  const amt = ((p2.amountCents || p2.amount || 0) / 100).toFixed(2);
-                  const method = p2.gateway || p2.method || p2.provider || "Top-up";
+                  const isLkr = (p2.currency || "").toUpperCase() === "LKR" || (p2.paymentMethod || "").toLowerCase().includes("payhere") || (p2.gateway || "").toLowerCase().includes("payhere") || (p2.method || "").toLowerCase().includes("payhere") || (p2.paymentMethod || "").toLowerCase().includes("card");
+                  let amountLabel = "";
+                  let valueLabel = "";
+                  if (isLkr) {
+                    const rawAmt = p2.amountCents || p2.amount || 0;
+                    const lkrVal = rawAmt >= 1e4 ? Math.round(rawAmt / 100) : rawAmt;
+                    const usdEst = (lkrVal / lkrRate).toFixed(2);
+                    amountLabel = `Rs. ${lkrVal.toLocaleString()} LKR (≈ $${usdEst})`;
+                    valueLabel = `Rs. ${lkrVal.toLocaleString()} LKR`;
+                  } else {
+                    const usdVal = ((p2.amountCents || p2.amount || 0) / 100).toFixed(2);
+                    const lkrEst = Math.round(parseFloat(usdVal) * lkrRate).toLocaleString();
+                    amountLabel = `$${usdVal} USD (≈ Rs. ${lkrEst})`;
+                    valueLabel = `$${usdVal} USD`;
+                  }
+                  const method = p2.gateway || p2.paymentMethod || p2.method || p2.provider || (isLkr ? "PayHere Online Card" : "Top-up");
                   const dateStr = p2.createdAt ? format(new Date(p2.createdAt), "yyyy-MM-dd") : "";
-                  return /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `Deposit #${p2.id} ($${amt} via ${method})`, children: [
+                  return /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: `Deposit #${p2.id} (${valueLabel} via ${method})`, children: [
                     "Deposit #",
                     p2.id,
-                    " • $",
-                    amt,
-                    " (",
+                    " • ",
+                    amountLabel,
+                    " • ",
                     method,
-                    ") • ",
+                    " • ",
                     p2.status || "Completed",
                     " ",
                     dateStr ? `• ${dateStr}` : ""
