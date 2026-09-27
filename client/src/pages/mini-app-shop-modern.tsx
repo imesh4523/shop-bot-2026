@@ -191,6 +191,74 @@ const DualCardIcon = ({ className = "h-4" }: { className?: string }) => (
   </div>
 );
 
+// High-Converting Auto-Swapping Hero Carousel Slides (3s Rotation)
+const HERO_SLIDES = [
+  {
+    id: "capcut-pro",
+    badge: "VIDEO & CREATIVE PRO",
+    badgeColor: "text-[#D92078] bg-pink-50 border-pink-100",
+    title: "CapCut Pro Premium",
+    subtitle: "1 Month, 6 Months & 7 Days Pro",
+    desc: "4K 60fps export, AI smart cutouts, premium effects & no watermark.",
+    priceTag: "⚡ Instant Key",
+    categoryTarget: "capcut",
+    gradientBg: "from-[#FFF1F6] via-[#FCE7F3] to-[#F5E6FF]",
+    borderColor: "border-pink-200/80",
+    btnGradient: "from-[#FF007A] to-[#7928CA]",
+    imageSrc: "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png",
+    imageAlt: "CapCut Pro",
+    glowColor: "bg-pink-400/25"
+  },
+  {
+    id: "gemini-ai",
+    badge: "NEXT-GEN AI PRO",
+    badgeColor: "text-[#1BA0E2] bg-cyan-50 border-cyan-100",
+    title: "Gemini AI Pro & Ultra",
+    subtitle: "18 Months & 1 Year Full Pro Access",
+    desc: "2M token context, deep reasoning & full multimodal coding.",
+    priceTag: "💎 Guaranteed",
+    categoryTarget: "gemini",
+    gradientBg: "from-[#F0F9FF] via-[#E0F2FE] to-[#EDE9FE]",
+    borderColor: "border-cyan-200/80",
+    btnGradient: "from-[#0080FF] to-[#6C5CE7]",
+    imageSrc: "https://www.vectorlogo.zone/logos/google_cloud/google_cloud-icon.svg",
+    imageAlt: "Gemini AI Pro",
+    glowColor: "bg-cyan-400/25"
+  },
+  {
+    id: "cloud-vps",
+    badge: "DEDICATED CLOUD VPS",
+    badgeColor: "text-[#5B42F3] bg-purple-50 border-purple-100",
+    title: "High Performance Cloud",
+    subtitle: "AWS, DigitalOcean, Oracle & Kamatera",
+    desc: "100% verified quotas, high CPU VPS & 24/7 dedicated uptime.",
+    priceTag: "🚀 Instant VPS",
+    categoryTarget: "aws",
+    gradientBg: "from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE]",
+    borderColor: "border-[#E4DCFA]",
+    btnGradient: "from-[#FF5E62] to-[#6C5CE7]",
+    imageSrc: "/assets/kamatera.png",
+    imageAlt: "Cloud Servers",
+    glowColor: "bg-purple-400/25"
+  },
+  {
+    id: "telegram-spotify",
+    badge: "PREMIUM & ENTERTAINMENT",
+    badgeColor: "text-[#24A1DE] bg-sky-50 border-sky-100",
+    title: "Telegram Premium & Spotify",
+    subtitle: "3, 6 & 12 Months Subscriptions",
+    desc: "Exclusive badges, 4GB file uploads, zero ads & HQ audio stream.",
+    priceTag: "🎁 Gift Links",
+    categoryTarget: "telegram",
+    gradientBg: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
+    borderColor: "border-sky-200/80",
+    btnGradient: "from-[#00C9FF] to-[#6C5CE7]",
+    imageSrc: "https://www.vectorlogo.zone/logos/telegram/telegram-icon.svg",
+    imageAlt: "Telegram & Spotify",
+    glowColor: "bg-sky-400/25"
+  }
+];
+
 const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; className?: string }) => {
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
@@ -689,6 +757,18 @@ export default function MiniAppShopModern() {
   ]);
   const [isChatSending, setIsChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Hero Auto-Swap Carousel State (Every 3 seconds)
+  const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+
+  useEffect(() => {
+    if (isHeroPaused) return;
+    const interval = setInterval(() => {
+      setCurrentHeroSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isHeroPaused]);
 
   // Category Horizontal Scroll & Drag Support for Mobile and Desktop
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -2127,38 +2207,102 @@ export default function MiniAppShopModern() {
               })}
             </div>
 
-            {/* Featured Hero Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE] p-5 shadow-sm mb-7 border border-[#E4DCFA]">
-              <div className="relative z-10 max-w-[65%]">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D92078] bg-white/90 shadow-sm px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2">
-                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> Verified Cloud & AI
-                </span>
-                <h2 className="text-lg font-black text-[#181432] leading-tight mb-1.5">
-                  High Performance Dedicated Cloud
-                </h2>
-                <p className="text-[11px] text-[#6B658B] leading-snug mb-4">
-                  Handpicked & automated cloud accounts with guaranteed quotas.
-                </p>
-                <button
-                  onClick={() => setSelectedCategory("aws")}
-                  className="px-4 py-2 bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white rounded-full text-xs font-bold shadow-md shadow-[#6C5CE7]/25 hover:opacity-95 transition-transform active:scale-95 flex items-center gap-1.5"
-                >
-                  Explore Now <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            {/* Auto-Swapping Feature Hero Carousel (Swaps every 3 seconds) */}
+            <div 
+              className="relative overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500"
+              onMouseEnter={() => setIsHeroPaused(true)}
+              onMouseLeave={() => setIsHeroPaused(false)}
+              onTouchStart={() => setIsHeroPaused(true)}
+              onTouchEnd={() => setIsHeroPaused(false)}
+            >
+              {HERO_SLIDES.map((slide, idx) => {
+                const isActive = idx === currentHeroSlide;
+                return (
+                  <div
+                    key={slide.id}
+                    className={`p-5 rounded-3xl border transition-all duration-700 ${
+                      isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
+                    } bg-gradient-to-r ${slide.gradientBg} ${slide.borderColor}`}
+                  >
+                    <div className="relative z-10 max-w-[65%]">
+                      <span className={`text-[9.5px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2 border shadow-xs ${slide.badgeColor}`}>
+                        <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> {slide.badge}
+                      </span>
+                      <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
+                        {slide.title}
+                      </h2>
+                      <div className="text-[11.5px] font-extrabold text-[#5B42F3] mb-1">
+                        {slide.subtitle}
+                      </div>
+                      <p className="text-[11px] text-[#6B658B] leading-snug mb-3.5">
+                        {slide.desc}
+                      </p>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const matched = products.find((p) => {
+                              const pName = (p.name || "").toLowerCase();
+                              const pType = (p.type || "").toLowerCase();
+                              const cat = slide.categoryTarget.toLowerCase();
+                              return pName.includes(cat) || pType.includes(cat);
+                            });
+                            if (matched) {
+                              setDetailProduct(matched);
+                              setQuantity(1);
+                            } else {
+                              setSelectedCategory(slide.categoryTarget);
+                              toast({
+                                title: `${slide.title} 🎯`,
+                                description: "Showing available packages & deals below."
+                              });
+                              const el = document.getElementById("best-sellers-heading");
+                              if (el) el.scrollIntoView({ behavior: "smooth" });
+                            }
+                          }}
+                          className={`px-4 py-2 bg-gradient-to-r ${slide.btnGradient} text-white rounded-full text-xs font-black shadow-md hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
+                        >
+                          Buy Now <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
 
-              {/* Decorative 3D Cloud Banner */}
-              <div className="absolute -right-4 -bottom-4 w-36 h-36 opacity-90 pointer-events-none flex items-center justify-center">
-                <div className="w-28 h-28 rounded-full bg-white/40 blur-xl absolute" />
-                <img
-                  src="/imesh_cloudbot_banner.png"
-                  alt="Feature"
-                  className="w-28 h-28 object-contain drop-shadow-md transform -rotate-6 hover:rotate-0 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as any).style.display = "none";
-                  }}
-                />
-              </div>
+                        <span className="text-[10px] font-extrabold text-[#7E7998] bg-white/80 px-2.5 py-1 rounded-full border border-black/5 shadow-2xs">
+                          {slide.priceTag}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* High-res Transparent Product Visual */}
+                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-32 h-32 opacity-95 pointer-events-none flex items-center justify-center">
+                      <div className={`w-24 h-24 rounded-full ${slide.glowColor} blur-xl absolute`} />
+                      <img
+                        src={slide.imageSrc}
+                        alt={slide.imageAlt}
+                        className="w-20 h-20 object-contain drop-shadow-md transform -rotate-3 hover:rotate-0 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.target as any).style.display = "none";
+                        }}
+                      />
+                    </div>
+
+                    {/* Carousel Navigation Indicator Dots */}
+                    <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20">
+                      {HERO_SLIDES.map((_, dotIdx) => (
+                        <button
+                          key={dotIdx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentHeroSlide(dotIdx);
+                          }}
+                          className={`transition-all duration-300 rounded-full h-1.5 ${
+                            dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
+                          }`}
+                          aria-label={`Slide ${dotIdx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Best Sellers & Trending Sub-Slider */}

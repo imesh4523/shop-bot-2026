@@ -2273,11 +2273,14 @@ export async function registerRoutes(
         };
       });
 
-      // Combine and sort by createdAt descending
+      // Combine and sort by createdAt descending, with secondary tie-breaker by rawId descending
       const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions].sort((a, b) => {
         const timeA = new Date(a.createdAt).getTime();
         const timeB = new Date(b.createdAt).getTime();
-        return timeB - timeA;
+        if (Math.abs(timeB - timeA) > 1000) {
+          return timeB - timeA;
+        }
+        return (b.rawId || 0) - (a.rawId || 0);
       });
 
       res.json(allTransactions);
