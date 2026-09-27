@@ -1428,16 +1428,50 @@ export default function MiniAppShopModern() {
 
     const isSpecialOffer = (offers || []).some((o) => o.productId === prod.id && o.status === "active");
     if (isSpecialOffer) {
-      return { text: "🔥 SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.red };
+      return { text: "SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.purple };
     }
 
-    const catItem = categories.find((c) => c.id.toLowerCase() === prod.type.toLowerCase() || prod.name.toLowerCase().includes(c.id.toLowerCase()));
+    const typeLower = (prod.type || "").toLowerCase();
+    const nameLower = (prod.name || "").toLowerCase();
+    const catItem = categories.find((c) => c.id.toLowerCase() === typeLower || nameLower.includes(c.id.toLowerCase()));
     if (catItem && catItem.badgeEnabled && catItem.badgeText) {
-      const grad = BADGE_COLOR_STYLES[catItem.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+      const grad = BADGE_COLOR_STYLES[catItem.badgeColor || "blue"] || BADGE_COLOR_STYLES.blue;
       return { text: catItem.badgeText, gradient: grad };
     }
 
-    return { text: "⚡ INSTANT", gradient: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" };
+    // Provider / Category Brand Palette Matching
+    if (typeLower.includes("aws") || nameLower.includes("aws")) {
+      return { text: "HOT CLOUD", gradient: BADGE_COLOR_STYLES.amber };
+    }
+    if (typeLower.includes("azure") || nameLower.includes("azure")) {
+      return { text: "POPULAR", gradient: BADGE_COLOR_STYLES.purple };
+    }
+    if (typeLower.includes("digitalocean") || nameLower.includes("digitalocean") || nameLower.includes("drop")) {
+      return { text: "PROMO", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (typeLower.includes("oracle") || nameLower.includes("oracle")) {
+      return { text: "PREMIUM", gradient: BADGE_COLOR_STYLES.red };
+    }
+    if (typeLower.includes("linode") || nameLower.includes("linode") || typeLower.includes("linod")) {
+      return { text: "VERIFIED", gradient: BADGE_COLOR_STYLES.emerald };
+    }
+    if (typeLower.includes("spotify") || nameLower.includes("spotify")) {
+      return { text: "MUSIC", gradient: BADGE_COLOR_STYLES.emerald };
+    }
+    if (typeLower.includes("youtube") || nameLower.includes("youtube")) {
+      return { text: "PREMIUM", gradient: BADGE_COLOR_STYLES.red };
+    }
+    if (typeLower.includes("google") || nameLower.includes("google") || nameLower.includes("gcp")) {
+      return { text: "PRO CLOUD", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (typeLower.includes("kamatera") || nameLower.includes("kamatera")) {
+      return { text: "FAST VPS", gradient: BADGE_COLOR_STYLES.pink };
+    }
+    if (typeLower.includes("ai") || nameLower.includes("chatgpt") || nameLower.includes("gemini")) {
+      return { text: "AI PRO", gradient: BADGE_COLOR_STYLES.emerald };
+    }
+
+    return { text: "INSTANT", gradient: "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white" };
   };
 
   // SMM Price Formatters
@@ -2011,8 +2045,8 @@ export default function MiniAppShopModern() {
             {/* Featured Hero Banner */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE] p-5 shadow-sm mb-7 border border-[#E4DCFA]">
               <div className="relative z-10 max-w-[65%]">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D92078] bg-white/90 shadow-sm px-2.5 py-1 rounded-full inline-block mb-2">
-                  ⚡ Verified Cloud & AI
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#D92078] bg-white/90 shadow-sm px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2">
+                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> Verified Cloud & AI
                 </span>
                 <h2 className="text-lg font-black text-[#181432] leading-tight mb-1.5">
                   High Performance Dedicated Cloud
@@ -2053,7 +2087,9 @@ export default function MiniAppShopModern() {
                     </span>
                     <h3 className="text-base font-black text-[#181432] tracking-tight">Best Sellers & Hot Deals</h3>
                   </div>
-                  <span className="text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full">⚡ Top Rated</span>
+                  <span className="text-[11px] font-black text-[#D92078] bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /> Top Rated
+                  </span>
                 </div>
 
                 <div
@@ -2067,7 +2103,7 @@ export default function MiniAppShopModern() {
                   {products.slice(0, 6).map((p, idx) => {
                     const priceFormatted = formatProductPrice(p);
                     const isFav = favorites.includes(p.id);
-                    const badgeLabels = ["🔥 BEST SELLER", "⚡ INSTANT", "⭐ TOP PICK", "HOT DEAL", "99.9% UPTIME"];
+                    const badgeLabels = ["BEST SELLER", "INSTANT 2FA", "TOP PICK", "HOT DEAL", "99.9% UPTIME"];
                     const badgeLabel = (p as any).badge || badgeLabels[idx % badgeLabels.length];
                     const badgeGradient = idx % 2 === 0
                       ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
@@ -2100,8 +2136,9 @@ export default function MiniAppShopModern() {
                           <h4 className="text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1">
                             {p.name}
                           </h4>
-                          <span className="text-[10px] font-bold text-[#7E7998] mt-0.5">
-                            {p.stockCount && p.stockCount > 0 ? `${p.stockCount} in stock` : "Verified ⚡"}
+                          <span className="text-[10px] font-bold text-[#7E7998] mt-0.5 inline-flex items-center gap-1">
+                            {p.stockCount && p.stockCount > 0 ? `${p.stockCount} in stock` : "Verified"}
+                            <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
                           </span>
                         </div>
 
@@ -3742,7 +3779,7 @@ export default function MiniAppShopModern() {
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                       <button
                         onClick={() => setTxFilterType("all")}
-                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all whitespace-nowrap ${
                           txFilterType === "all"
                             ? "bg-[#5B42F3] text-white"
                             : "bg-[#F8F7FD] text-[#7E7998] hover:bg-[#EDE9FE]"
@@ -3752,7 +3789,7 @@ export default function MiniAppShopModern() {
                       </button>
                       <button
                         onClick={() => setTxFilterType("deposit")}
-                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all whitespace-nowrap ${
                           txFilterType === "deposit"
                             ? "bg-emerald-600 text-white"
                             : "bg-[#F8F7FD] text-[#7E7998] hover:bg-emerald-50"
@@ -3762,13 +3799,23 @@ export default function MiniAppShopModern() {
                       </button>
                       <button
                         onClick={() => setTxFilterType("purchase")}
-                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all ${
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all whitespace-nowrap ${
                           txFilterType === "purchase"
                             ? "bg-blue-600 text-white"
                             : "bg-[#F8F7FD] text-[#7E7998] hover:bg-blue-50"
                         }`}
                       >
-                        Purchases ({transactionsList.filter(t => t.type === "purchase" || t.type === "partner" || t.type === "smm").length})
+                        Purchases ({transactionsList.filter(t => (t.type === "purchase" || t.type === "partner" || t.type === "smm") && !t.isApiOrder).length})
+                      </button>
+                      <button
+                        onClick={() => setTxFilterType("api")}
+                        className={`px-3 py-1 text-[11px] font-black rounded-xl transition-all whitespace-nowrap flex items-center gap-1 ${
+                          txFilterType === "api"
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-xs"
+                            : "bg-[#F8F7FD] text-[#7E7998] hover:bg-violet-50"
+                        }`}
+                      >
+                        <Key className="w-2.5 h-2.5" /> API ({transactionsList.filter(t => t.isApiOrder || t.type === "api").length})
                       </button>
                     </div>
 
@@ -3787,7 +3834,13 @@ export default function MiniAppShopModern() {
                     ) : (
                       <div className="divide-y divide-[#F5F4FC] max-h-96 overflow-y-auto">
                         {transactionsList
-                          .filter(t => txFilterType === "all" || (txFilterType === "deposit" ? t.type === "deposit" : t.type !== "deposit"))
+                          .filter((t) => {
+                            if (txFilterType === "all") return true;
+                            if (txFilterType === "deposit") return t.type === "deposit";
+                            if (txFilterType === "api") return t.isApiOrder || t.type === "api";
+                            if (txFilterType === "purchase") return (t.type === "purchase" || t.type === "partner" || t.type === "smm") && !t.isApiOrder;
+                            return true;
+                          })
                           .map((tx) => {
                             const isDeposit = tx.type === "deposit";
                             const statusLower = (tx.status || "").toLowerCase();
@@ -4216,7 +4269,9 @@ export default function MiniAppShopModern() {
                   <Zap className="w-4 h-4 text-[#5B42F3]" />
                   <span className="text-[11px] font-bold text-[#5B42F3]">Automated 2FA Instant Delivery</span>
                 </div>
-                <span className="text-[10px] text-[#7E7998] font-semibold">0-2 Mins ⚡</span>
+                <span className="text-[10px] text-[#7E7998] font-semibold inline-flex items-center gap-1">
+                  0-2 Mins <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
+                </span>
               </div>
             </div>
           )}

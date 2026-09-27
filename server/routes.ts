@@ -2157,7 +2157,7 @@ export async function registerRoutes(
         };
       });
 
-      // 2. Direct Store Purchases
+      // 2. Direct Store Purchases & Developer API Orders
       const userOrders = await db.select()
         .from(orders)
         .leftJoin(products, eq(orders.productId, products.id))
@@ -2166,14 +2166,15 @@ export async function registerRoutes(
         .orderBy(desc(orders.createdAt));
 
       const purchases = userOrders.map(o => {
+        const isApiOrder = Boolean(o.orders.apiKeyId);
         const costUsd = ((o.products?.price || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
 
         return {
-          id: `ORD-${o.orders.id}`,
+          id: isApiOrder ? `YH-API-${o.orders.id}` : `ORD-${o.orders.id}`,
           rawId: o.orders.id,
-          type: "purchase" as const,
-          category: "Cloud Account Purchase",
+          type: isApiOrder ? ("api" as const) : ("purchase" as const),
+          category: isApiOrder ? "Developer API Order" : "Cloud Account Purchase",
           title: o.products?.name || "Digital Cloud Product",
           productType: o.products?.type || "Standard",
           amountCents: -(o.products?.price || 0),
@@ -2181,11 +2182,14 @@ export async function registerRoutes(
           amountLkr: costLkr.toLocaleString(),
           amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
-          method: "wallet_balance",
-          status: o.orders.status === "completed" ? "completed" : o.orders.status, // "completed", "refunded", "pending"
-          reference: `#ORD-${o.orders.id}`,
+          method: isApiOrder ? "api_key" : "wallet_balance",
+          status: o.orders.status, // "completed", "failed", "pending", "refunded"
+          reference: isApiOrder ? `#YH-API-${o.orders.id}` : `#ORD-${o.orders.id}`,
+          isApiOrder,
           deliveredContent: o.credentials?.content || null,
-          details: `Purchased: ${o.products?.name || "Product"}. Instant credentials delivered.`,
+          details: isApiOrder
+            ? `API Key Order #${o.orders.id} for ${o.products?.name || "Product"}`
+            : `Purchased: ${o.products?.name || "Product"}. Instant credentials delivered.`,
           createdAt: o.orders.createdAt || new Date(),
           updatedAt: o.orders.createdAt || new Date()
         };
@@ -2203,10 +2207,10 @@ export async function registerRoutes(
         const costLkr = Math.round(costUsd * lkrRate);
 
         return {
-          id: `YH-API-${s.smm_orders.id}`,
+          id: `YH-${s.smm_orders.id}`,
           rawId: s.smm_orders.id,
           type: "smm" as const,
-          category: "YouuHost API Service",
+          category: "YouuHost Social Boost",
           title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
           smmCategory: s.smm_services?.category || "Social Media",
           smmLink: s.smm_orders.link || "",
@@ -2220,9 +2224,9 @@ export async function registerRoutes(
           amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
-          status: s.smm_orders.status || "Pending", // "Completed", "In progress", "Pending", "Canceled", "Partial"
-          reference: `#YH-API-${s.smm_orders.id}`,
-          isApiOrder: true,
+          status: s.smm_orders.status || "Pending",
+          reference: `#YH-${s.smm_orders.id}`,
+          isApiOrder: false,
           details: `Target: ${s.smm_orders.link || "N/A"} (${s.smm_orders.quantity || 0} units)`,
           createdAt: s.smm_orders.createdAt || new Date(),
           updatedAt: s.smm_orders.updatedAt || s.smm_orders.createdAt || new Date()
