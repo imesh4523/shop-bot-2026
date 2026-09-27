@@ -635,40 +635,82 @@ export async function sendLuxuryEmail({
     const resendApiKey = (await storage.getSetting("RESEND_API_KEY"))?.value || process.env.RESEND_API_KEY;
     const fromEmail = (await storage.getSetting("RESEND_FROM_EMAIL"))?.value || (await storage.getSetting("SMTP_FROM"))?.value || `"YouuHost" <no-reply@youuhost.com>`;
 
+    const cleanToEmail = toEmail.trim();
+    let sentSuccessfully = false;
+
     if (resendApiKey && resendApiKey.startsWith("re_")) {
-      // 1. Send via Resend API (Transactional Engine)
-      const resendAttachments = attachments && attachments.length > 0
-        ? attachments.map((a) => {
-            const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content);
-            return {
-              filename: a.filename,
-              content: buf.toString("base64"),
-            };
-          })
-        : undefined;
+      try {
+        // 1. Send via Resend API (Transactional Engine)
+        const resendAttachments = attachments && attachments.length > 0
+          ? attachments.map((a) => {
+              const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content);
+              return {
+                filename: a.filename,
+                content: buf.toString("base64"),
+              };
+            })
+          : undefined;
 
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${resendApiKey.trim()}`,
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [toEmail.trim()],
-          subject,
-          html,
-          attachments: resendAttachments,
-        }),
-      });
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendApiKey.trim()}`,
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [cleanToEmail],
+            subject,
+            html,
+            attachments: resendAttachments,
+          }),
+        });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(`Resend Error: ${data.message || data.error || res.statusText}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(`Resend Error: ${data.message || data.error || res.statusText}`);
+        }
+
+        console.log(`[Email Hub - Resend API] Sent "${subject}" to ${cleanToEmail} from ${fromEmail} (ID: ${data.id})`);
+        sentSuccessfully = true;
+      } catch (resendErr: any) {
+        console.warn(`[Email Hub - Resend Warning] Resend attempt failed: ${resendErr.message}. Checking SMTP fallback...`);
+        // Check if SMTP is configured for graceful fallback
+        const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+        const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+        const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
+
+        if (smtpHost && smtpUser && smtpPass) {
+          const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
+          const nodemailerMod = await import("nodemailer");
+          const nodemailer = (nodemailerMod as any).default || nodemailerMod;
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+          });
+
+          await transporter.sendMail({
+            from: fromEmail,
+            to: cleanToEmail,
+            subject,
+            html,
+            attachments: attachments && attachments.length > 0 ? attachments : undefined,
+          });
+
+          console.log(`[Email Hub - SMTP Fallback] Email "${subject}" sent to ${cleanToEmail} from ${fromEmail}`);
+          sentSuccessfully = true;
+        } else {
+          throw resendErr;
+        }
       }
+    }
 
-      console.log(`[Email Hub - Resend API] Sent "${subject}" to ${toEmail} from ${fromEmail} (ID: ${data.id})`);
-    } else {
+    if (!sentSuccessfully) {
       // 2. Fallback: Send via SMTP
       const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
       const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
@@ -693,13 +735,13 @@ export async function sendLuxuryEmail({
 
       await transporter.sendMail({
         from: fromEmail,
-        to: toEmail,
+        to: cleanToEmail,
         subject,
         html,
         attachments: attachments && attachments.length > 0 ? attachments : undefined,
       });
 
-      console.log(`[Email Hub - SMTP] Email "${subject}" sent to ${toEmail} from ${fromEmail}`);
+      console.log(`[Email Hub - SMTP] Email "${subject}" sent to ${cleanToEmail} from ${fromEmail}`);
     }
   } catch (err: any) {
     logStatus = "failed";
@@ -15791,15 +15833,80 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   // 2. Get registered users for recipient picker & broadcast
   app.get("/api/admin/emails/users", async (_req, res) => {
     try {
-      const allUsers = await storage.getAllUsers();
-      const sanitized = allUsers
-        .filter(u => u.email && u.email.includes("@"))
-        .map(u => ({
-          id: u.id,
-          username: u.username,
-          email: u.email!,
-          fullName: u.fullName || u.username,
-        }));
+      const emailMap = new Map<string, {
+        id: number;
+        username: string;
+        email: string;
+        fullName: string;
+        source: string;
+        balance?: number;
+      }>();
+
+      // 1. Fetch from telegramUsers (All web, google, telegram, email customers)
+      try {
+        const tUsers = await db.select({
+          id: telegramUsers.id,
+          telegramId: telegramUsers.telegramId,
+          username: telegramUsers.username,
+          firstName: telegramUsers.firstName,
+          lastName: telegramUsers.lastName,
+          email: telegramUsers.email,
+          authProvider: telegramUsers.authProvider,
+          balance: telegramUsers.balance,
+        })
+        .from(telegramUsers)
+        .where(sql`email IS NOT NULL AND email != ''`);
+
+        for (const u of tUsers) {
+          if (u.email && u.email.includes("@")) {
+            const cleanEmail = u.email.trim().toLowerCase();
+            const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || u.telegramId || "Customer";
+            if (!emailMap.has(cleanEmail)) {
+              emailMap.set(cleanEmail, {
+                id: u.id,
+                username: u.username || u.telegramId || "user",
+                email: u.email.trim(),
+                fullName,
+                source: u.authProvider || "customer",
+                balance: u.balance,
+              });
+            }
+          }
+        }
+      } catch (tErr: any) {
+        console.error("Error querying telegramUsers for emails:", tErr?.message);
+      }
+
+      // 2. Fetch from users (Admin / web staff accounts)
+      try {
+        const staffUsers = await db.select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          fullName: users.fullName,
+        })
+        .from(users)
+        .where(sql`email IS NOT NULL AND email != ''`);
+
+        for (const u of staffUsers) {
+          if (u.email && u.email.includes("@")) {
+            const cleanEmail = u.email.trim().toLowerCase();
+            if (!emailMap.has(cleanEmail)) {
+              emailMap.set(cleanEmail, {
+                id: u.id + 1000000,
+                username: u.username || "admin",
+                email: u.email.trim(),
+                fullName: u.fullName || u.username || "Admin",
+                source: "admin",
+              });
+            }
+          }
+        }
+      } catch (sErr: any) {
+        console.error("Error querying users table for emails:", sErr?.message);
+      }
+
+      const sanitized = Array.from(emailMap.values());
       res.json({ success: true, count: sanitized.length, users: sanitized });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -15910,14 +16017,60 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
       } = req.body;
 
       if (recipientMode === "broadcast") {
-        const allUsers = await storage.getAllUsers();
-        const validUsers = allUsers.filter(u => u.email && u.email.includes("@"));
+        const emailMap = new Map<string, { email: string; name: string }>();
 
+        try {
+          const tUsers = await db.select({
+            firstName: telegramUsers.firstName,
+            lastName: telegramUsers.lastName,
+            username: telegramUsers.username,
+            telegramId: telegramUsers.telegramId,
+            email: telegramUsers.email,
+          })
+          .from(telegramUsers)
+          .where(sql`email IS NOT NULL AND email != ''`);
+
+          for (const u of tUsers) {
+            if (u.email && u.email.includes("@")) {
+              const clean = u.email.trim().toLowerCase();
+              const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || u.telegramId || "Customer";
+              if (!emailMap.has(clean)) {
+                emailMap.set(clean, { email: u.email.trim(), name });
+              }
+            }
+          }
+        } catch (e: any) {
+          console.error("Error fetching broadcast telegramUsers:", e?.message);
+        }
+
+        try {
+          const staffUsers = await db.select({
+            fullName: users.fullName,
+            username: users.username,
+            email: users.email,
+          })
+          .from(users)
+          .where(sql`email IS NOT NULL AND email != ''`);
+
+          for (const u of staffUsers) {
+            if (u.email && u.email.includes("@")) {
+              const clean = u.email.trim().toLowerCase();
+              const name = u.fullName || u.username || "Admin";
+              if (!emailMap.has(clean)) {
+                emailMap.set(clean, { email: u.email.trim(), name });
+              }
+            }
+          }
+        } catch (e: any) {
+          console.error("Error fetching broadcast staff users:", e?.message);
+        }
+
+        const validUsers = Array.from(emailMap.values());
         let sentCount = 0;
         let failedCount = 0;
 
         for (const u of validUsers) {
-          const uName = u.fullName || u.username;
+          const uName = u.name;
           let emailHtml = "";
           let attachments: any[] = [];
 

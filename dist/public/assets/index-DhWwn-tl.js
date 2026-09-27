@@ -74047,7 +74047,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CbR-5wkD.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es--j93zN8q.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -115523,31 +115523,83 @@ function EmailHubPage() {
                 )
               ] })
             ] }),
-            recipientMode === "single" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Email" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
+            recipientMode === "single" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pt-1", children: [
+              usersData?.users && usersData.users.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "h-3 w-3" }),
+                  " Quick Fill from Registered Users (",
+                  usersData.users.length,
+                  ")"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Select,
                   {
-                    placeholder: "client@gmail.com",
-                    value: toEmail,
-                    onChange: (e) => setToEmail(e.target.value),
-                    className: "bg-background/80 border-white/10 text-xs"
+                    onValueChange: (val) => {
+                      const found = usersData.users.find((u2) => u2.email === val);
+                      if (found) {
+                        setToEmail(found.email);
+                        setRecipientName(found.fullName || found.username);
+                      }
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "bg-background/80 border-emerald-500/30 text-xs h-8", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "-- Choose registered customer --" }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(SelectContent, { className: "max-h-60", children: usersData.users.map((u2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: u2.email, className: "text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3 w-full", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-white", children: u2.fullName || u2.username }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-muted-foreground text-[11px] font-mono", children: [
+                          "(",
+                          u2.email,
+                          ")"
+                        ] })
+                      ] }) }, u2.email)) })
+                    ]
                   }
                 )
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Name" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    placeholder: "e.g. Test User",
-                    value: recipientName,
-                    onChange: (e) => setRecipientName(e.target.value),
-                    className: "bg-background/80 border-white/10 text-xs"
-                  }
-                )
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Email" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      placeholder: "client@gmail.com",
+                      value: toEmail,
+                      onChange: (e) => setToEmail(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Recipient Name" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      placeholder: "e.g. Test User",
+                      value: recipientName,
+                      onChange: (e) => setRecipientName(e.target.value),
+                      className: "bg-background/80 border-white/10 text-xs"
+                    }
+                  )
+                ] })
               ] })
+            ] }),
+            recipientMode === "broadcast" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold text-emerald-300 flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "h-3.5 w-3.5" }),
+                  " Target: ",
+                  userCount,
+                  " Registered Email Customers"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px]", children: "Bulk Queue Active" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground", children: "Emails will be dispatched in individualized personalized streams with custom invoices attached for each user." }),
+              usersData?.users && usersData.users.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1 pt-1 max-h-24 overflow-y-auto", children: usersData.users.map((u2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-slate-300", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-400" }),
+                u2.fullName || u2.username,
+                " (",
+                u2.email,
+                ")"
+              ] }, u2.email)) })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs", children: "Subject Line" }),

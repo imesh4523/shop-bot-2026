@@ -422,25 +422,85 @@ export default function EmailHubPage() {
 
                   {/* Single Recipient Inputs */}
                   {recipientMode === "single" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Recipient Email</Label>
-                        <Input
-                          placeholder="client@gmail.com"
-                          value={toEmail}
-                          onChange={(e) => setToEmail(e.target.value)}
-                          className="bg-background/80 border-white/10 text-xs"
-                        />
+                    <div className="space-y-3 pt-1">
+                      {usersData?.users && usersData.users.length > 0 && (
+                        <div className="space-y-1.5 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                          <Label className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+                            <Users className="h-3 w-3" /> Quick Fill from Registered Users ({usersData.users.length})
+                          </Label>
+                          <Select
+                            onValueChange={(val) => {
+                              const found = usersData.users.find(u => u.email === val);
+                              if (found) {
+                                setToEmail(found.email);
+                                setRecipientName(found.fullName || found.username);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="bg-background/80 border-emerald-500/30 text-xs h-8">
+                              <SelectValue placeholder="-- Choose registered customer --" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {usersData.users.map((u) => (
+                                <SelectItem key={u.email} value={u.email} className="text-xs">
+                                  <div className="flex items-center justify-between gap-3 w-full">
+                                    <span className="font-semibold text-white">{u.fullName || u.username}</span>
+                                    <span className="text-muted-foreground text-[11px] font-mono">({u.email})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Recipient Email</Label>
+                          <Input
+                            placeholder="client@gmail.com"
+                            value={toEmail}
+                            onChange={(e) => setToEmail(e.target.value)}
+                            className="bg-background/80 border-white/10 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Recipient Name</Label>
+                          <Input
+                            placeholder="e.g. Test User"
+                            value={recipientName}
+                            onChange={(e) => setRecipientName(e.target.value)}
+                            className="bg-background/80 border-white/10 text-xs"
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Recipient Name</Label>
-                        <Input
-                          placeholder="e.g. Test User"
-                          value={recipientName}
-                          onChange={(e) => setRecipientName(e.target.value)}
-                          className="bg-background/80 border-white/10 text-xs"
-                        />
+                    </div>
+                  )}
+
+                  {/* Broadcast Audience Info */}
+                  {recipientMode === "broadcast" && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" /> Target: {userCount} Registered Email Customers
+                        </span>
+                        <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px]">
+                          Bulk Queue Active
+                        </Badge>
                       </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Emails will be dispatched in individualized personalized streams with custom invoices attached for each user.
+                      </p>
+                      {usersData?.users && usersData.users.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1 max-h-24 overflow-y-auto">
+                          {usersData.users.map((u) => (
+                            <span key={u.email} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-slate-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              {u.fullName || u.username} ({u.email})
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
