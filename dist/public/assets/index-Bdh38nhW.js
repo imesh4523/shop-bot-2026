@@ -74096,7 +74096,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BT3uUBRR.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DIx-_Ig-.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -118920,21 +118920,10 @@ class ErrorBoundary extends reactExports.Component {
 function PageLoader() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 160 }) });
 }
-function isAllowedAdminDomain() {
-  if (typeof window === "undefined") return true;
-  const host = window.location.hostname.toLowerCase();
-  return host === "imeshmain2.youuhost.com" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
-}
 function ProtectedRoute({ component: Component }) {
   const { user, isLoading } = useAuth();
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(PageLoader, {});
-  }
-  if (!isAllowedAdminDomain()) {
-    if (typeof window !== "undefined") {
-      window.location.href = `https://imeshmain2.youuhost.com${window.location.pathname}${window.location.search}`;
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(PageLoader, {});
-    }
   }
   if (!user) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" });
@@ -118946,7 +118935,7 @@ function RootRouteHandler() {
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(PageLoader, {});
   }
-  const host = window.location.hostname.toLowerCase();
+  const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   const isApiSubdomain = host.startsWith("api.") || host === "api.youuhost.com";
   if (isApiSubdomain) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(ApiDocsPage, {});
@@ -118965,13 +118954,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/docs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ApiDocsPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/api-docs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ApiDocsPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/shop", children: /* @__PURE__ */ jsxRuntimeExports.jsx(MiniAppShop, {}) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/login", children: (() => {
-      if (!isAllowedAdminDomain() && typeof window !== "undefined") {
-        window.location.href = `https://imeshmain2.youuhost.com/imeshadmindashbord/login`;
-        return /* @__PURE__ */ jsxRuntimeExports.jsx(PageLoader, {});
-      }
-      return /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {});
-    })() }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoginPage, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/login", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Redirect, { to: "/imeshadmindashbord/login" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: Dashboard }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/email-hub", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: EmailHubPage }) }),
