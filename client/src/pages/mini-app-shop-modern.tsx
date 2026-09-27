@@ -1515,23 +1515,39 @@ Support: https://t.me/youuhost_support
     }
   });
 
-  // Currency State (USD / LKR)
+  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit
   const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
-    return (localStorage.getItem("app_currency") as "USD" | "LKR") || "USD";
+    const saved = localStorage.getItem("app_currency");
+    if (saved === "LKR" || saved === "USD") return saved;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
+        return "LKR";
+      }
+    } catch {}
+    return "USD";
   });
 
-  const { data: currencyData } = useQuery<{ rates: Record<string, number> }>({
+  const { data: currencyData } = useQuery<{ rates: Record<string, number>; defaultCurrency?: string; isSriLanka?: boolean }>({
     queryKey: ["/api/currency/rates"],
     queryFn: async () => {
       try {
         const res = await fetch("/api/currency/rates");
         return res.json();
       } catch {
-        return { rates: { USD: 1.0, LKR: 305.50 } };
+        return { rates: { USD: 1.0, LKR: 305.50 }, defaultCurrency: "USD", isSriLanka: false };
       }
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Auto-apply detected currency on first visit if user hasn't toggled yet
+  useEffect(() => {
+    if (currencyData && !localStorage.getItem("app_currency")) {
+      const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
+      setSelectedCurrency(detected);
+    }
+  }, [currencyData]);
 
   const lkrRate = currencyData?.rates?.LKR || 305.50;
 
@@ -5864,7 +5880,7 @@ Support: https://t.me/youuhost_support
           if (!open) setSelectedOrderDetails(null);
         }}
       >
-        <DialogContent hideClose={true} className="w-[94vw] max-w-md bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] sm:rounded-[32px] p-4 sm:p-5 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50">
+        <DialogContent hideClose={true} className="!w-[calc(100vw-24px)] !max-w-[440px] bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] sm:rounded-[32px] p-3.5 sm:p-5 shadow-2xl overflow-x-hidden max-h-[88vh] overflow-y-auto z-50">
           {selectedOrderDetails && (() => {
             const ord = selectedOrderDetails;
             const priceUsd = (ord.priceCents / 100).toFixed(2);
@@ -5872,31 +5888,39 @@ Support: https://t.me/youuhost_support
             const dateStr = ord.date && ord.date.getTime() > 0 ? format(ord.date, "MMM d, yyyy • HH:mm:ss") : "Recent";
 
             return (
-              <div className="space-y-3.5">
+              <div className="space-y-3 w-full overflow-hidden">
                 <DialogHeader className="sr-only">
                   <DialogTitle>{ord.title} Details</DialogTitle>
                   <DialogDescription>Order credentials and receipts</DialogDescription>
                 </DialogHeader>
 
                 {/* Top Header: Close Button & Status Badge */}
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedOrderDetails(null)}
-                    className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8] shrink-0 active:scale-95"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                    <span className="text-[10px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2.5 py-1 rounded-full border border-purple-200/60">
+                <div className="flex items-center justify-between gap-2 pb-1 border-b border-[#ECEEF8]/80 w-full">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={() => setSelectedOrderDetails(null)}
+                      className="w-8 h-8 rounded-full bg-white shadow-xs flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8] shrink-0 active:scale-95"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-[11px] font-mono font-bold text-[#5B42F3] bg-[#F5F4FC] px-2.5 py-1 rounded-full border border-purple-200/60 truncate max-w-[130px]">
                       {ord.orderNumber}
                     </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {ord.statusBadge}
+                    <button
+                      onClick={() => setSelectedOrderDetails(null)}
+                      className="w-7 h-7 rounded-full bg-white text-[#9490A8] hover:text-[#181432] border border-[#ECEEF8] flex items-center justify-center text-xs active:scale-95 shadow-xs"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
                 {/* Product Title & Category */}
-                <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-[#ECEEF8] shadow-xs">
+                <div className="bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs w-full overflow-hidden">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className={`text-[9.5px] font-extrabold px-2 py-0.5 rounded-full border ${ord.badgeBg}`}>
                       {ord.categoryTag}
@@ -5905,30 +5929,30 @@ Support: https://t.me/youuhost_support
                       {dateStr}
                     </span>
                   </div>
-                  <h3 className="text-[14px] sm:text-[15px] font-black text-[#181432] leading-snug break-words">
+                  <h3 className="text-[13.5px] sm:text-[15px] font-black text-[#181432] leading-snug break-words">
                     {ord.title}
                   </h3>
 
                   {/* Pricing and Quantity Pill Box */}
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-[#F5F4FC] text-center">
-                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight">Quantity</span>
-                      <span className="font-black text-[#181432] text-[11px] sm:text-xs truncate block">{ord.quantity?.toLocaleString() || 1}</span>
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2 mt-3 pt-3 border-t border-[#F5F4FC] text-center w-full">
+                    <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight truncate w-full">Quantity</span>
+                      <span className="font-black text-[#181432] text-[10.5px] sm:text-xs truncate w-full">{ord.quantity?.toLocaleString() || 1}</span>
                     </div>
-                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#5B42F3] uppercase block tracking-tight">USD Price</span>
-                      <span className="font-black font-mono text-[#5B42F3] text-[11px] sm:text-xs truncate block">${priceUsd}</span>
+                    <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-[#5B42F3] uppercase block tracking-tight truncate w-full">USD Price</span>
+                      <span className="font-black font-mono text-[#5B42F3] text-[10.5px] sm:text-xs truncate w-full">${priceUsd}</span>
                     </div>
-                    <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                      <span className="text-[8.5px] sm:text-[9px] font-bold text-[#D92078] uppercase block tracking-tight">LKR Total</span>
-                      <span className="font-black font-mono text-[#D92078] text-[11px] sm:text-xs truncate block">Rs. {priceLkr}</span>
+                    <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-[#D92078] uppercase block tracking-tight truncate w-full">LKR Total</span>
+                      <span className="font-black font-mono text-[#D92078] text-[10px] sm:text-xs truncate w-full">Rs. {priceLkr}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Delivered Credentials Box (Cloud / Accounts) */}
                 {ord.credentialData && (
-                  <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-purple-200/80 shadow-xs space-y-2">
+                  <div className="bg-white rounded-3xl p-3 sm:p-4 border border-purple-200/80 shadow-xs space-y-2 w-full overflow-hidden">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-black text-[#5B42F3]">
                         <KeyRound className="w-4 h-4 text-[#5B42F3]" />
@@ -5963,7 +5987,7 @@ Support: https://t.me/youuhost_support
 
                 {/* Delivered Digital License / CDK (Sandromania) */}
                 {ord.licenseKey && (
-                  <div className="bg-[#F0FDF4] rounded-3xl p-3.5 sm:p-4 border border-emerald-200 shadow-xs space-y-2">
+                  <div className="bg-[#F0FDF4] rounded-3xl p-3 sm:p-4 border border-emerald-200 shadow-xs space-y-2 w-full overflow-hidden">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-black text-emerald-800">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -5985,7 +6009,7 @@ Support: https://t.me/youuhost_support
 
                 {/* SMM Social Boost Details */}
                 {ord.orderType === "smm" && (
-                  <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5">
+                  <div className="bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5 overflow-hidden w-full">
                     <div className="flex items-center justify-between text-xs font-black text-[#D92078]">
                       <div className="flex items-center gap-1.5">
                         <Zap className="w-4 h-4 text-[#D92078]" />
@@ -5994,8 +6018,8 @@ Support: https://t.me/youuhost_support
                     </div>
 
                     {ord.smmLink && (
-                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2 overflow-hidden w-full">
+                        <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
                           <ExternalLink className="w-3.5 h-3.5 text-[#5B42F3] shrink-0" />
                           <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
                             {ord.smmLink}
@@ -6003,32 +6027,32 @@ Support: https://t.me/youuhost_support
                         </div>
                         <button
                           onClick={() => copyToClipboard(ord.smmLink, "Link Copied")}
-                          className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
+                          className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0 px-1"
                         >
                           Copy
                         </button>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                        <span className="text-[8.5px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight">Quantity</span>
-                        <span className="font-black text-[#181432] text-[11px] sm:text-xs truncate block">{ord.quantity?.toLocaleString()}</span>
+                    <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center w-full">
+                      <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-[#9490A8] uppercase block tracking-tight truncate w-full">Quantity</span>
+                        <span className="font-black text-[#181432] text-[10.5px] sm:text-xs truncate w-full">{ord.quantity?.toLocaleString()}</span>
                       </div>
-                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                        <span className="text-[8.5px] sm:text-[9px] font-bold text-sky-600 uppercase block tracking-tight">Start Count</span>
-                        <span className="font-black text-sky-600 text-[11px] sm:text-xs truncate block">{ord.startCount || "0"}</span>
+                      <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-sky-600 uppercase block tracking-tight truncate w-full">Start Count</span>
+                        <span className="font-black text-sky-600 text-[10.5px] sm:text-xs truncate w-full">{ord.startCount || "0"}</span>
                       </div>
-                      <div className="bg-[#F8F7FD] p-1.5 sm:p-2 rounded-xl border border-[#ECEEF8]/80 min-w-0">
-                        <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-600 uppercase block tracking-tight">Remains</span>
-                        <span className="font-black text-amber-600 text-[11px] sm:text-xs truncate block">{ord.remains || "0"}</span>
+                      <div className="bg-[#F8F7FD] py-2 px-1 rounded-xl border border-[#ECEEF8]/80 min-w-0 flex flex-col items-center justify-center">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-amber-600 uppercase block tracking-tight truncate w-full">Remains</span>
+                        <span className="font-black text-amber-600 text-[10.5px] sm:text-xs truncate w-full">{ord.remains || "0"}</span>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Primary Action Buttons: Download .txt File & Copy */}
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2 pt-1 w-full">
                   <button
                     onClick={() => downloadOrderTxt(ord)}
                     className="w-full py-3 bg-gradient-to-r from-[#5B42F3] via-[#8E54E9] to-[#00C9FF] hover:opacity-95 text-white rounded-2xl text-xs font-black shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
@@ -6036,7 +6060,7 @@ Support: https://t.me/youuhost_support
                     <Download className="w-4 h-4" /> {ord.orderType === "smm" ? "Download .txt Receipt (Boost Summary)" : "Download .txt File (Credentials)"}
                   </button>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 w-full">
                     <button
                       onClick={() => {
                         const rawText = `Order ID: ${ord.orderNumber}\nProduct: ${ord.title}\nPrice: $${priceUsd} (Rs. ${priceLkr})\nCredentials:\n${ord.credentialData || ord.licenseKey || ord.smmLink || ord.status}`;

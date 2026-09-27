@@ -1900,6 +1900,33 @@ export async function registerRoutes(
     res.json(offers.filter(o => o.status === 'active'));
   });
 
+  // Live Exchange Rates & Geo IP Currency Detection (Sri Lanka LK -> LKR, Global -> USD)
+  app.get("/api/currency/rates", async (req, res) => {
+    try {
+      const rates = await fetchLiveExchangeRates();
+      const cfCountry = ((req.headers["cf-ipcountry"] || req.headers["x-country-code"] || "") as string).toUpperCase();
+      const isSriLanka = cfCountry === "LK";
+      res.json({
+        rates,
+        countryCode: cfCountry || "GLOBAL",
+        defaultCurrency: isSriLanka ? "LKR" : "USD",
+        isSriLanka,
+      });
+    } catch (err: any) {
+      res.json({ rates: { USD: 1.0, LKR: 305.50 }, countryCode: "GLOBAL", defaultCurrency: "USD", isSriLanka: false });
+    }
+  });
+
+  app.get("/api/geo/detect", (req, res) => {
+    const cfCountry = ((req.headers["cf-ipcountry"] || req.headers["x-country-code"] || "") as string).toUpperCase();
+    const isSriLanka = cfCountry === "LK";
+    res.json({
+      country: cfCountry || "GLOBAL",
+      defaultCurrency: isSriLanka ? "LKR" : "USD",
+      isSriLanka,
+    });
+  });
+
   // Get user's purchase history within Mini App
   app.get("/api/mini/orders", verifyMiniAppAuth, async (req, res) => {
     const tgUser = (req as any).tgUser;
