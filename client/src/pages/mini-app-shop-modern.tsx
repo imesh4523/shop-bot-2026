@@ -195,65 +195,69 @@ const DualCardIcon = ({ className = "h-4" }: { className?: string }) => (
 const HERO_SLIDES = [
   {
     id: "capcut-pro",
-    badge: "VIDEO & CREATIVE PRO",
-    badgeColor: "text-[#D92078] bg-pink-50 border-pink-100",
-    title: "CapCut Pro Premium",
-    subtitle: "1 Month, 6 Months & 7 Days Pro",
-    desc: "4K 60fps export, AI smart cutouts, premium effects & no watermark.",
-    priceTag: "⚡ Instant Key",
+    title: "CapCut Pro Video Editor",
+    subtitle: "1 Month • 6 Months • 7 Days Pro",
+    features: [
+      "4K 60fps Ultra HD Export & No Watermark",
+      "Pro VIP AI Effects, Transitions & Auto-Cut",
+      "100GB Cloud Storage & Multi-Device Login"
+    ],
     categoryTarget: "capcut",
     gradientBg: "from-[#FFF1F6] via-[#FCE7F3] to-[#F5E6FF]",
     borderColor: "border-pink-200/80",
     btnGradient: "from-[#FF007A] to-[#7928CA]",
-    imageSrc: "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png",
+    imageSrc: "/assets/banner_capcut_3d.png",
     imageAlt: "CapCut Pro",
     glowColor: "bg-pink-400/25"
   },
   {
     id: "gemini-ai",
-    badge: "NEXT-GEN AI PRO",
-    badgeColor: "text-[#1BA0E2] bg-cyan-50 border-cyan-100",
-    title: "Gemini AI Pro & Ultra",
+    title: "Google Gemini 1.5 Pro AI",
     subtitle: "18 Months & 1 Year Full Pro Access",
-    desc: "2M token context, deep reasoning & full multimodal coding.",
-    priceTag: "💎 Guaranteed",
+    features: [
+      "2M Token Context & Ultra Deep Reasoning",
+      "Advanced Python Coding & Multimodal Input",
+      "Private Dedicated Account & 100% Guaranteed"
+    ],
     categoryTarget: "gemini",
     gradientBg: "from-[#F0F9FF] via-[#E0F2FE] to-[#EDE9FE]",
     borderColor: "border-cyan-200/80",
     btnGradient: "from-[#0080FF] to-[#6C5CE7]",
-    imageSrc: "https://www.vectorlogo.zone/logos/google_cloud/google_cloud-icon.svg",
+    imageSrc: "/assets/banner_gemini_3d.png",
     imageAlt: "Gemini AI Pro",
     glowColor: "bg-cyan-400/25"
   },
   {
     id: "cloud-vps",
-    badge: "DEDICATED CLOUD VPS",
-    badgeColor: "text-[#5B42F3] bg-purple-50 border-purple-100",
-    title: "High Performance Cloud",
-    subtitle: "AWS, DigitalOcean, Oracle & Kamatera",
-    desc: "100% verified quotas, high CPU VPS & 24/7 dedicated uptime.",
-    priceTag: "🚀 Instant VPS",
+    title: "High Performance Cloud VPS",
+    subtitle: "AWS • DigitalOcean • Oracle • Kamatera",
+    features: [
+      "High CPU & RAM VPS with 100% Verified Quotas",
+      "Tier-3 Datacenters & Dedicated Static IP",
+      "Instant Root Access & 24/7 Automated Delivery"
+    ],
     categoryTarget: "aws",
     gradientBg: "from-[#FFF0F5] via-[#F5EDFF] to-[#EDE9FE]",
     borderColor: "border-[#E4DCFA]",
     btnGradient: "from-[#FF5E62] to-[#6C5CE7]",
-    imageSrc: "/assets/kamatera.png",
+    imageSrc: "/assets/banner_cloud_3d.png",
     imageAlt: "Cloud Servers",
     glowColor: "bg-purple-400/25"
   },
   {
     id: "telegram-spotify",
-    badge: "PREMIUM & ENTERTAINMENT",
-    badgeColor: "text-[#24A1DE] bg-sky-50 border-sky-100",
     title: "Telegram Premium & Spotify",
     subtitle: "3, 6 & 12 Months Subscriptions",
-    desc: "Exclusive badges, 4GB file uploads, zero ads & HQ audio stream.",
-    priceTag: "🎁 Gift Links",
+    features: [
+      "Star Profile Badge, 4GB Uploads & Fast Speed",
+      "Ad-Free Spotify Hi-Fi Music & Offline Mode",
+      "Instant Gift Links & Official Upgrades"
+    ],
     categoryTarget: "telegram",
     gradientBg: "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]",
     borderColor: "border-sky-200/80",
     btnGradient: "from-[#00C9FF] to-[#6C5CE7]",
-    imageSrc: "https://www.vectorlogo.zone/logos/telegram/telegram-icon.svg",
+    imageSrc: "/assets/banner_premium_3d.png",
     imageAlt: "Telegram & Spotify",
     glowColor: "bg-sky-400/25"
   }
@@ -2224,21 +2228,25 @@ export default function MiniAppShopModern() {
                       isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
                     } bg-gradient-to-r ${slide.gradientBg} ${slide.borderColor}`}
                   >
-                    <div className="relative z-10 max-w-[65%]">
-                      <span className={`text-[9.5px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2 border shadow-xs ${slide.badgeColor}`}>
-                        <Zap className="w-3 h-3 text-amber-500 fill-amber-500" /> {slide.badge}
-                      </span>
+                    <div className="relative z-10 max-w-[62%]">
                       <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
                         {slide.title}
                       </h2>
-                      <div className="text-[11.5px] font-extrabold text-[#5B42F3] mb-1">
+                      <div className="text-[12px] font-black text-[#5B42F3] mb-2.5">
                         {slide.subtitle}
                       </div>
-                      <p className="text-[11px] text-[#6B658B] leading-snug mb-3.5">
-                        {slide.desc}
-                      </p>
+
+                      {/* Genuine Pro Features Bullet List */}
+                      <div className="space-y-1 mb-3.5">
+                        {slide.features.map((feat, fIdx) => (
+                          <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span className="line-clamp-1">{feat}</span>
+                          </div>
+                        ))}
+                      </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div>
                         <button
                           onClick={() => {
                             const matched = products.find((p) => {
@@ -2260,24 +2268,20 @@ export default function MiniAppShopModern() {
                               if (el) el.scrollIntoView({ behavior: "smooth" });
                             }
                           }}
-                          className={`px-4 py-2 bg-gradient-to-r ${slide.btnGradient} text-white rounded-full text-xs font-black shadow-md hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
+                          className={`px-5 py-2 bg-gradient-to-r ${slide.btnGradient} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
                         >
                           Buy Now <ChevronRight className="w-3.5 h-3.5" />
                         </button>
-
-                        <span className="text-[10px] font-extrabold text-[#7E7998] bg-white/80 px-2.5 py-1 rounded-full border border-black/5 shadow-2xs">
-                          {slide.priceTag}
-                        </span>
                       </div>
                     </div>
 
                     {/* High-res Transparent Product Visual */}
-                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-32 h-32 opacity-95 pointer-events-none flex items-center justify-center">
-                      <div className={`w-24 h-24 rounded-full ${slide.glowColor} blur-xl absolute`} />
+                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
+                      <div className={`w-28 h-28 rounded-full ${slide.glowColor} blur-xl absolute`} />
                       <img
                         src={slide.imageSrc}
                         alt={slide.imageAlt}
-                        className="w-20 h-20 object-contain drop-shadow-md transform -rotate-3 hover:rotate-0 transition-transform duration-500"
+                        className="w-32 h-32 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as any).style.display = "none";
                         }}
