@@ -11768,7 +11768,7 @@ const Link2 = createLucideIcon("Link2", [
 const LoaderCircle = createLucideIcon("LoaderCircle", [
   ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
 ]);
-const Lock$1 = createLucideIcon("Lock", [
+const Lock = createLucideIcon("Lock", [
   ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
   ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
 ]);
@@ -61907,7 +61907,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-6 h-6 text-purple-400" }),
           "Admin Login Credentials"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Update the email and password used to access this dashboard." })
@@ -62290,7 +62290,7 @@ function SettingsPage() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-6 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-purple-400" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40 uppercase tracking-widest font-black", children: [
               "Developer Credits: ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-400", children: "Rochana Imesh" }),
@@ -62439,7 +62439,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-6 h-6 text-purple-400" }),
           "Payment Gateway"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your payment provider details and enable/disable payment methods." })
@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Do1OtlyK.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Di0VdC_e.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85680,7 +85680,7 @@ function LoginPage() {
                     render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { className: "space-y-2", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "Access Key" }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary transition-colors" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary transition-colors" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx(
                           Input,
                           {
@@ -88731,7 +88731,7 @@ function TelegramClientPage() {
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "Verification Code" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
                             Input,
                             {
@@ -88748,7 +88748,7 @@ function TelegramClientPage() {
                       is2FaRequired && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 animate-in fade-in slide-in-from-top-2 duration-300", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "2FA Password" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
                             Input,
                             {
@@ -88937,7 +88937,7 @@ function TelegramClientPage() {
               onClick: handleLockRoot,
               className: "text-slate-400 hover:text-amber-400 hover:bg-slate-800 h-8 w-8",
               title: "Lock Root Access",
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "h-4 w-4" })
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "h-4 w-4" })
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -108788,7 +108788,7 @@ ${finalDetails}`;
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-red-950/40 border border-red-500/30 rounded-2xl p-4 space-y-1.5", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-red-400 font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(AlertTriangle, { className: "w-4 h-4 shrink-0" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "w-4 h-4 shrink-0" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "CRITICAL: STRICT NON-REFUNDABLE POLICY (ALL SALES FINAL)" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-red-200/90 leading-relaxed font-medium", children: [
@@ -114661,7 +114661,7 @@ function DomainAutomationPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-white/50 uppercase tracking-wider", children: "Active Jailed Hacker IPs" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-base font-bold text-amber-400 flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4" }),
                 " ",
                 securityStatus?.activeJailedIpsCount || 0,
                 " IPs Blocked"
@@ -114681,7 +114681,7 @@ function DomainAutomationPage() {
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-amber-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-amber-400" }),
               " Active Jailed IPs (Blacklist):"
             ] }),
             !securityStatus?.jailedIps || securityStatus.jailedIps.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 rounded-2xl bg-black/30 border border-white/5 text-xs text-white/40 text-center font-mono", children: "No active jailed IPs. All incoming traffic is within normal security thresholds." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto rounded-2xl border border-white/5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs text-white", children: [
@@ -114847,7 +114847,7 @@ function DomainAutomationPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-3.5 h-3.5 text-orange-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-3.5 h-3.5 text-orange-400" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cloudflare Global API Key (Optional Alternative)" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
@@ -115473,7 +115473,7 @@ function StoreMeshPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
             "Anti-Spoof Defense",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-emerald-400" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-emerald-400" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-base font-bold text-white", children: "Zero-Trust Replay Shield" })
         ] }),

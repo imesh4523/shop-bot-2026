@@ -59,6 +59,8 @@ import {
   Terminal,
   Layers,
   XCircle,
+  AlertTriangle,
+  Lock,
   Tag,
   Download,
   FileText,
