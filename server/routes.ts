@@ -1109,6 +1109,8 @@ export async function registerRoutes(
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS max_uses INTEGER DEFAULT 1;
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS uses_count INTEGER DEFAULT 0;
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS applicable_product TEXT DEFAULT 'all';
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS applicable_product_name TEXT DEFAULT 'All Items';
 
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS admin_chat_id TEXT DEFAULT '';
       ALTER TABLE broadcast_logs ADD COLUMN IF NOT EXISTS title TEXT;
@@ -3701,7 +3703,7 @@ export async function registerRoutes(
   // Validate Coupon Code for Mini App / Checkout
   app.post("/api/mini/validate-coupon", verifyMiniAppAuth, async (req, res) => {
     try {
-      const { code, amountCents = 0 } = req.body;
+      const { code, amountCents = 0, productId, productName } = req.body;
       if (!code || typeof code !== "string" || !code.trim()) {
         return res.status(400).json({ success: false, message: "Please enter a valid coupon code." });
       }
@@ -3716,6 +3718,24 @@ export async function registerRoutes(
       if (promo.usesCount >= promo.maxUses) {
         return res.status(400).json({ success: false, message: `Coupon code "${cleanCode}" redemption limit has been reached.` });
       }
+
+      // Check item-specific restriction if applicable
+      if (promo.applicableProduct && promo.applicableProduct !== "all") {
+        const reqProdId = productId ? String(productId).trim() : "";
+        const reqProdName = productName ? String(productName).toLowerCase().trim() : "";
+        const targetProd = String(promo.applicableProduct).toLowerCase().trim();
+
+        const isMatch = (reqProdId && reqProdId === targetProd) ||
+          (reqProdName && targetProd && (reqProdName.includes(targetProd) || targetProd.includes(reqProdName)));
+
+        if (!isMatch) {
+          return res.status(400).json({
+            success: false,
+            message: `Coupon "${cleanCode}" is only valid for "${promo.applicableProductName || promo.applicableProduct}".`
+          });
+        }
+      }
+
       if (promo.minOrderAmount && promo.minOrderAmount > 0 && amountCents < promo.minOrderAmount) {
         return res.status(400).json({ success: false, message: `Minimum order of $${(promo.minOrderAmount / 100).toFixed(2)} required for this coupon.` });
       }
@@ -3729,6 +3749,13 @@ export async function registerRoutes(
       }
 
       const finalAmountCents = Math.max(0, amountCents - discountCents);
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
+      const discountUsd = (discountCents / 100).toFixed(2);
+      const finalAmountUsd = (finalAmountCents / 100).toFixed(2);
+      const finalPriceLkr = Math.round((finalAmountCents / 100) * lkrRate);
+      const discountLkr = Math.round((discountCents / 100) * lkrRate);
 
       return res.json({
         success: true,
@@ -3737,10 +3764,16 @@ export async function registerRoutes(
         discountType: promo.discountType || "fixed",
         discountValue: promo.discountValue || (promo.reward / 100),
         discountCents,
-        discountUsd: (discountCents / 100).toFixed(2),
+        discountUsd,
+        discountLkr,
         finalAmountCents,
-        finalAmountUsd: (finalAmountCents / 100).toFixed(2),
-        message: `🎉 Coupon applied: ${promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `$${(discountCents / 100).toFixed(2)} OFF`}!`
+        finalAmountUsd,
+        finalPriceCents: finalAmountCents,
+        finalPriceUsd: finalAmountUsd,
+        finalPriceLkr,
+        applicableProduct: promo.applicableProduct || "all",
+        applicableProductName: promo.applicableProductName || "All Items",
+        message: `🎉 Coupon applied: ${promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `$${discountUsd} OFF`}!`
       });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -6560,6 +6593,8 @@ app.post("/api/promo-codes", isAuth, async (req, res) => {
     if (body.maxUses !== undefined) {
       body.maxUses = parseInt(body.maxUses, 10) || 1;
     }
+    body.applicableProduct = body.applicableProduct || "all";
+    body.applicableProductName = body.applicableProductName || "All Items";
     
     const parsed = insertPromoCodeSchema.parse(body);
 

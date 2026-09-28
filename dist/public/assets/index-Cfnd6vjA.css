@@ -4111,6 +4111,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(69 26 3 / 0.2);
 }
 
+.bg-amber-950\/40{
+  background-color: rgb(69 26 3 / 0.4);
+}
+
 .bg-background{
   --tw-bg-opacity: 1;
   background-color: hsl(var(--background) / var(--tw-bg-opacity, 1));
@@ -10313,6 +10317,12 @@ body:has(.tg-mini-app) {
 .focus\:outline-none:focus{
   outline: 2px solid transparent;
   outline-offset: 2px;
+}
+
+.focus\:ring-1:focus{
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
 .focus\:ring-2:focus{

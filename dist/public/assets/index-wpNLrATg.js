@@ -30735,6 +30735,10 @@ const promoCodes = pgTable("promo_codes", {
   discountValue: integer("discount_value").notNull().default(0),
   // percentage (e.g. 20 for 20%) or cents
   minOrderAmount: integer("min_order_amount").default(0),
+  applicableProduct: text("applicable_product").default("all"),
+  // "all" or specific product ID / key
+  applicableProductName: text("applicable_product_name").default("All Items"),
+  // display name of target item
   maxUses: integer("max_uses").notNull().default(1),
   usesCount: integer("uses_count").notNull().default(0),
   status: text("status").notNull().default("active"),
@@ -74682,7 +74686,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CLwPRzwK.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-o-N51W2g.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -86875,6 +86879,19 @@ function PromoCodesPage() {
   const [discountValue, setDiscountValue] = reactExports.useState("");
   const [minOrderAmount, setMinOrderAmount] = reactExports.useState("");
   const [maxUses, setMaxUses] = reactExports.useState("1");
+  const [applicableProduct, setApplicableProduct] = reactExports.useState("all");
+  const [applicableProductName, setApplicableProductName] = reactExports.useState("All Items & Services");
+  const { data: productsList = [] } = useQuery({
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/products");
+        return res.json();
+      } catch {
+        return [];
+      }
+    }
+  });
   const { data: promoCodes2 = [], isLoading: isCodesLoading, refetch: refetchCodes } = useQuery({
     queryKey: ["/api/promo-codes"],
     queryFn: async () => {
@@ -86904,6 +86921,8 @@ function PromoCodesPage() {
       setDiscountValue("");
       setMinOrderAmount("");
       setMaxUses("1");
+      setApplicableProduct("all");
+      setApplicableProductName("All Items & Services");
     },
     onError: (err) => {
       toast2({
@@ -86979,7 +86998,9 @@ function PromoCodesPage() {
       discountType,
       discountValue: discountType === "percentage" ? Math.round(val) : Math.round(val * 100),
       minOrderAmount: Math.round((minAmount || 0) * 100),
-      maxUses: parseInt(maxUses) || 1
+      maxUses: parseInt(maxUses) || 1,
+      applicableProduct,
+      applicableProductName
     });
   };
   const handleRefresh = () => {
@@ -87140,6 +87161,38 @@ function PromoCodesPage() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "applicableProduct", children: "Target Item / Product Restriction" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "select",
+              {
+                id: "applicableProduct",
+                value: applicableProduct,
+                onChange: (e) => {
+                  const selVal = e.target.value;
+                  setApplicableProduct(selVal);
+                  if (selVal === "all") {
+                    setApplicableProductName("All Items & Services");
+                  } else {
+                    const found = productsList.find((p2) => String(p2.id) === selVal);
+                    setApplicableProductName(found ? found.name : `Item #${selVal}`);
+                  }
+                },
+                className: "w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "all", children: "🌐 All Products & Services (No restriction)" }),
+                  productsList.map((prod) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: String(prod.id), children: [
+                    "📦 ",
+                    prod.name,
+                    " ($",
+                    (prod.price / 100).toFixed(2),
+                    ")"
+                  ] }, prod.id))
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-muted-foreground", children: applicableProduct === "all" ? "Coupon can be used on any product purchase." : `Restricted to "${applicableProductName}" only.` })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { htmlFor: "maxUses", children: "Max Allowed Redemptions" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Input,
@@ -87187,6 +87240,7 @@ function PromoCodesPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { children: "Code" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { children: "Discount / Reward" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { children: "Target Item" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { children: "Uses" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { children: "Status" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-right", children: "Actions" })
@@ -87196,6 +87250,7 @@ function PromoCodesPage() {
             const isPercentage = promo.discountType === "percentage";
             const discountDisplay = isPercentage ? `${promo.discountValue || promo.reward}% OFF` : `$${((promo.discountValue || promo.reward) / 100).toFixed(2)} OFF`;
             const minOrderUSD = (promo.minOrderAmount || 0) / 100;
+            const targetName = promo.applicableProductName || (promo.applicableProduct && promo.applicableProduct !== "all" ? `Item #${promo.applicableProduct}` : "All Items");
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono font-bold text-white text-sm", children: promo.code }),
@@ -87205,6 +87260,7 @@ function PromoCodesPage() {
                 ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: `font-mono font-bold text-xs ${isPercentage ? "border-purple-500/40 text-purple-300 bg-purple-950/40" : "border-emerald-500/40 text-emerald-300 bg-emerald-950/40"}`, children: discountDisplay }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: `text-[11px] font-semibold ${promo.applicableProduct && promo.applicableProduct !== "all" ? "border-amber-500/40 text-amber-300 bg-amber-950/40" : "border-slate-700 text-slate-300 bg-slate-900/40"}`, children: targetName }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white font-bold", children: promo.usesCount }),
                 " / ",
@@ -106135,7 +106191,9 @@ ${finalDetails}`;
       const totalPriceCents = detailProduct.price * quantity;
       const res = await miniApiRequest("POST", "/api/mini/validate-coupon", {
         code: couponCodeInput.trim(),
-        amountCents: totalPriceCents
+        amountCents: totalPriceCents,
+        productId: detailProduct.id,
+        productName: detailProduct.name
       });
       const data = await res.json();
       if (!res.ok || data.error) {

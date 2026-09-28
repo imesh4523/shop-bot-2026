@@ -2608,6 +2608,8 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/validate-coupon", {
         code: couponCodeInput.trim(),
         amountCents: totalPriceCents,
+        productId: detailProduct.id,
+        productName: detailProduct.name
       });
       const data = await res.json();
       if (!res.ok || data.error) {

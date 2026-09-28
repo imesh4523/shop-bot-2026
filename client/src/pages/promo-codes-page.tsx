@@ -28,6 +28,8 @@ interface PromoCode {
   discountType?: string | null;
   discountValue?: number | null;
   minOrderAmount?: number | null; // in cents
+  applicableProduct?: string | null;
+  applicableProductName?: string | null;
   maxUses: number;
   usesCount: number;
   status: string;
@@ -66,6 +68,21 @@ export default function PromoCodesPage() {
   const [discountValue, setDiscountValue] = useState("");
   const [minOrderAmount, setMinOrderAmount] = useState("");
   const [maxUses, setMaxUses] = useState("1");
+  const [applicableProduct, setApplicableProduct] = useState("all");
+  const [applicableProductName, setApplicableProductName] = useState("All Items & Services");
+
+  // Query Products for selection
+  const { data: productsList = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/products");
+        return res.json();
+      } catch {
+        return [];
+      }
+    }
+  });
 
   // Query Promo Codes
   const { data: promoCodes = [], isLoading: isCodesLoading, refetch: refetchCodes } = useQuery<PromoCode[]>({
@@ -94,6 +111,8 @@ export default function PromoCodesPage() {
       discountValue: number;
       minOrderAmount: number;
       maxUses: number;
+      applicableProduct?: string;
+      applicableProductName?: string;
     }) => {
       const res = await apiRequest("POST", "/api/promo-codes", newPromo);
       return res.json();
@@ -108,6 +127,8 @@ export default function PromoCodesPage() {
       setDiscountValue("");
       setMinOrderAmount("");
       setMaxUses("1");
+      setApplicableProduct("all");
+      setApplicableProductName("All Items & Services");
     },
     onError: (err: any) => {
       toast({
@@ -191,7 +212,9 @@ export default function PromoCodesPage() {
       discountType,
       discountValue: discountType === "percentage" ? Math.round(val) : Math.round(val * 100),
       minOrderAmount: Math.round((minAmount || 0) * 100),
-      maxUses: parseInt(maxUses) || 1
+      maxUses: parseInt(maxUses) || 1,
+      applicableProduct,
+      applicableProductName
     });
   };
 
@@ -365,6 +388,35 @@ export default function PromoCodesPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="applicableProduct">Target Item / Product Restriction</Label>
+                  <select
+                    id="applicableProduct"
+                    value={applicableProduct}
+                    onChange={(e) => {
+                      const selVal = e.target.value;
+                      setApplicableProduct(selVal);
+                      if (selVal === "all") {
+                        setApplicableProductName("All Items & Services");
+                      } else {
+                        const found = productsList.find((p: any) => String(p.id) === selVal);
+                        setApplicableProductName(found ? found.name : `Item #${selVal}`);
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  >
+                    <option value="all">🌐 All Products & Services (No restriction)</option>
+                    {productsList.map((prod: any) => (
+                      <option key={prod.id} value={String(prod.id)}>
+                        📦 {prod.name} (${(prod.price / 100).toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground">
+                    {applicableProduct === "all" ? "Coupon can be used on any product purchase." : `Restricted to "${applicableProductName}" only.`}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="maxUses">Max Allowed Redemptions</Label>
                   <Input 
                     id="maxUses" 
@@ -418,6 +470,7 @@ export default function PromoCodesPage() {
                       <TableRow>
                         <TableHead>Code</TableHead>
                         <TableHead>Discount / Reward</TableHead>
+                        <TableHead>Target Item</TableHead>
                         <TableHead>Uses</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -431,6 +484,7 @@ export default function PromoCodesPage() {
                           ? `${promo.discountValue || promo.reward}% OFF` 
                           : `$${((promo.discountValue || promo.reward) / 100).toFixed(2)} OFF`;
                         const minOrderUSD = (promo.minOrderAmount || 0) / 100;
+                        const targetName = promo.applicableProductName || (promo.applicableProduct && promo.applicableProduct !== "all" ? `Item #${promo.applicableProduct}` : "All Items");
 
                         return (
                           <TableRow key={promo.id}>
@@ -447,6 +501,11 @@ export default function PromoCodesPage() {
                             <TableCell>
                               <Badge variant="outline" className={`font-mono font-bold text-xs ${isPercentage ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40'}`}>
                                 {discountDisplay}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-[11px] font-semibold ${promo.applicableProduct && promo.applicableProduct !== 'all' ? 'border-amber-500/40 text-amber-300 bg-amber-950/40' : 'border-slate-700 text-slate-300 bg-slate-900/40'}`}>
+                                {targetName}
                               </Badge>
                             </TableCell>
                             <TableCell>

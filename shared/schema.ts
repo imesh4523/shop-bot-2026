@@ -387,6 +387,8 @@ export const promoCodes = pgTable("promo_codes", {
   discountType: text("discount_type").notNull().default("fixed"), // "fixed" ($ amount in cents) or "percentage" (% discount)
   discountValue: integer("discount_value").notNull().default(0), // percentage (e.g. 20 for 20%) or cents
   minOrderAmount: integer("min_order_amount").default(0),
+  applicableProduct: text("applicable_product").default("all"), // "all" or specific product ID / key
+  applicableProductName: text("applicable_product_name").default("All Items"), // display name of target item
   maxUses: integer("max_uses").notNull().default(1),
   usesCount: integer("uses_count").notNull().default(0),
   status: text("status").notNull().default("active"), // active, inactive
