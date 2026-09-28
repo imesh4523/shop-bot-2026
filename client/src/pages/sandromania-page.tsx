@@ -246,6 +246,31 @@ export default function SandromaniaPage() {
     },
   });
 
+  // Sync Live Stock from Partner API Mutation
+  const syncStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sandromania/sync-stock", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to sync stock");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "⚡ Stock Synced Successfully!",
+        description: data.message || `Updated live stock counts from Sandromania partner API.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/settings"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Stock Sync Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const copyToClipboard = (text: string, label = "Copied to clipboard") => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -383,12 +408,14 @@ export default function SandromaniaPage() {
                   refetchSettings();
                   refetchProducts();
                   refetchOrders();
-                  toast({ title: "Refreshing Data..." });
+                  syncStockMutation.mutate();
                 }}
+                disabled={syncStockMutation.isPending}
                 variant="outline"
                 className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-2"
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Sync
+                <RefreshCw className={`w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}`} /> 
+                {syncStockMutation.isPending ? "Syncing..." : "Sync Stock"}
               </Button>
 
               <Button
@@ -528,7 +555,7 @@ export default function SandromaniaPage() {
                         </div>
                       </div>
 
-                      <h4 className="text-sm font-black line-clamp-2 mb-1">{prod.title}</h4>
+                      <h4 className="text-sm font-black text-white line-clamp-2 mb-1 drop-shadow-xs">{prod.title}</h4>
                       <span className="text-[10px] font-mono text-muted-foreground block mb-3">
                         External ID: #{prod.externalProductId}
                       </span>

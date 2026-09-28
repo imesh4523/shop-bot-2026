@@ -5549,13 +5549,18 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
         where: eq(sandromaniaProducts.externalProductId, extId),
       });
 
+      const liveStockVal = typeof item.stock === 'number' 
+        ? item.stock 
+        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 99 : 0));
+      const parsedStock = isNaN(liveStockVal) ? (item.available ? 99 : 0) : liveStockVal;
+
       if (existing) {
         await db
           .update(sandromaniaProducts)
           .set({
             title: cleanedTitle || item.title,
             type: item.type || "standard",
-            stock: parseInt(item.stock) || 0,
+            stock: parsedStock,
             available: Boolean(item.available),
             costPriceUsd: costCents,
             bulkPrices: item.bulk_prices || null,
@@ -5568,7 +5573,7 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
           externalProductId: extId,
           title: cleanedTitle || item.title,
           type: item.type || "standard",
-          stock: parseInt(item.stock) || 0,
+          stock: parsedStock,
           available: Boolean(item.available),
           costPriceUsd: costCents,
           sellingPriceUsd: sellingCents > 0 ? sellingCents : costCents,
@@ -5587,6 +5592,42 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to import products" });
+  }
+});
+
+// 4.5. Sync Live Stock from Sandromania Partner API
+app.post("/api/admin/sandromania/sync-stock", isAuth, async (req, res) => {
+  try {
+    const remoteProducts = await SandromaniaService.getProducts();
+    const localProducts = await db.select().from(sandromaniaProducts);
+    
+    let updatedCount = 0;
+    for (const local of localProducts) {
+      const match = remoteProducts.find((r: any) => parseInt(r.id) === local.externalProductId);
+      if (match) {
+        const liveStock = typeof match.stock === 'number' 
+          ? match.stock 
+          : (match.stock !== undefined && match.stock !== null && match.stock !== "" ? parseInt(match.stock) : (match.available ? 99 : 0));
+        
+        await db
+          .update(sandromaniaProducts)
+          .set({
+            stock: isNaN(liveStock) ? (match.available ? 99 : 0) : liveStock,
+            available: Boolean(match.available),
+            updatedAt: new Date()
+          })
+          .where(eq(sandromaniaProducts.id, local.id));
+        updatedCount++;
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Successfully synced live stock for ${updatedCount} products from partner store!`,
+      updatedCount
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to sync stock from partner store" });
   }
 });
 

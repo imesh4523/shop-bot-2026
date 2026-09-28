@@ -60048,17 +60048,269 @@ function CreateProductDialog({ open: open2, onOpenChange }) {
     ] })
   ] });
 }
+var TABS_NAME = "Tabs";
+var [createTabsContext] = createContextScope(TABS_NAME, [
+  createRovingFocusGroupScope
+]);
+var useRovingFocusGroupScope = createRovingFocusGroupScope();
+var [TabsProvider, useTabsContext] = createTabsContext(TABS_NAME);
+var Tabs$1 = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const {
+      __scopeTabs,
+      value: valueProp,
+      onValueChange,
+      defaultValue,
+      orientation = "horizontal",
+      dir,
+      activationMode = "automatic",
+      ...tabsProps
+    } = props;
+    const direction = useDirection(dir);
+    const [value2, setValue] = useControllableState({
+      prop: valueProp,
+      onChange: onValueChange,
+      defaultProp: defaultValue
+    });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      TabsProvider,
+      {
+        scope: __scopeTabs,
+        baseId: useId(),
+        value: value2,
+        onValueChange: setValue,
+        orientation,
+        dir: direction,
+        activationMode,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Primitive.div,
+          {
+            dir: direction,
+            "data-orientation": orientation,
+            ...tabsProps,
+            ref: forwardedRef
+          }
+        )
+      }
+    );
+  }
+);
+Tabs$1.displayName = TABS_NAME;
+var TAB_LIST_NAME = "TabsList";
+var TabsList$1 = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const { __scopeTabs, loop = true, ...listProps } = props;
+    const context = useTabsContext(TAB_LIST_NAME, __scopeTabs);
+    const rovingFocusGroupScope = useRovingFocusGroupScope(__scopeTabs);
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Root$4,
+      {
+        asChild: true,
+        ...rovingFocusGroupScope,
+        orientation: context.orientation,
+        dir: context.dir,
+        loop,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Primitive.div,
+          {
+            role: "tablist",
+            "aria-orientation": context.orientation,
+            ...listProps,
+            ref: forwardedRef
+          }
+        )
+      }
+    );
+  }
+);
+TabsList$1.displayName = TAB_LIST_NAME;
+var TRIGGER_NAME = "TabsTrigger";
+var TabsTrigger$1 = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const { __scopeTabs, value: value2, disabled = false, ...triggerProps } = props;
+    const context = useTabsContext(TRIGGER_NAME, __scopeTabs);
+    const rovingFocusGroupScope = useRovingFocusGroupScope(__scopeTabs);
+    const triggerId = makeTriggerId(context.baseId, value2);
+    const contentId = makeContentId(context.baseId, value2);
+    const isSelected = value2 === context.value;
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Item$1,
+      {
+        asChild: true,
+        ...rovingFocusGroupScope,
+        focusable: !disabled,
+        active: isSelected,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Primitive.button,
+          {
+            type: "button",
+            role: "tab",
+            "aria-selected": isSelected,
+            "aria-controls": contentId,
+            "data-state": isSelected ? "active" : "inactive",
+            "data-disabled": disabled ? "" : void 0,
+            disabled,
+            id: triggerId,
+            ...triggerProps,
+            ref: forwardedRef,
+            onMouseDown: composeEventHandlers(props.onMouseDown, (event) => {
+              if (!disabled && event.button === 0 && event.ctrlKey === false) {
+                context.onValueChange(value2);
+              } else {
+                event.preventDefault();
+              }
+            }),
+            onKeyDown: composeEventHandlers(props.onKeyDown, (event) => {
+              if ([" ", "Enter"].includes(event.key)) context.onValueChange(value2);
+            }),
+            onFocus: composeEventHandlers(props.onFocus, () => {
+              const isAutomaticActivation = context.activationMode !== "manual";
+              if (!isSelected && !disabled && isAutomaticActivation) {
+                context.onValueChange(value2);
+              }
+            })
+          }
+        )
+      }
+    );
+  }
+);
+TabsTrigger$1.displayName = TRIGGER_NAME;
+var CONTENT_NAME = "TabsContent";
+var TabsContent$1 = reactExports.forwardRef(
+  (props, forwardedRef) => {
+    const { __scopeTabs, value: value2, forceMount, children, ...contentProps } = props;
+    const context = useTabsContext(CONTENT_NAME, __scopeTabs);
+    const triggerId = makeTriggerId(context.baseId, value2);
+    const contentId = makeContentId(context.baseId, value2);
+    const isSelected = value2 === context.value;
+    const isMountAnimationPreventedRef = reactExports.useRef(isSelected);
+    reactExports.useEffect(() => {
+      const rAF = requestAnimationFrame(() => isMountAnimationPreventedRef.current = false);
+      return () => cancelAnimationFrame(rAF);
+    }, []);
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(Presence, { present: forceMount || isSelected, children: ({ present }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Primitive.div,
+      {
+        "data-state": isSelected ? "active" : "inactive",
+        "data-orientation": context.orientation,
+        role: "tabpanel",
+        "aria-labelledby": triggerId,
+        hidden: !present,
+        id: contentId,
+        tabIndex: 0,
+        ...contentProps,
+        ref: forwardedRef,
+        style: {
+          ...props.style,
+          animationDuration: isMountAnimationPreventedRef.current ? "0s" : void 0
+        },
+        children: present && children
+      }
+    ) });
+  }
+);
+TabsContent$1.displayName = CONTENT_NAME;
+function makeTriggerId(baseId, value2) {
+  return `${baseId}-trigger-${value2}`;
+}
+function makeContentId(baseId, value2) {
+  return `${baseId}-content-${value2}`;
+}
+var Root2 = Tabs$1;
+var List = TabsList$1;
+var Trigger = TabsTrigger$1;
+var Content = TabsContent$1;
+const Tabs = Root2;
+const TabsList = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+  List,
+  {
+    ref,
+    className: cn(
+      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      className
+    ),
+    ...props
+  }
+));
+TabsList.displayName = List.displayName;
+const TabsTrigger = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+  Trigger,
+  {
+    ref,
+    className: cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      className
+    ),
+    ...props
+  }
+));
+TabsTrigger.displayName = Trigger.displayName;
+const TabsContent = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+  Content,
+  {
+    ref,
+    className: cn(
+      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      className
+    ),
+    ...props
+  }
+));
+TabsContent.displayName = Content.displayName;
 function InventoryPage() {
   const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const { data: products2 } = useProducts();
   const [selectedProductId, setSelectedProductId] = reactExports.useState("all");
-  const { data: credentials2, isLoading } = useQuery({
+  const [statusFilter, setStatusFilter] = reactExports.useState("all");
+  const [activeTab, setActiveTab] = reactExports.useState("credentials");
+  const [selectedSoldItem, setSelectedSoldItem] = reactExports.useState(null);
+  const { data: credentials2 = [], isLoading: isLoadingCreds } = useQuery({
     queryKey: ["/api/all-credentials"],
     queryFn: async () => {
       const res = await fetch("/api/all-credentials");
       if (!res.ok) throw new Error("Failed to fetch credentials");
       return res.json();
+    }
+  });
+  const { data: partnerProducts = [], isLoading: isLoadingPartner, refetch: refetchPartner } = useQuery({
+    queryKey: ["/api/admin/sandromania/products"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/sandromania/products");
+      if (!res.ok) return [];
+      return res.json();
+    }
+  });
+  const { data: allSoldOrders = [], isLoading: isLoadingSold, refetch: refetchSold } = useQuery({
+    queryKey: ["/api/admin/all-orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/all-orders");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    refetchInterval: 15e3
+  });
+  const syncStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sandromania/sync-stock", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to sync stock");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "⚡ Stock Synced Successfully!",
+        description: data.message || "Live stock counts refreshed from partner store."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/products"] });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Stock Sync Failed",
+        description: err.message,
+        variant: "destructive"
+      });
     }
   });
   const form = useForm({
@@ -60107,17 +60359,26 @@ function InventoryPage() {
       toast2({ title: "Credential updated successfully" });
     }
   });
-  const filteredCredentials = credentials2?.filter((cred) => {
+  const availableLocalCount = credentials2.filter((c2) => c2.status === "available").length;
+  const soldLocalCount = credentials2.filter((c2) => c2.status === "sold").length;
+  const totalPartnerStock = partnerProducts.reduce((acc, p2) => acc + (p2.stock || 0), 0);
+  const totalAllSalesCount = allSoldOrders.length;
+  const filteredCredentials = credentials2.filter((cred) => {
     const product = products2?.find((p2) => p2.id === cred.productId);
-    const matchesSearch = cred.content.toLowerCase().includes(searchTerm.toLowerCase()) || product?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = cred.content.toLowerCase().includes(searchTerm.toLowerCase()) || (product?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesProduct = selectedProductId === "all" || cred.productId === Number(selectedProductId);
-    return matchesSearch && matchesProduct;
+    const matchesStatus = statusFilter === "all" || cred.status === statusFilter;
+    return matchesSearch && matchesProduct && matchesStatus;
+  });
+  const filteredSoldOrders = allSoldOrders.filter((o2) => {
+    const s2 = searchTerm.toLowerCase();
+    return (o2.title || "").toLowerCase().includes(s2) || (o2.buyer || "").toLowerCase().includes(s2) || (o2.id || "").toLowerCase().includes(s2) || (o2.category || "").toLowerCase().includes(s2) || (o2.deliveredContent || "").toLowerCase().includes(s2);
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-black text-white tracking-tighter drop-shadow-2xl", children: "Inventory" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm font-medium", children: "Manage account credentials and stock." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-black text-white tracking-tighter drop-shadow-2xl", children: "Inventory Hub" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm font-medium", children: "Manage account credentials, connected store stocks, and track sold inventory." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Dialog, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { className: "h-11 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-lg transition-all duration-300 hover:scale-105 active:scale-95", children: [
@@ -60151,12 +60412,12 @@ function InventoryPage() {
                 control: form.control,
                 name: "content",
                 render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5", children: "Account Details" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5", children: "Account Details (Single or Numbered list for Bulk)" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                     Textarea,
                     {
                       ...field,
-                      placeholder: "Email: pass",
+                      placeholder: "01 email:pass\n02 email2:pass2",
                       className: "glass-panel rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono min-h-[120px] py-3"
                     }
                   ) }),
@@ -60172,89 +60433,353 @@ function InventoryPage() {
         ] })
       ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex-1 group", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-purple-400 transition-colors" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel p-4 rounded-2xl border-white/10 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs font-bold text-white/40 mb-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Available Stock" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-400" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: availableLocalCount }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-400/80 font-semibold", children: "Ready for instant delivery" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel p-4 rounded-2xl border-white/10 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs font-bold text-white/40 mb-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sold Inventory" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-4 h-4 text-purple-400" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: soldLocalCount }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-400/80 font-semibold", children: "Local account credentials sold" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel p-4 rounded-2xl border-white/10 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs font-bold text-white/40 mb-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Partner Goods Stock" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-4 h-4 text-blue-400" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: totalPartnerStock }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-blue-400/80 font-semibold", children: [
+          partnerProducts.length,
+          " connected products"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel p-4 rounded-2xl border-white/10 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs font-bold text-white/40 mb-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Total Orders Fulfilled" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-4 h-4 text-pink-400" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: totalAllSalesCount }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-pink-400/80 font-semibold", children: "Across all stores & channels" })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, className: "space-y-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-black/40 p-1 rounded-2xl border border-white/10 flex flex-wrap", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "credentials", className: "rounded-xl font-black text-xs gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5" }),
+            " All Account Stock (",
+            credentials2.length,
+            ")"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "partner_stock", className: "rounded-xl font-black text-xs gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-3.5 h-3.5" }),
+            " Connected Stores Stock (",
+            partnerProducts.length,
+            ")"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "sold_items", className: "rounded-xl font-black text-xs gap-2 text-emerald-400", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5" }),
+            " Sold Items & Fulfilled (",
+            allSoldOrders.length,
+            ")"
+          ] })
+        ] }),
+        activeTab === "partner_stock" && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
           {
-            placeholder: "Search credentials...",
-            className: "glass-panel pl-10 h-11 rounded-xl border-white/10 text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 transition-all duration-500 shadow-xl",
-            value: searchTerm,
-            onChange: (e) => setSearchTerm(e.target.value)
+            size: "sm",
+            onClick: () => syncStockMutation.mutate(),
+            disabled: syncStockMutation.isPending,
+            variant: "outline",
+            className: "bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}` }),
+              syncStockMutation.isPending ? "Syncing..." : "Sync Live Stock"
+            ]
           }
         )
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: selectedProductId, onValueChange: setSelectedProductId, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "w-full sm:w-[200px] glass-panel h-11 rounded-xl border-white/10 text-sm text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "All Products" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "glass-panel border-white/10 bg-[#0f0a1e] text-white rounded-xl", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "All Products" }),
-          products2?.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: p2.id.toString(), children: p2.name }, p2.id))
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex-1 group", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-purple-400 transition-colors" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              placeholder: activeTab === "sold_items" ? "Search sold orders by product, buyer, id or credentials..." : "Search stock items...",
+              className: "glass-panel pl-10 h-11 rounded-xl border-white/10 text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 transition-all duration-500 shadow-xl",
+              value: searchTerm,
+              onChange: (e) => setSearchTerm(e.target.value)
+            }
+          )
+        ] }),
+        activeTab === "credentials" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: statusFilter, onValueChange: (val) => setStatusFilter(val), children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "w-full sm:w-[160px] glass-panel h-11 rounded-xl border-white/10 text-sm text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "All Status" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "glass-panel border-white/10 bg-[#0f0a1e] text-white rounded-xl", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "All Status" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "available", children: "Available (In Stock)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "sold", children: "Sold Items" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: selectedProductId, onValueChange: setSelectedProductId, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "w-full sm:w-[200px] glass-panel h-11 rounded-xl border-white/10 text-sm text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "All Products" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "glass-panel border-white/10 bg-[#0f0a1e] text-white rounded-xl", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "All Products" }),
+              products2?.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: p2.id.toString(), children: p2.name }, p2.id))
+            ] })
+          ] })
         ] })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "glass-card border-0 rounded-2xl overflow-hidden shadow-2xl bg-white/[0.01] backdrop-blur-3xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] pl-6 py-4", children: "Product" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Credentials" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Status" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] text-right pr-6 py-4", children: "Actions" })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 4, className: "text-center py-12 text-white/20 text-xs", children: "Loading..." }) }) : filteredCredentials?.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 4, className: "h-48 text-center text-white/20 font-black text-sm uppercase tracking-tighter", children: "No stock found in inventory." }) }) : filteredCredentials?.map((cred) => {
-        const product = products2?.find((p2) => p2.id === cred.productId);
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/[0.03] transition-all duration-300 group", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pl-6 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-white tracking-tight", children: product?.name || "Unknown" })
-          ] }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "font-mono text-[10px] text-white/60 max-w-[300px] truncate", children: cred.content }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: `border-0 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${cred.status === "available" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`, children: cred.status }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(Dialog, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "credentials", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "glass-card border-0 rounded-2xl overflow-hidden shadow-2xl bg-white/[0.01] backdrop-blur-3xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] pl-6 py-4", children: "Product" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Credentials / License Content" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Status" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] text-right pr-6 py-4", children: "Actions" })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoadingCreds ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 4, className: "text-center py-12 text-white/20 text-xs", children: "Loading stock..." }) }) : filteredCredentials.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 4, className: "h-48 text-center text-white/20 font-black text-sm uppercase tracking-tighter", children: "No stock found matching filters." }) }) : filteredCredentials.map((cred) => {
+          const product = products2?.find((p2) => p2.id === cred.productId);
+          const isSold = cred.status === "sold";
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/[0.03] transition-all duration-300 group", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pl-6 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-white tracking-tight", children: product?.name || "Unknown Product" })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "font-mono text-[11px] text-white/80 max-w-[320px] truncate", children: cred.content }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Badge,
+              {
+                variant: "outline",
+                className: `border-0 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${!isSold ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`,
+                children: isSold ? "SOLD" : "AVAILABLE"
+              }
+            ) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Button,
                 {
                   variant: "ghost",
                   size: "icon",
+                  onClick: () => {
+                    navigator.clipboard.writeText(cred.content);
+                    toast2({ title: "Copied to clipboard!" });
+                  },
                   className: "h-8 w-8 rounded-lg text-white/20 hover:text-purple-400 hover:bg-purple-500/10 transition-colors",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "h-4 w-4" })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-4 h-4" })
                 }
-              ) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[500px] rounded-3xl p-8 shadow-4xl", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-2xl font-black text-white tracking-tighter flex items-center gap-3", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "w-5 h-5 text-purple-400" }),
-                  "Edit Stock"
-                ] }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  EditCredentialForm,
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Dialog, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Button,
                   {
-                    credential: cred,
-                    products: products2 || [],
-                    onSuccess: () => {
-                    },
-                    mutation: updateMutation
+                    variant: "ghost",
+                    size: "icon",
+                    className: "h-8 w-8 rounded-lg text-white/20 hover:text-purple-400 hover:bg-purple-500/10 transition-colors",
+                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "h-4 w-4" })
                   }
-                )
+                ) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[500px] rounded-3xl p-8 shadow-4xl", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-2xl font-black text-white tracking-tighter flex items-center gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Pen, { className: "w-5 h-5 text-purple-400" }),
+                    "Edit Stock"
+                  ] }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    EditCredentialForm,
+                    {
+                      credential: cred,
+                      products: products2 || [],
+                      onSuccess: () => {
+                      },
+                      mutation: updateMutation
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  variant: "ghost",
+                  size: "icon",
+                  className: "h-8 w-8 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors",
+                  onClick: () => {
+                    if (confirm("Delete this stock entry?")) {
+                      deleteMutation.mutate(cred.id);
+                    }
+                  },
+                  disabled: deleteMutation.isPending,
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "h-4 w-4" })
+                }
+              )
+            ] }) })
+          ] }, cred.id);
+        }) })
+      ] }) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "partner_stock", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "glass-card border-0 rounded-2xl overflow-hidden shadow-2xl bg-white/[0.01] backdrop-blur-3xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] pl-6 py-4", children: "Product Name" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Category" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Live Stock" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Selling Price" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] text-right pr-6 py-4", children: "Fulfillment Mode" })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoadingPartner ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 5, className: "text-center py-12 text-white/20 text-xs", children: "Loading partner catalog..." }) }) : partnerProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 5, className: "h-48 text-center text-white/20 font-black text-sm uppercase tracking-tighter", children: "No connected store products imported yet. Go to Sandromania page to import." }) }) : partnerProducts.map((p2) => {
+          const stockVal = p2.stock ?? 0;
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/[0.03] transition-all duration-300", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pl-6 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-4 h-4" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-white block", children: p2.title }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40 font-mono", children: [
+                  "External ID: #",
+                  p2.externalProductId
+                ] })
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20", children: p2.category || "General" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Badge,
+              {
+                variant: "outline",
+                className: `border-0 px-2.5 py-1 rounded-lg text-[10px] font-black ${stockVal > 0 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`,
+                children: stockVal > 0 ? `${stockVal} Units Available` : "Stock: 0"
+              }
+            ) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-mono text-xs font-black text-white", children: [
+              "$",
+              ((p2.sellingPriceUsd || 0) / 100).toFixed(2),
+              " USD"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full inline-flex items-center gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }),
+              " Instant CDK Auto-Delivery"
+            ] }) })
+          ] }, p2.id);
+        }) })
+      ] }) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "sold_items", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "glass-card border-0 rounded-2xl overflow-hidden shadow-2xl bg-white/[0.01] backdrop-blur-3xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] pl-6 py-4", children: "Sold Item / Product" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Source Store" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Buyer" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Sale Amount" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] py-4", children: "Sold Date" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] text-right pr-6 py-4", children: "Details" })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoadingSold ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 6, className: "text-center py-12 text-white/20 text-xs", children: "Loading sales history..." }) }) : filteredSoldOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 6, className: "h-48 text-center text-white/20 font-black text-sm uppercase tracking-tighter", children: "No sold items found matching query." }) }) : filteredSoldOrders.map((order) => {
+          const isPartner = order.orderType === "partner";
+          const isSmm = order.orderType === "smm";
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/[0.03] transition-all duration-300", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pl-6 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-8 h-8 rounded-lg flex items-center justify-center ${isPartner ? "bg-pink-500/10 text-pink-400" : isSmm ? "bg-purple-500/10 text-purple-400" : "bg-blue-500/10 text-blue-400"}`, children: isPartner ? /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-4 h-4" }) : isSmm ? /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-white block", children: order.title }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40 font-mono", children: [
+                  "Order ID: ",
+                  order.id
+                ] })
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] font-bold px-2 py-0.5 rounded-full border ${isPartner ? "bg-pink-500/10 text-pink-400 border-pink-500/20" : isSmm ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"}`, children: order.typeLabel || (isPartner ? "Sandromania Store" : isSmm ? "SMM Panel" : "Cloud Store") }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold text-white/90 block", children: order.buyer }),
+              order.buyerEmail && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40 block", children: order.buyerEmail })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-mono text-xs font-black text-emerald-400", children: [
+              order.amountUsd,
+              " ",
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40", children: [
+                "(",
+                order.amountLkr,
+                ")"
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-[11px] text-white/60", children: order.createdAt ? format(new Date(order.createdAt), "MMM d, yyyy h:mm a") : "-" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
               Button,
               {
+                size: "sm",
+                variant: "outline",
+                onClick: () => setSelectedSoldItem(order),
+                className: "h-8 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-1.5",
+                children: "View Sold Info"
+              }
+            ) })
+          ] }, order.id);
+        }) })
+      ] }) }) })
+    ] }),
+    selectedSoldItem && /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedSoldItem, onOpenChange: () => setSelectedSoldItem(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-[540px] rounded-3xl p-6 shadow-4xl text-white", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-xl font-black flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-5 h-5 text-emerald-400" }),
+        "Sold Inventory Fulfillment Record"
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/5 p-4 rounded-2xl border border-white/10 space-y-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Product:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white", children: selectedSoldItem.title })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Source Store:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-purple-300", children: selectedSoldItem.typeLabel || "Store Sale" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Buyer:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white", children: selectedSoldItem.buyer })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Amount Paid:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-black text-emerald-400", children: [
+              selectedSoldItem.amountUsd,
+              " (",
+              selectedSoldItem.amountLkr,
+              ")"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40", children: "Sold Date:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/70", children: selectedSoldItem.createdAt ? format(new Date(selectedSoldItem.createdAt), "PPP p") : "-" })
+          ] })
+        ] }),
+        selectedSoldItem.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-emerald-400", children: "Delivered Credentials / Key:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                size: "sm",
                 variant: "ghost",
-                size: "icon",
-                className: "h-8 w-8 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors",
                 onClick: () => {
-                  if (confirm("Delete this stock entry?")) {
-                    deleteMutation.mutate(cred.id);
-                  }
+                  navigator.clipboard.writeText(selectedSoldItem.deliveredContent);
+                  toast2({ title: "Credentials copied to clipboard!" });
                 },
-                disabled: deleteMutation.isPending,
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "h-4 w-4" })
+                className: "h-7 text-xs font-bold text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 gap-1",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3.5 h-3.5" }),
+                  " Copy Key"
+                ]
               }
             )
-          ] }) })
-        ] }, cred.id);
-      }) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-3.5 bg-black/60 border border-white/10 rounded-2xl text-xs font-mono text-emerald-300 overflow-x-auto whitespace-pre-wrap select-all", children: selectedSoldItem.deliveredContent })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogFooter, { className: "pt-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Button,
+        {
+          onClick: () => setSelectedSoldItem(null),
+          className: "w-full bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs",
+          children: "Close Record"
+        }
+      ) })
     ] }) })
   ] });
 }
@@ -60278,10 +60803,10 @@ function EditCredentialForm({
         control: form.control,
         name: "productId",
         render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5", children: "Select Product" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5", children: "Product" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { onValueChange: (val) => field.onChange(Number(val)), defaultValue: field.value.toString(), children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "Select a product" }) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectContent, { className: "glass-panel border-white/10 bg-[#0f0a1e] text-white rounded-xl", children: products2.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: p2.id.toString(), children: p2.name }, p2.id)) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectContent, { className: "glass-panel border-white/10 bg-background text-white rounded-xl", children: products2.map((p2) => /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: p2.id.toString(), children: p2.name }, p2.id)) })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, {})
         ] })
@@ -60298,7 +60823,6 @@ function EditCredentialForm({
             Textarea,
             {
               ...field,
-              placeholder: "Email: pass",
               className: "glass-panel rounded-xl border-white/5 bg-white/[0.02] text-xs text-white placeholder:text-white/10 focus:border-purple-500/50 transition-all font-mono min-h-[120px] py-3"
             }
           ) }),
@@ -60315,8 +60839,8 @@ function EditCredentialForm({
           /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-[9px] font-black uppercase tracking-widest text-white/30 ml-0.5", children: "Status" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { onValueChange: field.onChange, defaultValue: field.value, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "glass-panel h-11 rounded-xl border-white/5 bg-white/[0.02] text-sm text-white focus:border-purple-500/50 transition-all", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "Select status" }) }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "glass-panel border-white/10 bg-[#0f0a1e] text-white rounded-xl", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "available", children: "Available" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "glass-panel border-white/10 bg-background text-white rounded-xl", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "available", children: "Available (In Stock)" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "sold", children: "Sold" })
             ] })
           ] }),
@@ -60326,7 +60850,7 @@ function EditCredentialForm({
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(DialogFooter, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { type: "submit", disabled: mutation.isPending, className: "w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:opacity-90 font-black uppercase tracking-widest text-[9px] h-11 rounded-xl shadow-xl transition-all active:scale-95", children: [
       mutation.isPending && /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }),
-      "Update Credential"
+      "Save Changes"
     ] }) })
   ] }) });
 }
@@ -74115,7 +74639,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CIwHhiYw.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CVpfc_v9.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90002,216 +90526,6 @@ function ForwardPage() {
     ] })
   ] });
 }
-var TABS_NAME = "Tabs";
-var [createTabsContext] = createContextScope(TABS_NAME, [
-  createRovingFocusGroupScope
-]);
-var useRovingFocusGroupScope = createRovingFocusGroupScope();
-var [TabsProvider, useTabsContext] = createTabsContext(TABS_NAME);
-var Tabs$1 = reactExports.forwardRef(
-  (props, forwardedRef) => {
-    const {
-      __scopeTabs,
-      value: valueProp,
-      onValueChange,
-      defaultValue,
-      orientation = "horizontal",
-      dir,
-      activationMode = "automatic",
-      ...tabsProps
-    } = props;
-    const direction = useDirection(dir);
-    const [value2, setValue] = useControllableState({
-      prop: valueProp,
-      onChange: onValueChange,
-      defaultProp: defaultValue
-    });
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      TabsProvider,
-      {
-        scope: __scopeTabs,
-        baseId: useId(),
-        value: value2,
-        onValueChange: setValue,
-        orientation,
-        dir: direction,
-        activationMode,
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Primitive.div,
-          {
-            dir: direction,
-            "data-orientation": orientation,
-            ...tabsProps,
-            ref: forwardedRef
-          }
-        )
-      }
-    );
-  }
-);
-Tabs$1.displayName = TABS_NAME;
-var TAB_LIST_NAME = "TabsList";
-var TabsList$1 = reactExports.forwardRef(
-  (props, forwardedRef) => {
-    const { __scopeTabs, loop = true, ...listProps } = props;
-    const context = useTabsContext(TAB_LIST_NAME, __scopeTabs);
-    const rovingFocusGroupScope = useRovingFocusGroupScope(__scopeTabs);
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Root$4,
-      {
-        asChild: true,
-        ...rovingFocusGroupScope,
-        orientation: context.orientation,
-        dir: context.dir,
-        loop,
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Primitive.div,
-          {
-            role: "tablist",
-            "aria-orientation": context.orientation,
-            ...listProps,
-            ref: forwardedRef
-          }
-        )
-      }
-    );
-  }
-);
-TabsList$1.displayName = TAB_LIST_NAME;
-var TRIGGER_NAME = "TabsTrigger";
-var TabsTrigger$1 = reactExports.forwardRef(
-  (props, forwardedRef) => {
-    const { __scopeTabs, value: value2, disabled = false, ...triggerProps } = props;
-    const context = useTabsContext(TRIGGER_NAME, __scopeTabs);
-    const rovingFocusGroupScope = useRovingFocusGroupScope(__scopeTabs);
-    const triggerId = makeTriggerId(context.baseId, value2);
-    const contentId = makeContentId(context.baseId, value2);
-    const isSelected = value2 === context.value;
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Item$1,
-      {
-        asChild: true,
-        ...rovingFocusGroupScope,
-        focusable: !disabled,
-        active: isSelected,
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Primitive.button,
-          {
-            type: "button",
-            role: "tab",
-            "aria-selected": isSelected,
-            "aria-controls": contentId,
-            "data-state": isSelected ? "active" : "inactive",
-            "data-disabled": disabled ? "" : void 0,
-            disabled,
-            id: triggerId,
-            ...triggerProps,
-            ref: forwardedRef,
-            onMouseDown: composeEventHandlers(props.onMouseDown, (event) => {
-              if (!disabled && event.button === 0 && event.ctrlKey === false) {
-                context.onValueChange(value2);
-              } else {
-                event.preventDefault();
-              }
-            }),
-            onKeyDown: composeEventHandlers(props.onKeyDown, (event) => {
-              if ([" ", "Enter"].includes(event.key)) context.onValueChange(value2);
-            }),
-            onFocus: composeEventHandlers(props.onFocus, () => {
-              const isAutomaticActivation = context.activationMode !== "manual";
-              if (!isSelected && !disabled && isAutomaticActivation) {
-                context.onValueChange(value2);
-              }
-            })
-          }
-        )
-      }
-    );
-  }
-);
-TabsTrigger$1.displayName = TRIGGER_NAME;
-var CONTENT_NAME = "TabsContent";
-var TabsContent$1 = reactExports.forwardRef(
-  (props, forwardedRef) => {
-    const { __scopeTabs, value: value2, forceMount, children, ...contentProps } = props;
-    const context = useTabsContext(CONTENT_NAME, __scopeTabs);
-    const triggerId = makeTriggerId(context.baseId, value2);
-    const contentId = makeContentId(context.baseId, value2);
-    const isSelected = value2 === context.value;
-    const isMountAnimationPreventedRef = reactExports.useRef(isSelected);
-    reactExports.useEffect(() => {
-      const rAF = requestAnimationFrame(() => isMountAnimationPreventedRef.current = false);
-      return () => cancelAnimationFrame(rAF);
-    }, []);
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(Presence, { present: forceMount || isSelected, children: ({ present }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Primitive.div,
-      {
-        "data-state": isSelected ? "active" : "inactive",
-        "data-orientation": context.orientation,
-        role: "tabpanel",
-        "aria-labelledby": triggerId,
-        hidden: !present,
-        id: contentId,
-        tabIndex: 0,
-        ...contentProps,
-        ref: forwardedRef,
-        style: {
-          ...props.style,
-          animationDuration: isMountAnimationPreventedRef.current ? "0s" : void 0
-        },
-        children: present && children
-      }
-    ) });
-  }
-);
-TabsContent$1.displayName = CONTENT_NAME;
-function makeTriggerId(baseId, value2) {
-  return `${baseId}-trigger-${value2}`;
-}
-function makeContentId(baseId, value2) {
-  return `${baseId}-content-${value2}`;
-}
-var Root2 = Tabs$1;
-var List = TabsList$1;
-var Trigger = TabsTrigger$1;
-var Content = TabsContent$1;
-const Tabs = Root2;
-const TabsList = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-  List,
-  {
-    ref,
-    className: cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
-      className
-    ),
-    ...props
-  }
-));
-TabsList.displayName = List.displayName;
-const TabsTrigger = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-  Trigger,
-  {
-    ref,
-    className: cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-      className
-    ),
-    ...props
-  }
-));
-TabsTrigger.displayName = Trigger.displayName;
-const TabsContent = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-  Content,
-  {
-    ref,
-    className: cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className
-    ),
-    ...props
-  }
-));
-TabsContent.displayName = Content.displayName;
 const QUICK_REPLIES = [
   "⚡ Checking your issue now, please wait...",
   "✅ Payment verified! Your order is processing.",
@@ -108636,46 +108950,110 @@ ${finalDetails}`;
       {
         open: !!detailSandromaniaProduct,
         onOpenChange: (open2) => {
-          if (!open2) setDetailSandromaniaProduct(null);
+          if (!open2) {
+            setDetailSandromaniaProduct(null);
+            setAppliedCoupon(null);
+          }
         },
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50", children: detailSandromaniaProduct && (() => {
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { hideClose: true, className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50", children: detailSandromaniaProduct && (() => {
           const cleanTitle = cleanSandromaniaText(detailSandromaniaProduct.title);
           const cleanCat = cleanSandromaniaText(detailSandromaniaProduct.category);
-          const conf = getProviderConfig(cleanTitle, cleanCat);
-          const availableStock = detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 0;
+          const availableStock = detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 99;
           const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
           const userBalCents = user?.balance || 0;
-          const hasSufficientBal = userBalCents >= totalCents;
+          const isFav = favorites.includes(detailSandromaniaProduct.id);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { className: "sr-only", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { children: cleanTitle }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { children: "Purchase instant auto-delivery digital product" })
-            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {
-                  onClick: () => setDetailSandromaniaProduct(null),
+                  onClick: () => {
+                    setDetailSandromaniaProduct(null);
+                    setAppliedCoupon(null);
+                  },
                   className: "w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]",
                   children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { className: "w-4 h-4" })
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1 shadow-xs", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3 h-3" }),
-                " Instant Auto-Delivery"
-              ] })
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: () => toggleFavorite(detailSandromaniaProduct.id),
+                  className: "w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#7E7998] hover:text-red-500 transition-colors border border-[#ECEEF8]",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Heart,
+                    {
+                      className: `w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : ""}`
+                    }
+                  )
+                }
+              )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative py-4 flex items-center justify-center mb-3", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-28 h-28 rounded-full bg-gradient-to-tr ${conf.blobColor} absolute blur-md` }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative py-4 flex items-center justify-center mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-28 h-28 rounded-full bg-gradient-to-tr from-[#FFE4E8] to-[#EDE8FE] absolute blur-sm" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: cleanTitle, type: cleanCat, className: "w-14 h-14" }) })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center mb-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2.5 py-0.5 rounded-full inline-block mb-1.5 ${conf.bgBadge}`, children: conf.tag }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432] leading-snug", children: cleanTitle }),
-              availableStock > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-emerald-600 font-bold block mt-1", children: [
-                "✓ ",
-                availableStock,
-                " keys ready in stock"
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-2 mb-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-black text-[#181432] leading-tight", children: cleanTitle }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] font-bold text-[#6B658B] block mt-0.5", children: [
+                  cleanCat || "Digital Goods",
+                  " · Instant Auto-Delivery"
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "total price" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3 flex-wrap", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-500 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "In Stock: ",
+                  availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
+                " 4.9"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#7E7998] font-medium", children: "(2,450+ sold)" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B658B] leading-relaxed mb-5", children: detailSandromaniaProduct.description || "Instant CDK license key generated automatically upon purchase. 100% genuine digital product with full activation guarantee." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: "Quantity" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: () => {
+                        setSandromaniaOrderQty((q2) => Math.max(1, q2 - 1));
+                        setAppliedCoupon(null);
+                      },
+                      disabled: sandromaniaOrderQty <= 1,
+                      className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Minus, { className: "w-3 h-3" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432] min-w-[14px] text-center", children: sandromaniaOrderQty }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: () => {
+                        setSandromaniaOrderQty((q2) => q2 + 1);
+                        setAppliedCoupon(null);
+                      },
+                      className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3 h-3" })
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#7E7998] mr-1.5", children: "Total:" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty) })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs", children: [
@@ -108687,101 +109065,44 @@ ${finalDetails}`;
                 " tab with 1-click copy."
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-3 rounded-2xl border border-[#ECEEF8] mb-4 shadow-xs", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-[#181432]", children: "Select Quantity:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-mono font-bold text-[#5B42F3]", children: [
-                  sandromaniaOrderQty,
-                  " unit",
-                  sandromaniaOrderQty > 1 ? "s" : ""
+            userBalCents < totalCents && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold block", children: "⚠️ Insufficient Wallet Balance" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-amber-800", children: [
+                  "Balance: ",
+                  formatBalanceInCurrentCurrency(userBalCents),
+                  " · Needed: ",
+                  formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => setSandromaniaOrderQty(Math.max(1, sandromaniaOrderQty - 1)),
-                    disabled: sandromaniaOrderQty <= 1,
-                    className: "w-10 h-10 rounded-xl bg-[#F8F9FD] border border-[#ECEEF8] flex items-center justify-center text-sm font-bold hover:bg-[#EDE9FE] text-[#5B42F3] disabled:opacity-40",
-                    children: "-"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "input",
-                  {
-                    type: "number",
-                    min: 1,
-                    max: availableStock > 0 ? availableStock : 100,
-                    value: sandromaniaOrderQty,
-                    onChange: (e) => setSandromaniaOrderQty(Math.max(1, parseInt(e.target.value) || 1)),
-                    className: "flex-1 bg-[#F8F9FD] border border-[#ECEEF8] rounded-xl px-3 py-2 text-center text-sm font-black text-[#181432] focus:outline-none focus:border-[#5B42F3]"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => setSandromaniaOrderQty(sandromaniaOrderQty + 1),
-                    className: "w-10 h-10 rounded-xl bg-[#F8F9FD] border border-[#ECEEF8] flex items-center justify-center text-sm font-bold hover:bg-[#EDE9FE] text-[#5B42F3]",
-                    children: "+"
-                  }
-                )
-              ] })
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setDetailSandromaniaProduct(null);
+                    setActiveTab("wallet");
+                  },
+                  className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[11px] shadow-sm transition-all",
+                  children: "Top Up"
+                }
+              )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-br from-[#064E3B] to-[#047857] rounded-3xl p-4 text-white mb-4 relative overflow-hidden shadow-lg shadow-[#064E3B]/20", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs mb-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-emerald-100 font-semibold", children: "Total Price:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-emerald-200 font-mono", children: [
-                  "$",
-                  ((detailSandromaniaProduct.sellingPriceUsd || 0) / 100).toFixed(2),
-                  " × ",
-                  sandromaniaOrderQty
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-baseline justify-between mb-3", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl font-black tracking-tight", children: formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty) }),
-                selectedCurrency === "LKR" && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-emerald-200 font-mono", children: [
-                  "($",
-                  (totalCents / 100).toFixed(2),
-                  " USD)"
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2 border-t border-emerald-400/30 flex items-center justify-between text-[11px]", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-emerald-100", children: "Wallet Balance:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `font-bold font-mono ${hasSufficientBal ? "text-emerald-200" : "text-amber-300"}`, children: formatBalanceInCurrentCurrency(userBalCents) })
-              ] }),
-              !hasSufficientBal && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2 bg-amber-400/20 rounded-xl p-2 text-[10px] text-amber-200 flex items-center justify-between border border-amber-400/30", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⚠️ Insufficient wallet balance" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => {
-                      setDetailSandromaniaProduct(null);
-                      setActiveTab("wallet");
-                    },
-                    className: "text-white underline font-bold",
-                    children: "Top-Up Now"
-                  }
-                )
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
                 onClick: handleSandromaniaPurchase,
                 disabled: isSandromaniaPurchasing,
-                className: "w-full py-3.5 bg-gradient-to-r from-[#10A37F] via-[#059669] to-[#00C9FF] text-white rounded-full text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-[#10A37F]/30 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
+                className: "flex-1 py-3.5 bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
                 children: isSandromaniaPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
-                  " Sign In to Purchase"
+                  " Sign In to Buy"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4" }),
-                  " Purchase Now (Auto Delivery) 🚀"
+                  " Buy Now (Auto Delivery) 🚀"
                 ] })
               }
-            )
+            ) })
           ] });
         })() })
       }
@@ -111155,6 +111476,29 @@ function SandromaniaPage() {
       toast2({ title: "Delete Failed", description: err.message, variant: "destructive" });
     }
   });
+  const syncStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sandromania/sync-stock", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to sync stock");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "⚡ Stock Synced Successfully!",
+        description: data.message || `Updated live stock counts from Sandromania partner API.`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/settings"] });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Stock Sync Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
   const copyToClipboard = (text2, label = "Copied to clipboard") => {
     if (!text2) return;
     navigator.clipboard.writeText(text2);
@@ -111269,13 +111613,14 @@ function SandromaniaPage() {
                   refetchSettings();
                   refetchProducts();
                   refetchOrders();
-                  toast2({ title: "Refreshing Data..." });
+                  syncStockMutation.mutate();
                 },
+                disabled: syncStockMutation.isPending,
                 variant: "outline",
                 className: "flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-2",
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5" }),
-                  " Sync"
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}` }),
+                  syncStockMutation.isPending ? "Syncing..." : "Sync Stock"
                 ]
               }
             ),
@@ -111411,7 +111756,7 @@ function SandromaniaPage() {
                       )
                     ] })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black line-clamp-2 mb-1", children: prod.title }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-white line-clamp-2 mb-1 drop-shadow-xs", children: prod.title }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-muted-foreground block mb-3", children: [
                     "External ID: #",
                     prod.externalProductId
