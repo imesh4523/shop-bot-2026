@@ -1800,6 +1800,15 @@ Support: https://t.me/youuhost_support
 
   // 1. Handle Card / PayHere Checkout with 3s Lottie Animation
   const handlePayHerePay = async () => {
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before initiating card deposit.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const rawAmt = parseFloat(payhereAmount || "50");
     if (isNaN(rawAmt) || rawAmt <= 0) {
       toast({ title: "Invalid Amount", description: "Please enter a valid deposit amount.", variant: "destructive" });
@@ -1845,6 +1854,15 @@ Support: https://t.me/youuhost_support
 
   // 2. Handle Cryptomus Checkout with 3s Lottie Animation
   const handleCryptomusPay = async () => {
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before generating crypto invoice.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const rawAmt = parseFloat(cryptomusAmount || "10");
     if (isNaN(rawAmt) || rawAmt <= 0) {
       toast({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
@@ -1894,6 +1912,15 @@ Support: https://t.me/youuhost_support
   // 3. Handle Binance Verification with 3s Lottie Animation
   const handleBinanceSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before verifying Binance payment.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const usdNum = binanceCalculatedUsd;
     if (usdNum < 0.5) {
       toast({
@@ -3704,6 +3731,30 @@ Support: https://t.me/youuhost_support
                 </span>
               </div>
             </div>
+
+            {/* Guest Sign-in Requirement Notice */}
+            {!isCustomerLoggedIn && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-pink-500/10 border border-amber-200/90 rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#181432]">Sign in required to top up balance</h4>
+                    <p className="text-[10.5px] font-medium text-[#7E7998] mt-0.5">
+                      Please log in with Google or Email to verify and credit payments directly to your account.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white text-xs font-black shadow-sm hover:opacity-95 transition-all shrink-0 whitespace-nowrap active:scale-95"
+                >
+                  Sign In Now
+                </button>
+              </div>
+            )}
 
             {/* PAYMENT METHODS */}
             <div className="space-y-3">

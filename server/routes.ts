@@ -3068,14 +3068,18 @@ export async function registerRoutes(
       }
 
       const tgUser = (req as any).tgUser;
-      let userId = tgUser?.id;
-      if (!userId || tgUser.isGuest) {
-        const guestDb = await storage.getTelegramUser("0");
-        userId = guestDb?.id || 1;
-      } else {
-        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
-        if (dbUser) userId = dbUser.id;
+      if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+        return res.status(401).json({ success: false, message: "Sign in required to verify payment. Please log in first." });
       }
+
+      let dbUser = tgUser.dbUser;
+      if (!dbUser) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        return res.status(401).json({ success: false, message: "Account not found. Please log in first." });
+      }
+      const userId = dbUser.id;
 
       // 1. Anti-Duplicate Check in Database
       const existingPayments = await storage.getPayments();
@@ -3156,14 +3160,18 @@ export async function registerRoutes(
       }
 
       const tgUser = (req as any).tgUser;
-      let userId = tgUser?.id;
-      if (!userId || tgUser.isGuest) {
-        const guestDb = await storage.getTelegramUser("0");
-        userId = guestDb?.id || 1;
-      } else {
-        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
-        if (dbUser) userId = dbUser.id;
+      if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+        return res.status(401).json({ message: "Sign in required to create payment invoice. Please log in first." });
       }
+
+      let dbUser = tgUser.dbUser;
+      if (!dbUser) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        return res.status(401).json({ message: "Account not found. Please log in first." });
+      }
+      const userId = dbUser.id;
 
       const orderId = `DEP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const baseUrl = await getAppBaseUrl();
@@ -3239,14 +3247,18 @@ export async function registerRoutes(
       }
 
       const tgUser = (req as any).tgUser;
-      let userId = tgUser?.id;
-      if (!userId || tgUser.isGuest) {
-        const guestDb = await storage.getTelegramUser("0");
-        userId = guestDb?.id || 1;
-      } else {
-        const dbUser = await storage.getTelegramUser(tgUser.id.toString());
-        if (dbUser) userId = dbUser.id;
+      if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
+        return res.status(401).json({ message: "Sign in required to initiate payment. Please log in first." });
       }
+
+      let dbUser = tgUser.dbUser;
+      if (!dbUser) {
+        dbUser = await storage.getTelegramUser(tgUser.id.toString());
+      }
+      if (!dbUser) {
+        return res.status(401).json({ message: "Account not found. Please log in first." });
+      }
+      const userId = dbUser.id;
 
       // Amount in cents (integer in DB)
       const amountInCents = Math.round(numAmount * 100);

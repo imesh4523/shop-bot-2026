@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BCO3Kj8V.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-B_Q_E-bd.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105101,6 +105101,14 @@ ${finalDetails}`;
     subtitle: ""
   });
   const handlePayHerePay = async () => {
+    if (!isCustomerLoggedIn) {
+      toast2({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before initiating card deposit."
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
     const rawAmt = parseFloat(payhereAmount || "50");
     if (isNaN(rawAmt) || rawAmt <= 0) {
       toast2({ title: "Invalid Amount", description: "Please enter a valid deposit amount.", variant: "destructive" });
@@ -105143,6 +105151,14 @@ ${finalDetails}`;
     }
   };
   const handleCryptomusPay = async () => {
+    if (!isCustomerLoggedIn) {
+      toast2({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before generating crypto invoice."
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
     const rawAmt = parseFloat(cryptomusAmount || "10");
     if (isNaN(rawAmt) || rawAmt <= 0) {
       toast2({ title: "Invalid Amount", description: "Please enter a valid amount.", variant: "destructive" });
@@ -105189,6 +105205,14 @@ ${finalDetails}`;
   };
   const handleBinanceSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (!isCustomerLoggedIn) {
+      toast2({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email before verifying Binance payment."
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
     const usdNum = binanceCalculatedUsd;
     if (usdNum < 0.5) {
       toast2({
@@ -106729,6 +106753,24 @@ ${finalDetails}`;
               user?.telegramId || (user?.email ? user.email.split("@")[0] : "Guest")
             ] })
           ] })
+        ] }),
+        !isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-pink-500/10 border border-amber-200/90 rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-5 h-5" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432]", children: "Sign in required to top up balance" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] font-medium text-[#7E7998] mt-0.5", children: "Please log in with Google or Email to verify and credit payments directly to your account." })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setIsAuthModalOpen(true),
+              className: "w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white text-xs font-black shadow-sm hover:opacity-95 transition-all shrink-0 whitespace-nowrap active:scale-95",
+              children: "Sign In Now"
+            }
+          )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5", children: [
