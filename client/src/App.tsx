@@ -45,6 +45,7 @@ import CategoriesManagerPage from "@/pages/categories-manager-page";
 import ConnectedStoresTrackerPage from "@/pages/connected-stores-tracker-page";
 import HeroBannersPage from "@/pages/hero-banners-page";
 import BestSellersPage from "@/pages/best-sellers-page";
+import TermsPage from "@/pages/terms-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -279,6 +280,10 @@ function Router() {
       <Route path="/imeshadmindashbord/forward">
         <ProtectedRoute component={ForwardPage} />
       </Route>
+
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/terms-of-service" component={TermsPage} />
+      <Route path="/terms-and-conditions" component={TermsPage} />
 
       {/* Root Path redirects authenticated admin to /imeshadmindashbord, else /docs */}
       <Route path="/">

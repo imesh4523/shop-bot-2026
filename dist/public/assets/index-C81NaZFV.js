@@ -11768,7 +11768,7 @@ const Link2 = createLucideIcon("Link2", [
 const LoaderCircle = createLucideIcon("LoaderCircle", [
   ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
 ]);
-const Lock = createLucideIcon("Lock", [
+const Lock$1 = createLucideIcon("Lock", [
   ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
   ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
 ]);
@@ -61907,7 +61907,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-black tracking-tighter flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-6 h-6 text-purple-400" }),
           "Admin Login Credentials"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Update the email and password used to access this dashboard." })
@@ -62290,7 +62290,7 @@ function SettingsPage() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-6 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-purple-400" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40 uppercase tracking-widest font-black", children: [
               "Developer Credits: ",
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-400", children: "Rochana Imesh" }),
@@ -62439,7 +62439,7 @@ function SettingsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-6 h-6 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-6 h-6 text-purple-400" }),
           "Payment Gateway"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure your payment provider details and enable/disable payment methods." })
@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BFxBRrKp.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Do1OtlyK.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -85680,7 +85680,7 @@ function LoginPage() {
                     render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { className: "space-y-2", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "Access Key" }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary transition-colors" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-primary transition-colors" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx(
                           Input,
                           {
@@ -88731,7 +88731,7 @@ function TelegramClientPage() {
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "Verification Code" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
                             Input,
                             {
@@ -88748,7 +88748,7 @@ function TelegramClientPage() {
                       is2FaRequired && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 animate-in fade-in slide-in-from-top-2 duration-300", children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold uppercase tracking-widest text-white/50 ml-1", children: "2FA Password" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-purple-500 transition-colors" }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
                             Input,
                             {
@@ -88937,7 +88937,7 @@ function TelegramClientPage() {
               onClick: handleLockRoot,
               className: "text-slate-400 hover:text-amber-400 hover:bg-slate-800 h-8 w-8",
               title: "Lock Root Access",
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "h-4 w-4" })
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "h-4 w-4" })
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -91258,6 +91258,9 @@ function IconBase(props) {
 function FaYoutube(props) {
   return GenIcon({ "attr": { "viewBox": "0 0 576 512" }, "child": [{ "tag": "path", "attr": { "d": "M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z" }, "child": [] }] })(props);
 }
+function FaWindows(props) {
+  return GenIcon({ "attr": { "viewBox": "0 0 448 512" }, "child": [{ "tag": "path", "attr": { "d": "M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v180.1H448V32L203.8 65.7z" }, "child": [] }] })(props);
+}
 function FaWhatsapp(props) {
   return GenIcon({ "attr": { "viewBox": "0 0 448 512" }, "child": [{ "tag": "path", "attr": { "d": "M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" }, "child": [] }] })(props);
 }
@@ -91305,6 +91308,9 @@ function SiDigitalocean(props) {
 }
 function SiClaude(props) {
   return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" }, "child": [] }] })(props);
+}
+function SiCanva(props) {
+  return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zM6.962 7.68c.754 0 1.337.549 1.405 1.2.069.583-.171 1.097-.822 1.406-.343.171-.48.172-.549.069-.034-.069 0-.137.069-.206.617-.514.617-.926.548-1.508-.034-.378-.308-.618-.583-.618-1.2 0-2.914 2.674-2.674 4.629.103.754.549 1.646 1.509 1.646.308 0 .65-.103.96-.24.5-.264.799-.47 1.097-.8-.073-.885.704-2.046 1.851-2.046.515 0 .926.205.96.583.068.514-.377.582-.514.582s-.378-.034-.378-.17c-.034-.138.309-.07.275-.378-.035-.206-.24-.274-.446-.274-.72 0-1.131.994-1.029 1.611.035.275.172.549.447.549.205 0 .514-.31.617-.755.068-.308.343-.514.583-.514.102 0 .17.034.205.171v.138c-.034.137-.137.548-.102.651 0 .069.034.171.17.171.092 0 .436-.18.777-.459.117-.59.253-1.298.253-1.357.034-.24.137-.48.617-.48.103 0 .171.034.205.171v.138l-.136.617c.445-.583 1.097-.994 1.508-.994.172 0 .309.102.309.274 0 .103 0 .274-.069.446-.137.377-.309.96-.412 1.474 0 .137.035.274.207.274.171 0 .685-.206 1.096-.754l.007-.004c-.002-.068-.007-.134-.007-.202 0-.411.035-.754.104-.994.068-.274.411-.514.617-.514.103 0 .205.069.205.171 0 .035 0 .103-.034.137-.137.446-.24.857-.24 1.269 0 .24.034.582.102.788 0 .034.035.069.07.069.068 0 .548-.445.89-1.028-.308-.206-.48-.549-.48-.96 0-.72.446-1.097.858-1.097.343 0 .617.24.617.72 0 .308-.103.65-.274.96h.102a.77.77 0 0 0 .584-.24.293.293 0 0 1 .134-.117c.335-.425.83-.74 1.41-.74.48 0 .924.205.959.582.068.515-.378.618-.515.618l-.002-.002c-.138 0-.377-.035-.377-.172 0-.137.309-.068.274-.376-.034-.206-.24-.275-.446-.275-.686 0-1.13.891-1.028 1.611.034.275.171.583.445.583.206 0 .515-.308.652-.754.068-.274.343-.514.583-.514.103 0 .17.034.205.171 0 .069 0 .206-.137.652-.17.308-.171.48-.137.617.034.274.171.48.309.583.034.034.068.102.068.102 0 .069-.034.138-.137.138-.034 0-.068 0-.103-.035-.514-.205-.72-.548-.789-.891-.205.24-.445.377-.72.377-.445 0-.89-.411-.96-.926a1.609 1.609 0 0 1 .075-.649c-.203.13-.422.203-.623.203h-.17c-.447.652-.927 1.098-1.27 1.303a.896.896 0 0 1-.377.104c-.068 0-.171-.035-.205-.104-.095-.152-.156-.392-.193-.667-.481.527-1.145.805-1.453.805-.343 0-.548-.206-.582-.55v-.376c.102-.754.377-1.2.377-1.337a.074.074 0 0 0-.069-.07c-.24 0-1.028.824-1.166 1.373l-.103.445c-.068.309-.377.515-.582.515-.103 0-.172-.035-.206-.172v-.137l.046-.233c-.435.31-.87.508-1.075.508-.308 0-.48-.172-.514-.412-.206.274-.445.412-.754.412-.352 0-.696-.24-.862-.593-.244.275-.523.553-.852.764-.48.309-1.028.549-1.68.549-.582 0-1.097-.309-1.371-.583-.412-.377-.651-.96-.686-1.509-.205-1.68.823-3.84 2.4-4.8.378-.205.755-.343 1.132-.343zm9.77 3.291c-.104 0-.172.172-.172.343 0 .274.137.583.309.755a1.74 1.74 0 0 0 .102-.583c0-.343-.137-.515-.24-.515z" }, "child": [] }] })(props);
 }
 function SiBinance(props) {
   return GenIcon({ "attr": { "role": "img", "viewBox": "0 0 24 24" }, "child": [{ "tag": "path", "attr": { "d": "M16.624 13.9202l2.7175 2.7154-7.353 7.353-7.353-7.352 2.7175-2.7164 4.6355 4.6595 4.6356-4.6595zm4.6366-4.6366L24 12l-2.7154 2.7164L18.5682 12l2.6924-2.7164zm-9.272.001l2.7163 2.6914-2.7164 2.7174v-.001L9.2721 12l2.7164-2.7154zm-9.2722-.001L5.4088 12l-2.6914 2.6924L0 12l2.7164-2.7164zM11.9885.0115l7.353 7.329-2.7174 2.7154-4.6356-4.6356-4.6355 4.6595-2.7174-2.7154 7.353-7.353z" }, "child": [] }] })(props);
@@ -102961,24 +102967,28 @@ function PaymentProcessingModal({
 }
 const DEFAULT_CATEGORIES = [
   { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
-  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
-  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 2, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
-  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 3, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
-  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 4, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
-  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 5, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
-  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 6, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
-  { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 7, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
-  { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 8, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
-  { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 9, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
-  { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 10, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
-  { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
-  { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 12, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
-  { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 13, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
-  { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 14, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
-  { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 15, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
-  { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 16, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
-  { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 17, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
-  { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 18, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" }
+  { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 1, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
+  { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 2, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 3, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
+  { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 4, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
+  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 5, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 6, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 7, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 8, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 9, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 10, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+  { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 12, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
+  { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 13, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
+  { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 14, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 15, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 16, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 17, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
+  { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 18, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
+  { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 19, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
+  { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 20, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 21, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
+  { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 22, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" }
 ];
 const BADGE_COLOR_STYLES = {
   red: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white",
@@ -102995,6 +103005,22 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
   switch (iconType) {
     case "all":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(LayoutGrid, { className });
+    case "windows":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(FaWindows, { className: `${className} text-[#0078D7]` });
+    case "canva":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx(SiCanva, { className: `${className} text-[#00C4CC]` });
+    case "hotmail":
+    case "outlook":
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 6.5h7.5A2.5 2.5 0 0124 9v6a2.5 2.5 0 01-2.5 2.5H14v-11z", fill: "#0078D4" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 6.5l-5 4.5v-9l5 4.5z", fill: "#106EBE" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M0 6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H2a2 2 0 01-2-2V6z", fill: "#0078D4" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "12", r: "3", fill: "#FFFFFF" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "12", r: "1.5", fill: "#0078D4" })
+      ] });
+    case "adobe":
+    case "adobe_express":
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 3h7.5v18l-7.5-18zM9.5 3H2v18l7.5-18zm2.5 9.2l3.8 8.8h-3l-1.3-3.4h-3.4l2.4-5.4h1.5z", fill: "#FA0F00" }) });
     case "aws":
       return /* @__PURE__ */ jsxRuntimeExports.jsx(FaAws, { className: `${className} text-[#FF9900]` });
     case "digitalocean":
@@ -103522,6 +103548,10 @@ function CategoriesManagerPage() {
               className: "w-full mt-1 h-10 rounded-xl border border-[#ECEEF8] px-3 text-xs font-bold text-[#181432] bg-white",
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "all", children: "All (Grid)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "windows", children: "Windows (OS & Keys)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "canva", children: "Canva (Canva Pro)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "hotmail", children: "Hotmail / Outlook" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "adobe", children: "Adobe (Express / VIP)" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "aws", children: "AWS (Amazon Web Services)" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "digitalocean", children: "DigitalOcean" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "azure", children: "Azure (Microsoft)" }),
@@ -108727,67 +108757,122 @@ ${finalDetails}`;
         )
       ] })
     ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isTermsModalOpen, onOpenChange: setIsTermsModalOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { className: "mb-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-base font-black text-[#181432] flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-5 h-5 text-emerald-600" }),
-          termsModalProduct ? `${termsModalProduct} Terms & Warranty` : "Service Terms & Guarantee Policy"
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-[#7E7998]", children: "Official policy guidelines, instant warranty coverage, and customer rights." })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5 text-xs text-[#3D3656] pt-2", children: [
-        termsModalCustomText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 rounded-2xl p-4 border border-purple-200/80 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-[#5B42F3] font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-[#5B42F3]" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: isTermsModalOpen, onOpenChange: setIsTermsModalOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-lg w-full bg-[#121214] border border-[#27272A] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50 text-[#E4E4E7]", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between pb-4 border-b border-[#27272A]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3] to-[#38B6FF] p-0.5 shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "img",
+          {
+            src: "/assets/youuhost_logo.png",
+            alt: "YouuHost",
+            className: "w-full h-full object-contain rounded-[14px]",
+            onError: (e) => {
+              e.target.style.display = "none";
+            }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-sm font-black text-white tracking-tight flex items-center gap-1.5", children: [
+            "YOUUHOST PLATFORM",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20", children: "OFFICIAL" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-[#A1A1AA] font-bold", children: "TERMS OF USE & DIGITAL AGREEMENT" })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 text-xs text-[#D4D4D8] pt-3", children: [
+        termsModalCustomText && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-br from-purple-950/40 via-[#1E1B4B] to-purple-950/20 rounded-2xl p-4 border border-purple-500/30 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-purple-300 font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-purple-400" }),
             " Specific Product Warranty & Guarantee"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11.5px] text-[#181432] font-semibold leading-relaxed whitespace-pre-wrap", children: termsModalCustomText })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11.5px] text-[#E4E4E7] font-semibold leading-relaxed whitespace-pre-wrap", children: termsModalCustomText })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-emerald-700 font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-emerald-500" }),
-            " 1. Automated Instant Fulfillment (0-2 Mins)"
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-red-950/40 border border-red-500/30 rounded-2xl p-4 space-y-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-red-400 font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(AlertTriangle, { className: "w-4 h-4 shrink-0" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "CRITICAL: STRICT NON-REFUNDABLE POLICY (ALL SALES FINAL)" })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: [
-            "All digital accounts, licenses, and cloud credentials are automatically issued upon payment confirmation. Credentials can be retrieved at any time under your ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Orders" }),
-            " tab."
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-red-200/90 leading-relaxed font-medium", children: [
+            "All cloud resources, digital accounts, software keys, and subscriptions sold on YouuHost are ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "intangible digital assets" }),
+            " delivered electronically. ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "NO REFUNDS, CASH REVERSALS, OR ORDER CANCELLATIONS WILL BE ISSUED UNDER ANY CIRCUMSTANCES ONCE AN ORDER IS PROCESSED OR CREDENTIALS ARE DELIVERED." })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-[#5B42F3] font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-[#5B42F3]" }),
-            " 2. 24-Hour Replacement Warranty"
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-[#38B6FF]" }),
+            " 1. Acceptance of Terms & Binding Agreement"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "If any account credentials or 2FA codes encounter issues within 24 hours of purchase, our support team will issue an instant replacement or full credit refund after verification." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#A1A1AA] leading-relaxed", children: "Accessing YouuHost, depositing wallet balance, or placing an order constitutes your unconditional legal acceptance of all platform terms and policies." })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-amber-700 font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-amber-500" }),
-            " 3. Fair Usage & Prohibited Activities"
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-emerald-400" }),
+            " 2. 24h-48h Initial Replacement Warranty"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "Cloud servers and accounts are strictly intended for legal development, bot hosting, and personal subscriptions. Any illegal activity, unauthorized crypto mining, DDoS attacks, or spam will result in immediate termination without refund." })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-[#A1A1AA] leading-relaxed", children: [
+            "If credentials or activation keys fail to work upon initial receipt, submit unedited photo/video evidence to official support within the warranty period for an instant ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "1-to-1 replacement" }),
+            " or equivalent store credit."
+          ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sky-700 font-black text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-4 h-4 text-sky-500" }),
-            " 4. Wallet Balance & Support Assistance"
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-amber-400" }),
+            " 3. Credential Security & 2FA Responsibilities"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#6B658B] leading-relaxed", children: "Wallet top-ups via PayHere (Card) and Cryptomus are credited instantly. For any inquiries or disputes, reach out via the 24/7 AI Concierge or official Telegram support." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#A1A1AA] leading-relaxed", children: "Customers are solely responsible for securing delivered credentials and backing up 2FA secret keys. Any unauthorized account sharing, password leaks, or third-party acceptable use violations instantly void warranty coverage." })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 font-semibold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-600 shrink-0" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "100% Verified Accounts • Zero Logins Required For Gifting" })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-4 h-4 text-rose-400" }),
+            " 4. Prohibited Misuse & Instant Termination"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#A1A1AA] leading-relaxed", children: "DDoS attacks, illegal botnets, spamming, phishing, or payment fraud will result in immediate service termination, wallet balance forfeiture, and permanent blacklist." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white font-black text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-4 h-4 text-purple-400" }),
+            " 5. Policy Updates & Continued Consent"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#A1A1AA] leading-relaxed", children: "YouuHost reserves the right to modify these terms at any time. Continued use of the platform after any modification constitutes full and automatic agreement to the updated terms." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-2xl text-[11px] text-emerald-300 font-semibold flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FaWhatsapp, { className: "w-4 h-4 text-emerald-400 shrink-0" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "24/7 Official Support: +94 77 031 4260" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "a",
+            {
+              href: "https://wa.me/94770314260?text=Hello%20YouuHost%20Support%2C%20I%20have%20an%20inquiry%20regarding%20my%20order.",
+              target: "_blank",
+              rel: "noreferrer",
+              className: "text-[#38B6FF] hover:underline font-bold",
+              children: "Chat Now"
+            }
+          )
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 pt-3 border-t border-[#ECEEF8]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Button,
-        {
-          onClick: () => setIsTermsModalOpen(false),
-          className: "w-full bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:from-[#4A32D6] hover:to-[#5B42F3] text-white font-black text-xs rounded-2xl h-11 shadow-md shadow-[#5B42F3]/25",
-          children: "I Understand & Agree"
-        }
-      ) })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-5 pt-3 border-t border-[#27272A] flex flex-col gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Button,
+          {
+            onClick: () => setIsTermsModalOpen(false),
+            className: "w-full bg-gradient-to-r from-[#5B42F3] to-[#38B6FF] hover:opacity-95 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-[#5B42F3]/25",
+            children: "I Acknowledge & Agree to All Terms"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Link,
+          {
+            href: "/terms",
+            target: "_blank",
+            className: "text-center text-[11px] text-[#A1A1AA] hover:text-white py-1 transition-colors",
+            children: "Open Full-Page Document ↗"
+          }
+        )
+      ] })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Dialog,
@@ -114576,7 +114661,7 @@ function DomainAutomationPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-white/50 uppercase tracking-wider", children: "Active Jailed Hacker IPs" }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-base font-bold text-amber-400 flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4" }),
                 " ",
                 securityStatus?.activeJailedIpsCount || 0,
                 " IPs Blocked"
@@ -114596,7 +114681,7 @@ function DomainAutomationPage() {
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-amber-400" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-amber-400" }),
               " Active Jailed IPs (Blacklist):"
             ] }),
             !securityStatus?.jailedIps || securityStatus.jailedIps.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 rounded-2xl bg-black/30 border border-white/5 text-xs text-white/40 text-center font-mono", children: "No active jailed IPs. All incoming traffic is within normal security thresholds." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto rounded-2xl border border-white/5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs text-white", children: [
@@ -114762,7 +114847,7 @@ function DomainAutomationPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-3.5 h-3.5 text-orange-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-3.5 h-3.5 text-orange-400" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cloudflare Global API Key (Optional Alternative)" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
@@ -115388,7 +115473,7 @@ function StoreMeshPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/40 text-xs font-bold uppercase tracking-wider flex items-center justify-between", children: [
             "Anti-Spoof Defense",
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock, { className: "w-4 h-4 text-emerald-400" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Lock$1, { className: "w-4 h-4 text-emerald-400" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-base font-bold text-white", children: "Zero-Trust Replay Shield" })
         ] }),
@@ -119361,6 +119446,251 @@ function BestSellersPage() {
     }) })
   ] });
 }
+function TermsPage() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-[#121214] text-[#E4E4E7] font-sans selection:bg-[#5B42F3] selection:text-white pb-16", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "sticky top-0 z-40 bg-[#121214]/90 backdrop-blur-md border-b border-[#27272A] px-4 sm:px-8 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-4xl mx-auto flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Link, { href: "/", className: "flex items-center gap-3 group", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5B42F3] to-[#38B6FF] p-0.5 shadow-lg shadow-[#5B42F3]/20 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "img",
+          {
+            src: "/assets/youuhost_logo.png",
+            alt: "YouuHost",
+            className: "w-full h-full object-contain rounded-[10px]",
+            onError: (e) => {
+              e.target.style.display = "none";
+            }
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-base font-black tracking-tight text-white group-hover:text-[#38B6FF] transition-colors flex items-center gap-1.5", children: [
+          "YOUUHOST ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] px-2 py-0.5 rounded-full bg-[#27272A] text-[#A1A1AA] font-bold", children: "PLATFORM" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        Link,
+        {
+          href: "/",
+          className: "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#27272A] hover:bg-[#3F3F46] text-xs font-bold text-white transition-all active:scale-95 border border-[#3F3F46]",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronLeft, { className: "w-4 h-4" }),
+            " Back to Store"
+          ]
+        }
+      )
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "max-w-4xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 pb-8 border-b border-[#27272A]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-wider", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3.5 h-3.5" }),
+          " Official Platform Agreement"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight", children: "YouuHost Platform Terms of Use & Digital Agreement" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 text-xs font-bold text-[#A1A1AA] pt-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "LAST REVISED: MARCH 2026" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "VERSION 4.2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-emerald-400 font-black", children: "LEGALLY BINDING" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "my-8 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-red-950/40 via-[#1E1214] to-red-950/20 border border-red-500/30 shadow-2xl relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-4 relative z-10", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0 text-red-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "w-6 h-6" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-red-300 tracking-tight flex items-center gap-2", children: "CRITICAL NOTICE: STRICT NON-REFUNDABLE DIGITAL GOODS POLICY" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs sm:text-sm text-red-200/80 leading-relaxed font-medium", children: [
+              "Due to the intangible, instant-delivery, and non-returnable nature of digital items, cloud server allocations, account credentials, license keys, and API tokens sold on YouuHost, ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "ALL SALES ARE FINAL" }),
+              ". Once an order is processed, credentials issued, or server resources provisioned, ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "NO REFUNDS, CASH REVERSALS, OR ORDER CANCELLATIONS WILL BE ISSUED UNDER ANY CIRCUMSTANCES" }),
+              "."
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10 text-sm leading-relaxed text-[#D4D4D8]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "1" }),
+            "Acceptance of Terms & Binding Legal Agreement"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              "By accessing or using the ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "YouuHost Mini-App" }),
+              ", Telegram Bots, Web Portals (",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: "https://youuhost.com", className: "text-[#38B6FF] underline", children: "youuhost.com" }),
+              "), API endpoints, or by placing an order for any product or service, you (the ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: '"Customer"' }),
+              ", ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: '"User"' }),
+              ", or ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: '"You"' }),
+              ") explicitly acknowledge, agree to, and are legally bound by these Terms of Service (the ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: '"Terms"' }),
+              ")."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "If you do not agree unconditionally to all provisions contained herein, you must immediately cease using the platform and refrain from placing any orders or funding your account wallet." })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "2" }),
+            "Digital Assets, Delivery & Strict No-Refund Policy"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "2.1 Nature of Goods:" }),
+              " All products offered by YouuHost—including Cloud VPS/RDP instances, AI subscriptions (Gemini, ChatGPT, Claude), software licenses, Windows Activation Keys, Canva Pro accounts, Hotmail/Outlook emails, Adobe Express VIP packages, and Telegram/Spotify subscriptions—are intangible digital assets delivered electronically."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "2.2 Automated Instant Fulfillment:" }),
+              " Digital credentials and license keys are delivered immediately (0-2 minutes) upon blockchain or payment gateway confirmation and are permanently tied to your customer order record."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "2.3 All Sales Are Final:" }),
+              " Payment completion constitutes full consumption and fulfillment of the order. YouuHost strictly does not provide refunds, chargebacks, exchanges, or balance withdrawals once an order is created or funds are deposited into your platform wallet."
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "3" }),
+            "Warranty Coverage, Replacement Guarantee & Verification"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "3.1 Initial Login Warranty:" }),
+              " All verified accounts and keys carry a standard ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "24-Hour to 48-Hour Initial Verification Guarantee" }),
+              " from the moment of purchase, unless a specific extended warranty is explicitly stated in the product description."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "3.2 Replacement Eligibility:" }),
+              " If delivered credentials, keys, or invitations fail to function upon initial receipt, the customer must submit clear, unedited photo/video evidence to official support within the warranty window. Following technical verification, our team will provide a direct ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "1-to-1 replacement" }),
+              " or store credit equivalent."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "3.3 Voiding of Warranty:" }),
+              " The warranty is instantly nullified and void under any of the following circumstances:"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "list-disc pl-5 space-y-1.5 text-red-300/90 font-medium", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Unauthorized modification of shared recovery emails, passwords, or primary security settings." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Violation of third-party platform terms of service (e.g., triggering automated bans on AWS/Oracle/Google Cloud due to prohibited abusive traffic)." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Sharing, reselling, or public leaking of delivered private credentials." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Attempting to claim false defects or fraudulent chargeback attempts." })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "4" }),
+            "Customer Responsibilities, 2FA & Security Management"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "4.1 Credential Safekeeping:" }),
+              " You are solely responsible for securing, backing up, and safeguarding all delivered usernames, passwords, 2FA recovery keys, and API tokens. YouuHost is not responsible for lost access due to customer negligence or local device compromise."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "4.2 Two-Factor Authentication (2FA):" }),
+              " For accounts with 2FA enabled, you must record and store the provided TOTP secret key or backup codes immediately."
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "4.3 Third-Party Terms Compliance:" }),
+              " When utilizing accounts or services associated with third-party providers (including Microsoft, Amazon Web Services, Google Cloud, Canva, Adobe, OpenAI, Spotify, Linode, Oracle), you agree to comply fully with their respective acceptable use policies."
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "5" }),
+            "Prohibited Activities, Fraud Prevention & Zero Tolerance"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "YouuHost enforces a strict zero-tolerance policy against malicious or fraudulent use. Prohibited activities include, but are not limited to:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("ul", { className: "list-disc pl-5 space-y-1 text-[#D4D4D8]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Executing DDoS attacks, unauthorized port scanning, or vulnerability exploitation." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Operating illegal botnets, high-volume spam campaigns, or phishing schemes." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Unauthorized cryptocurrency mining on non-mining dedicated server tiers." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Payment fraud, stolen card usage, or illicit automated bot abuses." })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Consequences of Violation:" }),
+              " Any confirmed violation will result in the immediate termination of all active services, permanent forfeiture of remaining wallet balance, and permanent blacklisting without notice or right of appeal."
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "6" }),
+            "Modifications to Terms & Automatic Continued Consent"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "YouuHost reserves the exclusive and unrestricted right to modify, amend, update, or revise these Terms of Service, pricing schedules, warranty conditions, or platform features at any time without prior individual notice." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+              "Any updates will take effect immediately upon being published on this page. Your continued access to the platform or placement of future orders following any modifications constitutes your ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "irrevocable, automatic, and binding consent" }),
+              " to all updated terms and conditions."
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "space-y-3 pb-8", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-black text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-7 h-7 rounded-lg bg-[#27272A] flex items-center justify-center text-xs font-black text-[#38B6FF]", children: "7" }),
+            "Official Support Channels & Dispute Handling"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 text-[#A1A1AA] text-xs sm:text-[13.5px] leading-relaxed", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "For legitimate technical support, warranty replacement claims, or billing inquiries, our official customer assistance channels are available 24/7:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "a",
+                {
+                  href: "https://wa.me/94770314260?text=Hello%20YouuHost%20Support%2C%20I%20have%20an%20inquiry%20regarding%20my%20order.",
+                  target: "_blank",
+                  rel: "noreferrer",
+                  className: "flex items-center gap-3 p-4 rounded-2xl bg-[#1E293B]/50 hover:bg-[#1E293B] border border-emerald-500/30 transition-all group",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(FaWhatsapp, { className: "w-5 h-5" }) }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-white block group-hover:text-emerald-400 transition-colors", children: "Official WhatsApp Support" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#A1A1AA] block", children: "+94 77 031 4260" })
+                    ] })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "a",
+                {
+                  href: "https://t.me/rochana_imesh",
+                  target: "_blank",
+                  rel: "noreferrer",
+                  className: "flex items-center gap-3 p-4 rounded-2xl bg-[#1E293B]/50 hover:bg-[#1E293B] border border-sky-500/30 transition-all group",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: "w-5 h-5" }) }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-white block group-hover:text-sky-400 transition-colors", children: "Telegram VIP Concierge" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#A1A1AA] block", children: "@rochana_imesh" })
+                    ] })
+                  ]
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-8 border-t border-[#27272A] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-[#71717A]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-500" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "© 2026 YouuHost Cloud Network. All Rights Reserved." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/", className: "text-[#38B6FF] hover:underline", children: "Return to Store & Mini-App" })
+      ] })
+    ] })
+  ] });
+}
 function NotFound() {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen w-full flex flex-col items-center justify-center bg-[#F8F9FD] p-4 text-center select-none overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-md w-full flex flex-col items-center justify-center", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full flex justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Lottie404, { size: 320, className: "max-w-full max-h-[65vh]" }) }),
@@ -119494,6 +119824,9 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/telegram-inspector", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: TelegramInspectorPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/telegram-client", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: TelegramClientPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/forward", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ForwardPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/terms", component: TermsPage }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/terms-of-service", component: TermsPage }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/terms-and-conditions", component: TermsPage }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/", children: /* @__PURE__ */ jsxRuntimeExports.jsx(RootRouteHandler, {}) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { component: NotFound })
   ] });

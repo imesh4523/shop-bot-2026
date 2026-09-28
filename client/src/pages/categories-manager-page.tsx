@@ -19,8 +19,8 @@ import {
   Image as ImageIcon,
   LayoutGrid,
 } from "lucide-react";
-import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode } from "react-icons/fa";
-import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiClaude } from "react-icons/si";
+import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode, FaWindows } from "react-icons/fa";
+import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiClaude, SiCanva } from "react-icons/si";
 import { VscAzure } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,24 +49,28 @@ export interface CustomCategoryItem {
 
 export const DEFAULT_CATEGORIES: CustomCategoryItem[] = [
   { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
-  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
-  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 2, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
-  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 3, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
-  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 4, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
-  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 5, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
-  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 6, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
-  { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 7, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
-  { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 8, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
-  { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 9, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
-  { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 10, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
-  { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
-  { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 12, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
-  { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 13, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
-  { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 14, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
-  { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 15, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
-  { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 16, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
-  { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 17, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
-  { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 18, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" },
+  { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 1, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
+  { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 2, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 3, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
+  { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 4, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
+  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 5, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 6, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 7, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 8, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 9, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 10, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+  { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 12, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
+  { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 13, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
+  { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 14, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 15, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+  { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 16, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+  { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 17, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
+  { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 18, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
+  { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 19, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
+  { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 20, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 21, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
+  { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 22, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" },
 ];
 
 export const BADGE_COLOR_STYLES: Record<string, string> = {
@@ -84,6 +88,26 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
   }
   switch (iconType) {
     case "all": return <LayoutGrid className={className} />;
+    case "windows": return <FaWindows className={`${className} text-[#0078D7]`} />;
+    case "canva": return <SiCanva className={`${className} text-[#00C4CC]`} />;
+    case "hotmail":
+    case "outlook":
+      return (
+        <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
+          <path d="M14 6.5h7.5A2.5 2.5 0 0124 9v6a2.5 2.5 0 01-2.5 2.5H14v-11z" fill="#0078D4"/>
+          <path d="M14 6.5l-5 4.5v-9l5 4.5z" fill="#106EBE"/>
+          <path d="M0 6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H2a2 2 0 01-2-2V6z" fill="#0078D4"/>
+          <circle cx="7" cy="12" r="3" fill="#FFFFFF"/>
+          <circle cx="7" cy="12" r="1.5" fill="#0078D4"/>
+        </svg>
+      );
+    case "adobe":
+    case "adobe_express":
+      return (
+        <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
+          <path d="M14.5 3h7.5v18l-7.5-18zM9.5 3H2v18l7.5-18zm2.5 9.2l3.8 8.8h-3l-1.3-3.4h-3.4l2.4-5.4h1.5z" fill="#FA0F00"/>
+        </svg>
+      );
     case "aws": return <FaAws className={`${className} text-[#FF9900]`} />;
     case "digitalocean": return <SiDigitalocean className={`${className} text-[#0080FF]`} />;
     case "azure": return <VscAzure className={`${className} text-[#0089D6]`} />;
@@ -633,6 +657,10 @@ export default function CategoriesManagerPage() {
                   className="w-full mt-1 h-10 rounded-xl border border-[#ECEEF8] px-3 text-xs font-bold text-[#181432] bg-white"
                 >
                   <option value="all">All (Grid)</option>
+                  <option value="windows">Windows (OS & Keys)</option>
+                  <option value="canva">Canva (Canva Pro)</option>
+                  <option value="hotmail">Hotmail / Outlook</option>
+                  <option value="adobe">Adobe (Express / VIP)</option>
                   <option value="aws">AWS (Amazon Web Services)</option>
                   <option value="digitalocean">DigitalOcean</option>
                   <option value="azure">Azure (Microsoft)</option>

@@ -6000,83 +6000,137 @@ Support: https://t.me/youuhost_support
 
       {/* TERMS OF SERVICE & WARRANTY POLICY POPUP DIALOG */}
       <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
-        <DialogContent className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-base font-black text-[#181432] flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              {termsModalProduct ? `${termsModalProduct} Terms & Warranty` : "Service Terms & Guarantee Policy"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#7E7998]">
-              Official policy guidelines, instant warranty coverage, and customer rights.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-lg w-full bg-[#121214] border border-[#27272A] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[88vh] overflow-y-auto z-50 text-[#E4E4E7]">
+          {/* Header with YouuHost Brand Logo */}
+          <div className="flex items-center justify-between pb-4 border-b border-[#27272A]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3] to-[#38B6FF] p-0.5 shadow-lg shadow-[#5B42F3]/25 flex items-center justify-center">
+                <img
+                  src="/assets/youuhost_logo.png"
+                  alt="YouuHost"
+                  className="w-full h-full object-contain rounded-[14px]"
+                  onError={(e) => {
+                    (e.target as any).style.display = "none";
+                  }}
+                />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white tracking-tight flex items-center gap-1.5">
+                  YOUUHOST PLATFORM
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                    OFFICIAL
+                  </span>
+                </h3>
+                <span className="text-[10px] text-[#A1A1AA] font-bold">TERMS OF USE & DIGITAL AGREEMENT</span>
+              </div>
+            </div>
+          </div>
 
-          <div className="space-y-3.5 text-xs text-[#3D3656] pt-2">
+          <div className="space-y-4 text-xs text-[#D4D4D8] pt-3">
             {/* Custom Product Terms & Warranty (if defined by Admin) */}
             {termsModalCustomText && (
-              <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 rounded-2xl p-4 border border-purple-200/80 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 text-[#5B42F3] font-black text-xs">
-                  <ShieldCheck className="w-4 h-4 text-[#5B42F3]" /> Specific Product Warranty & Guarantee
+              <div className="bg-gradient-to-br from-purple-950/40 via-[#1E1B4B] to-purple-950/20 rounded-2xl p-4 border border-purple-500/30 shadow-xs space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 text-purple-300 font-black text-xs">
+                  <ShieldCheck className="w-4 h-4 text-purple-400" /> Specific Product Warranty & Guarantee
                 </div>
-                <p className="text-[11.5px] text-[#181432] font-semibold leading-relaxed whitespace-pre-wrap">
+                <p className="text-[11.5px] text-[#E4E4E7] font-semibold leading-relaxed whitespace-pre-wrap">
                   {termsModalCustomText}
                 </p>
               </div>
             )}
 
-            {/* Policy 1: Instant Auto-Delivery */}
-            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
-              <div className="flex items-center gap-2 text-emerald-700 font-black text-xs">
-                <ShopBagIcon className="w-4 h-4 text-emerald-500" /> 1. Automated Instant Fulfillment (0-2 Mins)
+            {/* Critical Callout: STRICT NO-REFUND POLICY */}
+            <div className="bg-red-950/40 border border-red-500/30 rounded-2xl p-4 space-y-1.5">
+              <div className="flex items-center gap-2 text-red-400 font-black text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>CRITICAL: STRICT NON-REFUNDABLE POLICY (ALL SALES FINAL)</span>
               </div>
-              <p className="text-[11px] text-[#6B658B] leading-relaxed">
-                All digital accounts, licenses, and cloud credentials are automatically issued upon payment confirmation. Credentials can be retrieved at any time under your <b>Orders</b> tab.
+              <p className="text-[11px] text-red-200/90 leading-relaxed font-medium">
+                All cloud resources, digital accounts, software keys, and subscriptions sold on YouuHost are <b>intangible digital assets</b> delivered electronically. <b>NO REFUNDS, CASH REVERSALS, OR ORDER CANCELLATIONS WILL BE ISSUED UNDER ANY CIRCUMSTANCES ONCE AN ORDER IS PROCESSED OR CREDENTIALS ARE DELIVERED.</b>
               </p>
             </div>
 
-            {/* Policy 2: 24h Replacement Guarantee */}
-            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
-              <div className="flex items-center gap-2 text-[#5B42F3] font-black text-xs">
-                <ShieldCheck className="w-4 h-4 text-[#5B42F3]" /> 2. 24-Hour Replacement Warranty
+            {/* Policy 1: Acceptance & Binding Agreement */}
+            <div className="bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1">
+              <div className="flex items-center gap-2 text-white font-black text-xs">
+                <CheckCircle2 className="w-4 h-4 text-[#38B6FF]" /> 1. Acceptance of Terms & Binding Agreement
               </div>
-              <p className="text-[11px] text-[#6B658B] leading-relaxed">
-                If any account credentials or 2FA codes encounter issues within 24 hours of purchase, our support team will issue an instant replacement or full credit refund after verification.
+              <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                Accessing YouuHost, depositing wallet balance, or placing an order constitutes your unconditional legal acceptance of all platform terms and policies.
               </p>
             </div>
 
-            {/* Policy 3: Cloud Quota & Fair Usage */}
-            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
-              <div className="flex items-center gap-2 text-amber-700 font-black text-xs">
-                <CheckCircle2 className="w-4 h-4 text-amber-500" /> 3. Fair Usage & Prohibited Activities
+            {/* Policy 2: 24h-48h Replacement Guarantee */}
+            <div className="bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1">
+              <div className="flex items-center gap-2 text-white font-black text-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 2. 24h-48h Initial Replacement Warranty
               </div>
-              <p className="text-[11px] text-[#6B658B] leading-relaxed">
-                Cloud servers and accounts are strictly intended for legal development, bot hosting, and personal subscriptions. Any illegal activity, unauthorized crypto mining, DDoS attacks, or spam will result in immediate termination without refund.
+              <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                If credentials or activation keys fail to work upon initial receipt, submit unedited photo/video evidence to official support within the warranty period for an instant <b>1-to-1 replacement</b> or equivalent store credit.
               </p>
             </div>
 
-            {/* Policy 4: Wallet & Refunds */}
-            <div className="bg-white rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs space-y-1">
-              <div className="flex items-center gap-2 text-sky-700 font-black text-xs">
-                <Wallet className="w-4 h-4 text-sky-500" /> 4. Wallet Balance & Support Assistance
+            {/* Policy 3: Customer Responsibilities & Security */}
+            <div className="bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1">
+              <div className="flex items-center gap-2 text-white font-black text-xs">
+                <Lock className="w-4 h-4 text-amber-400" /> 3. Credential Security & 2FA Responsibilities
               </div>
-              <p className="text-[11px] text-[#6B658B] leading-relaxed">
-                Wallet top-ups via PayHere (Card) and Cryptomus are credited instantly. For any inquiries or disputes, reach out via the 24/7 AI Concierge or official Telegram support.
+              <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                Customers are solely responsible for securing delivered credentials and backing up 2FA secret keys. Any unauthorized account sharing, password leaks, or third-party acceptable use violations instantly void warranty coverage.
               </p>
             </div>
 
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>100% Verified Accounts • Zero Logins Required For Gifting</span>
+            {/* Policy 4: Prohibited Activities */}
+            <div className="bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1">
+              <div className="flex items-center gap-2 text-white font-black text-xs">
+                <XCircle className="w-4 h-4 text-rose-400" /> 4. Prohibited Misuse & Instant Termination
+              </div>
+              <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                DDoS attacks, illegal botnets, spamming, phishing, or payment fraud will result in immediate service termination, wallet balance forfeiture, and permanent blacklist.
+              </p>
+            </div>
+
+            {/* Policy 5: Automatic Agreement to Future Changes */}
+            <div className="bg-[#18181B] rounded-2xl p-3.5 border border-[#27272A] space-y-1">
+              <div className="flex items-center gap-2 text-white font-black text-xs">
+                <RefreshCw className="w-4 h-4 text-purple-400" /> 5. Policy Updates & Continued Consent
+              </div>
+              <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                YouuHost reserves the right to modify these terms at any time. Continued use of the platform after any modification constitutes full and automatic agreement to the updated terms.
+              </p>
+            </div>
+
+            {/* Official Support Assistance Box */}
+            <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-2xl text-[11px] text-emerald-300 font-semibold flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FaWhatsapp className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>24/7 Official Support: +94 77 031 4260</span>
+              </div>
+              <a
+                href="https://wa.me/94770314260?text=Hello%20YouuHost%20Support%2C%20I%20have%20an%20inquiry%20regarding%20my%20order."
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#38B6FF] hover:underline font-bold"
+              >
+                Chat Now
+              </a>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[#ECEEF8]">
+          <div className="mt-5 pt-3 border-t border-[#27272A] flex flex-col gap-2">
             <Button
               onClick={() => setIsTermsModalOpen(false)}
-              className="w-full bg-gradient-to-r from-[#5B42F3] to-[#6C5CE7] hover:from-[#4A32D6] hover:to-[#5B42F3] text-white font-black text-xs rounded-2xl h-11 shadow-md shadow-[#5B42F3]/25"
+              className="w-full bg-gradient-to-r from-[#5B42F3] to-[#38B6FF] hover:opacity-95 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-[#5B42F3]/25"
             >
-              I Understand & Agree
+              I Acknowledge & Agree to All Terms
             </Button>
+            <Link
+              href="/terms"
+              target="_blank"
+              className="text-center text-[11px] text-[#A1A1AA] hover:text-white py-1 transition-colors"
+            >
+              Open Full-Page Document ↗
+            </Link>
           </div>
         </DialogContent>
       </Dialog>
