@@ -534,7 +534,7 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
 
   // Discount breakdown handling
   let discountLabel = "Discounts";
-  let discountDisplay = isLkr ? "LKR 0.00" : "$0.00";
+  let discountDisplay = isLkr ? "Rs. 0" : "$0.00";
   if (props.discountAmount && props.discountAmount.trim()) {
     const cleanDisc = sanitizeCurrencyAmount(props.discountAmount).replace(/\s*(USD|LKR)/gi, "").trim();
     discountDisplay = `-${cleanDisc}`;

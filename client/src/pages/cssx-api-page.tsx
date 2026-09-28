@@ -175,13 +175,13 @@ export default function CssxApiPage() {
   });
 
   // 2. Query Live Products
-  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery<any[]>({
+  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts, isFetching: productsFetching } = useQuery<any[]>({
     queryKey: ["/api/admin/cssx/products"],
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/products");
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to load products");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to load products from CSxStore");
       }
       return res.json();
     },
@@ -195,13 +195,48 @@ export default function CssxApiPage() {
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/orders");
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to load orders");
       }
       return res.json();
     },
     enabled: activeTab === "orders" || activeTab === "overview",
     retry: false
+  });
+
+  // Test Connection Mutation
+  const [testResult, setTestResult] = useState<any | null>(null);
+  const testConnectionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/cssx/test");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Connection test failed");
+      return data;
+    },
+    onSuccess: (data) => {
+      setTestResult(data);
+      if (data.connected) {
+        toast({
+          title: "Connection Successful! ⚡",
+          description: `Latency: ${data.latencyMs}ms | Live Wallet: $${Number(data.walletUsdt || 0).toFixed(4)} USDT | Catalog: ${data.productCount} items`,
+        });
+      } else {
+        toast({
+          title: "Connection Warning",
+          description: data.error || data.statusMessage || "Could not authenticate with CSxStore API",
+          variant: "destructive",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Test Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // 4. Save Settings Mutation
@@ -222,7 +257,9 @@ export default function CssxApiPage() {
         description: data.message,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
       refetchSettings();
+      refetchProducts();
     },
     onError: (err: any) => {
       toast({
@@ -352,6 +389,17 @@ export default function CssxApiPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => testConnectionMutation.mutate()}
+              disabled={testConnectionMutation.isPending}
+              className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs h-10 px-4"
+            >
+              <Zap className={`w-3.5 h-3.5 mr-1.5 ${testConnectionMutation.isPending ? "animate-spin text-emerald-400" : "text-emerald-400"}`} />
+              {testConnectionMutation.isPending ? "Testing..." : (testResult?.latencyMs ? `${testResult.latencyMs}ms Ping` : "Test Ping")}
+            </Button>
+
             <a
               href={DOCS_URL}
               target="_blank"
@@ -372,10 +420,10 @@ export default function CssxApiPage() {
                 refetchOrders();
                 toast({ title: "Refreshing...", description: "Fetching live CSxStore balance & data." });
               }}
-              disabled={settingsLoading}
+              disabled={settingsLoading || productsLoading}
               className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4"
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-2 ${settingsLoading ? "animate-spin text-purple-400" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 mr-2 ${(settingsLoading || productsLoading) ? "animate-spin text-purple-400" : ""}`} />
               Refresh
             </Button>
           </div>

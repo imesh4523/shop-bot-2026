@@ -1466,9 +1466,7 @@ export default function MiniAppShopModern() {
         (sandromaniaProductsList.find((p: any) => p.id === sandroOrd.sandromaniaProductId || p.externalProductId === sandroOrd.externalProductId)?.title) ||
         "Digital Product";
 
-      const orderNum = sandroOrd.externalOrderId 
-        ? `#YOUUHOST-${sandroOrd.externalOrderId}` 
-        : `#YOUUHOST-${sandroOrd.id}`;
+      const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || (2000 + sandroOrd.id)}`;
 
       list.push({
         id: `sandro-${sandroOrd.id}`,
@@ -1565,6 +1563,50 @@ Support: https://t.me/youuhost_support
   const [detailSandromaniaProduct, setDetailSandromaniaProduct] = useState<any | null>(null);
   const [sandromaniaOrderQty, setSandromaniaOrderQty] = useState<number>(1);
   const [isSandromaniaPurchasing, setIsSandromaniaPurchasing] = useState(false);
+
+  // Instant Sold Counts delta tracking persisted in localStorage
+  const [purchasedDeltas, setPurchasedDeltas] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem("yh_purchased_sold_deltas");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const recordPurchasedDelta = (itemKey: string, qty: number) => {
+    setPurchasedDeltas((prev) => {
+      const next = { ...prev, [itemKey]: (prev[itemKey] || 0) + Math.max(1, qty) };
+      try {
+        localStorage.setItem("yh_purchased_sold_deltas", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Helper for computing randomized sold amounts (Gemini: 3800+, Others: 200-600) & ratings (10-240) + instant increments
+  const getItemStats = (item: any, type: "product" | "sandromania" | "smm") => {
+    if (!item) return { sold: 320, rating: "4.9", reviewsCount: 145 };
+    const idNum = typeof item.id === "number" ? item.id : (parseInt(String(item.id || 1).replace(/\D/g, ""), 10) || 1);
+    const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
+    const isGemini = title.includes("gemini");
+
+    // Gemini items: 3,800+ random sold count
+    // Other items: 200 - 600 random sold count
+    const baseSold = isGemini 
+      ? 3800 + ((idNum * 47 + 23) % 180)
+      : 200 + ((idNum * 67 + 31) % 401);
+
+    // Rating reviews count: 10 - 240
+    const reviewsCount = 10 + ((idNum * 29 + 17) % 231);
+    const rating = (4.8 + ((idNum % 2) * 0.1)).toFixed(1);
+
+    const key = `${type}_${item.id}`;
+    const extraSold = purchasedDeltas[key] || 0;
+    const sold = baseSold + extraSold;
+
+    return { sold, rating, reviewsCount };
+  };
 
   const { data: supportUserSetting } = useQuery<{ value: string }>({
     queryKey: ["/api/settings/SUPPORT_USERNAME"],
@@ -2555,9 +2597,72 @@ Support: https://t.me/youuhost_support
     });
   }, [sandromaniaProductsList, selectedCategory, searchQuery]);
 
+  // Unified Catalog Items with In-Stock prioritized at the TOP and Out-of-Stock sorted to the BOTTOM
+  const unifiedCatalogItems = useMemo(() => {
+    const list: Array<{
+      type: "smm" | "sandromania" | "product";
+      data: any;
+      isOutOfStock: boolean;
+      orderScore: number;
+    }> = [];
+
+    // 1. SMM Services (Always active/in stock)
+    filteredSmmServices.forEach((smm: any) => {
+      const isOutOfStock = smm.isActive === false;
+      list.push({
+        type: "smm",
+        data: smm,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0,
+      });
+    });
+
+    // 2. Sandromania Partner Products (e.g. Gemini, Canva, etc. - in stock by default unless isActive === false)
+    filteredSandromaniaProducts.forEach((sandProd: any) => {
+      const isOutOfStock = sandProd.isActive === false;
+      list.push({
+        type: "sandromania",
+        data: sandProd,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0,
+      });
+    });
+
+    // 3. Direct Cloud & Account Products (In stock if stockCount > 0 and isActive !== false)
+    filteredProducts.forEach((prod: any) => {
+      const availableStock = typeof prod.stockCount === "number" ? prod.stockCount : 0;
+      const isOutOfStock = prod.isActive === false || availableStock <= 0;
+      list.push({
+        type: "product",
+        data: prod,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0,
+      });
+    });
+
+    // Sort: In-Stock items FIRST (orderScore: 0), Out-of-Stock items LAST (orderScore: 1)
+    list.sort((a, b) => a.orderScore - b.orderScore);
+
+    return list;
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredProducts]);
+
   // Format Sandromania price helper
-  const formatSandromaniaPrice = (priceCents: number, qty: number = 1) => {
-    const totalCents = (priceCents || 0) * qty;
+  const formatSandromaniaPrice = (sandProdOrPriceCents: any, qty: number = 1) => {
+    if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
+      const prod = sandProdOrPriceCents;
+      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
+      }
+      const totalCents = (prod.sellingPriceUsd || 0) * qty;
+      const usd = totalCents / 100;
+      if (selectedCurrency === "LKR") {
+        const lkr = Math.round(usd * lkrRate);
+        return `Rs. ${lkr.toLocaleString()}`;
+      }
+      return `$${usd.toFixed(2)}`;
+    }
+    const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
+    const totalCents = priceCents * qty;
     const usd = totalCents / 100;
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
@@ -2632,8 +2737,10 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
+        currency: selectedCurrency,
       });
       await res.json();
+      recordPurchasedDelta(`sandromania_${detailSandromaniaProduct.id}`, sandromaniaOrderQty);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "🎉 Purchase Successful!",
@@ -2812,8 +2919,10 @@ Support: https://t.me/youuhost_support
         productId: detailProduct.id,
         quantity,
         couponCode: appliedCoupon?.code || undefined,
+        currency: selectedCurrency,
       });
       const data = await res.json();
+      recordPurchasedDelta(`product_${detailProduct.id}`, quantity);
       
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       
@@ -2928,6 +3037,7 @@ Support: https://t.me/youuhost_support
         quantity: smmOrderQty,
       });
       await res.json();
+      recordPurchasedDelta(`smm_${detailSmmService.id}`, 1);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "🎉 SMM Order Placed!",
@@ -3479,7 +3589,7 @@ Support: https://t.me/youuhost_support
               <div className="flex flex-col items-center justify-center py-10 col-span-2">
                 <LottiePayment size={140} />
               </div>
-            ) : (filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0) ? (
+            ) : unifiedCatalogItems.length === 0 ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
                 <ShopBagIcon className="w-12 h-12 mx-auto text-[#8FA597]/75 mb-2.5" />
                 <h4 className="text-sm font-bold text-[#1C3324]">No products found</h4>
@@ -3487,173 +3597,235 @@ Support: https://t.me/youuhost_support
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3.5">
-                {/* 1. Live SMM Services (N1Panel SMM API) */}
-                {filteredSmmServices.map((smm: any) => {
-                  const smmConf = getSmmPlatformConfig(smm.category, smm.name);
-                  const rateFormatted = formatSmmRate(smm.customRate);
+                {unifiedCatalogItems.map((item) => {
+                  if (item.type === "smm") {
+                    const smm = item.data;
+                    const isOutOfStock = item.isOutOfStock;
+                    const smmConf = getSmmPlatformConfig(smm.category, smm.name);
+                    const rateFormatted = formatSmmRate(smm.customRate);
+                    const stats = getItemStats(smm, "smm");
 
-                  return (
-                    <motion.div
-                      key={`smm-${smm.id}`}
-                      whileHover={{ y: -3 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setDetailSmmService(smm);
-                        setSmmOrderQty(smm.min || 1000);
-                        setSmmTargetLink("");
-                      }}
-                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
-                    >
-                      {/* Top Action: YouuHost Badge & Platform Pill */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`}>
-                          {smmConf.tag}
-                        </span>
-                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                          <ShopBagIcon className="w-2.5 h-2.5" /> YouuHost
-                        </span>
-                      </div>
-
-                      {/* Centered Image with Real Brand Icon and Organic Blob Background */}
-                      <div className="relative my-2 py-3 flex items-center justify-center">
-                        <div
-                          className={`w-20 h-20 rounded-full bg-gradient-to-br ${smmConf.blobColor} absolute blur-sm`}
-                        />
-                        <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
-                          {smmConf.icon}
-                        </div>
-                      </div>
-
-                      {/* YouuHost Service Details */}
-                      <div className="mt-1">
-                        <h4 className="text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight">
-                          {smm.name}
-                        </h4>
-                        <p className="text-[10px] text-[#7E7998] line-clamp-1 mt-1">
-                          Min: {smm.min?.toLocaleString()} • Max: {smm.max?.toLocaleString()}
-                        </p>
-                      </div>
-
-                      {/* Bottom Price & Add (+) Button */}
-                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
-                        <div>
-                          <span className="text-xs font-black text-[#181432]">{rateFormatted}</span>
-                          <span className="text-[9px] text-[#7E7998] block">YouuHost Boost</span>
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDetailSmmService(smm);
-                            setSmmOrderQty(smm.min || 1000);
-                            setSmmTargetLink("");
-                          }}
-                          className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-90 transition-all"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-
-                {/* 2. Sandromania Partner Products */}
-                {filteredSandromaniaProducts.map((sandProd) => {
-                  const cleanTitle = cleanSandromaniaText(sandProd.title);
-                  const cleanCat = cleanSandromaniaText(sandProd.category);
-                  const conf = getProviderConfig(cleanTitle, cleanCat);
-                  const priceFormatted = formatSandromaniaPrice(sandProd.sellingPriceUsd, 1);
-                  const availableStock = sandProd.stock || sandProd.stockCount || 0;
-
-                  return (
-                    <motion.div
-                      key={`sandro-prod-${sandProd.id}`}
-                      whileHover={{ y: -3 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setDetailSandromaniaProduct(sandProd);
-                        setSandromaniaOrderQty(1);
-                      }}
-                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group"
-                    >
-                      {/* Top Action: Provider Tag & Instant Delivery Tag */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
-                          {conf.tag}
-                        </span>
-                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5">
-                          <ShopBagIcon className="w-2.5 h-2.5" /> Auto-Key
-                        </span>
-                      </div>
-
-                      {/* Centered Image with Real Brand Icon and Organic Blob Background */}
-                      <div className="relative my-2 py-3 flex items-center justify-center">
-                        <div
-                          className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
-                        />
-                        <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
-                          <BrandIcon name={cleanTitle} type={cleanCat} className="w-12 h-12" />
-                        </div>
-                      </div>
-
-                      {/* Product Details */}
-                      <div className="mt-1">
-                        <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
-                          {cleanTitle}
-                        </h4>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[10px] text-[#7E7998] truncate">
-                            {cleanCat || "Digital Product"}
+                    return (
+                      <motion.div
+                        key={`smm-${smm.id}`}
+                        whileHover={isOutOfStock ? {} : { y: -3 }}
+                        whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+                        onClick={() => {
+                          if (isOutOfStock) {
+                            toast({ title: "Out of Stock", description: "This service is currently unavailable.", variant: "destructive" });
+                            return;
+                          }
+                          setDetailSmmService(smm);
+                          setSmmOrderQty(smm.min || 1000);
+                          setSmmTargetLink("");
+                        }}
+                        className={`bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${
+                          isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
+                        }`}
+                      >
+                        {/* Top Action: YouuHost Badge & Platform Pill */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`}>
+                            {smmConf.tag}
                           </span>
-                          <span className="text-[9px] font-bold text-emerald-600 shrink-0">
-                            {availableStock > 0 ? `${availableStock} in stock` : "In Stock"}
+                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                            <ShopBagIcon className="w-2.5 h-2.5" /> YouuHost
                           </span>
                         </div>
-                      </div>
 
-                      {/* Bottom Price & Add (+) Button */}
-                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
-                        <div>
-                          <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
-                          <span className="text-[9px] text-[#7E7998] block">Instant Auto</span>
+                        {/* Centered Image with Real Brand Icon, Organic Blob Background & Centered Out of Stock Badge */}
+                        <div className="relative my-2 py-3 flex items-center justify-center">
+                          <div
+                            className={`w-20 h-20 rounded-full bg-gradient-to-br ${smmConf.blobColor} absolute blur-sm`}
+                          />
+                          <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            {smmConf.icon}
+                          </div>
+
+                          {isOutOfStock && (
+                            <div className="absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none">
+                              <div className="bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                                <Ban className="w-3 h-3 text-slate-300 shrink-0" />
+                                <span>FULLY OUT OF STOCK</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDetailSandromaniaProduct(sandProd);
-                            setSandromaniaOrderQty(1);
-                          }}
-                          className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#10A37F] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#10A37F]/20 hover:opacity-95 active:scale-90 transition-all"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                        {/* YouuHost Service Details */}
+                        <div className="mt-1">
+                          <h4 className="text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight">
+                            {smm.name}
+                          </h4>
+                          <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                            <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                              <span className="text-amber-500 font-black">★ {stats.rating}</span>
+                              <span>({stats.sold.toLocaleString()} sold)</span>
+                            </span>
+                            <span className="text-[#7E7998] font-semibold">
+                              ({stats.reviewsCount} reviews)
+                            </span>
+                          </div>
+                        </div>
 
-                {/* 3. Direct Cloud & Account Products */}
-                {filteredProducts.map((prod) => {
+                        {/* Bottom Price & Add (+) Button */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                          <div>
+                            <span className="text-xs font-black text-[#181432]">{rateFormatted}</span>
+                            <span className="text-[9px] text-[#7E7998] block">YouuHost Boost</span>
+                          </div>
+
+                          <button
+                            disabled={isOutOfStock}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isOutOfStock) return;
+                              setDetailSmmService(smm);
+                              setSmmOrderQty(smm.min || 1000);
+                              setSmmTargetLink("");
+                            }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              isOutOfStock
+                                ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                                : "bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-90"
+                            }`}
+                          >
+                            {isOutOfStock ? <Ban className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
+                  if (item.type === "sandromania") {
+                    const sandProd = item.data;
+                    const isOutOfStock = item.isOutOfStock;
+                    const cleanTitle = cleanSandromaniaText(sandProd.title);
+                    const cleanCat = cleanSandromaniaText(sandProd.category);
+                    const conf = getProviderConfig(cleanTitle, cleanCat);
+                    const priceFormatted = formatSandromaniaPrice(sandProd, 1);
+                    const availableStock = sandProd.stock ?? sandProd.stockCount ?? 99;
+                    const stats = getItemStats(sandProd, "sandromania");
+
+                    return (
+                      <motion.div
+                        key={`sandro-prod-${sandProd.id}`}
+                        whileHover={isOutOfStock ? {} : { y: -3 }}
+                        whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+                        onClick={() => {
+                          if (isOutOfStock) {
+                            toast({ title: "Out of Stock", description: "This product is currently fully out of stock.", variant: "destructive" });
+                            return;
+                          }
+                          setDetailSandromaniaProduct(sandProd);
+                          setSandromaniaOrderQty(1);
+                        }}
+                        className={`bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${
+                          isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
+                        }`}
+                      >
+                        {/* Top Action: Provider Tag & Instant Delivery Tag */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                            {conf.tag}
+                          </span>
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5">
+                            <ShopBagIcon className="w-2.5 h-2.5" /> Auto-Key
+                          </span>
+                        </div>
+
+                        {/* Centered Image with Real Brand Icon, Organic Blob Background & Centered Out of Stock Badge */}
+                        <div className="relative my-2 py-3 flex items-center justify-center">
+                          <div
+                            className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
+                          />
+                          <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <BrandIcon name={cleanTitle} type={cleanCat} className="w-12 h-12" />
+                          </div>
+
+                          {isOutOfStock && (
+                            <div className="absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none">
+                              <div className="bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                                <Ban className="w-3 h-3 text-slate-300 shrink-0" />
+                                <span>FULLY OUT OF STOCK</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="mt-1">
+                          <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
+                            {cleanTitle}
+                          </h4>
+                          <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                            <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                              <span className="text-amber-500 font-black">★ {stats.rating}</span>
+                              <span>({stats.sold.toLocaleString()} sold)</span>
+                            </span>
+                            <span className={`text-[9px] font-bold shrink-0 ${!isOutOfStock ? "text-emerald-600" : "text-slate-400"}`}>
+                              {!isOutOfStock ? (availableStock < 90 ? `${availableStock} in stock` : "In stock") : "Out of stock"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Price & Add (+) Button */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                          <div>
+                            <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                            <span className="text-[9px] text-[#7E7998] block">Instant Auto</span>
+                          </div>
+
+                          <button
+                            disabled={isOutOfStock}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isOutOfStock) return;
+                              setDetailSandromaniaProduct(sandProd);
+                              setSandromaniaOrderQty(1);
+                            }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              isOutOfStock
+                                ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                                : "bg-gradient-to-tr from-[#10A37F] to-[#00C9FF] text-white shadow-md shadow-[#10A37F]/20 hover:opacity-95 active:scale-90"
+                            }`}
+                          >
+                            {isOutOfStock ? <Ban className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
+                  // item.type === "product"
+                  const prod = item.data;
+                  const isOutOfStock = item.isOutOfStock;
                   const conf = getProviderConfig(prod.name, prod.type);
-                  const isFav = favorites.includes(prod.id);
                   const priceFormatted = formatProductPrice(prod);
+                  const availableStock = prod.stockCount ?? 0;
+                  const stats = getItemStats(prod, "product");
 
                   return (
                     <motion.div
                       key={prod.id}
-                      whileHover={{ y: -3 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={isOutOfStock ? {} : { y: -3 }}
+                      whileTap={isOutOfStock ? {} : { scale: 0.98 }}
                       onClick={() => {
+                        if (isOutOfStock) {
+                          toast({ title: "Out of Stock", description: "This account is currently fully out of stock.", variant: "destructive" });
+                          return;
+                        }
                         setDetailProduct(prod);
                         setQuantity(1);
                       }}
-                      className="bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group overflow-hidden"
+                      className={`bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${
+                        isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
+                      }`}
                     >
                       {/* Top-Right 45° Corner Angle Ribbon Banner */}
                       {(() => {
                         const badge = getProductBadge(prod);
-                        if (!badge || !badge.text) return null;
+                        if (!badge || !badge.text || isOutOfStock) return null;
                         return (
                           <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
                             <div
@@ -3673,7 +3845,7 @@ Support: https://t.me/youuhost_support
                         </span>
                       </div>
 
-                      {/* Centered Image with Real Brand Icon and Organic Blob Background */}
+                      {/* Centered Image with Real Brand Icon, Organic Blob Background & Centered Out of Stock Badge */}
                       <div className="relative my-2 py-3 flex items-center justify-center">
                         <div
                           className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
@@ -3681,6 +3853,15 @@ Support: https://t.me/youuhost_support
                         <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
                           <BrandIcon name={prod.name} type={prod.type} className="w-12 h-12" />
                         </div>
+
+                        {isOutOfStock && (
+                          <div className="absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none">
+                            <div className="bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                              <Ban className="w-3 h-3 text-slate-300 shrink-0" />
+                              <span>FULLY OUT OF STOCK</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Product Details */}
@@ -3691,22 +3872,15 @@ Support: https://t.me/youuhost_support
                         <p className="text-[10px] text-[#7E7998] line-clamp-1 mt-0.5">
                           {prod.description || `${prod.type} Verified Account`}
                         </p>
-                        {(() => {
-                          const stats = bestSellersData?.allStats?.[prod.id];
-                          const totalSold = stats?.totalSoldCount || 3000;
-                          const rating = stats?.customRating || 4.9;
-                          return (
-                            <div className="flex items-center justify-between mt-1 text-[9.5px]">
-                              <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
-                                <span className="text-amber-500 font-black">★ {rating}</span>
-                                <span>({totalSold.toLocaleString()} sold)</span>
-                              </span>
-                              <span className="text-[#2563EB] font-black flex items-center gap-1">
-                                Verified <VerifiedBadgeIcon className="w-3.5 h-3.5" />
-                              </span>
-                            </div>
-                          );
-                        })()}
+                        <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                          <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                            <span className="text-amber-500 font-black">★ {stats.rating}</span>
+                            <span>({stats.sold.toLocaleString()} sold)</span>
+                          </span>
+                          <span className="text-[#2563EB] font-black flex items-center gap-1">
+                            Verified <VerifiedBadgeIcon className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
                       </div>
 
                       {/* Bottom Price & Add (+) Button */}
@@ -3717,14 +3891,20 @@ Support: https://t.me/youuhost_support
                         </div>
 
                         <button
+                          disabled={isOutOfStock}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (isOutOfStock) return;
                             setDetailProduct(prod);
                             setQuantity(1);
                           }}
-                          className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-90 transition-all"
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                            isOutOfStock
+                              ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                              : "bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-90"
+                          }`}
                         >
-                          <Plus className="w-4 h-4" />
+                          {isOutOfStock ? <Ban className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
                         </button>
                       </div>
                     </motion.div>
@@ -3742,24 +3922,49 @@ Support: https://t.me/youuhost_support
             <div className="grid grid-cols-2 gap-3.5">
               {categories
                 .filter((c) => c.id !== "all")
-                .map((cat) => (
-                  <div
-                    key={cat.id}
-                    onClick={() => {
-                      setSelectedCategory(cat.id);
-                      setActiveTab("home");
-                    }}
-                    className="bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all group"
-                  >
-                    <div className="mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
-                      {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
+                .map((cat) => {
+                  const count = getCategoryCount(cat.id);
+                  const isOutOfStock = count <= 0;
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => {
+                        if (isOutOfStock) {
+                          toast({
+                            title: "Category Out of Stock",
+                            description: `"${cat.label}" is currently fully out of stock.`,
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        setSelectedCategory(cat.id);
+                        setActiveTab("home");
+                      }}
+                      className={`rounded-3xl p-4 shadow-sm flex flex-col items-center text-center transition-all group relative overflow-hidden ${
+                        isOutOfStock
+                          ? "bg-slate-50 border border-dashed border-slate-200 opacity-60 grayscale cursor-not-allowed select-none"
+                          : "bg-white border border-[#ECEEF8] cursor-pointer hover:border-[#6C5CE7] hover:shadow-md"
+                      }`}
+                    >
+                      <div className="mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
+                      </div>
+                      <h4 className="text-sm font-bold text-[#181432]">{cat.label}</h4>
+                      <span className={`text-[10px] mt-0.5 ${isOutOfStock ? "text-slate-400 font-bold" : "text-[#7E7998]"}`}>
+                        {isOutOfStock ? "Fully Out of Stock" : `${count} Available`}
+                      </span>
+
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[1px] flex items-center justify-center pointer-events-none p-2">
+                          <span className="bg-slate-900/85 text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-white/20 shadow-md flex items-center gap-1">
+                            <Ban className="w-2.5 h-2.5 text-red-400" />
+                            Fully Out of Stock
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <h4 className="text-sm font-bold text-[#181432]">{cat.label}</h4>
-                    <span className="text-[10px] text-[#7E7998] mt-0.5">
-                      {getCategoryCount(cat.id)} Available
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </motion.div>
         )}
@@ -5649,12 +5854,19 @@ Support: https://t.me/youuhost_support
                         </div>
                       )}
 
-                      <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9
-                      </div>
-                      <span className="text-[11px] text-[#7E7998] font-medium">
-                        ({(bestSellersData?.allStats?.[detailProduct.id]?.totalSoldCount || 3000).toLocaleString()} sold)
-                      </span>
+                      {(() => {
+                        const prodStats = getItemStats(detailProduct, "product");
+                        return (
+                          <>
+                            <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {prodStats.rating}
+                            </div>
+                            <span className="text-[11px] text-[#7E7998] font-medium">
+                              ({prodStats.sold.toLocaleString()} sold • {prodStats.reviewsCount} reviews)
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Description */}
@@ -6164,7 +6376,7 @@ Support: https://t.me/youuhost_support
                   </div>
                   <div className="text-right">
                     <span className="text-lg font-black text-[#181432]">
-                      {formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)}
+                      {formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)}
                     </span>
                     <span className="text-[9px] text-[#7E7998] block">total price</span>
                   </div>
@@ -6177,12 +6389,19 @@ Support: https://t.me/youuhost_support
                     <span>In Stock: {availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9
-                  </div>
-                  <span className="text-[11px] text-[#7E7998] font-medium">
-                    (2,450+ sold)
-                  </span>
+                  {(() => {
+                    const sandroStats = getItemStats(detailSandromaniaProduct, "sandromania");
+                    return (
+                      <>
+                        <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {sandroStats.rating}
+                        </div>
+                        <span className="text-[11px] text-[#7E7998] font-medium">
+                          ({sandroStats.sold.toLocaleString()} sold • {sandroStats.reviewsCount} reviews)
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Description */}
@@ -6224,7 +6443,7 @@ Support: https://t.me/youuhost_support
                   <div className="text-right">
                     <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
                     <span className="text-sm font-black text-[#181432]">
-                      {formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)}
+                      {formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)}
                     </span>
                   </div>
                 </div>
@@ -6244,7 +6463,7 @@ Support: https://t.me/youuhost_support
                     <div>
                       <span className="font-bold block">⚠️ Insufficient Wallet Balance</span>
                       <span className="text-[11px] text-amber-800">
-                        Balance: {formatBalanceInCurrentCurrency(userBalCents)} · Needed: {formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)}
+                        Balance: {formatBalanceInCurrentCurrency(userBalCents)} · Needed: {formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)}
                       </span>
                     </div>
                     <button

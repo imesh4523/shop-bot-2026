@@ -283,7 +283,7 @@ export default function SandromaniaPage() {
     setEditingProduct(prod);
     setEditTitle(prod.title || "");
     setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
-    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : "");
+    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)));
     setEditCategory(prod.category || "general");
     setEditIsActive(prod.isActive !== false);
   };
@@ -294,15 +294,22 @@ export default function SandromaniaPage() {
     let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
 
     if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
-      usdVal = lkrVal / 330;
+      usdVal = parseFloat((lkrVal / 305.5).toFixed(2));
     }
     if (usdVal > 0 && lkrVal <= 0) {
-      lkrVal = Math.round(usdVal * 330);
+      lkrVal = Math.round(usdVal * 305.5);
+    }
+
+    if ((isNaN(usdVal) || usdVal <= 0) && (isNaN(lkrVal) || lkrVal <= 0)) {
+      toast({ title: "Invalid Price", description: "Please enter a valid selling price in USD or LKR.", variant: "destructive" });
+      return;
     }
 
     if (isNaN(usdVal) || usdVal <= 0) {
-      toast({ title: "Invalid Price", description: "Please enter a valid selling price in USD or LKR.", variant: "destructive" });
-      return;
+      usdVal = lkrVal > 0 ? parseFloat((lkrVal / 305.5).toFixed(2)) : 1;
+    }
+    if (isNaN(lkrVal) || lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 305.5);
     }
 
     updateProductMutation.mutate({
@@ -655,14 +662,9 @@ export default function SandromaniaPage() {
                   <div key={ord.id} className="bg-card rounded-2xl p-4 border shadow-sm space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20">
-                          Order #{ord.id}
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 font-mono">
+                          Order #YOUUHOST-{ord.externalOrderId || (2000 + ord.id)}
                         </span>
-                        {ord.externalOrderId && (
-                          <span className="text-[10px] font-mono text-muted-foreground">
-                            Sandromania #{ord.externalOrderId}
-                          </span>
-                        )}
                         <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200">
                           {ord.status || "approved"}
                         </Badge>
@@ -1013,13 +1015,14 @@ export default function SandromaniaPage() {
                 <Input
                   type="number"
                   step="0.01"
+                  placeholder="e.g. 0.98"
                   value={editSellingPriceUsd}
                   onChange={(e) => {
                     const v = e.target.value;
                     setEditSellingPriceUsd(v);
                     const n = parseFloat(v);
                     if (!isNaN(n) && n > 0) {
-                      setEditSellingPriceLkr(String(Math.round(n * 330)));
+                      setEditSellingPriceLkr(String(Math.round(n * 305.5)));
                     }
                   }}
                   className="font-bold text-sm rounded-xl"
@@ -1030,23 +1033,26 @@ export default function SandromaniaPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-1">
-                  Price (Rs LKR - Opt)
+                <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-1">
+                  Price (Rs LKR - Fix / Easy)
                 </label>
                 <Input
                   type="number"
-                  placeholder="Auto-converts"
+                  placeholder="e.g. 300"
                   value={editSellingPriceLkr}
                   onChange={(e) => {
                     const v = e.target.value;
                     setEditSellingPriceLkr(v);
                     const n = parseFloat(v);
                     if (!isNaN(n) && n > 0) {
-                      setEditSellingPriceUsd((n / 330).toFixed(2));
+                      setEditSellingPriceUsd((n / 305.5).toFixed(2));
                     }
                   }}
-                  className="text-xs rounded-xl"
+                  className="text-xs rounded-xl font-bold border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20"
                 />
+                <span className="text-[10px] text-emerald-600/80 mt-0.5 block font-semibold">
+                  Type Rs. to auto-set USD
+                </span>
               </div>
             </div>
 

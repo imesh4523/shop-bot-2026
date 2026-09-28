@@ -735,6 +735,10 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0px;
 }
 
+.bottom-0\.5{
+  bottom: 0.125rem;
+}
+
 .bottom-16{
   bottom: 4rem;
 }
@@ -4262,6 +4266,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
 }
 
+.bg-emerald-50\/30{
+  background-color: rgb(236 253 245 / 0.3);
+}
+
 .bg-emerald-50\/70{
   background-color: rgb(236 253 245 / 0.7);
 }
@@ -4800,6 +4808,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(51 65 85 / var(--tw-bg-opacity, 1));
 }
 
+.bg-slate-700\/85{
+  background-color: rgb(51 65 85 / 0.85);
+}
+
 .bg-slate-800{
   --tw-bg-opacity: 1;
   background-color: rgb(30 41 59 / var(--tw-bg-opacity, 1));
@@ -4818,6 +4830,10 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(15 23 42 / 0.2);
 }
 
+.bg-slate-900\/30{
+  background-color: rgb(15 23 42 / 0.3);
+}
+
 .bg-slate-900\/40{
   background-color: rgb(15 23 42 / 0.4);
 }
@@ -4828,6 +4844,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .bg-slate-900\/80{
   background-color: rgb(15 23 42 / 0.8);
+}
+
+.bg-slate-900\/85{
+  background-color: rgb(15 23 42 / 0.85);
 }
 
 .bg-slate-900\/90{
@@ -7359,6 +7379,10 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(5 150 105 / var(--tw-text-opacity, 1));
 }
 
+.text-emerald-600\/80{
+  color: rgb(5 150 105 / 0.8);
+}
+
 .text-emerald-700{
   --tw-text-opacity: 1;
   color: rgb(4 120 87 / var(--tw-text-opacity, 1));
@@ -8622,6 +8646,11 @@ h1, h2, h3, h4, h5, h6 {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
+.grayscale{
+  --tw-grayscale: grayscale(100%);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
 .filter{
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
@@ -8638,6 +8667,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .backdrop-blur-3xl{
   --tw-backdrop-blur: blur(64px);
+  backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+}
+
+.backdrop-blur-\[1px\]{
+  --tw-backdrop-blur: blur(1px);
   backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
 }
 
@@ -11540,6 +11574,10 @@ body:has(.tg-mini-app) {
 .dark\:bg-card:is(.dark *){
   --tw-bg-opacity: 1;
   background-color: hsl(var(--card) / var(--tw-bg-opacity, 1));
+}
+
+.dark\:bg-emerald-950\/20:is(.dark *){
+  background-color: rgb(2 44 34 / 0.2);
 }
 
 .dark\:bg-emerald-950\/40:is(.dark *){

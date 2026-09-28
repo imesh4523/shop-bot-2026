@@ -74686,7 +74686,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-SizOiEJz.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-qS6A9L85.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105198,7 +105198,7 @@ function MiniAppShopModern() {
         }
       }
       const prodTitle = sandroOrd.productTitle || sandroOrd.product?.title || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.title || "Digital Product";
-      const orderNum = sandroOrd.externalOrderId ? `#YOUUHOST-${sandroOrd.externalOrderId}` : `#YOUUHOST-${sandroOrd.id}`;
+      const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || 2e3 + sandroOrd.id}`;
       list.push({
         id: `sandro-${sandroOrd.id}`,
         rawId: sandroOrd.id,
@@ -105298,6 +105298,37 @@ Support: https://t.me/youuhost_support
   const [detailSandromaniaProduct, setDetailSandromaniaProduct] = reactExports.useState(null);
   const [sandromaniaOrderQty, setSandromaniaOrderQty] = reactExports.useState(1);
   const [isSandromaniaPurchasing, setIsSandromaniaPurchasing] = reactExports.useState(false);
+  const [purchasedDeltas, setPurchasedDeltas] = reactExports.useState(() => {
+    try {
+      const saved = localStorage.getItem("yh_purchased_sold_deltas");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const recordPurchasedDelta = (itemKey, qty) => {
+    setPurchasedDeltas((prev) => {
+      const next = { ...prev, [itemKey]: (prev[itemKey] || 0) + Math.max(1, qty) };
+      try {
+        localStorage.setItem("yh_purchased_sold_deltas", JSON.stringify(next));
+      } catch {
+      }
+      return next;
+    });
+  };
+  const getItemStats = (item, type) => {
+    if (!item) return { sold: 320, rating: "4.9", reviewsCount: 145 };
+    const idNum = typeof item.id === "number" ? item.id : parseInt(String(item.id || 1).replace(/\D/g, ""), 10) || 1;
+    const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
+    const isGemini = title.includes("gemini");
+    const baseSold = isGemini ? 3800 + (idNum * 47 + 23) % 180 : 200 + (idNum * 67 + 31) % 401;
+    const reviewsCount = 10 + (idNum * 29 + 17) % 231;
+    const rating = (4.8 + idNum % 2 * 0.1).toFixed(1);
+    const key = `${type}_${item.id}`;
+    const extraSold = purchasedDeltas[key] || 0;
+    const sold = baseSold + extraSold;
+    return { sold, rating, reviewsCount };
+  };
   const { data: supportUserSetting } = useQuery({
     queryKey: ["/api/settings/SUPPORT_USERNAME"]
   });
@@ -106134,8 +106165,55 @@ ${finalDetails}`;
       return matchesCategory && matchesSearch;
     });
   }, [sandromaniaProductsList, selectedCategory, searchQuery]);
-  const formatSandromaniaPrice = (priceCents, qty = 1) => {
-    const totalCents = (priceCents || 0) * qty;
+  const unifiedCatalogItems = reactExports.useMemo(() => {
+    const list = [];
+    filteredSmmServices.forEach((smm) => {
+      const isOutOfStock = smm.isActive === false;
+      list.push({
+        type: "smm",
+        data: smm,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0
+      });
+    });
+    filteredSandromaniaProducts.forEach((sandProd) => {
+      const isOutOfStock = sandProd.isActive === false;
+      list.push({
+        type: "sandromania",
+        data: sandProd,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0
+      });
+    });
+    filteredProducts.forEach((prod) => {
+      const availableStock = typeof prod.stockCount === "number" ? prod.stockCount : 0;
+      const isOutOfStock = prod.isActive === false || availableStock <= 0;
+      list.push({
+        type: "product",
+        data: prod,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0
+      });
+    });
+    list.sort((a2, b2) => a2.orderScore - b2.orderScore);
+    return list;
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredProducts]);
+  const formatSandromaniaPrice = (sandProdOrPriceCents, qty = 1) => {
+    if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
+      const prod = sandProdOrPriceCents;
+      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
+      }
+      const totalCents2 = (prod.sellingPriceUsd || 0) * qty;
+      const usd2 = totalCents2 / 100;
+      if (selectedCurrency === "LKR") {
+        const lkr = Math.round(usd2 * lkrRate);
+        return `Rs. ${lkr.toLocaleString()}`;
+      }
+      return `$${usd2.toFixed(2)}`;
+    }
+    const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
+    const totalCents = priceCents * qty;
     const usd = totalCents / 100;
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
@@ -106198,9 +106276,11 @@ ${finalDetails}`;
       await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
-        quantity: sandromaniaOrderQty
+        quantity: sandromaniaOrderQty,
+        currency: selectedCurrency
       });
       await res.json();
+      recordPurchasedDelta(`sandromania_${detailSandromaniaProduct.id}`, sandromaniaOrderQty);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 Purchase Successful!",
@@ -106345,9 +106425,11 @@ ${finalDetails}`;
       const res = await miniApiRequest("POST", "/api/mini/purchase", {
         productId: detailProduct.id,
         quantity,
-        couponCode: appliedCoupon?.code || void 0
+        couponCode: appliedCoupon?.code || void 0,
+        currency: selectedCurrency
       });
       const data = await res.json();
+      recordPurchasedDelta(`product_${detailProduct.id}`, quantity);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 Purchase Successful!",
@@ -106447,6 +106529,7 @@ ${finalDetails}`;
         quantity: smmOrderQty
       });
       await res.json();
+      recordPurchasedDelta(`smm_${detailSmmService.id}`, 1);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 SMM Order Placed!",
@@ -106917,25 +107000,32 @@ ${finalDetails}`;
             }
           )
         ] }),
-        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col items-center justify-center py-10 col-span-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }) }) : filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
+        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col items-center justify-center py-10 col-span-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }) }) : unifiedCatalogItems.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-12 h-12 mx-auto text-[#8FA597]/75 mb-2.5" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#1C3324]", children: "No products found" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B8574] mt-1", children: "Try another category or search query." })
-        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3.5", children: [
-          filteredSmmServices.map((smm) => {
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-3.5", children: unifiedCatalogItems.map((item) => {
+          if (item.type === "smm") {
+            const smm = item.data;
+            const isOutOfStock2 = item.isOutOfStock;
             const smmConf = getSmmPlatformConfig(smm.category, smm.name);
             const rateFormatted = formatSmmRate(smm.customRate);
+            const stats2 = getItemStats(smm, "smm");
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               motion.div,
               {
-                whileHover: { y: -3 },
-                whileTap: { scale: 0.98 },
+                whileHover: isOutOfStock2 ? {} : { y: -3 },
+                whileTap: isOutOfStock2 ? {} : { scale: 0.98 },
                 onClick: () => {
+                  if (isOutOfStock2) {
+                    toast2({ title: "Out of Stock", description: "This service is currently unavailable.", variant: "destructive" });
+                    return;
+                  }
                   setDetailSmmService(smm);
                   setSmmOrderQty(smm.min || 1e3);
                   setSmmTargetLink("");
                 },
-                className: "bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group",
+                className: `bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${isOutOfStock2 ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"}`,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`, children: smmConf.tag }),
@@ -106951,15 +107041,31 @@ ${finalDetails}`;
                         className: `w-20 h-20 rounded-full bg-gradient-to-br ${smmConf.blobColor} absolute blur-sm`
                       }
                     ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: smmConf.icon })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: smmConf.icon }),
+                    isOutOfStock2 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3 text-slate-300 shrink-0" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "FULLY OUT OF STOCK" })
+                    ] }) })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight", children: smm.name }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-[#7E7998] line-clamp-1 mt-1", children: [
-                      "Min: ",
-                      smm.min?.toLocaleString(),
-                      " • Max: ",
-                      smm.max?.toLocaleString()
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1 text-[9.5px]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold flex items-center gap-0.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-500 font-black", children: [
+                          "★ ",
+                          stats2.rating
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          "(",
+                          stats2.sold.toLocaleString(),
+                          " sold)"
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-semibold", children: [
+                        "(",
+                        stats2.reviewsCount,
+                        " reviews)"
+                      ] })
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
@@ -106970,14 +107076,16 @@ ${finalDetails}`;
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "button",
                       {
+                        disabled: isOutOfStock2,
                         onClick: (e) => {
                           e.stopPropagation();
+                          if (isOutOfStock2) return;
                           setDetailSmmService(smm);
                           setSmmOrderQty(smm.min || 1e3);
                           setSmmTargetLink("");
                         },
-                        className: "w-8 h-8 rounded-full bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-90 transition-all",
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
+                        className: `w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOutOfStock2 ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" : "bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-90"}`,
+                        children: isOutOfStock2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
                       }
                     )
                   ] })
@@ -106985,26 +107093,33 @@ ${finalDetails}`;
               },
               `smm-${smm.id}`
             );
-          }),
-          filteredSandromaniaProducts.map((sandProd) => {
+          }
+          if (item.type === "sandromania") {
+            const sandProd = item.data;
+            const isOutOfStock2 = item.isOutOfStock;
             const cleanTitle = cleanSandromaniaText(sandProd.title);
             const cleanCat = cleanSandromaniaText(sandProd.category);
-            const conf = getProviderConfig(cleanTitle, cleanCat);
-            const priceFormatted = formatSandromaniaPrice(sandProd.sellingPriceUsd, 1);
-            const availableStock = sandProd.stock || sandProd.stockCount || 0;
+            const conf2 = getProviderConfig(cleanTitle, cleanCat);
+            const priceFormatted2 = formatSandromaniaPrice(sandProd, 1);
+            const availableStock2 = sandProd.stock ?? sandProd.stockCount ?? 99;
+            const stats2 = getItemStats(sandProd, "sandromania");
             return /* @__PURE__ */ jsxRuntimeExports.jsxs(
               motion.div,
               {
-                whileHover: { y: -3 },
-                whileTap: { scale: 0.98 },
+                whileHover: isOutOfStock2 ? {} : { y: -3 },
+                whileTap: isOutOfStock2 ? {} : { scale: 0.98 },
                 onClick: () => {
+                  if (isOutOfStock2) {
+                    toast2({ title: "Out of Stock", description: "This product is currently fully out of stock.", variant: "destructive" });
+                    return;
+                  }
                   setDetailSandromaniaProduct(sandProd);
                   setSandromaniaOrderQty(1);
                 },
-                className: "bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group",
+                className: `bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${isOutOfStock2 ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"}`,
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf2.bgBadge}`, children: conf2.tag }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5" }),
                       " Auto-Key"
@@ -107014,33 +107129,49 @@ ${finalDetails}`;
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "div",
                       {
-                        className: `w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`
+                        className: `w-20 h-20 rounded-full bg-gradient-to-br ${conf2.blobColor} absolute blur-sm`
                       }
                     ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: cleanTitle, type: cleanCat, className: "w-12 h-12" }) })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: cleanTitle, type: cleanCat, className: "w-12 h-12" }) }),
+                    isOutOfStock2 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3 text-slate-300 shrink-0" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "FULLY OUT OF STOCK" })
+                    ] }) })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors", children: cleanTitle }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-[#7E7998] truncate", children: cleanCat || "Digital Product" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-emerald-600 shrink-0", children: availableStock > 0 ? `${availableStock} in stock` : "In Stock" })
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1 text-[9.5px]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold flex items-center gap-0.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-500 font-black", children: [
+                          "★ ",
+                          stats2.rating
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          "(",
+                          stats2.sold.toLocaleString(),
+                          " sold)"
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold shrink-0 ${!isOutOfStock2 ? "text-emerald-600" : "text-slate-400"}`, children: !isOutOfStock2 ? availableStock2 < 90 ? `${availableStock2} in stock` : "In stock" : "Out of stock" })
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted2 }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "Instant Auto" })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
                       "button",
                       {
+                        disabled: isOutOfStock2,
                         onClick: (e) => {
                           e.stopPropagation();
+                          if (isOutOfStock2) return;
                           setDetailSandromaniaProduct(sandProd);
                           setSandromaniaOrderQty(1);
                         },
-                        className: "w-8 h-8 rounded-full bg-gradient-to-tr from-[#10A37F] to-[#00C9FF] text-white flex items-center justify-center shadow-md shadow-[#10A37F]/20 hover:opacity-95 active:scale-90 transition-all",
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
+                        className: `w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOutOfStock2 ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" : "bg-gradient-to-tr from-[#10A37F] to-[#00C9FF] text-white shadow-md shadow-[#10A37F]/20 hover:opacity-95 active:scale-90"}`,
+                        children: isOutOfStock2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
                       }
                     )
                   ] })
@@ -107048,116 +107179,135 @@ ${finalDetails}`;
               },
               `sandro-prod-${sandProd.id}`
             );
-          }),
-          filteredProducts.map((prod) => {
-            const conf = getProviderConfig(prod.name, prod.type);
-            favorites.includes(prod.id);
-            const priceFormatted = formatProductPrice(prod);
-            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              motion.div,
-              {
-                whileHover: { y: -3 },
-                whileTap: { scale: 0.98 },
-                onClick: () => {
-                  setDetailProduct(prod);
-                  setQuantity(1);
-                },
-                className: "bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between cursor-pointer hover:shadow-md transition-all relative group overflow-hidden",
-                children: [
-                  (() => {
-                    const badge = getProductBadge(prod);
-                    if (!badge || !badge.text) return null;
-                    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: `absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`,
-                        style: { letterSpacing: "0.04em" },
-                        children: badge.text
-                      }
-                    ) });
-                  })(),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }) }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        className: `w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: prod.name, type: prod.type, className: "w-12 h-12" }) })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors", children: prod.name }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-[#7E7998] line-clamp-1 mt-0.5", children: prod.description || `${prod.type} Verified Account` }),
-                    (() => {
-                      const stats = bestSellersData?.allStats?.[prod.id];
-                      const totalSold = stats?.totalSoldCount || 3e3;
-                      const rating = stats?.customRating || 4.9;
-                      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1 text-[9.5px]", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold flex items-center gap-0.5", children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-500 font-black", children: [
-                            "★ ",
-                            rating
-                          ] }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                            "(",
-                            totalSold.toLocaleString(),
-                            " sold)"
-                          ] })
-                        ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#2563EB] font-black flex items-center gap-1", children: [
-                          "Verified ",
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(VerifiedBadgeIcon, { className: "w-3.5 h-3.5" })
-                        ] })
-                      ] });
-                    })()
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "per unit" })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        onClick: (e) => {
-                          e.stopPropagation();
-                          setDetailProduct(prod);
-                          setQuantity(1);
-                        },
-                        className: "w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-90 transition-all",
-                        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
-                      }
-                    )
-                  ] })
-                ]
+          }
+          const prod = item.data;
+          const isOutOfStock = item.isOutOfStock;
+          const conf = getProviderConfig(prod.name, prod.type);
+          const priceFormatted = formatProductPrice(prod);
+          prod.stockCount ?? 0;
+          const stats = getItemStats(prod, "product");
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            motion.div,
+            {
+              whileHover: isOutOfStock ? {} : { y: -3 },
+              whileTap: isOutOfStock ? {} : { scale: 0.98 },
+              onClick: () => {
+                if (isOutOfStock) {
+                  toast2({ title: "Out of Stock", description: "This account is currently fully out of stock.", variant: "destructive" });
+                  return;
+                }
+                setDetailProduct(prod);
+                setQuantity(1);
               },
-              prod.id
-            );
-          })
-        ] })
+              className: `bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"}`,
+              children: [
+                (() => {
+                  const badge = getProductBadge(prod);
+                  if (!badge || !badge.text || isOutOfStock) return null;
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: `absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`,
+                      style: { letterSpacing: "0.04em" },
+                      children: badge.text
+                    }
+                  ) });
+                })(),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`, children: conf.tag }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      className: `w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: prod.name, type: prod.type, className: "w-12 h-12" }) }),
+                  isOutOfStock && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3 text-slate-300 shrink-0" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "FULLY OUT OF STOCK" })
+                  ] }) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors", children: prod.name }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-[#7E7998] line-clamp-1 mt-0.5", children: prod.description || `${prod.type} Verified Account` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1 text-[9.5px]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold flex items-center gap-0.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-500 font-black", children: [
+                        "★ ",
+                        stats.rating
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                        "(",
+                        stats.sold.toLocaleString(),
+                        " sold)"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#2563EB] font-black flex items-center gap-1", children: [
+                      "Verified ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(VerifiedBadgeIcon, { className: "w-3.5 h-3.5" })
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "per unit" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      disabled: isOutOfStock,
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        if (isOutOfStock) return;
+                        setDetailProduct(prod);
+                        setQuantity(1);
+                      },
+                      className: `w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOutOfStock ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" : "bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-90"}`,
+                      children: isOutOfStock ? /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
+                    }
+                  )
+                ] })
+              ]
+            },
+            prod.id
+          );
+        }) })
       ] }),
       activeTab === "categories" && /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-black text-[#181432] mb-4", children: "All Product Categories" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-3.5", children: categories.filter((c2) => c2.id !== "all").map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            onClick: () => {
-              setSelectedCategory(cat.id);
-              setActiveTab("home");
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-3.5", children: categories.filter((c2) => c2.id !== "all").map((cat) => {
+          const count2 = getCategoryCount(cat.id);
+          const isOutOfStock = count2 <= 0;
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              onClick: () => {
+                if (isOutOfStock) {
+                  toast2({
+                    title: "Category Out of Stock",
+                    description: `"${cat.label}" is currently fully out of stock.`,
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                setSelectedCategory(cat.id);
+                setActiveTab("home");
+              },
+              className: `rounded-3xl p-4 shadow-sm flex flex-col items-center text-center transition-all group relative overflow-hidden ${isOutOfStock ? "bg-slate-50 border border-dashed border-slate-200 opacity-60 grayscale cursor-not-allowed select-none" : "bg-white border border-[#ECEEF8] cursor-pointer hover:border-[#6C5CE7] hover:shadow-md"}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#181432]", children: cat.label }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[10px] mt-0.5 ${isOutOfStock ? "text-slate-400 font-bold" : "text-[#7E7998]"}`, children: isOutOfStock ? "Fully Out of Stock" : `${count2} Available` }),
+                isOutOfStock && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-slate-900/30 backdrop-blur-[1px] flex items-center justify-center pointer-events-none p-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "bg-slate-900/85 text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-white/20 shadow-md flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-2.5 h-2.5 text-red-400" }),
+                  "Fully Out of Stock"
+                ] }) })
+              ]
             },
-            className: "bg-white rounded-3xl p-4 shadow-sm border border-[#ECEEF8] flex flex-col items-center text-center cursor-pointer hover:border-[#6C5CE7] hover:shadow-md transition-all group",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-2 h-10 w-10 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform", children: renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6") }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#181432]", children: cat.label }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#7E7998] mt-0.5", children: [
-                getCategoryCount(cat.id),
-                " Available"
-              ] })
-            ]
-          },
-          cat.id
-        )) })
+            cat.id
+          );
+        }) })
       ] }),
       activeTab === "orders" && /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-0.5", children: [
@@ -108809,15 +108959,23 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-rose-500" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⚠️ Out of Stock" })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
-              " 4.9"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-medium", children: [
-              "(",
-              (bestSellersData?.allStats?.[detailProduct.id]?.totalSoldCount || 3e3).toLocaleString(),
-              " sold)"
-            ] })
+            (() => {
+              const prodStats = getItemStats(detailProduct, "product");
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
+                  " ",
+                  prodStats.rating
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-medium", children: [
+                  "(",
+                  prodStats.sold.toLocaleString(),
+                  " sold • ",
+                  prodStats.reviewsCount,
+                  " reviews)"
+                ] })
+              ] });
+            })()
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B658B] leading-relaxed mb-5", children: detailProduct.description || "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring." }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5", children: [
@@ -109258,7 +109416,7 @@ ${finalDetails}`;
                 ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty) }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "total price" })
               ] })
             ] }),
@@ -109270,11 +109428,23 @@ ${finalDetails}`;
                   availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
-                " 4.9"
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#7E7998] font-medium", children: "(2,450+ sold)" })
+              (() => {
+                const sandroStats = getItemStats(detailSandromaniaProduct, "sandromania");
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
+                    " ",
+                    sandroStats.rating
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-medium", children: [
+                    "(",
+                    sandroStats.sold.toLocaleString(),
+                    " sold • ",
+                    sandroStats.reviewsCount,
+                    " reviews)"
+                  ] })
+                ] });
+              })()
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B658B] leading-relaxed mb-5", children: detailSandromaniaProduct.description || "Instant CDK license key generated automatically upon purchase. 100% genuine digital product with full activation guarantee." }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5", children: [
@@ -109309,7 +109479,7 @@ ${finalDetails}`;
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#7E7998] mr-1.5", children: "Total:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty) })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty) })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs", children: [
@@ -109328,7 +109498,7 @@ ${finalDetails}`;
                   "Balance: ",
                   formatBalanceInCurrentCurrency(userBalCents),
                   " · Needed: ",
-                  formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty)
+                  formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)
                 ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -111766,7 +111936,7 @@ function SandromaniaPage() {
     setEditingProduct(prod);
     setEditTitle(prod.title || "");
     setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
-    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : "");
+    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round((prod.sellingPriceUsd || 0) / 100 * 305.5)));
     setEditCategory(prod.category || "general");
     setEditIsActive(prod.isActive !== false);
   };
@@ -111775,14 +111945,20 @@ function SandromaniaPage() {
     let usdVal = parseFloat(editSellingPriceUsd);
     let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
     if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
-      usdVal = lkrVal / 330;
+      usdVal = parseFloat((lkrVal / 305.5).toFixed(2));
     }
     if (usdVal > 0 && lkrVal <= 0) {
-      lkrVal = Math.round(usdVal * 330);
+      lkrVal = Math.round(usdVal * 305.5);
     }
-    if (isNaN(usdVal) || usdVal <= 0) {
+    if ((isNaN(usdVal) || usdVal <= 0) && (isNaN(lkrVal) || lkrVal <= 0)) {
       toast2({ title: "Invalid Price", description: "Please enter a valid selling price in USD or LKR.", variant: "destructive" });
       return;
+    }
+    if (isNaN(usdVal) || usdVal <= 0) {
+      usdVal = lkrVal > 0 ? parseFloat((lkrVal / 305.5).toFixed(2)) : 1;
+    }
+    if (isNaN(lkrVal) || lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 305.5);
     }
     updateProductMutation.mutate({
       id: editingProduct.id,
@@ -112118,13 +112294,9 @@ function SandromaniaPage() {
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-card rounded-2xl p-4 border shadow-sm space-y-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-wrap", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20", children: [
-                  "Order #",
-                  ord.id
-                ] }),
-                ord.externalOrderId && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-muted-foreground", children: [
-                  "Sandromania #",
-                  ord.externalOrderId
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 font-mono", children: [
+                  "Order #YOUUHOST-",
+                  ord.externalOrderId || 2e3 + ord.id
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200", children: ord.status || "approved" })
               ] }),
@@ -112474,13 +112646,14 @@ function SandromaniaPage() {
               {
                 type: "number",
                 step: "0.01",
+                placeholder: "e.g. 0.98",
                 value: editSellingPriceUsd,
                 onChange: (e) => {
                   const v2 = e.target.value;
                   setEditSellingPriceUsd(v2);
                   const n2 = parseFloat(v2);
                   if (!isNaN(n2) && n2 > 0) {
-                    setEditSellingPriceLkr(String(Math.round(n2 * 330)));
+                    setEditSellingPriceLkr(String(Math.round(n2 * 305.5)));
                   }
                 },
                 className: "font-bold text-sm rounded-xl"
@@ -112492,24 +112665,25 @@ function SandromaniaPage() {
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-muted-foreground block mb-1", children: "Price (Rs LKR - Opt)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-1", children: "Price (Rs LKR - Fix / Easy)" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Input,
               {
                 type: "number",
-                placeholder: "Auto-converts",
+                placeholder: "e.g. 300",
                 value: editSellingPriceLkr,
                 onChange: (e) => {
                   const v2 = e.target.value;
                   setEditSellingPriceLkr(v2);
                   const n2 = parseFloat(v2);
                   if (!isNaN(n2) && n2 > 0) {
-                    setEditSellingPriceUsd((n2 / 330).toFixed(2));
+                    setEditSellingPriceUsd((n2 / 305.5).toFixed(2));
                   }
                 },
-                className: "text-xs rounded-xl"
+                className: "text-xs rounded-xl font-bold border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20"
               }
-            )
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-600/80 mt-0.5 block font-semibold", children: "Type Rs. to auto-set USD" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
@@ -112650,13 +112824,13 @@ function CssxApiPage() {
       return data;
     }
   });
-  const { data: products2 = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
+  const { data: products2 = [], isLoading: productsLoading, refetch: refetchProducts, isFetching: productsFetching } = useQuery({
     queryKey: ["/api/admin/cssx/products"],
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/products");
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to load products");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to load products from CSxStore");
       }
       return res.json();
     },
@@ -112668,13 +112842,46 @@ function CssxApiPage() {
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/orders");
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to load orders");
       }
       return res.json();
     },
     enabled: activeTab === "orders" || activeTab === "overview",
     retry: false
+  });
+  const [testResult, setTestResult] = reactExports.useState(null);
+  const testConnectionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/cssx/test");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Connection test failed");
+      return data;
+    },
+    onSuccess: (data) => {
+      setTestResult(data);
+      if (data.connected) {
+        toast2({
+          title: "Connection Successful! ⚡",
+          description: `Latency: ${data.latencyMs}ms | Live Wallet: $${Number(data.walletUsdt || 0).toFixed(4)} USDT | Catalog: ${data.productCount} items`
+        });
+      } else {
+        toast2({
+          title: "Connection Warning",
+          description: data.error || data.statusMessage || "Could not authenticate with CSxStore API",
+          variant: "destructive"
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Test Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
   });
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ apiKey, baseUrl }) => {
@@ -112693,7 +112900,9 @@ function CssxApiPage() {
         description: data.message
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
       refetchSettings();
+      refetchProducts();
     },
     onError: (err) => {
       toast2({
@@ -112808,6 +113017,20 @@ function CssxApiPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 flex-wrap", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Button,
+            {
+              variant: "outline",
+              size: "sm",
+              onClick: () => testConnectionMutation.mutate(),
+              disabled: testConnectionMutation.isPending,
+              className: "rounded-2xl border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs h-10 px-4",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: `w-3.5 h-3.5 mr-1.5 ${testConnectionMutation.isPending ? "animate-spin text-emerald-400" : "text-emerald-400"}` }),
+                testConnectionMutation.isPending ? "Testing..." : testResult?.latencyMs ? `${testResult.latencyMs}ms Ping` : "Test Ping"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "a",
             {
               href: DOCS_URL,
@@ -112832,10 +113055,10 @@ function CssxApiPage() {
                 refetchOrders();
                 toast2({ title: "Refreshing...", description: "Fetching live CSxStore balance & data." });
               },
-              disabled: settingsLoading,
+              disabled: settingsLoading || productsLoading,
               className: "rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 mr-2 ${settingsLoading ? "animate-spin text-purple-400" : ""}` }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 mr-2 ${settingsLoading || productsLoading ? "animate-spin text-purple-400" : ""}` }),
                 "Refresh"
               ]
             }

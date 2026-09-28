@@ -2614,7 +2614,7 @@ export async function registerRoutes(
         const costLkr = Math.round(costUsd * lkrRate);
 
         return {
-          id: `PARTNER-${sp.id}`,
+          id: `YOUUHOST-${sp.externalOrderId || (2000 + sp.id)}`,
           rawId: sp.id,
           type: "partner" as const,
           category: "Digital License Delivery",
@@ -2626,7 +2626,7 @@ export async function registerRoutes(
           currency: "USD",
           method: "wallet_balance",
           status: sp.status === "approved" ? "completed" : sp.status,
-          reference: sp.externalOrderId ? `#YOUUHOST-${sp.externalOrderId}` : `#YOUUHOST-${sp.id}`,
+          reference: `#YOUUHOST-${sp.externalOrderId || (2000 + sp.id)}`,
           deliveredContent: sp.deliveryText || null,
           details: `Order for ${sp.productTitle}. Instant digital credentials delivered.`,
           createdAt: sp.createdAt || new Date(),
@@ -2761,7 +2761,7 @@ export async function registerRoutes(
           : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
 
         return {
-          id: `PARTNER-${sp.sandromania_orders.id}`,
+          id: `YOUUHOST-${2000 + sp.sandromania_orders.id}`,
           rawId: sp.sandromania_orders.id,
           orderType: "partner" as const,
           typeLabel: "Sandromania Goods",
@@ -2779,7 +2779,7 @@ export async function registerRoutes(
           quantity: sp.sandromania_orders.quantity || 1,
           deliveredContent: sp.sandromania_orders.deliveryText || null,
           externalOrderId: sp.sandromania_orders.externalOrderId || null,
-          details: `Partner CDK Order #${sp.sandromania_orders.externalOrderId || sp.sandromania_orders.id}`,
+          details: `Partner CDK Order #YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
           createdAt: sp.sandromania_orders.createdAt || new Date()
         };
       });
@@ -3935,7 +3935,7 @@ export async function registerRoutes(
           : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${sp.sandromania_orders.telegramUserId}`));
 
         return {
-          id: `PARTNER-${sp.sandromania_orders.id}`,
+          id: `YOUUHOST-${2000 + sp.sandromania_orders.id}`,
           rawId: sp.sandromania_orders.id,
           isApiOrder: true,
           apiKeyId: null,
@@ -4277,18 +4277,32 @@ export async function registerRoutes(
           const userRec = await storage.getTelegramUser(tgUser.id?.toString());
           const targetEmail = tgUser.email || userRec?.email;
           if (targetEmail && targetEmail.includes("@")) {
+            const reqCurrency = (req.body.currency || "").toUpperCase();
+            const isLkr = reqCurrency === "LKR" || !reqCurrency;
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.5;
+
             const orderCreds = result.availableItems.map((item: any) => item.content);
-            const orderNo = `ORD-2026-${result.availableItems[0]?.id || Math.floor(100000 + Math.random() * 900000)}`;
+            const firstItemId = result.availableItems[0]?.id || 1;
+            const orderNo = `YOUUHOST-${2000 + firstItemId}`;
             
             const origUnitPriceCents = result.product.price;
             const origTotalCents = origUnitPriceCents * result.quantity;
             const finalPaidCents = result.finalDeductAmount;
             const discountCents = Math.max(0, origTotalCents - finalPaidCents);
 
-            const unitPriceFormatted = `$${(origUnitPriceCents / 100).toFixed(2)} USD`;
-            const subtotalFormatted = `$${(origTotalCents / 100).toFixed(2)} USD`;
-            const discountFormatted = discountCents > 0 ? `$${(discountCents / 100).toFixed(2)} USD` : undefined;
-            const orderTotalFormatted = `$${(finalPaidCents / 100).toFixed(2)} USD`;
+            const unitPriceFormatted = isLkr 
+              ? `Rs. ${Math.round((origUnitPriceCents / 100) * lkrRate).toLocaleString()}` 
+              : `$${(origUnitPriceCents / 100).toFixed(2)} USD`;
+            const subtotalFormatted = isLkr 
+              ? `Rs. ${Math.round((origTotalCents / 100) * lkrRate).toLocaleString()}` 
+              : `$${(origTotalCents / 100).toFixed(2)} USD`;
+            const discountFormatted = discountCents > 0 
+              ? (isLkr ? `Rs. ${Math.round((discountCents / 100) * lkrRate).toLocaleString()}` : `$${(discountCents / 100).toFixed(2)} USD`) 
+              : undefined;
+            const orderTotalFormatted = isLkr 
+              ? `Rs. ${Math.round((finalPaidCents / 100) * lkrRate).toLocaleString()}` 
+              : `$${(finalPaidCents / 100).toFixed(2)} USD`;
             const promoCodeStr = result.appliedPromo?.code || undefined;
 
             const emailHtml = buildOrderCredentialsEmailHtml({
@@ -5824,12 +5838,14 @@ app.get("/api/admin/cssx/settings", isAuth, async (req, res) => {
     let meInfo: any = null;
     let statsInfo: any = { orders: 0, successful: 0 };
     let isConnected = false;
+    let connectionError = "";
 
     if (creds.apiKey) {
       try {
         meInfo = await CssxService.getMe();
         isConnected = true;
       } catch (err: any) {
+        connectionError = err.message;
         console.warn("[CSSX API] getMe failed:", err.message);
       }
 
@@ -5840,13 +5856,15 @@ app.get("/api/admin/cssx/settings", isAuth, async (req, res) => {
       }
     }
 
+    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
+
     res.json({
       apiKey: creds.apiKey,
       maskedApiKey: creds.apiKey ? `${creds.apiKey.substring(0, 4)}••••••••${creds.apiKey.slice(-4)}` : "",
       baseUrl: creds.baseUrl,
       status: isConnected ? "connected" : (creds.apiKey ? "error" : "no_key"),
-      statusMessage: isConnected ? "Active & Connected" : (creds.apiKey ? "Connection Error" : "No active key"),
-      walletUsdt: meInfo?.wallet_usdt ?? meInfo?.balance_usdt ?? meInfo?.balance ?? 0,
+      statusMessage: isConnected ? "Active & Connected" : (creds.apiKey ? `Connection Error: ${connectionError}` : "No active key"),
+      walletUsdt: walletBalance,
       account: meInfo,
       stats: {
         orders: statsInfo?.orders ?? 0,
@@ -5882,15 +5900,27 @@ app.post("/api/admin/cssx/settings", isAuth, async (req, res) => {
       }
     }
 
+    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
+
     res.json({
       success: true,
       message: isConnected ? "CSxStore API connected successfully!" : (apiKey.trim() ? `Saved, but connection test failed: ${errorMsg}` : "API key cleared."),
       status: isConnected ? "connected" : (apiKey.trim() ? "error" : "no_key"),
-      walletUsdt: meInfo?.wallet_usdt ?? meInfo?.balance_usdt ?? meInfo?.balance ?? 0,
+      walletUsdt: walletBalance,
       account: meInfo
     });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to save CSxStore settings" });
+  }
+});
+
+// 2.5. Diagnostic Test Connection
+app.get("/api/admin/cssx/test", isAuth, async (req, res) => {
+  try {
+    const result = await CssxService.testConnection();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ connected: false, error: err.message });
   }
 });
 
@@ -6122,10 +6152,18 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       try {
         const targetEmail = tgUser.email || result.user?.email;
         if (targetEmail && targetEmail.includes("@")) {
-          const orderNo = `PARTNER-${result.order.id}`;
-          const orderTotalFormatted = `$${(totalCents / 100).toFixed(2)} USD`;
-          const unitPriceFormatted = `$${(product.sellingPriceUsd / 100).toFixed(2)} USD`;
-          const subtotalFormatted = `$${(totalCents / 100).toFixed(2)} USD`;
+          const reqCurrency = (req.body.currency || "").toUpperCase();
+          const isLkr = reqCurrency === "LKR" || !reqCurrency;
+          const rates = await fetchLiveExchangeRates();
+          const lkrRate = rates.LKR || 305.5;
+
+          const orderNo = `YOUUHOST-${result.order.externalOrderId || (2000 + result.order.id)}`;
+          const totalLkr = Math.round((totalCents / 100) * lkrRate);
+          const unitLkr = Math.round((product.sellingPriceUsd / 100) * lkrRate);
+
+          const orderTotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()}` : `$${(totalCents / 100).toFixed(2)} USD`;
+          const unitPriceFormatted = isLkr ? `Rs. ${unitLkr.toLocaleString()}` : `$${(product.sellingPriceUsd / 100).toFixed(2)} USD`;
+          const subtotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()}` : `$${(totalCents / 100).toFixed(2)} USD`;
           const credsArray = result.deliveryText ? result.deliveryText.split(/\r?\n/).filter(Boolean) : ["Delivery completed."];
 
           const emailHtml = buildOrderCredentialsEmailHtml({
