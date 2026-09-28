@@ -3988,27 +3988,79 @@ export async function registerRoutes(
         activeApiKeysCount: allKeys.filter(k => k.status === 'active').length,
       };
 
-      // Full Selectable Channel List
-      const sandromaniaCount = dateFilteredOrders.filter(o => o.storeType === "sandromania").length;
-      const smmCount = dateFilteredOrders.filter(o => o.storeType === "cssx_smm").length;
-      const directCount = dateFilteredOrders.filter(o => o.channelId === "direct").length;
+      // Full Selectable Channel List with dynamic revenue calculation
+      const sandromaniaOrdersFiltered = dateFilteredOrders.filter(o => o.storeType === "sandromania");
+      const sandromaniaRevCents = sandromaniaOrdersFiltered
+        .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+        .reduce((a, b) => a + (b.priceCents || 0), 0);
+
+      const smmOrdersFiltered = dateFilteredOrders.filter(o => o.storeType === "cssx_smm");
+      const smmRevCents = smmOrdersFiltered
+        .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+        .reduce((a, b) => a + (b.priceCents || 0), 0);
+
+      const directOrdersFiltered = dateFilteredOrders.filter(o => o.channelId === "direct");
+      const directRevCents = directOrdersFiltered
+        .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+        .reduce((a, b) => a + (b.priceCents || 0), 0);
+
+      const allRevCents = dateFilteredOrders
+        .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+        .reduce((a, b) => a + (b.priceCents || 0), 0);
 
       const storeList = [
-        { id: "all", name: "All Connected Channels & APIs", type: "all", totalOrders: dateFilteredOrders.length, totalRevenueUsd: (dateFilteredOrders.reduce((a, b) => a + b.priceCents, 0) / 100).toFixed(2), totalRevenueLkr: 0 },
-        { id: "sandromania", name: "Sandromania CDK Partner Shop", type: "sandromania", totalOrders: sandromaniaCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
-        { id: "cssx_smm", name: "CSSX / CDX Social Boost API", type: "cssx_smm", totalOrders: smmCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
-        { id: "n1panel", name: "N1Panel SMM Platform", type: "n1panel", totalOrders: smmCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
-        { id: "direct", name: "Direct Cloud Store (Web/MiniApp)", type: "direct", totalOrders: directCount, totalRevenueUsd: "0.00", totalRevenueLkr: 0 },
+        { 
+          id: "all", 
+          name: "All Connected Channels & APIs", 
+          type: "all", 
+          totalOrders: dateFilteredOrders.length, 
+          totalRevenueUsd: (allRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((allRevCents / 100) * lkrRate) 
+        },
+        { 
+          id: "sandromania", 
+          name: "Sandromania CDK Partner Shop", 
+          type: "sandromania", 
+          totalOrders: sandromaniaOrdersFiltered.length, 
+          totalRevenueUsd: (sandromaniaRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((sandromaniaRevCents / 100) * lkrRate) 
+        },
+        { 
+          id: "cssx_smm", 
+          name: "CSSX / CDX Social Boost API", 
+          type: "cssx_smm", 
+          totalOrders: smmOrdersFiltered.length, 
+          totalRevenueUsd: (smmRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((smmRevCents / 100) * lkrRate) 
+        },
+        { 
+          id: "n1panel", 
+          name: "N1Panel SMM Platform", 
+          type: "n1panel", 
+          totalOrders: smmOrdersFiltered.length, 
+          totalRevenueUsd: (smmRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((smmRevCents / 100) * lkrRate) 
+        },
+        { 
+          id: "direct", 
+          name: "Direct Cloud Store (Web/MiniApp)", 
+          type: "direct", 
+          totalOrders: directOrdersFiltered.length, 
+          totalRevenueUsd: (directRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((directRevCents / 100) * lkrRate) 
+        },
         ...allKeys.map(k => {
           const keyOrders = dateFilteredOrders.filter(o => o.channelId === `key_${k.id}`);
-          const revCents = keyOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'success').reduce((a, b) => a + b.priceCents, 0);
+          const revCents = keyOrders
+            .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+            .reduce((a, b) => a + (b.priceCents || 0), 0);
           return {
             id: `key_${k.id}`,
             name: `API: ${k.telegramUser?.username ? '@' + k.telegramUser.username : (k.telegramUser?.email || 'User #' + k.telegramUserId)}`,
             type: "api",
             totalOrders: keyOrders.length,
             totalRevenueUsd: (revCents / 100).toFixed(2),
-            totalRevenueLkr: Math.round((revCents / 100) * lkrRate).toLocaleString()
+            totalRevenueLkr: Math.round((revCents / 100) * lkrRate)
           };
         })
       ];

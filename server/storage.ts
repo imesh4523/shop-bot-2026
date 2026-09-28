@@ -55,10 +55,11 @@ import {
   type InsertSupportTicket,
   preorders,
   type Preorder,
-  type InsertPreorder,
   apiKeys,
   type ApiKey,
-  type InsertApiKey
+  type InsertApiKey,
+  sandromaniaOrders,
+  smmOrders
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -531,22 +532,20 @@ export class DatabaseStorage implements IStorage {
 
   // Stats
   async getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number; totalUsers: number; monthlyUsers: number; activeUsersToday: number }> {
-    const [sales] = await db.select({ count: count() }).from(orders);
-    
-    // Daily sales (last 24 hours)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // 1. Cloud Orders
+    const [sales] = await db.select({ count: count() }).from(orders);
     const [dailySalesResult] = await db.select({ count: count() })
       .from(orders)
       .where(sql`${orders.createdAt} >= ${twentyFourHoursAgo}`);
 
-    // Total revenue
     const revenueResult = await db.select({
       total: sql<number>`COALESCE(SUM(${products.price}), 0)`
     })
     .from(orders)
     .innerJoin(products, eq(orders.productId, products.id));
 
-    // Daily revenue (last 24 hours)
     const dailyRevenueResult = await db.select({
       total: sql<number>`COALESCE(SUM(${products.price}), 0)`
     })
@@ -554,8 +553,38 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(products, eq(orders.productId, products.id))
     .where(sql`${orders.createdAt} >= ${twentyFourHoursAgo}`);
 
-    const totalRevenue = Number(revenueResult[0]?.total || 0);
-    const dailyRevenue = Number(dailyRevenueResult[0]?.total || 0);
+    // 2. Sandromania Partner Goods Orders
+    const [sandroSales] = await db.select({ count: count() }).from(sandromaniaOrders);
+    const [dailySandroSalesResult] = await db.select({ count: count() })
+      .from(sandromaniaOrders)
+      .where(sql`${sandromaniaOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const sandroRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${sandromaniaOrders.amountPaid}), 0)`
+    }).from(sandromaniaOrders);
+
+    const dailySandroRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${sandromaniaOrders.amountPaid}), 0)`
+    }).from(sandromaniaOrders).where(sql`${sandromaniaOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    // 3. SMM Boost Orders
+    const [smmSales] = await db.select({ count: count() }).from(smmOrders);
+    const [dailySmmSalesResult] = await db.select({ count: count() })
+      .from(smmOrders)
+      .where(sql`${smmOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const smmRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${smmOrders.charge}), 0)`
+    }).from(smmOrders);
+
+    const dailySmmRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${smmOrders.charge}), 0)`
+    }).from(smmOrders).where(sql`${smmOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const totalSalesCount = (sales?.count || 0) + (sandroSales?.count || 0) + (smmSales?.count || 0);
+    const dailySalesCount = (dailySalesResult?.count || 0) + (dailySandroSalesResult?.count || 0) + (dailySmmSalesResult?.count || 0);
+    const totalRevenueCents = Number(revenueResult[0]?.total || 0) + Number(sandroRevenueResult[0]?.total || 0) + Number(smmRevenueResult[0]?.total || 0);
+    const dailyRevenueCents = Number(dailyRevenueResult[0]?.total || 0) + Number(dailySandroRevenueResult[0]?.total || 0) + Number(dailySmmRevenueResult[0]?.total || 0);
 
     const [available] = await db.select({ count: count() }).from(products).where(eq(products.status, "available"));
 
@@ -572,10 +601,10 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${telegramUsers.lastRequestAt} >= ${twentyFourHoursAgo}`);
 
     return {
-      totalSales: sales.count,
-      dailySales: dailySalesResult.count,
-      totalRevenue: totalRevenue,
-      dailyRevenue: dailyRevenue,
+      totalSales: totalSalesCount,
+      dailySales: dailySalesCount,
+      totalRevenue: totalRevenueCents,
+      dailyRevenue: dailyRevenueCents,
       availableProducts: available.count,
       totalUsers: totalUsersResult?.count || 0,
       monthlyUsers: monthlyUsersResult?.count || 0,

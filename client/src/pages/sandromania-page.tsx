@@ -290,18 +290,27 @@ export default function SandromaniaPage() {
 
   const handleSaveEdit = () => {
     if (!editingProduct) return;
-    const usdVal = parseFloat(editSellingPriceUsd);
-    if (isNaN(usdVal) || usdVal < 0) {
-      toast({ title: "Invalid Price", description: "Please enter a valid selling price in USD.", variant: "destructive" });
+    let usdVal = parseFloat(editSellingPriceUsd);
+    let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
+
+    if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
+      usdVal = lkrVal / 330;
+    }
+    if (usdVal > 0 && lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 330);
+    }
+
+    if (isNaN(usdVal) || usdVal <= 0) {
+      toast({ title: "Invalid Price", description: "Please enter a valid selling price in USD or LKR.", variant: "destructive" });
       return;
     }
-    const lkrVal = editSellingPriceLkr ? parseInt(editSellingPriceLkr) : 0;
+
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
         title: editTitle.trim() || editingProduct.title,
         sellingPriceUsd: Math.round(usdVal * 100),
-        sellingPriceLkr: lkrVal,
+        sellingPriceLkr: Math.round(lkrVal),
         category: editCategory.trim(),
         isActive: editIsActive,
       },
@@ -1005,7 +1014,14 @@ export default function SandromaniaPage() {
                   type="number"
                   step="0.01"
                   value={editSellingPriceUsd}
-                  onChange={(e) => setEditSellingPriceUsd(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEditSellingPriceUsd(v);
+                    const n = parseFloat(v);
+                    if (!isNaN(n) && n > 0) {
+                      setEditSellingPriceLkr(String(Math.round(n * 330)));
+                    }
+                  }}
                   className="font-bold text-sm rounded-xl"
                 />
                 <span className="text-[10px] text-muted-foreground mt-0.5 block">
@@ -1021,7 +1037,14 @@ export default function SandromaniaPage() {
                   type="number"
                   placeholder="Auto-converts"
                   value={editSellingPriceLkr}
-                  onChange={(e) => setEditSellingPriceLkr(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEditSellingPriceLkr(v);
+                    const n = parseFloat(v);
+                    if (!isNaN(n) && n > 0) {
+                      setEditSellingPriceUsd((n / 330).toFixed(2));
+                    }
+                  }}
                   className="text-xs rounded-xl"
                 />
               </div>

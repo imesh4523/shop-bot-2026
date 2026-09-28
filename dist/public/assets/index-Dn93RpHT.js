@@ -31149,18 +31149,6 @@ function useStats() {
     }
   });
 }
-function useOrders() {
-  return useQuery({
-    queryKey: [api.orders.list.path],
-    queryFn: async () => {
-      const res = await fetch(api.orders.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch orders");
-      const data = await res.json();
-      const parsed = api.orders.list.responses[200].safeParse(data);
-      return parsed.success ? parsed.data : Array.isArray(data) ? data : [];
-    }
-  });
-}
 const Card = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
   "div",
   {
@@ -55762,79 +55750,109 @@ function Skeleton({
 }
 function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useStats();
-  const { data: orders2, isLoading: ordersLoading } = useOrders();
-  const chartData = orders2 ? Array.from({ length: 7 }, (_2, i2) => {
+  const { data: allOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["/api/admin/all-orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/all-orders");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    refetchInterval: 1e4
+  });
+  const lkrRate = 330;
+  const chartData = Array.from({ length: 7 }, (_2, i2) => {
     const date2 = /* @__PURE__ */ new Date();
     date2.setDate(date2.getDate() - (6 - i2));
     const dayName = format(date2, "EEE");
     const dayStart = new Date(date2.setHours(0, 0, 0, 0));
     const dayEnd = new Date(date2.setHours(23, 59, 59, 999));
-    const dailyTotal = orders2.filter((order) => {
+    const dailyTotal = allOrders.filter((order) => {
+      if (!order.createdAt) return false;
       const orderDate = new Date(order.createdAt);
       return orderDate >= dayStart && orderDate <= dayEnd;
-    }).reduce((sum, order) => sum + (order.product?.price || 0), 0);
-    return { name: dayName, total: dailyTotal / 100 };
-  }) : [
-    { name: "Mon", total: 0 },
-    { name: "Tue", total: 0 },
-    { name: "Wed", total: 0 },
-    { name: "Thu", total: 0 },
-    { name: "Fri", total: 0 },
-    { name: "Sat", total: 0 },
-    { name: "Sun", total: 0 }
-  ];
-  const recentOrders = orders2?.slice(0, 5) || [];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10 animate-in", children: [
+    }).reduce((sum, order) => {
+      const rawUsd = parseFloat((order.amountUsd || "$0").replace(/[^0-9.]/g, "")) || 0;
+      return sum + rawUsd;
+    }, 0);
+    return { name: dayName, total: Number(dailyTotal.toFixed(2)) };
+  });
+  const recentOrders = allOrders.slice(0, 6);
+  const dailyRevUsd = ((stats?.dailyRevenue || 0) / 100).toFixed(2);
+  const dailyRevLkr = Math.round((stats?.dailyRevenue || 0) / 100 * lkrRate).toLocaleString();
+  const totalRevUsd = ((stats?.totalRevenue || 0) / 100).toFixed(2);
+  const totalRevLkr = Math.round((stats?.totalRevenue || 0) / 100 * lkrRate).toLocaleString();
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Dashboard" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_15px_rgba(74,222,128,0.6)]" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Dashboard" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm mt-1", children: "Real-time multi-channel overview across Cloud Accounts, Partner Stores & SMM panels." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-5 py-2 rounded-full flex items-center gap-2.5 text-xs font-bold text-white shadow-lg border-white/20", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" }),
         "System Active"
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-6 md:grid-cols-2 lg:grid-cols-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        StatsCard,
-        {
-          title: "Daily Revenue",
-          value: stats ? `$${(stats.dailyRevenue / 100).toFixed(2)}` : "$0.00",
-          icon: TrendingUp,
-          description: "Last 24 hours",
-          loading: statsLoading
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        StatsCard,
-        {
-          title: "Daily Sales",
-          value: stats?.dailySales?.toString() ?? "0",
-          icon: ShoppingCart,
-          description: "Items sold today",
-          loading: statsLoading
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        StatsCard,
-        {
-          title: "Total Revenue",
-          value: stats ? `$${(stats.totalRevenue / 100).toFixed(2)}` : "$0.00",
-          icon: DollarSign,
-          description: "Total gross revenue",
-          loading: statsLoading
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        StatsCard,
-        {
-          title: "Total Sales",
-          value: stats?.totalSales.toString() || "0",
-          icon: Package,
-          description: "Total successful orders",
-          loading: statsLoading
-        }
-      )
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-white/[0.02] relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-black text-white/50 uppercase tracking-widest", children: "Daily Revenue" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-emerald-500/10 text-emerald-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "h-4 w-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: statsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-28 bg-white/5" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-3xl font-black text-white tracking-tight font-mono", children: [
+            "$",
+            dailyRevUsd
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-emerald-400 mt-1 font-mono flex items-center gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            "≈ Rs. ",
+            dailyRevLkr,
+            " LKR"
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/30 mt-1 font-medium", children: "Last 24 hours across all stores" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-black text-white/50 uppercase tracking-widest", children: "Daily Sales" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-purple-500/10 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "h-4 w-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: statsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-20 bg-white/5" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-3xl font-black text-white tracking-tight", children: stats?.dailySales ?? 0 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-purple-300 mt-1", children: "Orders in past 24h" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/30 mt-1 font-medium", children: "Instant auto-fulfilled items" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-black text-white/50 uppercase tracking-widest", children: "Total Revenue" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-blue-500/10 text-blue-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DollarSign, { className: "h-4 w-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: statsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-28 bg-white/5" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-3xl font-black text-white tracking-tight font-mono", children: [
+            "$",
+            totalRevUsd
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-blue-300 mt-1 font-mono flex items-center gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            "≈ Rs. ",
+            totalRevLkr,
+            " LKR"
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/30 mt-1 font-medium", children: "Total multi-channel gross revenue" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-white/[0.02]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-black text-white/50 uppercase tracking-widest", children: "Total Sales" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-pink-500/10 text-pink-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "h-4 w-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: statsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-20 bg-white/5" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-3xl font-black text-white tracking-tight", children: stats?.totalSales ?? 0 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-pink-300 mt-1", children: "Successful fulfilled deliveries" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/30 mt-1 font-medium", children: "All historical orders" })
+        ] }) })
+      ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-6 md:grid-cols-3", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-4 md:grid-cols-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         StatsCard,
         {
@@ -55867,22 +55885,25 @@ function Dashboard() {
       )
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-6 md:grid-cols-2 lg:grid-cols-7", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-4 glass-card p-2 border-0", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-5 h-5 text-primary" }),
-          "Revenue Overview"
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-4 glass-card p-2 border-0 bg-white/[0.01]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-lg font-black text-white flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-5 h-5 text-purple-400" }),
+            "7-Day Multi-Store Revenue"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full", children: "Live Dynamic Feed" })
         ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pl-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-[350px] w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ResponsiveContainer, { width: "100%", height: "100%", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AreaChart, { data: chartData, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pl-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-[320px] w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ResponsiveContainer, { width: "100%", height: "100%", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AreaChart, { data: chartData, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("defs", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("linearGradient", { id: "colorTotal", x1: "0", y1: "0", x2: "0", y2: "1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "5%", stopColor: "hsl(var(--primary))", stopOpacity: 0.3 }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "95%", stopColor: "hsl(var(--primary))", stopOpacity: 0 })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "5%", stopColor: "#8B5CF6", stopOpacity: 0.4 }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "95%", stopColor: "#8B5CF6", stopOpacity: 0 })
           ] }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CartesianGrid, { strokeDasharray: "3 3", className: "stroke-muted", vertical: false }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CartesianGrid, { strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.05)", vertical: false }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             XAxis,
             {
               dataKey: "name",
-              stroke: "#888888",
+              stroke: "rgba(255,255,255,0.4)",
               fontSize: 12,
               tickLine: false,
               axisLine: false
@@ -55891,7 +55912,7 @@ function Dashboard() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             YAxis,
             {
-              stroke: "#888888",
+              stroke: "rgba(255,255,255,0.4)",
               fontSize: 12,
               tickLine: false,
               axisLine: false,
@@ -55902,10 +55923,12 @@ function Dashboard() {
             Tooltip,
             {
               contentStyle: {
-                backgroundColor: "hsl(var(--card))",
-                borderRadius: "8px",
-                border: "1px solid hsl(var(--border))"
-              }
+                backgroundColor: "#0f0a1e",
+                borderRadius: "12px",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#ffffff"
+              },
+              formatter: (value2) => [`$${value2} USD`, "Daily Total"]
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -55913,40 +55936,48 @@ function Dashboard() {
             {
               type: "monotone",
               dataKey: "total",
-              stroke: "hsl(var(--primary))",
+              stroke: "#8B5CF6",
               fillOpacity: 1,
               fill: "url(#colorTotal)",
-              strokeWidth: 2
+              strokeWidth: 3
             }
           )
         ] }) }) }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-3 glass-card border-0", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl font-bold", children: "Recent Orders" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-3 glass-card border-0 bg-white/[0.01]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-lg font-black text-white flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Recent Sales" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40 font-normal", children: "All Channels" })
+        ] }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: ordersLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: [1, 2, 3].map((i2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-10 rounded-full" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-10 rounded-xl bg-white/5" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 flex-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-[200px]" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-[150px]" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-[160px] bg-white/5" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-[120px] bg-white/5" })
           ] })
-        ] }, i2)) }) : recentOrders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: recentOrders.map((order) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between group", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-5 h-5" }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium leading-none", children: order.product?.name || "Unknown Product" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: order.telegramUser?.username || "Anonymous" })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm font-medium", children: [
-              "$",
-              ((order.product?.price || 0) / 100).toFixed(2)
+        ] }, i2)) }) : recentOrders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: recentOrders.map((order) => {
+          const isPartner = order.orderType === "partner";
+          const isSmm = order.orderType === "smm";
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${isPartner ? "bg-pink-500/10 text-pink-400" : isSmm ? "bg-purple-500/10 text-purple-400" : "bg-blue-500/10 text-blue-400"}`, children: isPartner ? /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-4 h-4" }) : isSmm ? /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-black text-white truncate", children: order.title || "Digital Product" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40 truncate", children: [
+                  order.buyer || "Anonymous",
+                  " · ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-300", children: order.typeLabel || "Store" })
+                ] })
+              ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: order.createdAt ? format(new Date(order.createdAt), "MMM d") : "" })
-          ] })
-        ] }, order.id)) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-full flex flex-col items-center justify-center text-center text-muted-foreground py-8", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0 pl-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-black text-emerald-400 font-mono", children: order.amountUsd }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : "" })
+            ] })
+          ] }, order.id);
+        }) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-full flex flex-col items-center justify-center text-center text-white/30 py-8", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-12 h-12 mb-3 opacity-20" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No orders yet" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold", children: "No orders recorded yet" })
         ] }) })
       ] })
     ] })
@@ -55959,17 +55990,17 @@ function StatsCard({
   description,
   loading
 }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 bg-white/[0.02]", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between space-y-0 pb-2", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-sm font-semibold text-muted-foreground uppercase tracking-wider", children: title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-primary/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: "h-4 w-4 text-primary" }) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-black text-white/50 uppercase tracking-widest", children: title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-white/5 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: "h-4 w-4" }) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-24 bg-white/5" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-8 w-24 bg-white/5" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-32 bg-white/5" })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-3xl font-black tracking-tight", children: value2 }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground mt-2 font-medium", children: description })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white tracking-tight", children: value2 }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40 mt-1 font-medium", children: description })
     ] }) })
   ] });
 }
@@ -60853,6 +60884,18 @@ function EditCredentialForm({
       "Save Changes"
     ] }) })
   ] }) });
+}
+function useOrders() {
+  return useQuery({
+    queryKey: [api.orders.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.orders.list.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      const data = await res.json();
+      const parsed = api.orders.list.responses[200].safeParse(data);
+      return parsed.success ? parsed.data : Array.isArray(data) ? data : [];
+    }
+  });
 }
 function OrdersPage() {
   const { data: orders2, isLoading } = useOrders();
@@ -74639,7 +74682,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CVpfc_v9.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DVvUzTjA.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105088,13 +105131,21 @@ function MiniAppShopModern() {
       if (status.includes("pend") || status.includes("process")) {
         statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200", children: "Processing" });
       }
-      const deliveredData = sandroOrd.deliveredData || (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload || ""));
+      let deliveredData = sandroOrd.deliveryText || sandroOrd.deliveredData || (sandroOrd.responsePayload ? typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload) : "");
+      if (typeof deliveredData === "string") {
+        deliveredData = deliveredData.trim();
+        if (deliveredData.startsWith('"') && deliveredData.endsWith('"') && deliveredData.length > 2) {
+          deliveredData = deliveredData.slice(1, -1);
+        }
+      }
+      const prodTitle = sandroOrd.productTitle || sandroOrd.product?.title || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.title || "Digital Product";
+      const orderNum = sandroOrd.externalOrderId ? `#YOUUHOST-${sandroOrd.externalOrderId}` : `#YOUUHOST-${sandroOrd.id}`;
       list.push({
         id: `sandro-${sandroOrd.id}`,
         rawId: sandroOrd.id,
         orderType: "license",
-        orderNumber: sandroOrd.externalOrderId ? `#SANDRO-${sandroOrd.externalOrderId}` : `#ORD-${sandroOrd.id}`,
-        title: sandroOrd.product?.title || `Digital License #${sandroOrd.productId}`,
+        orderNumber: orderNum,
+        title: prodTitle,
         categoryTag: conf.tag || "Digital License",
         badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
         status: sandroOrd.status || "Completed",
@@ -111516,18 +111567,24 @@ function SandromaniaPage() {
   };
   const handleSaveEdit = () => {
     if (!editingProduct) return;
-    const usdVal = parseFloat(editSellingPriceUsd);
-    if (isNaN(usdVal) || usdVal < 0) {
-      toast2({ title: "Invalid Price", description: "Please enter a valid selling price in USD.", variant: "destructive" });
+    let usdVal = parseFloat(editSellingPriceUsd);
+    let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
+    if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
+      usdVal = lkrVal / 330;
+    }
+    if (usdVal > 0 && lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 330);
+    }
+    if (isNaN(usdVal) || usdVal <= 0) {
+      toast2({ title: "Invalid Price", description: "Please enter a valid selling price in USD or LKR.", variant: "destructive" });
       return;
     }
-    const lkrVal = editSellingPriceLkr ? parseInt(editSellingPriceLkr) : 0;
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
         title: editTitle.trim() || editingProduct.title,
         sellingPriceUsd: Math.round(usdVal * 100),
-        sellingPriceLkr: lkrVal,
+        sellingPriceLkr: Math.round(lkrVal),
         category: editCategory.trim(),
         isActive: editIsActive
       }
@@ -112213,7 +112270,14 @@ function SandromaniaPage() {
                 type: "number",
                 step: "0.01",
                 value: editSellingPriceUsd,
-                onChange: (e) => setEditSellingPriceUsd(e.target.value),
+                onChange: (e) => {
+                  const v2 = e.target.value;
+                  setEditSellingPriceUsd(v2);
+                  const n2 = parseFloat(v2);
+                  if (!isNaN(n2) && n2 > 0) {
+                    setEditSellingPriceLkr(String(Math.round(n2 * 330)));
+                  }
+                },
                 className: "font-bold text-sm rounded-xl"
               }
             ),
@@ -112230,7 +112294,14 @@ function SandromaniaPage() {
                 type: "number",
                 placeholder: "Auto-converts",
                 value: editSellingPriceLkr,
-                onChange: (e) => setEditSellingPriceLkr(e.target.value),
+                onChange: (e) => {
+                  const v2 = e.target.value;
+                  setEditSellingPriceLkr(v2);
+                  const n2 = parseFloat(v2);
+                  if (!isNaN(n2) && n2 > 0) {
+                    setEditSellingPriceUsd((n2 / 330).toFixed(2));
+                  }
+                },
                 className: "text-xs rounded-xl"
               }
             )

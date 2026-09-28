@@ -1445,8 +1445,8 @@ h1, h2, h3, h4, h5, h6 {
   height: 28rem;
 }
 
-.h-\[350px\]{
-  height: 350px;
+.h-\[320px\]{
+  height: 320px;
 }
 
 .h-\[3px\]{
@@ -1850,16 +1850,16 @@ h1, h2, h3, h4, h5, h6 {
   width: 100px;
 }
 
-.w-\[150px\]{
-  width: 150px;
+.w-\[120px\]{
+  width: 120px;
+}
+
+.w-\[160px\]{
+  width: 160px;
 }
 
 .w-\[1px\]{
   width: 1px;
-}
-
-.w-\[200px\]{
-  width: 200px;
 }
 
 .w-\[205px\]{
@@ -4513,10 +4513,6 @@ h1, h2, h3, h4, h5, h6 {
   background-color: hsl(var(--primary) / var(--tw-bg-opacity, 1));
 }
 
-.bg-primary\/10{
-  background-color: hsl(var(--primary) / 0.1);
-}
-
 .bg-primary\/20{
   background-color: hsl(var(--primary) / 0.2);
 }
@@ -6179,10 +6175,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .fill-white\/20{
   fill: rgb(255 255 255 / 0.2);
-}
-
-.stroke-muted{
-  stroke: hsl(var(--muted) / 1);
 }
 
 .object-contain{
@@ -8013,6 +8005,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.shadow-\[0_0_12px_rgba\(52\2c 211\2c 153\2c 0\.8\)\]{
+  --tw-shadow: 0 0 12px rgba(52,211,153,0.8);
+  --tw-shadow-colored: 0 0 12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
 .shadow-\[0_0_15px_rgba\(168\2c 85\2c 247\2c 0\.25\)\]{
   --tw-shadow: 0 0 15px rgba(168,85,247,0.25);
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
@@ -8021,12 +8019,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .shadow-\[0_0_15px_rgba\(52\2c 211\2c 153\2c 1\)\]{
   --tw-shadow: 0 0 15px rgba(52,211,153,1);
-  --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-}
-
-.shadow-\[0_0_15px_rgba\(74\2c 222\2c 128\2c 0\.6\)\]{
-  --tw-shadow: 0 0 15px rgba(74,222,128,0.6);
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
@@ -10575,11 +10567,6 @@ body:has(.tg-mini-app) {
   background-color: rgb(82 82 82 / var(--tw-bg-opacity, 1));
 }
 
-.group:hover .group-hover\:bg-primary{
-  --tw-bg-opacity: 1;
-  background-color: hsl(var(--primary) / var(--tw-bg-opacity, 1));
-}
-
 .group\/watermark:hover .group-hover\/watermark\:tracking-\[0\.4em\]{
   letter-spacing: 0.4em;
 }
@@ -10617,11 +10604,6 @@ body:has(.tg-mini-app) {
 .group:hover .group-hover\:text-emerald-400{
   --tw-text-opacity: 1;
   color: rgb(52 211 153 / var(--tw-text-opacity, 1));
-}
-
-.group:hover .group-hover\:text-primary-foreground{
-  --tw-text-opacity: 1;
-  color: hsl(var(--primary-foreground) / var(--tw-text-opacity, 1));
 }
 
 .group:hover .group-hover\:text-purple-300{

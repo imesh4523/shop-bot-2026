@@ -1445,16 +1445,34 @@ export default function MiniAppShopModern() {
         );
       }
 
-      const deliveredData =
+      let deliveredData =
+        sandroOrd.deliveryText ||
         sandroOrd.deliveredData ||
-        (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload || ""));
+        (sandroOrd.responsePayload ? (typeof sandroOrd.responsePayload === "string" ? sandroOrd.responsePayload : JSON.stringify(sandroOrd.responsePayload)) : "");
+
+      if (typeof deliveredData === "string") {
+        deliveredData = deliveredData.trim();
+        if (deliveredData.startsWith('"') && deliveredData.endsWith('"') && deliveredData.length > 2) {
+          deliveredData = deliveredData.slice(1, -1);
+        }
+      }
+
+      const prodTitle =
+        sandroOrd.productTitle ||
+        sandroOrd.product?.title ||
+        (sandromaniaProductsList.find((p: any) => p.id === sandroOrd.sandromaniaProductId || p.externalProductId === sandroOrd.externalProductId)?.title) ||
+        "Digital Product";
+
+      const orderNum = sandroOrd.externalOrderId 
+        ? `#YOUUHOST-${sandroOrd.externalOrderId}` 
+        : `#YOUUHOST-${sandroOrd.id}`;
 
       list.push({
         id: `sandro-${sandroOrd.id}`,
         rawId: sandroOrd.id,
         orderType: "license",
-        orderNumber: sandroOrd.externalOrderId ? `#SANDRO-${sandroOrd.externalOrderId}` : `#ORD-${sandroOrd.id}`,
-        title: sandroOrd.product?.title || `Digital License #${sandroOrd.productId}`,
+        orderNumber: orderNum,
+        title: prodTitle,
         categoryTag: conf.tag || "Digital License",
         badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
         status: sandroOrd.status || "Completed",
