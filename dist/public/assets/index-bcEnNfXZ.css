@@ -7023,9 +7023,8 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(126 121 152 / var(--tw-text-opacity, 1));
 }
 
-.text-\[\#8FA597\]{
-  --tw-text-opacity: 1;
-  color: rgb(143 165 151 / var(--tw-text-opacity, 1));
+.text-\[\#8FA597\]\/75{
+  color: rgb(143 165 151 / 0.75);
 }
 
 .text-\[\#9490A8\]{
@@ -7035,6 +7034,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .text-\[\#9490A8\]\/40{
   color: rgb(148 144 168 / 0.4);
+}
+
+.text-\[\#9490A8\]\/75{
+  color: rgb(148 144 168 / 0.75);
 }
 
 .text-\[\#A1A1AA\]{

@@ -92,21 +92,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Clean Transparent Shopping Bag Icon (matching user provided design without background)
+// Clean Transparent Shopping Bag Icon (matching user uploaded handbag design without background)
 function ShopBagIcon({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 100 100"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="7"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
       {...props}
     >
-      <path d="M8 7.5V5.5C8 3.57 9.57 2 11.5 2h1C14.43 2 16 3.57 16 5.5v2" />
-      <path d="M4.5 7.5h15l-1.4 12.6c-.1.9-.9 1.6-1.8 1.6H7.7c-.9 0-1.7-.7-1.8-1.6L4.5 7.5z" />
+      {/* Curved Arch Loop Handle */}
+      <path d="M34 42V26a16 16 0 0 1 32 0v16" />
+      {/* Sleek Trapezoid Bag Body with Rounded Corners */}
+      <path d="M24 42h52l9.5 38a8 8 0 0 1-7.8 10H22.3a8 8 0 0 1-7.8-10L24 42z" />
     </svg>
   );
 }
@@ -3105,7 +3107,7 @@ Support: https://t.me/youuhost_support
               </div>
             ) : (filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0) ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
-                <Package className="w-10 h-10 mx-auto text-[#8FA597] mb-2" />
+                <ShopBagIcon className="w-12 h-12 mx-auto text-[#8FA597]/75 mb-2.5" />
                 <h4 className="text-sm font-bold text-[#1C3324]">No products found</h4>
                 <p className="text-xs text-[#6B8574] mt-1">Try another category or search query.</p>
               </div>
@@ -3434,7 +3436,7 @@ Support: https://t.me/youuhost_support
                     : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
                 }`}
               >
-                <Package className="w-3 h-3" /> Cloud & Accounts ({orders.filter((o: any) => (o.status || '').toLowerCase() !== 'failed').length})
+                <ShopBagIcon className="w-3 h-3" /> Cloud & Accounts ({orders.filter((o: any) => (o.status || '').toLowerCase() !== 'failed').length})
               </button>
 
               <button
@@ -3465,7 +3467,7 @@ Support: https://t.me/youuhost_support
             {/* UNIFIED CHRONOLOGICAL ORDER LIST */}
             {filteredOrders.length === 0 ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
-                <Package className="w-10 h-10 mx-auto text-[#9490A8] mb-2" />
+                <ShopBagIcon className="w-12 h-12 mx-auto text-[#9490A8]/75 mb-2.5" />
                 <h4 className="text-sm font-bold text-[#181432]">No orders found</h4>
                 <p className="text-xs text-[#7E7998] mt-1">
                   {ordersFilter === "all"
@@ -4414,7 +4416,7 @@ Support: https://t.me/youuhost_support
                       className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Package className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
+                        <ShopBagIcon className="w-4 h-4 text-[#5B42F3]" /> My Cloud Orders
                       </span>
                       <ChevronRight className="w-4 h-4 text-[#9490A8]" />
                     </button>

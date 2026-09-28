@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DnuVI1d-.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BCO3Kj8V.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103650,17 +103650,17 @@ function ShopBagIcon({ className = "w-4 h-4", ...props }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "svg",
     {
-      viewBox: "0 0 24 24",
+      viewBox: "0 0 100 100",
       fill: "none",
       stroke: "currentColor",
-      strokeWidth: "2",
+      strokeWidth: "7",
       strokeLinecap: "round",
       strokeLinejoin: "round",
       className,
       ...props,
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 7.5V5.5C8 3.57 9.57 2 11.5 2h1C14.43 2 16 3.57 16 5.5v2" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4.5 7.5h15l-1.4 12.6c-.1.9-.9 1.6-1.8 1.6H7.7c-.9 0-1.7-.7-1.8-1.6L4.5 7.5z" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M34 42V26a16 16 0 0 1 32 0v16" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M24 42h52l9.5 38a8 8 0 0 1-7.8 10H22.3a8 8 0 0 1-7.8-10L24 42z" })
       ]
     }
   );
@@ -106207,7 +106207,7 @@ ${finalDetails}`;
           /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-1", children: "Loading Catalog..." })
         ] }) : filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-10 h-10 mx-auto text-[#8FA597] mb-2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-12 h-12 mx-auto text-[#8FA597]/75 mb-2.5" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#1C3324]", children: "No products found" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B8574] mt-1", children: "Try another category or search query." })
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3.5", children: [
@@ -106498,7 +106498,7 @@ ${finalDetails}`;
                   onClick: () => setOrdersFilter("account"),
                   className: `px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${ordersFilter === "account" ? "bg-[#5B42F3] text-white shadow-xs" : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"}`,
                   children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-3 h-3" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3 h-3" }),
                     " Cloud & Accounts (",
                     orders2.filter((o2) => (o2.status || "").toLowerCase() !== "failed").length,
                     ")"
@@ -106535,7 +106535,7 @@ ${finalDetails}`;
           }
         ),
         filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-10 h-10 mx-auto text-[#9490A8] mb-2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-12 h-12 mx-auto text-[#9490A8]/75 mb-2.5" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#181432]", children: "No orders found" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#7E7998] mt-1", children: ordersFilter === "all" ? "Explore our catalog and make your first purchase!" : "No orders found in this category." }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -107348,7 +107348,7 @@ ${finalDetails}`;
                 className: "w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-[#181432] hover:bg-[#F8F7FD] rounded-2xl transition-colors",
                 children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-4 h-4 text-[#5B42F3]" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-[#5B42F3]" }),
                     " My Cloud Orders"
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-4 h-4 text-[#9490A8]" })
