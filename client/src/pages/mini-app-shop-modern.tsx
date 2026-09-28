@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "wouter";
 import { generateTOTP, getRemainingSeconds } from "@/lib/totp";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -859,7 +859,7 @@ export default function MiniAppShopModern() {
     queryKey: ["/api/mini/hero-banners"],
   });
 
-  const activeHeroSlides = React.useMemo(() => {
+  const activeHeroSlides = useMemo(() => {
     if (!dynamicHeroBannersData) return HERO_SLIDES;
 
     if (Array.isArray(dynamicHeroBannersData)) {

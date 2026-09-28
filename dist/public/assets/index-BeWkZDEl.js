@@ -7055,10 +7055,10 @@ function parse$2(input, loose) {
   };
 }
 var reactExports = requireReact();
-const React$1 = /* @__PURE__ */ getDefaultExportFromCjs(reactExports);
-const React$2 = /* @__PURE__ */ _mergeNamespaces({
+const React = /* @__PURE__ */ getDefaultExportFromCjs(reactExports);
+const React$1 = /* @__PURE__ */ _mergeNamespaces({
   __proto__: null,
-  default: React$1
+  default: React
 }, [reactExports]);
 var shim = { exports: {} };
 var useSyncExternalStoreShim_production_min = {};
@@ -7114,7 +7114,7 @@ function requireShim() {
   return shim.exports;
 }
 var shimExports = requireShim();
-const useBuiltinInsertionEffect = React$2["useInsertionEffect"];
+const useBuiltinInsertionEffect = React$1["useInsertionEffect"];
 const canUseDOM = !!(typeof window !== "undefined" && typeof window.document !== "undefined" && typeof window.document.createElement !== "undefined");
 const useIsomorphicLayoutEffect$2 = canUseDOM ? reactExports.useLayoutEffect : reactExports.useEffect;
 const useInsertionEffect = useBuiltinInsertionEffect || useIsomorphicLayoutEffect$2;
@@ -10159,14 +10159,14 @@ function createCollection(name) {
   );
   const CollectionProvider = (props) => {
     const { scope, children } = props;
-    const ref = React$1.useRef(null);
-    const itemMap = React$1.useRef(/* @__PURE__ */ new Map()).current;
+    const ref = React.useRef(null);
+    const itemMap = React.useRef(/* @__PURE__ */ new Map()).current;
     return /* @__PURE__ */ jsxRuntimeExports.jsx(CollectionProviderImpl, { scope, itemMap, collectionRef: ref, children });
   };
   CollectionProvider.displayName = PROVIDER_NAME2;
   const COLLECTION_SLOT_NAME = name + "CollectionSlot";
   const CollectionSlotImpl = /* @__PURE__ */ createSlot(COLLECTION_SLOT_NAME);
-  const CollectionSlot = React$1.forwardRef(
+  const CollectionSlot = React.forwardRef(
     (props, forwardedRef) => {
       const { scope, children } = props;
       const context = useCollectionContext(COLLECTION_SLOT_NAME, scope);
@@ -10178,13 +10178,13 @@ function createCollection(name) {
   const ITEM_SLOT_NAME = name + "CollectionItemSlot";
   const ITEM_DATA_ATTR = "data-radix-collection-item";
   const CollectionItemSlotImpl = /* @__PURE__ */ createSlot(ITEM_SLOT_NAME);
-  const CollectionItemSlot = React$1.forwardRef(
+  const CollectionItemSlot = React.forwardRef(
     (props, forwardedRef) => {
       const { scope, children, ...itemData } = props;
-      const ref = React$1.useRef(null);
+      const ref = React.useRef(null);
       const composedRefs = useComposedRefs(forwardedRef, ref);
       const context = useCollectionContext(ITEM_SLOT_NAME, scope);
-      React$1.useEffect(() => {
+      React.useEffect(() => {
         context.itemMap.set(ref, { ref, ...itemData });
         return () => void context.itemMap.delete(ref);
       });
@@ -10194,7 +10194,7 @@ function createCollection(name) {
   CollectionItemSlot.displayName = ITEM_SLOT_NAME;
   function useCollection2(scope) {
     const context = useCollectionContext(name + "CollectionConsumer", scope);
-    const getItems = React$1.useCallback(() => {
+    const getItems = React.useCallback(() => {
       const collectionNode = context.collectionRef.current;
       if (!collectionNode) return [];
       const orderedNodes = Array.from(collectionNode.querySelectorAll(`[${ITEM_DATA_ATTR}]`));
@@ -14797,7 +14797,7 @@ function Toaster() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(ToastViewport, {})
   ] });
 }
-var useReactId = React$2[" useId ".trim().toString()] || (() => void 0);
+var useReactId = React$1[" useId ".trim().toString()] || (() => void 0);
 var count$1 = 0;
 function useId(deterministicId) {
   const [id2, setId] = reactExports.useState(useReactId());
@@ -32948,13 +32948,13 @@ function Surface(props) {
     y: 0
   };
   var layerClass = clsx("recharts-surface", className);
-  return /* @__PURE__ */ React$1.createElement("svg", _extends$r({}, filterProps$1(others, true, "svg"), {
+  return /* @__PURE__ */ React.createElement("svg", _extends$r({}, filterProps$1(others, true, "svg"), {
     className: layerClass,
     width,
     height,
     style,
     viewBox: "".concat(svgView.x, " ").concat(svgView.y, " ").concat(svgView.width, " ").concat(svgView.height)
-  }), /* @__PURE__ */ React$1.createElement("title", null, title), /* @__PURE__ */ React$1.createElement("desc", null, desc), children);
+  }), /* @__PURE__ */ React.createElement("title", null, title), /* @__PURE__ */ React.createElement("desc", null, desc), children);
 }
 var _excluded$g = ["children", "className"];
 function _extends$q() {
@@ -32997,10 +32997,10 @@ function _objectWithoutPropertiesLoose$g(source, excluded) {
   }
   return target;
 }
-var Layer = /* @__PURE__ */ React$1.forwardRef(function(props, ref) {
+var Layer = /* @__PURE__ */ React.forwardRef(function(props, ref) {
   var children = props.children, className = props.className, others = _objectWithoutProperties$g(props, _excluded$g);
   var layerClass = clsx("recharts-layer", className);
-  return /* @__PURE__ */ React$1.createElement("g", _extends$q({
+  return /* @__PURE__ */ React.createElement("g", _extends$q({
     className: layerClass
   }, filterProps$1(others, true), {
     ref
@@ -34176,7 +34176,7 @@ var Symbols = function Symbols2(_ref) {
   var className = props.className, cx2 = props.cx, cy = props.cy;
   var filteredProps = filterProps$1(props, true);
   if (cx2 === +cx2 && cy === +cy && size2 === +size2) {
-    return /* @__PURE__ */ React$1.createElement("path", _extends$p({}, filteredProps, {
+    return /* @__PURE__ */ React.createElement("path", _extends$p({}, filteredProps, {
       className: clsx("recharts-symbols", className),
       transform: "translate(".concat(cx2, ", ").concat(cy, ")"),
       d: getPath4()
@@ -34340,7 +34340,7 @@ var DefaultLegendContent = /* @__PURE__ */ (function(_PureComponent) {
         var thirdSize = SIZE / 3;
         var color2 = data.inactive ? inactiveColor : data.color;
         if (data.type === "plainline") {
-          return /* @__PURE__ */ React$1.createElement("line", {
+          return /* @__PURE__ */ React.createElement("line", {
             strokeWidth: 4,
             fill: "none",
             stroke: color2,
@@ -34353,7 +34353,7 @@ var DefaultLegendContent = /* @__PURE__ */ (function(_PureComponent) {
           });
         }
         if (data.type === "line") {
-          return /* @__PURE__ */ React$1.createElement("path", {
+          return /* @__PURE__ */ React.createElement("path", {
             strokeWidth: 4,
             fill: "none",
             stroke: color2,
@@ -34362,19 +34362,19 @@ var DefaultLegendContent = /* @__PURE__ */ (function(_PureComponent) {
           });
         }
         if (data.type === "rect") {
-          return /* @__PURE__ */ React$1.createElement("path", {
+          return /* @__PURE__ */ React.createElement("path", {
             stroke: "none",
             fill: color2,
             d: "M0,".concat(SIZE / 8, "h").concat(SIZE, "v").concat(SIZE * 3 / 4, "h").concat(-SIZE, "z"),
             className: "recharts-legend-icon"
           });
         }
-        if (/* @__PURE__ */ React$1.isValidElement(data.legendIcon)) {
+        if (/* @__PURE__ */ React.isValidElement(data.legendIcon)) {
           var iconProps = _objectSpread$z({}, data);
           delete iconProps.legendIcon;
-          return /* @__PURE__ */ React$1.cloneElement(data.legendIcon, iconProps);
+          return /* @__PURE__ */ React.cloneElement(data.legendIcon, iconProps);
         }
-        return /* @__PURE__ */ React$1.createElement(Symbols, {
+        return /* @__PURE__ */ React.createElement(Symbols, {
           fill: color2,
           cx: halfSize,
           cy: halfSize,
@@ -34423,16 +34423,16 @@ var DefaultLegendContent = /* @__PURE__ */ (function(_PureComponent) {
           // eslint-disable-line max-len
         );
         var color2 = entry.inactive ? inactiveColor : entry.color;
-        return /* @__PURE__ */ React$1.createElement("li", _extends$o({
+        return /* @__PURE__ */ React.createElement("li", _extends$o({
           className,
           style: itemStyle,
           key: "legend-item-".concat(i2)
-        }, adaptEventsOfChild(_this.props, entry, i2)), /* @__PURE__ */ React$1.createElement(Surface, {
+        }, adaptEventsOfChild(_this.props, entry, i2)), /* @__PURE__ */ React.createElement(Surface, {
           width: iconSize,
           height: iconSize,
           viewBox,
           style: svgStyle
-        }, _this.renderIcon(entry)), /* @__PURE__ */ React$1.createElement("span", {
+        }, _this.renderIcon(entry)), /* @__PURE__ */ React.createElement("span", {
           className: "recharts-legend-item-text",
           style: {
             color: color2
@@ -34452,7 +34452,7 @@ var DefaultLegendContent = /* @__PURE__ */ (function(_PureComponent) {
         margin: 0,
         textAlign: layout2 === "horizontal" ? align : "left"
       };
-      return /* @__PURE__ */ React$1.createElement("ul", {
+      return /* @__PURE__ */ React.createElement("ul", {
         className: "recharts-default-legend",
         style: finalStyle
       }, this.renderItems());
@@ -35910,15 +35910,15 @@ function defaultUniqBy$1(entry) {
   return entry.value;
 }
 function renderContent$1(content, props) {
-  if (/* @__PURE__ */ React$1.isValidElement(content)) {
-    return /* @__PURE__ */ React$1.cloneElement(content, props);
+  if (/* @__PURE__ */ React.isValidElement(content)) {
+    return /* @__PURE__ */ React.cloneElement(content, props);
   }
   if (typeof content === "function") {
-    return /* @__PURE__ */ React$1.createElement(content, props);
+    return /* @__PURE__ */ React.createElement(content, props);
   }
   props.ref;
   var otherProps = _objectWithoutProperties$e(props, _excluded$e);
-  return /* @__PURE__ */ React$1.createElement(DefaultLegendContent, otherProps);
+  return /* @__PURE__ */ React.createElement(DefaultLegendContent, otherProps);
 }
 var EPS$1 = 1;
 var Legend = /* @__PURE__ */ (function(_PureComponent) {
@@ -36034,7 +36034,7 @@ var Legend = /* @__PURE__ */ (function(_PureComponent) {
         width: width || "auto",
         height: height || "auto"
       }, this.getDefaultPosition(wrapperStyle)), wrapperStyle);
-      return /* @__PURE__ */ React$1.createElement("div", {
+      return /* @__PURE__ */ React.createElement("div", {
         className: "recharts-legend-wrapper",
         style: outerStyle,
         ref: function ref(node) {
@@ -36625,22 +36625,22 @@ var DefaultTooltipContent = function DefaultTooltipContent2(props) {
         }
         return (
           // eslint-disable-next-line react/no-array-index-key
-          /* @__PURE__ */ React$1.createElement("li", {
+          /* @__PURE__ */ React.createElement("li", {
             className: "recharts-tooltip-item",
             key: "tooltip-item-".concat(i2),
             style: finalItemStyle
-          }, isNumOrStr(finalName) ? /* @__PURE__ */ React$1.createElement("span", {
+          }, isNumOrStr(finalName) ? /* @__PURE__ */ React.createElement("span", {
             className: "recharts-tooltip-item-name"
-          }, finalName) : null, isNumOrStr(finalName) ? /* @__PURE__ */ React$1.createElement("span", {
+          }, finalName) : null, isNumOrStr(finalName) ? /* @__PURE__ */ React.createElement("span", {
             className: "recharts-tooltip-item-separator"
-          }, separator) : null, /* @__PURE__ */ React$1.createElement("span", {
+          }, separator) : null, /* @__PURE__ */ React.createElement("span", {
             className: "recharts-tooltip-item-value"
-          }, finalValue), /* @__PURE__ */ React$1.createElement("span", {
+          }, finalValue), /* @__PURE__ */ React.createElement("span", {
             className: "recharts-tooltip-item-unit"
           }, entry.unit || ""))
         );
       });
-      return /* @__PURE__ */ React$1.createElement("ul", {
+      return /* @__PURE__ */ React.createElement("ul", {
         className: "recharts-tooltip-item-list",
         style: listStyle
       }, items);
@@ -36668,13 +36668,13 @@ var DefaultTooltipContent = function DefaultTooltipContent2(props) {
     role: "status",
     "aria-live": "assertive"
   } : {};
-  return /* @__PURE__ */ React$1.createElement("div", _extends$n({
+  return /* @__PURE__ */ React.createElement("div", _extends$n({
     className: wrapperCN,
     style: finalStyle
-  }, accessibilityAttributes), /* @__PURE__ */ React$1.createElement("p", {
+  }, accessibilityAttributes), /* @__PURE__ */ React.createElement("p", {
     className: labelCN,
     style: finalLabelStyle
-  }, /* @__PURE__ */ React$1.isValidElement(finalLabel) ? finalLabel : "".concat(finalLabel)), renderContent2());
+  }, /* @__PURE__ */ React.isValidElement(finalLabel) ? finalLabel : "".concat(finalLabel)), renderContent2());
 };
 function _typeof$D(o2) {
   "@babel/helpers - typeof";
@@ -37017,7 +37017,7 @@ var TooltipBoundingBox = /* @__PURE__ */ (function(_PureComponent) {
       return (
         // This element allow listening to the `Escape` key.
         // See https://github.com/recharts/recharts/pull/2925
-        /* @__PURE__ */ React$1.createElement("div", {
+        /* @__PURE__ */ React.createElement("div", {
           tabIndex: -1,
           className: cssClasses,
           style: outerStyle,
@@ -37158,13 +37158,13 @@ function defaultUniqBy(entry) {
   return entry.dataKey;
 }
 function renderContent(content, props) {
-  if (/* @__PURE__ */ React$1.isValidElement(content)) {
-    return /* @__PURE__ */ React$1.cloneElement(content, props);
+  if (/* @__PURE__ */ React.isValidElement(content)) {
+    return /* @__PURE__ */ React.cloneElement(content, props);
   }
   if (typeof content === "function") {
-    return /* @__PURE__ */ React$1.createElement(content, props);
+    return /* @__PURE__ */ React.createElement(content, props);
   }
-  return /* @__PURE__ */ React$1.createElement(DefaultTooltipContent, props);
+  return /* @__PURE__ */ React.createElement(DefaultTooltipContent, props);
 }
 var Tooltip = /* @__PURE__ */ (function(_PureComponent) {
   function Tooltip2() {
@@ -37184,7 +37184,7 @@ var Tooltip = /* @__PURE__ */ (function(_PureComponent) {
         }), payloadUniqBy, defaultUniqBy);
       }
       var hasPayload = finalPayload.length > 0;
-      return /* @__PURE__ */ React$1.createElement(TooltipBoundingBox, {
+      return /* @__PURE__ */ React.createElement(TooltipBoundingBox, {
         allowEscapeViewBox,
         animationDuration,
         animationEasing,
@@ -37600,8 +37600,8 @@ var ResponsiveContainer = /* @__PURE__ */ reactExports.forwardRef(function(_ref,
     }
     warn(calculatedWidth > 0 || calculatedHeight > 0, "The width(%s) and height(%s) of chart should be greater than 0,\n       please check the style of container, or the props width(%s) and height(%s),\n       or add a minWidth(%s) or minHeight(%s) or use aspect(%s) to control the\n       height and width.", calculatedWidth, calculatedHeight, width, height, minWidth, minHeight, aspect);
     var isCharts = !Array.isArray(children) && getDisplayName(children.type).endsWith("Chart");
-    return React$1.Children.map(children, function(child) {
-      if (/* @__PURE__ */ React$1.isValidElement(child)) {
+    return React.Children.map(children, function(child) {
+      if (/* @__PURE__ */ React.isValidElement(child)) {
         return /* @__PURE__ */ reactExports.cloneElement(child, _objectSpread$u({
           width: calculatedWidth,
           height: calculatedHeight
@@ -37617,7 +37617,7 @@ var ResponsiveContainer = /* @__PURE__ */ reactExports.forwardRef(function(_ref,
       return child;
     });
   }, [aspect, children, height, maxHeight, minHeight, minWidth, sizes, width]);
-  return /* @__PURE__ */ React$1.createElement("div", {
+  return /* @__PURE__ */ React.createElement("div", {
     id: id2 ? "".concat(id2) : void 0,
     className: clsx("recharts-responsive-container", className),
     style: _objectSpread$u(_objectSpread$u({}, style), {}, {
@@ -38243,7 +38243,7 @@ var Text = function Text2(_ref5) {
   if (transforms.length) {
     textProps.transform = transforms.join(" ");
   }
-  return /* @__PURE__ */ React$1.createElement("text", _extends$m({}, filterProps$1(textProps, true), {
+  return /* @__PURE__ */ React.createElement("text", _extends$m({}, filterProps$1(textProps, true), {
     x: x2,
     y: y2,
     className: clsx("recharts-text", className),
@@ -38254,7 +38254,7 @@ var Text = function Text2(_ref5) {
     return (
       // duplicate words will cause duplicate keys
       // eslint-disable-next-line react/no-array-index-key
-      /* @__PURE__ */ React$1.createElement("tspan", {
+      /* @__PURE__ */ React.createElement("tspan", {
         x: x2,
         dy: index2 === 0 ? startDy : lineHeight,
         key: "".concat(words, "-").concat(index2)
@@ -42581,23 +42581,23 @@ var ErrorBar = /* @__PURE__ */ (function(_React$Component) {
             y2: _yMin
           });
         }
-        return /* @__PURE__ */ React$1.createElement(Layer, _extends$l({
+        return /* @__PURE__ */ React.createElement(Layer, _extends$l({
           className: "recharts-errorBar",
           key: "bar-".concat(lineCoordinates.map(function(c2) {
             return "".concat(c2.x1, "-").concat(c2.x2, "-").concat(c2.y1, "-").concat(c2.y2);
           }))
         }, svgProps), lineCoordinates.map(function(coordinates) {
-          return /* @__PURE__ */ React$1.createElement("line", _extends$l({}, coordinates, {
+          return /* @__PURE__ */ React.createElement("line", _extends$l({}, coordinates, {
             key: "line-".concat(coordinates.x1, "-").concat(coordinates.x2, "-").concat(coordinates.y1, "-").concat(coordinates.y2)
           }));
         }));
       });
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: "recharts-errorBars"
       }, errorBars);
     }
   }]);
-})(React$1.Component);
+})(React.Component);
 _defineProperty$w(ErrorBar, "defaultProps", {
   stroke: "black",
   strokeWidth: 1.5,
@@ -43886,13 +43886,13 @@ var renderRadialLabel = function renderRadialLabel2(labelProps, label, attrs) {
   var endPoint = polarToCartesian(cx2, cy, radius, labelAngle + (direction ? 1 : -1) * 359);
   var path = "M".concat(startPoint.x, ",").concat(startPoint.y, "\n    A").concat(radius, ",").concat(radius, ",0,1,").concat(direction ? 0 : 1, ",\n    ").concat(endPoint.x, ",").concat(endPoint.y);
   var id2 = isNil(labelProps.id) ? uniqueId("recharts-radial-line-") : labelProps.id;
-  return /* @__PURE__ */ React$1.createElement("text", _extends$k({}, attrs, {
+  return /* @__PURE__ */ React.createElement("text", _extends$k({}, attrs, {
     dominantBaseline: "central",
     className: clsx("recharts-radial-bar-label", className)
-  }), /* @__PURE__ */ React$1.createElement("defs", null, /* @__PURE__ */ React$1.createElement("path", {
+  }), /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("path", {
     id: id2,
     d: path
-  })), /* @__PURE__ */ React$1.createElement("textPath", {
+  })), /* @__PURE__ */ React.createElement("textPath", {
     xlinkHref: "#".concat(id2)
   }, label));
 };
@@ -44114,7 +44114,7 @@ function Label$3(_ref4) {
     return renderRadialLabel(props, label, attrs);
   }
   var positionAttrs = isPolarLabel ? getAttrsOfPolarLabel(props) : getAttrsOfCartesianLabel(props);
-  return /* @__PURE__ */ React$1.createElement(Text, _extends$k({
+  return /* @__PURE__ */ React.createElement(Text, _extends$k({
     className: clsx("recharts-label", className)
   }, attrs, positionAttrs, {
     breakAll: textBreakAll
@@ -44173,13 +44173,13 @@ var parseLabel = function parseLabel2(label, viewBox) {
     return null;
   }
   if (label === true) {
-    return /* @__PURE__ */ React$1.createElement(Label$3, {
+    return /* @__PURE__ */ React.createElement(Label$3, {
       key: "label-implicit",
       viewBox
     });
   }
   if (isNumOrStr(label)) {
-    return /* @__PURE__ */ React$1.createElement(Label$3, {
+    return /* @__PURE__ */ React.createElement(Label$3, {
       key: "label-implicit",
       viewBox,
       value: label
@@ -44192,21 +44192,21 @@ var parseLabel = function parseLabel2(label, viewBox) {
         viewBox
       });
     }
-    return /* @__PURE__ */ React$1.createElement(Label$3, {
+    return /* @__PURE__ */ React.createElement(Label$3, {
       key: "label-implicit",
       content: label,
       viewBox
     });
   }
   if (isFunction$1(label)) {
-    return /* @__PURE__ */ React$1.createElement(Label$3, {
+    return /* @__PURE__ */ React.createElement(Label$3, {
       key: "label-implicit",
       content: label,
       viewBox
     });
   }
   if (isObject$1(label)) {
-    return /* @__PURE__ */ React$1.createElement(Label$3, _extends$k({
+    return /* @__PURE__ */ React.createElement(Label$3, _extends$k({
       viewBox
     }, label, {
       key: "label-implicit"
@@ -44377,14 +44377,14 @@ function LabelList(_ref) {
   if (!data || !data.length) {
     return null;
   }
-  return /* @__PURE__ */ React$1.createElement(Layer, {
+  return /* @__PURE__ */ React.createElement(Layer, {
     className: "recharts-label-list"
   }, data.map(function(entry, index2) {
     var value2 = isNil(dataKey) ? valueAccessor(entry, index2) : getValueByDataKey(entry && entry.payload, dataKey);
     var idProps = isNil(id2) ? {} : {
       id: "".concat(id2, "-").concat(index2)
     };
-    return /* @__PURE__ */ React$1.createElement(Label$3, _extends$j({}, filterProps$1(entry, true), others, idProps, {
+    return /* @__PURE__ */ React.createElement(Label$3, _extends$j({}, filterProps$1(entry, true), others, idProps, {
       parentViewBox: entry.parentViewBox,
       value: value2,
       textBreakAll,
@@ -44402,20 +44402,20 @@ function parseLabelList(label, data) {
     return null;
   }
   if (label === true) {
-    return /* @__PURE__ */ React$1.createElement(LabelList, {
+    return /* @__PURE__ */ React.createElement(LabelList, {
       key: "labelList-implicit",
       data
     });
   }
-  if (/* @__PURE__ */ React$1.isValidElement(label) || isFunction$1(label)) {
-    return /* @__PURE__ */ React$1.createElement(LabelList, {
+  if (/* @__PURE__ */ React.isValidElement(label) || isFunction$1(label)) {
+    return /* @__PURE__ */ React.createElement(LabelList, {
       key: "labelList-implicit",
       data,
       content: label
     });
   }
   if (isObject$1(label)) {
-    return /* @__PURE__ */ React$1.createElement(LabelList, _extends$j({
+    return /* @__PURE__ */ React.createElement(LabelList, _extends$j({
       data
     }, label, {
       key: "labelList-implicit"
@@ -44656,7 +44656,7 @@ var Sector = function Sector2(sectorProps) {
       endAngle
     });
   }
-  return /* @__PURE__ */ React$1.createElement("path", _extends$i({}, filterProps$1(props, true), {
+  return /* @__PURE__ */ React.createElement("path", _extends$i({}, filterProps$1(props, true), {
     className: layerClass,
     d: path,
     role: "img"
@@ -46316,7 +46316,7 @@ var Animate = /* @__PURE__ */ (function(_PureComponent) {
       if (count2 === 1) {
         return cloneContainer(reactExports.Children.only(children));
       }
-      return /* @__PURE__ */ React$1.createElement("div", null, reactExports.Children.map(children, function(child) {
+      return /* @__PURE__ */ React.createElement("div", null, reactExports.Children.map(children, function(child) {
         return cloneContainer(child);
       }));
     }
@@ -46559,12 +46559,12 @@ var Rectangle = function Rectangle2(rectangleProps) {
   }
   var layerClass = clsx("recharts-rectangle", className);
   if (!isUpdateAnimationActive) {
-    return /* @__PURE__ */ React$1.createElement("path", _extends$g({}, filterProps$1(props, true), {
+    return /* @__PURE__ */ React.createElement("path", _extends$g({}, filterProps$1(props, true), {
       className: layerClass,
       d: getRectanglePath(x2, y2, width, height, radius)
     }));
   }
-  return /* @__PURE__ */ React$1.createElement(Animate, {
+  return /* @__PURE__ */ React.createElement(Animate, {
     canBegin: totalLength2 > 0,
     from: {
       width,
@@ -46583,7 +46583,7 @@ var Rectangle = function Rectangle2(rectangleProps) {
     isActive: isUpdateAnimationActive
   }, function(_ref) {
     var currWidth = _ref.width, currHeight = _ref.height, currX = _ref.x, currY = _ref.y;
-    return /* @__PURE__ */ React$1.createElement(Animate, {
+    return /* @__PURE__ */ React.createElement(Animate, {
       canBegin: totalLength2 > 0,
       from: "0px ".concat(totalLength2 === -1 ? 1 : totalLength2, "px"),
       to: "".concat(totalLength2, "px 0px"),
@@ -46592,7 +46592,7 @@ var Rectangle = function Rectangle2(rectangleProps) {
       duration: animationDuration,
       isActive: isAnimationActive,
       easing: animationEasing
-    }, /* @__PURE__ */ React$1.createElement("path", _extends$g({}, filterProps$1(props, true), {
+    }, /* @__PURE__ */ React.createElement("path", _extends$g({}, filterProps$1(props, true), {
       className: layerClass,
       d: getRectanglePath(currX, currY, currWidth, currHeight, radius),
       ref: pathRef
@@ -46735,7 +46735,7 @@ var Cross = function Cross2(_ref) {
   if (!isNumber(x2) || !isNumber(y2) || !isNumber(width) || !isNumber(height) || !isNumber(top) || !isNumber(left)) {
     return null;
   }
-  return /* @__PURE__ */ React$1.createElement("path", _extends$e({}, filterProps$1(props, true), {
+  return /* @__PURE__ */ React.createElement("path", _extends$e({}, filterProps$1(props, true), {
     className: clsx("recharts-cross", className),
     d: getPath2(x2, y2, width, height, top, left)
   }));
@@ -46942,12 +46942,12 @@ var Trapezoid = function Trapezoid2(props) {
   }
   var layerClass = clsx("recharts-trapezoid", className);
   if (!isUpdateAnimationActive) {
-    return /* @__PURE__ */ React$1.createElement("g", null, /* @__PURE__ */ React$1.createElement("path", _extends$d({}, filterProps$1(trapezoidProps, true), {
+    return /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("path", _extends$d({}, filterProps$1(trapezoidProps, true), {
       className: layerClass,
       d: getTrapezoidPath(x2, y2, upperWidth, lowerWidth, height)
     })));
   }
-  return /* @__PURE__ */ React$1.createElement(Animate, {
+  return /* @__PURE__ */ React.createElement(Animate, {
     canBegin: totalLength2 > 0,
     from: {
       upperWidth: 0,
@@ -46968,7 +46968,7 @@ var Trapezoid = function Trapezoid2(props) {
     isActive: isUpdateAnimationActive
   }, function(_ref) {
     var currUpperWidth = _ref.upperWidth, currLowerWidth = _ref.lowerWidth, currHeight = _ref.height, currX = _ref.x, currY = _ref.y;
-    return /* @__PURE__ */ React$1.createElement(Animate, {
+    return /* @__PURE__ */ React.createElement(Animate, {
       canBegin: totalLength2 > 0,
       from: "0px ".concat(totalLength2 === -1 ? 1 : totalLength2, "px"),
       to: "".concat(totalLength2, "px 0px"),
@@ -46976,7 +46976,7 @@ var Trapezoid = function Trapezoid2(props) {
       begin: animationBegin,
       duration: animationDuration,
       easing: animationEasing
-    }, /* @__PURE__ */ React$1.createElement("path", _extends$d({}, filterProps$1(trapezoidProps, true), {
+    }, /* @__PURE__ */ React.createElement("path", _extends$d({}, filterProps$1(trapezoidProps, true), {
       className: layerClass,
       d: getTrapezoidPath(currX, currY, currUpperWidth, currLowerWidth, currHeight),
       ref: pathRef
@@ -47072,14 +47072,14 @@ function ShapeSelector(_ref) {
   var shapeType = _ref.shapeType, elementProps = _ref.elementProps;
   switch (shapeType) {
     case "rectangle":
-      return /* @__PURE__ */ React$1.createElement(Rectangle, elementProps);
+      return /* @__PURE__ */ React.createElement(Rectangle, elementProps);
     case "trapezoid":
-      return /* @__PURE__ */ React$1.createElement(Trapezoid, elementProps);
+      return /* @__PURE__ */ React.createElement(Trapezoid, elementProps);
     case "sector":
-      return /* @__PURE__ */ React$1.createElement(Sector, elementProps);
+      return /* @__PURE__ */ React.createElement(Sector, elementProps);
     case "symbols":
       if (isSymbolsProps(shapeType)) {
-        return /* @__PURE__ */ React$1.createElement(Symbols, elementProps);
+        return /* @__PURE__ */ React.createElement(Symbols, elementProps);
       }
       break;
     default:
@@ -47101,19 +47101,19 @@ function Shape(_ref2) {
     shape = option(props);
   } else if (isPlainObject$1(option) && !isBoolean$1(option)) {
     var nextProps = propTransformer(option, props);
-    shape = /* @__PURE__ */ React$1.createElement(ShapeSelector, {
+    shape = /* @__PURE__ */ React.createElement(ShapeSelector, {
       shapeType,
       elementProps: nextProps
     });
   } else {
     var elementProps = props;
-    shape = /* @__PURE__ */ React$1.createElement(ShapeSelector, {
+    shape = /* @__PURE__ */ React.createElement(ShapeSelector, {
       shapeType,
       elementProps
     });
   }
   if (isActive) {
-    return /* @__PURE__ */ React$1.createElement(Layer, {
+    return /* @__PURE__ */ React.createElement(Layer, {
       className: activeClassName
     }, shape);
   }
@@ -47705,7 +47705,7 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
     key: "renderBackground",
     value: function renderBackground() {
       var _this$props6 = this.props, x2 = _this$props6.x, y2 = _this$props6.y, width = _this$props6.width, height = _this$props6.height, fill = _this$props6.fill, stroke = _this$props6.stroke;
-      return /* @__PURE__ */ React$1.createElement("rect", {
+      return /* @__PURE__ */ React.createElement("rect", {
         stroke,
         fill,
         x: x2,
@@ -47722,7 +47722,7 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
       if (!chartElement) {
         return null;
       }
-      return /* @__PURE__ */ React$1.cloneElement(chartElement, {
+      return /* @__PURE__ */ React.cloneElement(chartElement, {
         x: x2,
         y: y2,
         width,
@@ -47745,7 +47745,7 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
         height
       });
       var ariaLabelBrush = ariaLabel || "Min value: ".concat((_data$startIndex = data[startIndex]) === null || _data$startIndex === void 0 ? void 0 : _data$startIndex.name, ", Max value: ").concat((_data$endIndex = data[endIndex]) === null || _data$endIndex === void 0 ? void 0 : _data$endIndex.name);
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         tabIndex: 0,
         role: "slider",
         "aria-label": ariaLabelBrush,
@@ -47784,7 +47784,7 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
       var _this$props9 = this.props, y2 = _this$props9.y, height = _this$props9.height, stroke = _this$props9.stroke, travellerWidth = _this$props9.travellerWidth;
       var x2 = Math.min(startX, endX) + travellerWidth;
       var width = Math.max(Math.abs(endX - startX) - travellerWidth, 0);
-      return /* @__PURE__ */ React$1.createElement("rect", {
+      return /* @__PURE__ */ React.createElement("rect", {
         className: "recharts-brush-slide",
         onMouseEnter: this.handleEnterSlideOrTraveller,
         onMouseLeave: this.handleLeaveSlideOrTraveller,
@@ -47812,14 +47812,14 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
         pointerEvents: "none",
         fill: stroke
       };
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: "recharts-brush-texts"
-      }, /* @__PURE__ */ React$1.createElement(Text, _extends$c({
+      }, /* @__PURE__ */ React.createElement(Text, _extends$c({
         textAnchor: "end",
         verticalAnchor: "middle",
         x: Math.min(startX, endX) - offset2,
         y: y2 + height / 2
-      }, attrs), this.getTextOfTick(startIndex)), /* @__PURE__ */ React$1.createElement(Text, _extends$c({
+      }, attrs), this.getTextOfTick(startIndex)), /* @__PURE__ */ React.createElement(Text, _extends$c({
         textAnchor: "start",
         verticalAnchor: "middle",
         x: Math.max(startX, endX) + travellerWidth + offset2,
@@ -47835,9 +47835,9 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
         return null;
       }
       var layerClass = clsx("recharts-brush", className);
-      var isPanoramic = React$1.Children.count(children) === 1;
+      var isPanoramic = React.Children.count(children) === 1;
       var style = generatePrefixStyle("userSelect", "none");
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: layerClass,
         onMouseLeave: this.handleLeaveWrapper,
         onTouchMove: this.handleTouchMove,
@@ -47849,21 +47849,21 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
     value: function renderDefaultTraveller(props) {
       var x2 = props.x, y2 = props.y, width = props.width, height = props.height, stroke = props.stroke;
       var lineY = Math.floor(y2 + height / 2) - 1;
-      return /* @__PURE__ */ React$1.createElement(React$1.Fragment, null, /* @__PURE__ */ React$1.createElement("rect", {
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("rect", {
         x: x2,
         y: y2,
         width,
         height,
         fill: stroke,
         stroke: "none"
-      }), /* @__PURE__ */ React$1.createElement("line", {
+      }), /* @__PURE__ */ React.createElement("line", {
         x1: x2 + 1,
         y1: lineY,
         x2: x2 + width - 1,
         y2: lineY,
         fill: "none",
         stroke: "#fff"
-      }), /* @__PURE__ */ React$1.createElement("line", {
+      }), /* @__PURE__ */ React.createElement("line", {
         x1: x2 + 1,
         y1: lineY + 2,
         x2: x2 + width - 1,
@@ -47876,8 +47876,8 @@ var Brush = /* @__PURE__ */ (function(_PureComponent) {
     key: "renderTraveller",
     value: function renderTraveller(option, props) {
       var rectangle;
-      if (/* @__PURE__ */ React$1.isValidElement(option)) {
-        rectangle = /* @__PURE__ */ React$1.cloneElement(option, props);
+      if (/* @__PURE__ */ React.isValidElement(option)) {
+        rectangle = /* @__PURE__ */ React.cloneElement(option, props);
       } else if (isFunction$1(option)) {
         rectangle = option(props);
       } else {
@@ -48210,7 +48210,7 @@ function typeguardBarRectangleProps(_ref, props) {
   });
 }
 function BarRectangle(props) {
-  return /* @__PURE__ */ React$1.createElement(Shape, _extends$b({
+  return /* @__PURE__ */ React.createElement(Shape, _extends$b({
     shapeType: "rectangle",
     propTransformer: typeguardBarRectangleProps,
     activeClassName: "recharts-active-bar"
@@ -48440,13 +48440,13 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
           onAnimationStart: _this2.handleAnimationStart,
           onAnimationEnd: _this2.handleAnimationEnd
         });
-        return /* @__PURE__ */ React$1.createElement(Layer, _extends$a({
+        return /* @__PURE__ */ React.createElement(Layer, _extends$a({
           className: "recharts-bar-rectangle"
         }, adaptEventsOfChild(_this2.props, entry, i2), {
           // https://github.com/recharts/recharts/issues/5415
           // eslint-disable-next-line react/no-array-index-key
           key: "rectangle-".concat(entry === null || entry === void 0 ? void 0 : entry.x, "-").concat(entry === null || entry === void 0 ? void 0 : entry.y, "-").concat(entry === null || entry === void 0 ? void 0 : entry.value, "-").concat(i2)
-        }), /* @__PURE__ */ React$1.createElement(BarRectangle, props));
+        }), /* @__PURE__ */ React.createElement(BarRectangle, props));
       });
     }
   }, {
@@ -48455,7 +48455,7 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
       var _this3 = this;
       var _this$props2 = this.props, data = _this$props2.data, layout2 = _this$props2.layout, isAnimationActive = _this$props2.isAnimationActive, animationBegin = _this$props2.animationBegin, animationDuration = _this$props2.animationDuration, animationEasing = _this$props2.animationEasing, animationId = _this$props2.animationId;
       var prevData = this.state.prevData;
-      return /* @__PURE__ */ React$1.createElement(Animate, {
+      return /* @__PURE__ */ React.createElement(Animate, {
         begin: animationBegin,
         duration: animationDuration,
         isActive: isAnimationActive,
@@ -48499,7 +48499,7 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
             width: w2
           });
         });
-        return /* @__PURE__ */ React$1.createElement(Layer, null, _this3.renderRectanglesStatically(stepData));
+        return /* @__PURE__ */ React.createElement(Layer, null, _this3.renderRectanglesStatically(stepData));
       });
     }
   }, {
@@ -48533,7 +48533,7 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
           index: i2,
           className: "recharts-bar-background-rectangle"
         });
-        return /* @__PURE__ */ React$1.createElement(BarRectangle, _extends$a({
+        return /* @__PURE__ */ React.createElement(BarRectangle, _extends$a({
           key: "background-bar-".concat(i2),
           option: _this4.props.background,
           isActive: i2 === activeIndex
@@ -48564,8 +48564,8 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
       var errorBarProps = {
         clipPath: needClip ? "url(#clipPath-".concat(clipPathId, ")") : null
       };
-      return /* @__PURE__ */ React$1.createElement(Layer, errorBarProps, errorBarItems.map(function(item) {
-        return /* @__PURE__ */ React$1.cloneElement(item, {
+      return /* @__PURE__ */ React.createElement(Layer, errorBarProps, errorBarItems.map(function(item) {
+        return /* @__PURE__ */ React.cloneElement(item, {
           key: "error-bar-".concat(clipPathId, "-").concat(item.props.dataKey),
           data,
           xAxis,
@@ -48589,16 +48589,16 @@ var Bar = /* @__PURE__ */ (function(_PureComponent) {
       var needClipY = yAxis && yAxis.allowDataOverflow;
       var needClip = needClipX || needClipY;
       var clipPathId = isNil(id2) ? this.id : id2;
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: layerClass
-      }, needClipX || needClipY ? /* @__PURE__ */ React$1.createElement("defs", null, /* @__PURE__ */ React$1.createElement("clipPath", {
+      }, needClipX || needClipY ? /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("clipPath", {
         id: "clipPath-".concat(clipPathId)
-      }, /* @__PURE__ */ React$1.createElement("rect", {
+      }, /* @__PURE__ */ React.createElement("rect", {
         x: needClipX ? left : left - width / 2,
         y: needClipY ? top : top - height / 2,
         width: needClipX ? width : width * 2,
         height: needClipY ? height : height * 2
-      }))) : null, /* @__PURE__ */ React$1.createElement(Layer, {
+      }))) : null, /* @__PURE__ */ React.createElement(Layer, {
         className: "recharts-bar-rectangles",
         clipPath: needClip ? "url(#clipPath-".concat(clipPathId, ")") : null
       }, background ? this.renderBackground() : null, this.renderRectangles()), this.renderErrorBar(needClip, clipPathId), (!isAnimationActive || isAnimationFinished) && LabelList.renderCallByParent(this.props, data));
@@ -49112,19 +49112,19 @@ var ChartWidthContext = /* @__PURE__ */ reactExports.createContext(0);
 var ChartLayoutContextProvider = function ChartLayoutContextProvider2(props) {
   var _props$state = props.state, xAxisMap = _props$state.xAxisMap, yAxisMap = _props$state.yAxisMap, offset2 = _props$state.offset, clipPathId = props.clipPathId, children = props.children, width = props.width, height = props.height;
   var viewBox = calculateViewBox(offset2);
-  return /* @__PURE__ */ React$1.createElement(XAxisContext.Provider, {
+  return /* @__PURE__ */ React.createElement(XAxisContext.Provider, {
     value: xAxisMap
-  }, /* @__PURE__ */ React$1.createElement(YAxisContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(YAxisContext.Provider, {
     value: yAxisMap
-  }, /* @__PURE__ */ React$1.createElement(OffsetContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(OffsetContext.Provider, {
     value: offset2
-  }, /* @__PURE__ */ React$1.createElement(ViewBoxContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(ViewBoxContext.Provider, {
     value: viewBox
-  }, /* @__PURE__ */ React$1.createElement(ClipPathIdContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(ClipPathIdContext.Provider, {
     value: clipPathId
-  }, /* @__PURE__ */ React$1.createElement(ChartHeightContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(ChartHeightContext.Provider, {
     value: height
-  }, /* @__PURE__ */ React$1.createElement(ChartWidthContext.Provider, {
+  }, /* @__PURE__ */ React.createElement(ChartWidthContext.Provider, {
     value: width
   }, children)))))));
 };
@@ -49345,12 +49345,12 @@ function _extends$9() {
 }
 var renderLine = function renderLine2(option, props) {
   var line2;
-  if (/* @__PURE__ */ React$1.isValidElement(option)) {
-    line2 = /* @__PURE__ */ React$1.cloneElement(option, props);
+  if (/* @__PURE__ */ React.isValidElement(option)) {
+    line2 = /* @__PURE__ */ React.cloneElement(option, props);
   } else if (isFunction$1(option)) {
     line2 = option(props);
   } else {
-    line2 = /* @__PURE__ */ React$1.createElement("line", _extends$9({}, props, {
+    line2 = /* @__PURE__ */ React.createElement("line", _extends$9({}, props, {
       className: "recharts-reference-line-line"
     }));
   }
@@ -49439,7 +49439,7 @@ function ReferenceLineImpl(props) {
     x2,
     y2
   });
-  return /* @__PURE__ */ React$1.createElement(Layer, {
+  return /* @__PURE__ */ React.createElement(Layer, {
     className: clsx("recharts-reference-line", className)
   }, renderLine(shape, lineProps), Label$3.renderCallByParent(props, rectWithCoords({
     x1,
@@ -49457,10 +49457,10 @@ var ReferenceLine = /* @__PURE__ */ (function(_React$Component) {
   return _createClass$8(ReferenceLine2, [{
     key: "render",
     value: function render() {
-      return /* @__PURE__ */ React$1.createElement(ReferenceLineImpl, this.props);
+      return /* @__PURE__ */ React.createElement(ReferenceLineImpl, this.props);
     }
   }]);
-})(React$1.Component);
+})(React.Component);
 _defineProperty$c(ReferenceLine, "displayName", "ReferenceLine");
 _defineProperty$c(ReferenceLine, "defaultProps", {
   isFront: false,
@@ -49652,7 +49652,7 @@ var ReferenceDot = /* @__PURE__ */ (function(_React$Component) {
         cx: cx2,
         cy
       });
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: clsx("recharts-reference-dot", className)
       }, ReferenceDot2.renderDot(shape, dotProps), Label$3.renderCallByParent(this.props, {
         x: cx2 - r2,
@@ -49662,7 +49662,7 @@ var ReferenceDot = /* @__PURE__ */ (function(_React$Component) {
       }));
     }
   }]);
-})(React$1.Component);
+})(React.Component);
 _defineProperty$b(ReferenceDot, "displayName", "ReferenceDot");
 _defineProperty$b(ReferenceDot, "defaultProps", {
   isFront: false,
@@ -49677,12 +49677,12 @@ _defineProperty$b(ReferenceDot, "defaultProps", {
 });
 _defineProperty$b(ReferenceDot, "renderDot", function(option, props) {
   var dot;
-  if (/* @__PURE__ */ React$1.isValidElement(option)) {
-    dot = /* @__PURE__ */ React$1.cloneElement(option, props);
+  if (/* @__PURE__ */ React.isValidElement(option)) {
+    dot = /* @__PURE__ */ React.cloneElement(option, props);
   } else if (isFunction$1(option)) {
     dot = option(props);
   } else {
-    dot = /* @__PURE__ */ React$1.createElement(Dot, _extends$8({}, props, {
+    dot = /* @__PURE__ */ React.createElement(Dot, _extends$8({}, props, {
       cx: props.cx,
       cy: props.cy,
       className: "recharts-reference-dot-dot"
@@ -49875,14 +49875,14 @@ var ReferenceArea = /* @__PURE__ */ (function(_React$Component) {
         return null;
       }
       var clipPath = ifOverflowMatches(this.props, "hidden") ? "url(#".concat(clipPathId, ")") : void 0;
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: clsx("recharts-reference-area", className)
       }, ReferenceArea2.renderRect(shape, _objectSpread$7(_objectSpread$7({
         clipPath
       }, filterProps$1(this.props, true)), rect)), Label$3.renderCallByParent(this.props, rect));
     }
   }]);
-})(React$1.Component);
+})(React.Component);
 _defineProperty$a(ReferenceArea, "displayName", "ReferenceArea");
 _defineProperty$a(ReferenceArea, "defaultProps", {
   isFront: false,
@@ -49897,12 +49897,12 @@ _defineProperty$a(ReferenceArea, "defaultProps", {
 });
 _defineProperty$a(ReferenceArea, "renderRect", function(option, props) {
   var rect;
-  if (/* @__PURE__ */ React$1.isValidElement(option)) {
-    rect = /* @__PURE__ */ React$1.cloneElement(option, props);
+  if (/* @__PURE__ */ React.isValidElement(option)) {
+    rect = /* @__PURE__ */ React.cloneElement(option, props);
   } else if (isFunction$1(option)) {
     rect = option(props);
   } else {
-    rect = /* @__PURE__ */ React$1.createElement(Rectangle, _extends$7({}, props, {
+    rect = /* @__PURE__ */ React.createElement(Rectangle, _extends$7({}, props, {
       className: "recharts-reference-area-rect"
     }));
   }
@@ -50488,7 +50488,7 @@ var CartesianAxis = /* @__PURE__ */ (function(_Component) {
           y2: y2 + height
         });
       }
-      return /* @__PURE__ */ React$1.createElement("line", _extends$6({}, props, {
+      return /* @__PURE__ */ React.createElement("line", _extends$6({}, props, {
         className: clsx("recharts-cartesian-axis-line", get$1(axisLine, "className"))
       }));
     }
@@ -50529,14 +50529,14 @@ var CartesianAxis = /* @__PURE__ */ (function(_Component) {
             visibleTicksCount: finalTicks.length,
             tickFormatter
           });
-          return /* @__PURE__ */ React$1.createElement(Layer, _extends$6({
+          return /* @__PURE__ */ React.createElement(Layer, _extends$6({
             className: "recharts-cartesian-axis-tick",
             key: "tick-".concat(entry.value, "-").concat(entry.coordinate, "-").concat(entry.tickCoord)
-          }, adaptEventsOfChild(_this2.props, entry, i2)), tickLine && /* @__PURE__ */ React$1.createElement("line", _extends$6({}, tickLineProps, lineCoord, {
+          }, adaptEventsOfChild(_this2.props, entry, i2)), tickLine && /* @__PURE__ */ React.createElement("line", _extends$6({}, tickLineProps, lineCoord, {
             className: clsx("recharts-cartesian-axis-tick-line", get$1(tickLine, "className"))
           })), tick && CartesianAxis2.renderTickItem(tick, tickProps, "".concat(isFunction$1(tickFormatter) ? tickFormatter(entry.value, i2) : entry.value).concat(unit2 || "")));
         });
-        return /* @__PURE__ */ React$1.createElement("g", {
+        return /* @__PURE__ */ React.createElement("g", {
           className: "recharts-cartesian-axis-ticks"
         }, items);
       }
@@ -50557,7 +50557,7 @@ var CartesianAxis = /* @__PURE__ */ (function(_Component) {
       if (width <= 0 || height <= 0 || !finalTicks || !finalTicks.length) {
         return null;
       }
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: clsx("recharts-cartesian-axis", className),
         ref: function ref(_ref2) {
           _this3.layerReference = _ref2;
@@ -50569,8 +50569,8 @@ var CartesianAxis = /* @__PURE__ */ (function(_Component) {
     value: function renderTickItem(option, props, value2) {
       var tickItem;
       var combinedClassName = clsx(props.className, "recharts-cartesian-axis-tick-value");
-      if (/* @__PURE__ */ React$1.isValidElement(option)) {
-        tickItem = /* @__PURE__ */ React$1.cloneElement(option, _objectSpread$5(_objectSpread$5({}, props), {}, {
+      if (/* @__PURE__ */ React.isValidElement(option)) {
+        tickItem = /* @__PURE__ */ React.cloneElement(option, _objectSpread$5(_objectSpread$5({}, props), {}, {
           className: combinedClassName
         }));
       } else if (isFunction$1(option)) {
@@ -50578,7 +50578,7 @@ var CartesianAxis = /* @__PURE__ */ (function(_Component) {
           className: combinedClassName
         }));
       } else {
-        tickItem = /* @__PURE__ */ React$1.createElement(Text, _extends$6({}, props, {
+        tickItem = /* @__PURE__ */ React.createElement(Text, _extends$6({}, props, {
           className: "recharts-cartesian-axis-tick-value"
         }), value2);
       }
@@ -50712,7 +50712,7 @@ var Background = function Background2(props) {
     return null;
   }
   var fillOpacity = props.fillOpacity, x2 = props.x, y2 = props.y, width = props.width, height = props.height, ry = props.ry;
-  return /* @__PURE__ */ React$1.createElement("rect", {
+  return /* @__PURE__ */ React.createElement("rect", {
     x: x2,
     y: y2,
     ry,
@@ -50726,8 +50726,8 @@ var Background = function Background2(props) {
 };
 function renderLineItem(option, props) {
   var lineItem;
-  if (/* @__PURE__ */ React$1.isValidElement(option)) {
-    lineItem = /* @__PURE__ */ React$1.cloneElement(option, props);
+  if (/* @__PURE__ */ React.isValidElement(option)) {
+    lineItem = /* @__PURE__ */ React.cloneElement(option, props);
   } else if (isFunction$1(option)) {
     lineItem = option(props);
   } else {
@@ -50735,7 +50735,7 @@ function renderLineItem(option, props) {
     var _filterProps = filterProps$1(others, false);
     _filterProps.offset;
     var restOfFilteredProps = _objectWithoutProperties$3(_filterProps, _excluded2$2);
-    lineItem = /* @__PURE__ */ React$1.createElement("line", _extends$5({}, restOfFilteredProps, {
+    lineItem = /* @__PURE__ */ React.createElement("line", _extends$5({}, restOfFilteredProps, {
       x1,
       y1,
       x2,
@@ -50762,7 +50762,7 @@ function HorizontalGridLines(props) {
     });
     return renderLineItem(horizontal, lineItemProps);
   });
-  return /* @__PURE__ */ React$1.createElement("g", {
+  return /* @__PURE__ */ React.createElement("g", {
     className: "recharts-cartesian-grid-horizontal"
   }, items);
 }
@@ -50782,7 +50782,7 @@ function VerticalGridLines(props) {
     });
     return renderLineItem(vertical, lineItemProps);
   });
-  return /* @__PURE__ */ React$1.createElement("g", {
+  return /* @__PURE__ */ React.createElement("g", {
     className: "recharts-cartesian-grid-vertical"
   }, items);
 }
@@ -50806,7 +50806,7 @@ function HorizontalStripes(props) {
       return null;
     }
     var colorIndex = i2 % horizontalFill.length;
-    return /* @__PURE__ */ React$1.createElement("rect", {
+    return /* @__PURE__ */ React.createElement("rect", {
       key: "react-".concat(i2),
       y: entry,
       x: x2,
@@ -50818,7 +50818,7 @@ function HorizontalStripes(props) {
       className: "recharts-cartesian-grid-bg"
     });
   });
-  return /* @__PURE__ */ React$1.createElement("g", {
+  return /* @__PURE__ */ React.createElement("g", {
     className: "recharts-cartesian-gridstripes-horizontal"
   }, items);
 }
@@ -50842,7 +50842,7 @@ function VerticalStripes(props) {
       return null;
     }
     var colorIndex = i2 % verticalFill.length;
-    return /* @__PURE__ */ React$1.createElement("rect", {
+    return /* @__PURE__ */ React.createElement("rect", {
       key: "react-".concat(i2),
       x: entry,
       y: y2,
@@ -50854,7 +50854,7 @@ function VerticalStripes(props) {
       className: "recharts-cartesian-grid-bg"
     });
   });
-  return /* @__PURE__ */ React$1.createElement("g", {
+  return /* @__PURE__ */ React.createElement("g", {
     className: "recharts-cartesian-gridstripes-vertical"
   }, items);
 }
@@ -50947,9 +50947,9 @@ function CartesianGrid(props) {
       verticalPoints = _generatorResult;
     }
   }
-  return /* @__PURE__ */ React$1.createElement("g", {
+  return /* @__PURE__ */ React.createElement("g", {
     className: "recharts-cartesian-grid"
-  }, /* @__PURE__ */ React$1.createElement(Background, {
+  }, /* @__PURE__ */ React.createElement(Background, {
     fill: propsIncludingDefaults.fill,
     fillOpacity: propsIncludingDefaults.fillOpacity,
     x: propsIncludingDefaults.x,
@@ -50957,19 +50957,19 @@ function CartesianGrid(props) {
     width: propsIncludingDefaults.width,
     height: propsIncludingDefaults.height,
     ry: propsIncludingDefaults.ry
-  }), /* @__PURE__ */ React$1.createElement(HorizontalGridLines, _extends$5({}, propsIncludingDefaults, {
+  }), /* @__PURE__ */ React.createElement(HorizontalGridLines, _extends$5({}, propsIncludingDefaults, {
     offset: offset2,
     horizontalPoints,
     xAxis,
     yAxis
-  })), /* @__PURE__ */ React$1.createElement(VerticalGridLines, _extends$5({}, propsIncludingDefaults, {
+  })), /* @__PURE__ */ React.createElement(VerticalGridLines, _extends$5({}, propsIncludingDefaults, {
     offset: offset2,
     verticalPoints,
     xAxis,
     yAxis
-  })), /* @__PURE__ */ React$1.createElement(HorizontalStripes, _extends$5({}, propsIncludingDefaults, {
+  })), /* @__PURE__ */ React.createElement(HorizontalStripes, _extends$5({}, propsIncludingDefaults, {
     horizontalPoints
-  })), /* @__PURE__ */ React$1.createElement(VerticalStripes, _extends$5({}, propsIncludingDefaults, {
+  })), /* @__PURE__ */ React.createElement(VerticalStripes, _extends$5({}, propsIncludingDefaults, {
     verticalPoints
   })));
 }
@@ -51198,7 +51198,7 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
       var dotsProps = {
         clipPath: needClip ? "url(#clipPath-".concat(clipDot ? "" : "dots-").concat(clipPathId, ")") : null
       };
-      return /* @__PURE__ */ React$1.createElement(Layer, _extends$4({
+      return /* @__PURE__ */ React.createElement(Layer, _extends$4({
         className: "recharts-area-dots"
       }, dotsProps), dots);
     }
@@ -51220,7 +51220,7 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
         })), maxY);
       }
       if (isNumber(maxY)) {
-        return /* @__PURE__ */ React$1.createElement("rect", {
+        return /* @__PURE__ */ React.createElement("rect", {
           x: startX < endX ? startX : startX - width,
           y: 0,
           width,
@@ -51247,7 +51247,7 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
         })), maxX);
       }
       if (isNumber(maxX)) {
-        return /* @__PURE__ */ React$1.createElement("rect", {
+        return /* @__PURE__ */ React.createElement("rect", {
           x: 0,
           y: startY < endY ? startY : startY - height,
           width: maxX + (strokeWidth ? parseInt("".concat(strokeWidth), 10) : 1),
@@ -51271,9 +51271,9 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
       var _this$props4 = this.props, layout2 = _this$props4.layout, type = _this$props4.type, stroke = _this$props4.stroke, connectNulls = _this$props4.connectNulls, isRange = _this$props4.isRange;
       _this$props4.ref;
       var others = _objectWithoutProperties$2(_this$props4, _excluded$2);
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         clipPath: needClip ? "url(#clipPath-".concat(clipPathId, ")") : null
-      }, /* @__PURE__ */ React$1.createElement(Curve, _extends$4({}, filterProps$1(others, true), {
+      }, /* @__PURE__ */ React.createElement(Curve, _extends$4({}, filterProps$1(others, true), {
         points,
         connectNulls,
         type,
@@ -51281,14 +51281,14 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
         layout: layout2,
         stroke: "none",
         className: "recharts-area-area"
-      })), stroke !== "none" && /* @__PURE__ */ React$1.createElement(Curve, _extends$4({}, filterProps$1(this.props, false), {
+      })), stroke !== "none" && /* @__PURE__ */ React.createElement(Curve, _extends$4({}, filterProps$1(this.props, false), {
         className: "recharts-area-curve",
         layout: layout2,
         type,
         connectNulls,
         fill: "none",
         points
-      })), stroke !== "none" && isRange && /* @__PURE__ */ React$1.createElement(Curve, _extends$4({}, filterProps$1(this.props, false), {
+      })), stroke !== "none" && isRange && /* @__PURE__ */ React.createElement(Curve, _extends$4({}, filterProps$1(this.props, false), {
         className: "recharts-area-curve",
         layout: layout2,
         type,
@@ -51303,7 +51303,7 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
       var _this2 = this;
       var _this$props5 = this.props, points = _this$props5.points, baseLine = _this$props5.baseLine, isAnimationActive = _this$props5.isAnimationActive, animationBegin = _this$props5.animationBegin, animationDuration = _this$props5.animationDuration, animationEasing = _this$props5.animationEasing, animationId = _this$props5.animationId;
       var _this$state = this.state, prevPoints = _this$state.prevPoints, prevBaseLine = _this$state.prevBaseLine;
-      return /* @__PURE__ */ React$1.createElement(Animate, {
+      return /* @__PURE__ */ React.createElement(Animate, {
         begin: animationBegin,
         duration: animationDuration,
         isActive: isAnimationActive,
@@ -51358,9 +51358,9 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
           }
           return _this2.renderAreaStatically(stepPoints, stepBaseLine, needClip, clipPathId);
         }
-        return /* @__PURE__ */ React$1.createElement(Layer, null, /* @__PURE__ */ React$1.createElement("defs", null, /* @__PURE__ */ React$1.createElement("clipPath", {
+        return /* @__PURE__ */ React.createElement(Layer, null, /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("clipPath", {
           id: "animationClipPath-".concat(clipPathId)
-        }, _this2.renderClipRect(t3))), /* @__PURE__ */ React$1.createElement(Layer, {
+        }, _this2.renderClipRect(t3))), /* @__PURE__ */ React.createElement(Layer, {
           clipPath: "url(#animationClipPath-".concat(clipPathId, ")")
         }, _this2.renderAreaStatically(points, baseLine, needClip, clipPathId)));
       });
@@ -51396,18 +51396,18 @@ var Area = /* @__PURE__ */ (function(_PureComponent) {
       }, _ref2$r = _ref2.r, r2 = _ref2$r === void 0 ? 3 : _ref2$r, _ref2$strokeWidth = _ref2.strokeWidth, strokeWidth = _ref2$strokeWidth === void 0 ? 2 : _ref2$strokeWidth;
       var _ref3 = hasClipDot(dot) ? dot : {}, _ref3$clipDot = _ref3.clipDot, clipDot = _ref3$clipDot === void 0 ? true : _ref3$clipDot;
       var dotSize = r2 * 2 + strokeWidth;
-      return /* @__PURE__ */ React$1.createElement(Layer, {
+      return /* @__PURE__ */ React.createElement(Layer, {
         className: layerClass
-      }, needClipX || needClipY ? /* @__PURE__ */ React$1.createElement("defs", null, /* @__PURE__ */ React$1.createElement("clipPath", {
+      }, needClipX || needClipY ? /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("clipPath", {
         id: "clipPath-".concat(clipPathId)
-      }, /* @__PURE__ */ React$1.createElement("rect", {
+      }, /* @__PURE__ */ React.createElement("rect", {
         x: needClipX ? left : left - width / 2,
         y: needClipY ? top : top - height / 2,
         width: needClipX ? width : width * 2,
         height: needClipY ? height : height * 2
-      })), !clipDot && /* @__PURE__ */ React$1.createElement("clipPath", {
+      })), !clipDot && /* @__PURE__ */ React.createElement("clipPath", {
         id: "clipPath-dots-".concat(clipPathId)
-      }, /* @__PURE__ */ React$1.createElement("rect", {
+      }, /* @__PURE__ */ React.createElement("rect", {
         x: left - dotSize / 2,
         y: top - dotSize / 2,
         width: width + dotSize,
@@ -51558,14 +51558,14 @@ _defineProperty$6(Area, "getComposedData", function(_ref4) {
 });
 _defineProperty$6(Area, "renderDotItem", function(option, props) {
   var dotItem;
-  if (/* @__PURE__ */ React$1.isValidElement(option)) {
-    dotItem = /* @__PURE__ */ React$1.cloneElement(option, props);
+  if (/* @__PURE__ */ React.isValidElement(option)) {
+    dotItem = /* @__PURE__ */ React.cloneElement(option, props);
   } else if (isFunction$1(option)) {
     dotItem = option(props);
   } else {
     var className = clsx("recharts-area-dot", typeof option !== "boolean" ? option.className : "");
     var key = props.key, rest = _objectWithoutProperties$2(props, _excluded2$1);
-    dotItem = /* @__PURE__ */ React$1.createElement(Dot, _extends$4({}, rest, {
+    dotItem = /* @__PURE__ */ React.createElement(Dot, _extends$4({}, rest, {
       key,
       className
     }));
@@ -53459,7 +53459,7 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
         var isActive = (_element$props$active = element.props.active) !== null && _element$props$active !== void 0 ? _element$props$active : isTooltipActive;
         var layout2 = _this.props.layout;
         var key = element.key || "_recharts-cursor";
-        return /* @__PURE__ */ React$1.createElement(Cursor, {
+        return /* @__PURE__ */ React.createElement(Cursor, {
           key,
           activeCoordinate,
           activePayload,
@@ -53991,9 +53991,9 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
       value: function renderClipPath() {
         var clipPathId = this.clipPathId;
         var _this$state$offset = this.state.offset, left = _this$state$offset.left, top = _this$state$offset.top, height = _this$state$offset.height, width = _this$state$offset.width;
-        return /* @__PURE__ */ React$1.createElement("defs", null, /* @__PURE__ */ React$1.createElement("clipPath", {
+        return /* @__PURE__ */ React.createElement("defs", null, /* @__PURE__ */ React.createElement("clipPath", {
           id: clipPathId
-        }, /* @__PURE__ */ React$1.createElement("rect", {
+        }, /* @__PURE__ */ React.createElement("rect", {
           x: left,
           y: top,
           height,
@@ -54088,12 +54088,12 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
         var _this$props6 = this.props, children = _this$props6.children, className = _this$props6.className, width = _this$props6.width, height = _this$props6.height, style = _this$props6.style, compact2 = _this$props6.compact, title = _this$props6.title, desc = _this$props6.desc, others = _objectWithoutProperties$1(_this$props6, _excluded2);
         var attrs = filterProps$1(others, false);
         if (compact2) {
-          return /* @__PURE__ */ React$1.createElement(ChartLayoutContextProvider, {
+          return /* @__PURE__ */ React.createElement(ChartLayoutContextProvider, {
             state: this.state,
             width: this.props.width,
             height: this.props.height,
             clipPathId: this.clipPathId
-          }, /* @__PURE__ */ React$1.createElement(Surface, _extends$1({}, attrs, {
+          }, /* @__PURE__ */ React.createElement(Surface, _extends$1({}, attrs, {
             width,
             height,
             title,
@@ -54112,12 +54112,12 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
           };
         }
         var events2 = this.parseEventsOfWrapper();
-        return /* @__PURE__ */ React$1.createElement(ChartLayoutContextProvider, {
+        return /* @__PURE__ */ React.createElement(ChartLayoutContextProvider, {
           state: this.state,
           width: this.props.width,
           height: this.props.height,
           clipPathId: this.clipPathId
-        }, /* @__PURE__ */ React$1.createElement("div", _extends$1({
+        }, /* @__PURE__ */ React.createElement("div", _extends$1({
           className: clsx("recharts-wrapper", className),
           style: _objectSpread$1({
             position: "relative",
@@ -54129,7 +54129,7 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
           ref: function ref(node) {
             _this3.container = node;
           }
-        }), /* @__PURE__ */ React$1.createElement(Surface, _extends$1({}, attrs, {
+        }), /* @__PURE__ */ React.createElement(Surface, _extends$1({}, attrs, {
           width,
           height,
           title,
@@ -54235,15 +54235,15 @@ var generateCategoricalChart = function generateCategoricalChart2(_ref6) {
     } else if (isFunction$1(option)) {
       dot = option(props);
     } else {
-      dot = /* @__PURE__ */ React$1.createElement(Dot, props);
+      dot = /* @__PURE__ */ React.createElement(Dot, props);
     }
-    return /* @__PURE__ */ React$1.createElement(Layer, {
+    return /* @__PURE__ */ React.createElement(Layer, {
       className: "recharts-active-dot",
       key
     }, dot);
   });
   var CategoricalChart = /* @__PURE__ */ reactExports.forwardRef(function CategoricalChart2(props, ref) {
-    return /* @__PURE__ */ React$1.createElement(CategoricalChartWrapper, _extends$1({}, props, {
+    return /* @__PURE__ */ React.createElement(CategoricalChartWrapper, _extends$1({}, props, {
       ref
     }));
   });
@@ -57589,11 +57589,11 @@ const INPUT_VALIDATION_RULES = {
   required: "required",
   validate: "validate"
 };
-const HookFormContext = React$1.createContext(null);
-const useFormContext = () => React$1.useContext(HookFormContext);
+const HookFormContext = React.createContext(null);
+const useFormContext = () => React.useContext(HookFormContext);
 const FormProvider = (props) => {
   const { children, ...data } = props;
-  return React$1.createElement(HookFormContext.Provider, { value: data }, children);
+  return React.createElement(HookFormContext.Provider, { value: data }, children);
 };
 var getProxyFormState = (formState, control, localProxyFormState, isRoot = true) => {
   const result = {
@@ -57616,8 +57616,8 @@ var getProxyFormState = (formState, control, localProxyFormState, isRoot = true)
 function useFormState(props) {
   const methods = useFormContext();
   const { control = methods.control, disabled, name, exact } = props || {};
-  const [formState, updateFormState] = React$1.useState(control._formState);
-  const _localProxyFormState = React$1.useRef({
+  const [formState, updateFormState] = React.useState(control._formState);
+  const _localProxyFormState = React.useRef({
     isDirty: false,
     isLoading: false,
     dirtyFields: false,
@@ -57627,9 +57627,9 @@ function useFormState(props) {
     isValid: false,
     errors: false
   });
-  const _name = React$1.useRef(name);
+  const _name = React.useRef(name);
   _name.current = name;
-  React$1.useEffect(() => control._subscribe({
+  React.useEffect(() => control._subscribe({
     name: _name.current,
     formState: _localProxyFormState.current,
     exact,
@@ -57640,10 +57640,10 @@ function useFormState(props) {
       });
     }
   }), [control, disabled, exact]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     _localProxyFormState.current.isValid && control._setValid(true);
   }, [control]);
-  return React$1.useMemo(() => getProxyFormState(formState, control, _localProxyFormState.current, false), [formState, control]);
+  return React.useMemo(() => getProxyFormState(formState, control, _localProxyFormState.current, false), [formState, control]);
 }
 var isString = (value2) => typeof value2 === "string";
 var generateWatchOutput = (names, _names, formValues, isGlobal, defaultValue) => {
@@ -57660,10 +57660,10 @@ var generateWatchOutput = (names, _names, formValues, isGlobal, defaultValue) =>
 function useWatch(props) {
   const methods = useFormContext();
   const { control = methods.control, name, defaultValue, disabled, exact } = props || {};
-  const _name = React$1.useRef(name);
-  const _defaultValue = React$1.useRef(defaultValue);
+  const _name = React.useRef(name);
+  const _defaultValue = React.useRef(defaultValue);
   _name.current = name;
-  React$1.useEffect(() => control._subscribe({
+  React.useEffect(() => control._subscribe({
     name: _name.current,
     formState: {
       values: true
@@ -57671,8 +57671,8 @@ function useWatch(props) {
     exact,
     callback: (formState) => !disabled && updateValue(generateWatchOutput(_name.current, control._names, formState.values || control._formValues, false, _defaultValue.current))
   }), [control, disabled, exact]);
-  const [value2, updateValue] = React$1.useState(control._getWatch(name, defaultValue));
-  React$1.useEffect(() => control._removeUnmounted());
+  const [value2, updateValue] = React.useState(control._getWatch(name, defaultValue));
+  React.useEffect(() => control._removeUnmounted());
   return value2;
 }
 function useController(props) {
@@ -57690,13 +57690,13 @@ function useController(props) {
     name,
     exact: true
   });
-  const _props = React$1.useRef(props);
-  const _registerProps = React$1.useRef(control.register(name, {
+  const _props = React.useRef(props);
+  const _registerProps = React.useRef(control.register(name, {
     ...props.rules,
     value: value2,
     ...isBoolean(props.disabled) ? { disabled: props.disabled } : {}
   }));
-  const fieldState = React$1.useMemo(() => Object.defineProperties({}, {
+  const fieldState = React.useMemo(() => Object.defineProperties({}, {
     invalid: {
       enumerable: true,
       get: () => !!get(formState.errors, name)
@@ -57718,21 +57718,21 @@ function useController(props) {
       get: () => get(formState.errors, name)
     }
   }), [formState, name]);
-  const onChange = React$1.useCallback((event) => _registerProps.current.onChange({
+  const onChange = React.useCallback((event) => _registerProps.current.onChange({
     target: {
       value: getEventValue(event),
       name
     },
     type: EVENTS.CHANGE
   }), [name]);
-  const onBlur = React$1.useCallback(() => _registerProps.current.onBlur({
+  const onBlur = React.useCallback(() => _registerProps.current.onBlur({
     target: {
       value: get(control._formValues, name),
       name
     },
     type: EVENTS.BLUR
   }), [name, control._formValues]);
-  const ref = React$1.useCallback((elm) => {
+  const ref = React.useCallback((elm) => {
     const field2 = get(control._fields, name);
     if (field2 && elm) {
       field2._f.ref = {
@@ -57743,7 +57743,7 @@ function useController(props) {
       };
     }
   }, [control._fields, name]);
-  const field = React$1.useMemo(() => ({
+  const field = React.useMemo(() => ({
     name,
     value: value2,
     ...isBoolean(disabled) || formState.disabled ? { disabled: formState.disabled || disabled } : {},
@@ -57751,7 +57751,7 @@ function useController(props) {
     onBlur,
     ref
   }), [name, disabled, formState.disabled, onChange, onBlur, ref, value2]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     const _shouldUnregisterField = control._options.shouldUnregister || shouldUnregister;
     control.register(name, {
       ..._props.current.rules,
@@ -57776,13 +57776,13 @@ function useController(props) {
       (isArrayField ? _shouldUnregisterField && !control._state.action : _shouldUnregisterField) ? control.unregister(name) : updateMounted(name, false);
     };
   }, [name, control, isArrayField, shouldUnregister]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     control._setDisabledField({
       disabled,
       name
     });
   }, [disabled, name, control]);
-  return React$1.useMemo(() => ({
+  return React.useMemo(() => ({
     field,
     formState,
     fieldState
@@ -59082,9 +59082,9 @@ function createFormControl(props = {}) {
   };
 }
 function useForm(props = {}) {
-  const _formControl = React$1.useRef(void 0);
-  const _values = React$1.useRef(void 0);
-  const [formState, updateFormState] = React$1.useState({
+  const _formControl = React.useRef(void 0);
+  const _values = React.useRef(void 0);
+  const [formState, updateFormState] = React.useState({
     isDirty: false,
     isValidating: false,
     isLoading: isFunction(props.defaultValues),
@@ -59111,13 +59111,13 @@ function useForm(props = {}) {
   }
   const control = _formControl.current.control;
   control._options = props;
-  React$1.useLayoutEffect(() => control._subscribe({
+  React.useLayoutEffect(() => control._subscribe({
     formState: control._proxyFormState,
     callback: () => updateFormState({ ...control._formState }),
     reRenderRoot: true
   }), [control]);
-  React$1.useEffect(() => control._disableForm(props.disabled), [control, props.disabled]);
-  React$1.useEffect(() => {
+  React.useEffect(() => control._disableForm(props.disabled), [control, props.disabled]);
+  React.useEffect(() => {
     if (control._proxyFormState.isDirty) {
       const isDirty2 = control._getDirty();
       if (isDirty2 !== formState.isDirty) {
@@ -59127,7 +59127,7 @@ function useForm(props = {}) {
       }
     }
   }, [control, formState.isDirty]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     if (props.values && !deepEqual(props.values, _values.current)) {
       control._reset(props.values, control._options.resetOptions);
       _values.current = props.values;
@@ -59136,12 +59136,12 @@ function useForm(props = {}) {
       control._resetDefaultValues();
     }
   }, [props.values, control]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     if (props.errors && !isEmptyObject(props.errors)) {
       control._setErrors(props.errors);
     }
   }, [props.errors, control]);
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     if (!control._state.mount) {
       control._setValid();
       control._state.mount = true;
@@ -59152,7 +59152,7 @@ function useForm(props = {}) {
     }
     control._removeUnmounted();
   });
-  React$1.useEffect(() => {
+  React.useEffect(() => {
     props.shouldUnregister && control._subjects.state.next({
       values: control._getWatch()
     });
@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-4iZXkdFd.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BGeSS7WH.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -89529,7 +89529,7 @@ function ForwardPage() {
   const [botToken, setBotToken] = reactExports.useState("");
   const [postLink, setPostLink] = reactExports.useState("");
   const [intervalVal, setIntervalVal] = reactExports.useState(1);
-  const isInitializedRef = React$1.useRef(false);
+  const isInitializedRef = React.useRef(false);
   const { data: config2, isLoading: isConfigLoading } = useQuery({
     queryKey: ["/api/forward/config"]
   });
@@ -91151,7 +91151,7 @@ var DefaultContext = {
   style: void 0,
   attr: void 0
 };
-var IconContext = React$1.createContext && /* @__PURE__ */ React$1.createContext(DefaultContext);
+var IconContext = React.createContext && /* @__PURE__ */ React.createContext(DefaultContext);
 var _excluded = ["attr", "size", "title"];
 function _objectWithoutProperties(e, t3) {
   if (null == e) return {};
@@ -91219,12 +91219,12 @@ function _toPrimitive(t3, r2) {
   return ("string" === r2 ? String : Number)(t3);
 }
 function Tree2Element(tree) {
-  return tree && tree.map((node, i2) => /* @__PURE__ */ React$1.createElement(node.tag, _objectSpread({
+  return tree && tree.map((node, i2) => /* @__PURE__ */ React.createElement(node.tag, _objectSpread({
     key: i2
   }, node.attr), Tree2Element(node.child)));
 }
 function GenIcon(data) {
-  return (props) => /* @__PURE__ */ React$1.createElement(IconBase, _extends({
+  return (props) => /* @__PURE__ */ React.createElement(IconBase, _extends({
     attr: _objectSpread({}, data.attr)
   }, props), Tree2Element(data.child));
 }
@@ -91239,7 +91239,7 @@ function IconBase(props) {
     var className;
     if (conf.className) className = conf.className;
     if (props.className) className = (className ? className + " " : "") + props.className;
-    return /* @__PURE__ */ React$1.createElement("svg", _extends({
+    return /* @__PURE__ */ React.createElement("svg", _extends({
       stroke: "currentColor",
       fill: "currentColor",
       strokeWidth: "0"
@@ -91251,9 +91251,9 @@ function IconBase(props) {
       height: computedSize,
       width: computedSize,
       xmlns: "http://www.w3.org/2000/svg"
-    }), title && /* @__PURE__ */ React$1.createElement("title", null, title), props.children);
+    }), title && /* @__PURE__ */ React.createElement("title", null, title), props.children);
   };
-  return IconContext !== void 0 ? /* @__PURE__ */ React$1.createElement(IconContext.Consumer, null, (conf) => elem(conf)) : elem(DefaultContext);
+  return IconContext !== void 0 ? /* @__PURE__ */ React.createElement(IconContext.Consumer, null, (conf) => elem(conf)) : elem(DefaultContext);
 }
 function FaYoutube(props) {
   return GenIcon({ "attr": { "viewBox": "0 0 576 512" }, "child": [{ "tag": "path", "attr": { "d": "M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z" }, "child": [] }] })(props);
@@ -104283,7 +104283,7 @@ function MiniAppShopModern() {
   const { data: dynamicHeroBannersData } = useQuery({
     queryKey: ["/api/mini/hero-banners"]
   });
-  const activeHeroSlides = React.useMemo(() => {
+  const activeHeroSlides = reactExports.useMemo(() => {
     if (!dynamicHeroBannersData) return HERO_SLIDES;
     if (Array.isArray(dynamicHeroBannersData)) {
       return dynamicHeroBannersData.filter((b2) => b2.isActive !== false);
@@ -118195,7 +118195,7 @@ function HeroBannersPage() {
   const { data: categoryConfig } = useQuery({
     queryKey: ["/api/categories/config"]
   });
-  const allAvailableCategories = React$1.useMemo(() => {
+  const allAvailableCategories = React.useMemo(() => {
     const list = /* @__PURE__ */ new Set();
     if (categoryConfig?.categories && Array.isArray(categoryConfig.categories)) {
       categoryConfig.categories.forEach((c2) => {
