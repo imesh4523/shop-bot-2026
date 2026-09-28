@@ -163,7 +163,7 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
         <table border="0" cellpadding="0" cellspacing="0" style="margin-top: 24px; max-width: 480px;">
           <tr>
             <td align="center" style="font-size: 11.5px; color: #94a3b8; line-height: 1.6;">
-              <p style="margin: 0 0 6px 0;"><a href="https://www.youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">www.youuhost.com</a></p>
+              <p style="margin: 0 0 6px 0;"><a href="https://youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">https://youuhost.com</a></p>
               <p style="margin: 0;">You received this automated email notification because you are a registered user of YouuHost. Please do not reply directly to this email.</p>
             </td>
           </tr>
@@ -279,7 +279,7 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
         <table border="0" cellpadding="0" cellspacing="0" style="margin-top: 24px; max-width: 500px;">
           <tr>
             <td align="center" style="font-size: 11.5px; color: #94a3b8; line-height: 1.6;">
-              <p style="margin: 0 0 6px 0;"><a href="https://www.youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">www.youuhost.com</a></p>
+              <p style="margin: 0 0 6px 0;"><a href="https://youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">https://youuhost.com</a></p>
               <p style="margin: 0;">Automated delivery dispatch. Keep your credentials secure.</p>
             </td>
           </tr>
@@ -319,27 +319,27 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
           <tr>
             <td>
               
-              <!-- Professional Icon Badge (Open Padlock matching user photo 2 - Sleek Brand Styling) -->
-              <table border="0" cellpadding="0" cellspacing="0" style="background-color: #f5f3ff; border-radius: 18px; width: 58px; height: 58px; margin: 0 auto 16px auto; border: 1px solid #ddd6fe;">
+              <!-- Professional Icon Badge (Open Padlock matching user photo 2 - Transparent Background) -->
+              <table border="0" cellpadding="0" cellspacing="0" style="background-color: #f0fdf4; border-radius: 18px; width: 56px; height: 56px; margin: 0 auto 16px auto; border: 1px solid #dcfce7;">
                 <tr>
-                  <td align="center" style="vertical-align: middle; height: 58px; width: 58px; padding: 0;">
-                    <img src="https://img.icons8.com/material-outlined/96/5B42F3/unlock.png" width="30" height="30" alt="Unlock Security" style="width: 30px; height: 30px; display: block; margin: 0 auto; border: 0;" />
+                  <td align="center" style="vertical-align: middle; height: 56px; width: 56px; padding: 0;">
+                    <img src="https://img.icons8.com/material-outlined/96/00d166/unlock.png" width="30" height="30" alt="Unlock Security" style="width: 30px; height: 30px; display: block; margin: 0 auto; border: 0;" />
                   </td>
                 </tr>
               </table>
 
-              <!-- Sleek Brand Title (Not Green) -->
-              <h2 style="font-size: 22px; font-weight: 800; color: #181432; margin: 0 0 10px 0; letter-spacing: -0.3px;">
+              <!-- Emerald Green Title -->
+              <h2 style="font-size: 22px; font-weight: 700; color: #00d166; margin: 0 0 12px 0; letter-spacing: -0.3px;">
                 Account Verification Code
               </h2>
 
               <p style="font-size: 13.5px; color: #64748b; line-height: 1.5; margin: 0 0 24px 0;">
-                Hello <strong style="color: #1e293b;">${e}</strong>, please use the 6-digit one-time verification code below to complete your authentication with YouuHost.
+                Hello ${e}, please use the 6-digit one-time verification code below to complete your authentication with YouuHost.
               </p>
 
               <!-- BIG OTP CODE BOX -->
-              <div style="background-color: #f8fafc; border-radius: 18px; padding: 18px 24px; margin: 0 auto 20px auto; border: 2px dashed #6C5CE7; max-width: 300px; text-align: center;">
-                <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 34px; font-weight: 900; color: #181432; letter-spacing: 6px;">
+              <div style="background-color: #f8fafc; border-radius: 16px; padding: 18px 24px; margin: 0 auto 20px auto; border: 2px dashed #00d166; max-width: 300px; text-align: center;">
+                <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 34px; font-weight: 900; color: #111827; letter-spacing: 6px;">
                   ${r}
                 </div>
               </div>
@@ -347,8 +347,8 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
               <!-- Sleek Timer Badge -->
               <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 24px auto;">
                 <tr>
-                  <td style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 20px; padding: 6px 18px; font-size: 12.5px; font-weight: 700; color: #5B42F3; text-align: center;">
-                    <img src="https://img.icons8.com/material-outlined/48/5B42F3/clock.png" width="14" height="14" style="width: 14px; height: 14px; vertical-align: -2px; display: inline-block; margin-right: 6px; border: 0;" />
+                  <td style="background-color: #f0fdf4; border: 1px solid #dcfce7; border-radius: 20px; padding: 6px 18px; font-size: 12.5px; font-weight: 600; color: #00d166; text-align: center;">
+                    <img src="https://img.icons8.com/material-outlined/48/00d166/clock.png" width="14" height="14" style="width: 14px; height: 14px; vertical-align: -2px; display: inline-block; margin-right: 6px; border: 0;" />
                     Expires in ${n} minutes
                   </td>
                 </tr>
@@ -371,7 +371,7 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
         <table border="0" cellpadding="0" cellspacing="0" style="margin-top: 24px; max-width: 480px;">
           <tr>
             <td align="center" style="font-size: 11.5px; color: #94a3b8;">
-              <p style="margin: 0 0 6px 0;"><a href="https://www.youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">www.youuhost.com</a></p>
+              <p style="margin: 0 0 6px 0;"><a href="https://youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">https://youuhost.com</a></p>
               <p style="margin: 0;">Security Notification &bull; YouuHost Identity Gateway</p>
             </td>
           </tr>
@@ -425,7 +425,7 @@ Please see the 3.x to 4.x migration guide for details on how to update your app.
         <table border="0" cellpadding="0" cellspacing="0" style="margin-top: 24px; max-width: 480px;">
           <tr>
             <td align="center" style="font-size: 11.5px; color: #94a3b8;">
-              <p><a href="https://www.youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">www.youuhost.com</a></p>
+              <p><a href="https://youuhost.com" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">https://youuhost.com</a></p>
               <p>You received this message from YouuHost. Please contact support if you have questions.</p>
             </td>
           </tr>
