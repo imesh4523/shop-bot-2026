@@ -6,7 +6,7 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, cssxProducts, cssxOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
 import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, generateCredentialsTxt, generatePlainTextEmail, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
@@ -215,6 +215,20 @@ async function verifyDepositViaBinance(
       }
     }
 
+    // Check 60-minute expiry window
+    const MAX_PAYMENT_AGE_MS = 60 * 60 * 1000; // 60 minutes
+    const insertTime = match.insertTime || match.createTime || match.time;
+    if (insertTime) {
+      const parsedTime = Number(insertTime) < 10000000000 ? Number(insertTime) * 1000 : Number(insertTime);
+      const ageMs = Date.now() - parsedTime;
+      if (ageMs > MAX_PAYMENT_AGE_MS) {
+        return {
+          success: false,
+          error: 'This transaction is expired. Deposits must be verified and claimed within 60 minutes of completion.'
+        };
+      }
+    }
+
     const actualAmount = parseFloat(match.amount);
     if (isNaN(actualAmount) || actualAmount <= 0) {
       return { success: false, error: 'Invalid deposit amount.' };
@@ -237,11 +251,29 @@ async function verifyBinancePaymentLive(
   if (!apiKey || !secretKey) {
     return {
       verified: false,
-      message: "Binance API verification keys are not configured in Admin Settings. Please contact support @rochana_imesh."
+      message: "Binance API verification keys are not configured in Admin Settings. Please contact support @youuhost_support."
     };
   }
 
   const cleanId = orderOrTxId.trim();
+
+  // 0. Check Database if this Order ID / TxID has already been redeemed
+  try {
+    const existingPayments = await storage.getPayments();
+    const isUsed = existingPayments.some(
+      (p) => p.txId && p.txId.trim().toLowerCase() === cleanId.toLowerCase() && p.status === "completed"
+    );
+    if (isUsed) {
+      return {
+        verified: false,
+        message: `This Binance Order ID (${cleanId}) has already been used or redeemed. Each transaction can only be claimed once.`
+      };
+    }
+  } catch (dbErr) {
+    console.warn("[Binance Anti-Duplicate DB Check Warning]:", dbErr);
+  }
+
+  const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
 
   // 1. Check Binance Pay Transaction History API (/sapi/v1/pay/transactions)
   try {
@@ -263,6 +295,19 @@ async function verifyBinancePaymentLive(
         (t.transactionId && t.transactionId.toString().toLowerCase() === cleanId.toLowerCase())
       );
       if (match) {
+        // Enforce 60-minute expiry
+        const rawTime = match.transactionTime || match.orderTime || match.createTime || match.time;
+        if (rawTime) {
+          const txTimeMs = Number(rawTime) < 10000000000 ? Number(rawTime) * 1000 : Number(rawTime);
+          const age = Date.now() - txTimeMs;
+          if (age > MAX_AGE_MS) {
+            return {
+              verified: false,
+              message: "This Binance order is expired. Payments must be claimed within 60 minutes of completion."
+            };
+          }
+        }
+
         const amount = parseFloat(match.amount || match.totalAmount || "0");
         return { verified: true, actualAmount: amount > 0 ? amount : expectedAmount };
       }
@@ -293,6 +338,19 @@ async function verifyBinancePaymentLive(
         )
       );
       if (match) {
+        // Enforce 60-minute expiry
+        const rawTime = match.insertTime || match.createTime || match.time;
+        if (rawTime) {
+          const txTimeMs = Number(rawTime) < 10000000000 ? Number(rawTime) * 1000 : Number(rawTime);
+          const age = Date.now() - txTimeMs;
+          if (age > MAX_AGE_MS) {
+            return {
+              verified: false,
+              message: "This Binance deposit is expired. Deposits must be claimed within 60 minutes of completion."
+            };
+          }
+        }
+
         const amount = parseFloat(match.amount || "0");
         return { verified: true, actualAmount: amount > 0 ? amount : expectedAmount };
       }
@@ -303,7 +361,7 @@ async function verifyBinancePaymentLive(
 
   return {
     verified: false,
-    message: `Binance payment not found for Order ID: ${cleanId}. Please verify that you sent the funds in Binance app and entered the exact Order ID / TxID.`
+    message: `Binance payment not found for Order ID: ${cleanId}. Please verify that you sent the funds in Binance app and entered the exact Order ID / TxID within 60 minutes.`
   };
 }
 
@@ -1757,7 +1815,7 @@ export async function registerRoutes(
         });
       }
 
-      summary += "\nSUPPORT CONTACT: @rochana_imesh on Telegram.";
+      summary += "\nSUPPORT CONTACT: @youuhost_support on Telegram.";
 
       // Return both as plain text (easier for AI) and structured JSON
       if (req.headers.accept?.includes('text/plain')) {
@@ -1814,8 +1872,8 @@ export async function registerRoutes(
       const supportUsernameSetting = await storage.getSetting("SUPPORT_USERNAME");
       const extraInstructionsSetting = await storage.getSetting("EXTRA_INSTRUCTIONS");
 
-      const storeName = storeNameSetting?.value || "ShopBot";
-      const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+      const storeName = storeNameSetting?.value || "YouuHost";
+      const supportUsername = supportUsernameSetting?.value || "@youuhost_support";
       const faq = faqSetting?.value || "No special instructions. Direct them to support if needed.";
       const extraInstructions = extraInstructionsSetting?.value || "";
 
@@ -2606,31 +2664,33 @@ export async function registerRoutes(
       // 4. Sandromania Partner Orders
       const userSandromaniaOrders = await db.select()
         .from(sandromaniaOrders)
+        .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
         .where(eq(sandromaniaOrders.telegramUserId, userId))
         .orderBy(desc(sandromaniaOrders.createdAt));
 
       const partnerTransactions = userSandromaniaOrders.map(sp => {
-        const costUsd = ((sp.amountPaid || 0) / 100);
-        const costLkr = Math.round(costUsd * lkrRate);
+        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const fixedLkr = sp.sandromania_products?.sellingPriceLkr;
+        const costLkr = fixedLkr ? Number(fixedLkr) : Math.round(costUsd * lkrRate);
 
         return {
-          id: `YOUUHOST-${sp.externalOrderId || (2000 + sp.id)}`,
-          rawId: sp.id,
+          id: `YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
+          rawId: sp.sandromania_orders.id,
           type: "partner" as const,
           category: "Digital License Delivery",
-          title: sp.productTitle || "Partner Digital Goods",
-          amountCents: -(sp.amountPaid || 0),
+          title: sp.sandromania_orders.productTitle || "Partner Digital Goods",
+          amountCents: -(sp.sandromania_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
           amountFormatted: `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: "wallet_balance",
-          status: sp.status === "approved" ? "completed" : sp.status,
-          reference: `#YOUUHOST-${sp.externalOrderId || (2000 + sp.id)}`,
-          deliveredContent: sp.deliveryText || null,
-          details: `Order for ${sp.productTitle}. Instant digital credentials delivered.`,
-          createdAt: sp.createdAt || new Date(),
-          updatedAt: sp.createdAt || new Date()
+          status: sp.sandromania_orders.status === "approved" ? "completed" : sp.sandromania_orders.status,
+          reference: `#YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
+          deliveredContent: sp.sandromania_orders.deliveryText || null,
+          details: `Order for ${sp.sandromania_orders.productTitle}. Instant digital credentials delivered.`,
+          createdAt: sp.sandromania_orders.createdAt || new Date(),
+          updatedAt: sp.sandromania_orders.createdAt || new Date()
         };
       });
 
@@ -3037,7 +3097,7 @@ export async function registerRoutes(
         cryptomusEnabled,
         payhereEnabled,
         payhereGatewayUrl,
-        supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@rochana_imesh",
+        supportUsername: (await storage.getSetting('SUPPORT_USERNAME'))?.value || "@youuhost_support",
         rates,
         lkrRate: rates.LKR || 305.50
       });
@@ -3047,7 +3107,7 @@ export async function registerRoutes(
         cryptomusEnabled: true,
         payhereEnabled: false,
         payhereGatewayUrl: "",
-        supportUsername: "@rochana_imesh",
+        supportUsername: "@youuhost_support",
         rates: getCachedRates(),
         lkrRate: 305.50
       });
@@ -3808,8 +3868,18 @@ export async function registerRoutes(
       const rates = await fetchLiveExchangeRates();
       const lkrRate = rates.LKR || 305.50;
 
-      const meshNodes = await getAllMeshNodes();
-      const allKeys = await storage.getAllApiKeys();
+      let meshNodes: any[] = [];
+      try {
+        meshNodes = await getAllMeshNodes();
+      } catch (e) {
+        meshNodes = [];
+      }
+      let allKeys: any[] = [];
+      try {
+        allKeys = await storage.getAllApiKeys();
+      } catch (e) {
+        allKeys = [];
+      }
 
       // 1. Direct Cloud & Reseller API Orders
       const allDirectOrders = await db.select()
@@ -3834,12 +3904,20 @@ export async function registerRoutes(
         .leftJoin(telegramUsers, eq(sandromaniaOrders.telegramUserId, telegramUsers.id))
         .orderBy(desc(sandromaniaOrders.createdAt));
 
+      // 4. CSxStore Partner CDK Orders
+      const allCssxOrders = await db.select()
+        .from(cssxOrders)
+        .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
+        .leftJoin(telegramUsers, eq(cssxOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(cssxOrders.createdAt));
+
       // Map Direct & API Orders
       const directAndApiMapped = allDirectOrders.map(o => {
         const isApi = Boolean(o.orders.apiKeyId);
         const priceCents = o.products?.price || 0;
         const priceUsd = (priceCents / 100).toFixed(2);
-        const priceLkr = Math.round((priceCents / 100) * lkrRate).toLocaleString();
+        const exactProdLkr = o.products?.priceLkr;
+        const priceLkr = exactProdLkr ? Number(exactProdLkr) : Math.round((priceCents / 100) * lkrRate);
         const user = o.telegram_users;
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
@@ -3886,7 +3964,7 @@ export async function registerRoutes(
       // Map SMM Orders
       const smmMapped = allSmmOrders.map(s => {
         const costUsd = ((s.smm_orders.charge || 0) / 100);
-        const costLkr = Math.round(costUsd * lkrRate).toLocaleString();
+        const priceLkr = Math.round(costUsd * lkrRate);
         const user = s.telegram_users;
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
@@ -3925,7 +4003,8 @@ export async function registerRoutes(
       // Map Sandromania Orders
       const sandromaniaMapped = allSandromaniaOrders.map(sp => {
         const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
-        const costLkr = Math.round(costUsd * lkrRate).toLocaleString();
+        const fixedProdLkr = sp.sandromania_products?.sellingPriceLkr;
+        const priceLkr = fixedProdLkr ? Number(fixedProdLkr) : Math.round(costUsd * lkrRate);
         const user = sp.telegram_users;
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
@@ -3935,7 +4014,7 @@ export async function registerRoutes(
           : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${sp.sandromania_orders.telegramUserId}`));
 
         return {
-          id: `YOUUHOST-${2000 + sp.sandromania_orders.id}`,
+          id: `YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
           rawId: sp.sandromania_orders.id,
           isApiOrder: true,
           apiKeyId: null,
@@ -3961,8 +4040,48 @@ export async function registerRoutes(
         };
       });
 
+      // Map CSxStore Orders
+      const cssxMapped = allCssxOrders.map(co => {
+        const costUsd = ((co.cssx_orders.amountPaid || 0) / 100);
+        const fixedProdLkr = co.cssx_products?.sellingPriceLkr;
+        const priceLkr = fixedProdLkr ? Number(fixedProdLkr) : Math.round(costUsd * lkrRate);
+        const user = co.telegram_users;
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyerName = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${co.cssx_orders.telegramUserId}`));
+
+        return {
+          id: `YOUUHOST-CSX-${co.cssx_orders.externalOrderId || (3000 + co.cssx_orders.id)}`,
+          rawId: co.cssx_orders.id,
+          isApiOrder: true,
+          apiKeyId: null,
+          apiKey: null,
+          storeType: "cssx",
+          storeName: "CSxStore Partner Shop",
+          storeSource: "CSxStore CDK Goods",
+          channelId: "cssx",
+          productId: co.cssx_orders.cssxProductId || co.cssx_orders.serviceId || 0,
+          productName: co.cssx_orders.productTitle || "Partner Digital Good",
+          buyer: buyerName,
+          customerName: buyerUsername || buyerName,
+          customerEmail: buyerEmail,
+          buyerUsername,
+          buyerEmail,
+          buyerId: co.cssx_orders.telegramUserId,
+          priceCents: co.cssx_orders.amountPaid || 0,
+          priceUsd: costUsd.toFixed(2),
+          priceLkr,
+          status: co.cssx_orders.status || "completed",
+          deliveredContent: co.cssx_orders.deliveryText || null,
+          createdAt: co.cssx_orders.createdAt || new Date()
+        };
+      });
+
       // Combine all orders
-      const combinedAllOrders = [...directAndApiMapped, ...smmMapped, ...sandromaniaMapped].sort((a, b) => {
+      const combinedAllOrders = [...directAndApiMapped, ...smmMapped, ...sandromaniaMapped, ...cssxMapped].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
@@ -3977,6 +4096,7 @@ export async function registerRoutes(
         if (!selectedStore || selectedStore === "all") return true;
         if (selectedStore === "direct") return o.channelId === "direct";
         if (selectedStore === "sandromania") return o.storeType === "sandromania";
+        if (selectedStore === "cssx") return o.storeType === "cssx";
         if (selectedStore === "cssx_smm" || selectedStore === "smm") return o.storeType === "cssx_smm";
         if (selectedStore === "n1panel") return o.storeType === "cssx_smm" || o.storeName.toLowerCase().includes("n1panel");
         if (selectedStore.startsWith("key_")) return o.channelId === selectedStore;
@@ -4029,6 +4149,11 @@ export async function registerRoutes(
         .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
         .reduce((a, b) => a + (b.priceCents || 0), 0);
 
+      const cssxOrdersFiltered = dateFilteredOrders.filter(o => o.storeType === "cssx");
+      const cssxRevCents = cssxOrdersFiltered
+        .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
+        .reduce((a, b) => a + (b.priceCents || 0), 0);
+
       const smmOrdersFiltered = dateFilteredOrders.filter(o => o.storeType === "cssx_smm");
       const smmRevCents = smmOrdersFiltered
         .filter(o => ['completed', 'success', 'approved'].includes((o.status || '').toLowerCase()))
@@ -4059,6 +4184,14 @@ export async function registerRoutes(
           totalOrders: sandromaniaOrdersFiltered.length, 
           totalRevenueUsd: (sandromaniaRevCents / 100).toFixed(2), 
           totalRevenueLkr: Math.round((sandromaniaRevCents / 100) * lkrRate) 
+        },
+        { 
+          id: "cssx", 
+          name: "CSxStore CDK Partner Shop", 
+          type: "cssx", 
+          totalOrders: cssxOrdersFiltered.length, 
+          totalRevenueUsd: (cssxRevCents / 100).toFixed(2), 
+          totalRevenueLkr: Math.round((cssxRevCents / 100) * lkrRate) 
         },
         { 
           id: "cssx_smm", 
@@ -5639,9 +5772,14 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
       if (combined.includes("claude") || combined.includes("anthropic")) return "claude";
       if (combined.includes("aws") || combined.includes("amazon")) return "aws";
       if (combined.includes("digitalocean") || combined.includes("digital ocean")) return "digitalocean";
-      if (combined.includes("azure") || combined.includes("microsoft")) return "azure";
+      if (combined.includes("azure") || combined.includes("ms azure")) return "azure";
       if (combined.includes("oracle")) return "oracle";
       if (combined.includes("linode") || combined.includes("linod") || combined.includes("akamai")) return "linode";
+      if (combined.includes("google") || combined.includes("gcp")) return "google";
+      if (combined.includes("canva")) return "canva";
+      if (combined.includes("adobe") || combined.includes("photoshop") || combined.includes("illustrator")) return "adobe";
+      if (combined.includes("hotmail") || combined.includes("outlook") || combined.includes("mail")) return "hotmail";
+      if (combined.includes("windows") || combined.includes("win 10") || combined.includes("win 11") || combined.includes("office")) return "windows";
       if (combined.includes("spotify")) return "spotify";
       if (combined.includes("youtube")) return "youtube";
       if (combined.includes("tiktok")) return "tiktok";
@@ -5714,45 +5852,142 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
   }
 });
 
-// 4.5. Sync Live Stock from Sandromania Partner API
-app.post("/api/admin/sandromania/sync-stock", isAuth, async (req, res) => {
+// Helper function to auto sync Sandromania products
+async function autoSyncSandromaniaProductsInternal() {
   try {
+    const creds = await SandromaniaService.getCredentials();
+    if (!creds.apiKey || !creds.apiSecret) return { synced: 0 };
     const remoteProducts = await SandromaniaService.getProducts();
-    const localProducts = await db.select().from(sandromaniaProducts);
-    
-    let updatedCount = 0;
-    for (const local of localProducts) {
-      const match = remoteProducts.find((r: any) => parseInt(r.id) === local.externalProductId);
-      if (match) {
-        const liveStock = typeof match.stock === 'number' 
-          ? match.stock 
-          : (match.stock !== undefined && match.stock !== null && match.stock !== "" ? parseInt(match.stock) : (match.available ? 99 : 0));
-        
+    if (!Array.isArray(remoteProducts) || remoteProducts.length === 0) return { synced: 0 };
+
+    const cleanSandromaniaText = (text: string = ""): string => {
+      if (!text) return "";
+      return text
+        .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
+        .replace(/\{ce:\d+\}/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const detectCategory = (title: string = "", rawCat: string = ""): string => {
+      const combined = (cleanSandromaniaText(title) + " " + cleanSandromaniaText(rawCat)).toLowerCase();
+      if (combined.includes("gemini")) return "gemini";
+      if (combined.includes("chatgpt") || combined.includes("openai") || combined.includes("gpt")) return "chatgpt";
+      if (combined.includes("claude") || combined.includes("anthropic")) return "claude";
+      if (combined.includes("aws") || combined.includes("amazon")) return "aws";
+      if (combined.includes("digitalocean") || combined.includes("digital ocean")) return "digitalocean";
+      if (combined.includes("azure") || combined.includes("ms azure")) return "azure";
+      if (combined.includes("oracle")) return "oracle";
+      if (combined.includes("linode") || combined.includes("linod") || combined.includes("akamai")) return "linode";
+      if (combined.includes("google") || combined.includes("gcp")) return "google";
+      if (combined.includes("canva")) return "canva";
+      if (combined.includes("adobe") || combined.includes("photoshop") || combined.includes("illustrator")) return "adobe";
+      if (combined.includes("hotmail") || combined.includes("outlook") || combined.includes("mail")) return "hotmail";
+      if (combined.includes("windows") || combined.includes("win 10") || combined.includes("win 11") || combined.includes("office")) return "windows";
+      if (combined.includes("spotify")) return "spotify";
+      if (combined.includes("youtube")) return "youtube";
+      if (combined.includes("tiktok")) return "tiktok";
+      if (combined.includes("instagram")) return "instagram";
+      if (combined.includes("facebook") || combined.includes("fb")) return "facebook";
+      if (combined.includes("telegram")) return "telegram";
+      if (combined.includes("duolingo")) return "duolingo";
+      if (combined.includes("capcut")) return "capcut";
+      if (combined.includes("kamatera")) return "kamatera";
+      return cleanSandromaniaText(rawCat) || "general";
+    };
+
+    let synced = 0;
+    for (const item of remoteProducts) {
+      const extId = parseInt(item.id);
+      if (isNaN(extId)) continue;
+      const rawPriceUsd = typeof item.price_usd === "number" ? item.price_usd : parseFloat(item.price_usd || "0");
+      const costCents = Math.round(rawPriceUsd * 100);
+      const sellingCents = Math.round(costCents * 1.35); // 35% standard default markup
+
+      const cleanedTitle = cleanSandromaniaText(item.title);
+      const assignedCategory = item.category ? cleanSandromaniaText(item.category) : detectCategory(cleanedTitle, item.category);
+
+      const liveStockVal = typeof item.stock === 'number' 
+        ? item.stock 
+        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 99 : 0));
+      const parsedStock = isNaN(liveStockVal) ? (item.available ? 99 : 0) : liveStockVal;
+
+      const existing = await db.query.sandromaniaProducts.findFirst({
+        where: eq(sandromaniaProducts.externalProductId, extId),
+      });
+
+      if (existing) {
         await db
           .update(sandromaniaProducts)
           .set({
-            stock: isNaN(liveStock) ? (match.available ? 99 : 0) : liveStock,
-            available: Boolean(match.available),
+            stock: parsedStock,
+            available: Boolean(item.available),
+            costPriceUsd: costCents,
+            bulkPrices: item.bulk_prices || null,
             updatedAt: new Date()
           })
-          .where(eq(sandromaniaProducts.id, local.id));
-        updatedCount++;
+          .where(eq(sandromaniaProducts.id, existing.id));
+      } else {
+        // Auto-insert newly added Sandromania catalog products
+        await db.insert(sandromaniaProducts).values({
+          externalProductId: extId,
+          title: cleanedTitle || item.title,
+          type: item.type || "standard",
+          stock: parsedStock,
+          available: Boolean(item.available),
+          costPriceUsd: costCents,
+          sellingPriceUsd: sellingCents > 0 ? sellingCents : (costCents || 100),
+          bulkPrices: item.bulk_prices || null,
+          category: assignedCategory,
+          isActive: true,
+          description: cleanedTitle || item.title,
+        });
       }
+      synced++;
     }
-    
+    return { synced };
+  } catch (err: any) {
+    console.warn("[Sandromania Auto-Sync Warning]:", err.message);
+    return { synced: 0, error: err.message };
+  }
+}
+
+// 4.5. Full Live Auto-Sync Endpoint (Admin Trigger)
+app.post("/api/admin/sandromania/sync-stock", isAuth, async (req, res) => {
+  try {
+    const result = await autoSyncSandromaniaProductsInternal();
     res.json({
       success: true,
-      message: `Successfully synced live stock for ${updatedCount} products from partner store!`,
-      updatedCount
+      message: `Successfully auto-synced live catalog & stock (${result.synced} products synced)!`,
+      updatedCount: result.synced
     });
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to sync stock from partner store" });
+    res.status(500).json({ message: err.message || "Failed to sync catalog from partner store" });
   }
 });
 
-// 5. List Managed Sandromania Products
+// Auto Sync alias
+app.post("/api/admin/sandromania/auto-sync", isAuth, async (req, res) => {
+  try {
+    const result = await autoSyncSandromaniaProductsInternal();
+    res.json({
+      success: true,
+      message: `🎉 Live Partner Catalog synced (${result.synced} products processed)!`,
+      synced: result.synced
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to auto-sync" });
+  }
+});
+
+// 5. List Managed Sandromania Products (with on-demand auto-sync)
 app.get("/api/admin/sandromania/products", isAuth, async (req, res) => {
   try {
+    // Background auto-sync if products list is small or empty
+    const countRes = await db.select().from(sandromaniaProducts);
+    if (countRes.length <= 3) {
+      await autoSyncSandromaniaProductsInternal();
+    }
     const all = await db.select().from(sandromaniaProducts).orderBy(desc(sandromaniaProducts.id));
     res.json(all);
   } catch (err: any) {
@@ -5829,7 +6064,46 @@ app.get("/api/admin/sandromania/orders", isAuth, async (req, res) => {
   }
 });
 
-// --- CSxStore Reseller / Developer API Routes ---
+// Verify/create cssx_products and cssx_orders tables
+try {
+  db.execute(sql`
+    CREATE TABLE IF NOT EXISTS cssx_products (
+      id SERIAL PRIMARY KEY,
+      service_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'standard',
+      stock INTEGER NOT NULL DEFAULT 0,
+      available BOOLEAN NOT NULL DEFAULT true,
+      cost_price_usd INTEGER NOT NULL DEFAULT 0,
+      selling_price_usd INTEGER NOT NULL DEFAULT 0,
+      selling_price_lkr INTEGER DEFAULT 0,
+      category TEXT DEFAULT 'general',
+      description TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS cssx_orders (
+      id SERIAL PRIMARY KEY,
+      telegram_user_id INTEGER REFERENCES telegram_users(id) ON DELETE CASCADE,
+      cssx_product_id INTEGER REFERENCES cssx_products(id) ON DELETE CASCADE,
+      external_order_id TEXT,
+      service_id TEXT NOT NULL,
+      product_title TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      cost_price_usd INTEGER NOT NULL DEFAULT 0,
+      amount_paid INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'completed',
+      delivery_text TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `).catch(() => {});
+  console.log("[DB] cssx_products & cssx_orders tables verified/created");
+} catch (err) {
+  console.error("[DB Init CSSX Error]:", err);
+}
+
+// --- CSxStore Reseller / Developer API & Store Management Routes ---
 
 // 1. Get CSxStore Settings & Live Balance
 app.get("/api/admin/cssx/settings", isAuth, async (req, res) => {
@@ -5856,7 +6130,7 @@ app.get("/api/admin/cssx/settings", isAuth, async (req, res) => {
       }
     }
 
-    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
+    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_balance || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
 
     res.json({
       apiKey: creds.apiKey,
@@ -5900,7 +6174,7 @@ app.post("/api/admin/cssx/settings", isAuth, async (req, res) => {
       }
     }
 
-    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
+    const walletBalance = CssxService.extractWalletBalance(meInfo) || meInfo?.wallet_balance || meInfo?.wallet_usdt || meInfo?.balance_usdt || meInfo?.balance || 0;
 
     res.json({
       success: true,
@@ -5924,47 +6198,203 @@ app.get("/api/admin/cssx/test", isAuth, async (req, res) => {
   }
 });
 
-// 3. Get /api/v1/me
-app.get("/api/admin/cssx/me", isAuth, async (req, res) => {
+// 3. Fetch Live Remote Catalog from CSxStore API
+app.get("/api/admin/cssx/fetch-products", isAuth, async (req, res) => {
   try {
-    const me = await CssxService.getMe();
-    res.json(me);
+    const productsList = await CssxService.getProducts();
+    res.json(productsList);
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to fetch account profile" });
+    res.status(500).json({ message: err.message || "Failed to fetch live products from CSxStore" });
   }
 });
 
-// 4. Get /api/v1/stats
-app.get("/api/admin/cssx/stats", isAuth, async (req, res) => {
+// 4. Import Products into Store Catalog with Custom Profit Markup or Custom Prices
+app.post("/api/admin/cssx/import-products", isAuth, async (req, res) => {
   try {
-    const stats = await CssxService.getStats();
-    res.json(stats);
+    const { products: importList, markupPercent = 40 } = req.body;
+    if (!Array.isArray(importList) || importList.length === 0) {
+      return res.status(400).json({ message: "No products selected for import." });
+    }
+
+    let count = 0;
+    for (const item of importList) {
+      const serviceId = String(item.service_id || item.id || item.code);
+      const rawCostUsd = typeof item.price === "number" ? item.price : (typeof item.price_usdt === "number" ? item.price_usdt : parseFloat(item.price || item.price_usdt || "0"));
+      const costCents = Math.round(rawCostUsd * 100);
+      const sellingCents = Math.round(costCents * (1 + markupPercent / 100));
+      const sellingLkr = Math.round((sellingCents / 100) * 305.5);
+
+      const title = item.name || item.title || `Service #${serviceId}`;
+      const category = item.category || "General";
+      const description = item.description || "";
+      const liveStock = typeof item.stock === "number" ? item.stock : parseInt(String(item.stock || "0")) || 0;
+
+      const existing = await db.query.cssxProducts.findFirst({
+        where: eq(cssxProducts.serviceId, serviceId),
+      });
+
+      if (existing) {
+        await db
+          .update(cssxProducts)
+          .set({
+            title: title || existing.title,
+            stock: liveStock,
+            available: liveStock > 0,
+            costPriceUsd: costCents,
+            category: existing.category && existing.category !== "General" ? existing.category : category,
+            description: description || existing.description,
+            updatedAt: new Date(),
+          })
+          .where(eq(cssxProducts.id, existing.id));
+      } else {
+        await db.insert(cssxProducts).values({
+          serviceId,
+          title,
+          type: "standard",
+          stock: liveStock,
+          available: liveStock > 0,
+          costPriceUsd: costCents,
+          sellingPriceUsd: sellingCents > 0 ? sellingCents : costCents,
+          sellingPriceLkr: sellingLkr,
+          category,
+          description,
+          isActive: true,
+        });
+      }
+      count++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported / updated ${count} products from CSxStore!`,
+    });
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to fetch stats" });
+    res.status(500).json({ message: err.message || "Failed to import products from CSxStore" });
   }
 });
 
-// 5. Get /api/v1/products
+// 4.5. Sync Live Stock from CSxStore API
+app.post("/api/admin/cssx/sync-stock", isAuth, async (req, res) => {
+  try {
+    const remoteProducts = await CssxService.getProducts();
+    const localProducts = await db.select().from(cssxProducts);
+
+    let updatedCount = 0;
+    for (const local of localProducts) {
+      const match = remoteProducts.find((r: any) => String(r.service_id || r.id) === local.serviceId);
+      if (match) {
+        const liveStock = typeof match.stock === "number" ? match.stock : parseInt(String(match.stock || "0")) || 0;
+        await db
+          .update(cssxProducts)
+          .set({
+            stock: liveStock,
+            available: liveStock > 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(cssxProducts.id, local.id));
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synced live stock for ${updatedCount} products from CSxStore!`,
+      updatedCount,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to sync stock from CSxStore" });
+  }
+});
+
+// 5. List Managed CSxStore Products (Stored in Local Catalog with Custom Prices)
 app.get("/api/admin/cssx/products", isAuth, async (req, res) => {
   try {
-    const products = await CssxService.getProducts();
-    res.json(products);
+    const all = await db.select().from(cssxProducts).orderBy(desc(cssxProducts.id));
+    res.json(all);
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to fetch products" });
+    res.status(500).json({ message: err.message || "Failed to list CSxStore products" });
   }
 });
 
-// 6. Post /api/v1/order
+// 6. Update Managed Product (Selling Price / Active Status / Category)
+app.put("/api/admin/cssx/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description } = req.body;
+    const updates: any = { updatedAt: new Date() };
+
+    if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
+    if (sellingPriceLkr !== undefined) updates.sellingPriceLkr = parseInt(sellingPriceLkr);
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (title !== undefined) updates.title = title;
+    if (category !== undefined) updates.category = category;
+    if (description !== undefined) updates.description = description;
+
+    const [updated] = await db
+      .update(cssxProducts)
+      .set(updates)
+      .where(eq(cssxProducts.id, id))
+      .returning();
+
+    res.json({ success: true, product: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update CSxStore product" });
+  }
+});
+
+// 7. Delete Product from Managed Catalog
+app.delete("/api/admin/cssx/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(cssxProducts).where(eq(cssxProducts.id, id));
+    res.json({ success: true, message: "Product deleted from store catalog." });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete product" });
+  }
+});
+
+// 8. List All CSxStore Orders for Audit Tracker
+app.get("/api/admin/cssx/orders", isAuth, async (req, res) => {
+  try {
+    const allOrders = await db
+      .select({
+        id: cssxOrders.id,
+        externalOrderId: cssxOrders.externalOrderId,
+        serviceId: cssxOrders.serviceId,
+        productTitle: cssxOrders.productTitle,
+        quantity: cssxOrders.quantity,
+        costPriceUsd: cssxOrders.costPriceUsd,
+        amountPaid: cssxOrders.amountPaid,
+        status: cssxOrders.status,
+        deliveryText: cssxOrders.deliveryText,
+        createdAt: cssxOrders.createdAt,
+        userFirstName: telegramUsers.firstName,
+        userLastName: telegramUsers.lastName,
+        userEmail: telegramUsers.email,
+        telegramId: telegramUsers.telegramId,
+        username: telegramUsers.username,
+      })
+      .from(cssxOrders)
+      .leftJoin(telegramUsers, eq(cssxOrders.telegramUserId, telegramUsers.id))
+      .orderBy(desc(cssxOrders.id));
+
+    res.json(allOrders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch CSxStore orders" });
+  }
+});
+
+// 9. Direct Purchase / Provisioning API
 app.post("/api/admin/cssx/order", isAuth, async (req, res) => {
   try {
     const orderResult = await CssxService.createOrder(req.body);
     res.json({ success: true, order: orderResult });
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to create order" });
+    res.status(500).json({ message: err.message || "Failed to place CSxStore order" });
   }
 });
 
-// 7. Post /api/v1/batch-order
+// 10. Direct Batch Order API
 app.post("/api/admin/cssx/batch-order", isAuth, async (req, res) => {
   try {
     const ordersList = req.body.orders || req.body;
@@ -5972,26 +6402,6 @@ app.post("/api/admin/cssx/batch-order", isAuth, async (req, res) => {
     res.json({ success: true, result: batchResult });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to create batch order" });
-  }
-});
-
-// 8. Get /api/v1/orders
-app.get("/api/admin/cssx/orders", isAuth, async (req, res) => {
-  try {
-    const orders = await CssxService.getOrders();
-    res.json(orders);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to fetch orders" });
-  }
-});
-
-// 9. Get /api/v1/orders/:id
-app.get("/api/admin/cssx/orders/:id", isAuth, async (req, res) => {
-  try {
-    const order = await CssxService.getOrderById(req.params.id);
-    res.json(order);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to fetch order details" });
   }
 });
 
@@ -6265,6 +6675,214 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
     res.json(ordersList);
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to fetch orders" });
+  }
+});
+
+// --- Public Mini-App CSxStore Shop Routes ---
+
+let lastCssxStockSync = 0;
+
+// Get active CSxStore products for customer store (with live stock auto-sync)
+app.get("/api/mini/cssx/products", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const now = Date.now();
+    if (now - lastCssxStockSync > 20000) {
+      lastCssxStockSync = now;
+      (async () => {
+        try {
+          const remoteProducts = await CssxService.getProducts();
+          if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+            const localProducts = await db.select().from(cssxProducts);
+            for (const local of localProducts) {
+              const match = remoteProducts.find((r: any) => String(r.service_id || r.id) === local.serviceId);
+              if (match) {
+                const liveStock = typeof match.stock === "number" ? match.stock : parseInt(String(match.stock || "0")) || 0;
+                await db
+                  .update(cssxProducts)
+                  .set({
+                    stock: liveStock,
+                    available: liveStock > 0,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(cssxProducts.id, local.id));
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn("[CSSX Live Stock Auto-Sync] Warning:", (syncErr as any)?.message);
+        }
+      })();
+    }
+
+    const productsList = await db
+      .select()
+      .from(cssxProducts)
+      .where(eq(cssxProducts.isActive, true));
+
+    res.json(productsList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load CSxStore products" });
+  }
+});
+
+// Customer Instant Purchase for CSxStore Products
+app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const tgUser = (req as any).tgUser;
+    if (!tgUser || !tgUser.id) {
+      return res.status(401).json({ message: "Please authenticate to make a purchase." });
+    }
+
+    const { productId, quantity = 1 } = req.body;
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1) {
+      return res.status(400).json({ message: "Invalid quantity requested." });
+    }
+
+    const [product] = await db
+      .select()
+      .from(cssxProducts)
+      .where(and(eq(cssxProducts.id, parseInt(productId, 10)), eq(cssxProducts.isActive, true)));
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found or currently unavailable." });
+    }
+
+    if (product.stock < qty || !product.available) {
+      return res.status(400).json({ message: "This product is currently out of stock." });
+    }
+
+    const totalCents = (product.sellingPriceUsd || 0) * qty;
+
+    const result = await db.transaction(async (tx) => {
+      let user = (
+        await tx
+          .select()
+          .from(telegramUsers)
+          .where(eq(telegramUsers.telegramId, tgUser.id.toString()))
+      )[0];
+
+      if (!user) {
+        user = (
+          await tx
+            .select()
+            .from(telegramUsers)
+            .where(eq(telegramUsers.id, tgUser.dbUser?.id || 0))
+        )[0];
+      }
+
+      if (!user) {
+        throw new Error("User account not found. Please log in first.");
+      }
+
+      if (user.balance < totalCents) {
+        throw new Error(
+          `Insufficient wallet balance. Total required: $${(totalCents / 100).toFixed(2)}, Available: $${((user.balance || 0) / 100).toFixed(2)}.`
+        );
+      }
+
+      // Deduct balance
+      await tx
+        .update(telegramUsers)
+        .set({ balance: user.balance - totalCents })
+        .where(eq(telegramUsers.id, user.id));
+
+      // Place order via CSxStore API
+      let orderRes: any = null;
+      try {
+        orderRes = await CssxService.createOrder({
+          service_id: product.serviceId,
+          quantity: qty,
+        });
+      } catch (apiErr: any) {
+        throw new Error(`CSxStore Fulfillment Error: ${apiErr.message}`);
+      }
+
+      const orderData = orderRes?.order || orderRes?.data || orderRes || {};
+      const externalId = String(orderData.id || orderData.order_id || "");
+      const deliveryText = orderData.delivery_data || orderData.keys || orderData.license || orderData.credentials || (Array.isArray(orderData.items) ? JSON.stringify(orderData.items) : "Provisioned successfully.");
+
+      const [newOrder] = await tx
+        .insert(cssxOrders)
+        .values({
+          telegramUserId: user.id,
+          cssxProductId: product.id,
+          externalOrderId: externalId || `CSX-${Date.now()}`,
+          serviceId: product.serviceId,
+          productTitle: product.title,
+          quantity: qty,
+          costPriceUsd: product.costPriceUsd * qty,
+          amountPaid: totalCents,
+          status: "completed",
+          deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
+        })
+        .returning();
+
+      return {
+        order: newOrder,
+        newBalance: user.balance - totalCents,
+        deliveryText,
+        user,
+      };
+    });
+
+    res.json({
+      success: true,
+      message: "Order completed successfully!",
+      order: result.order,
+      newBalance: result.newBalance,
+      deliveryText: result.deliveryText,
+    });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Purchase failed" });
+  }
+});
+
+// Customer CSxStore Orders History
+app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const tgUser = (req as any).tgUser;
+    if (!tgUser || !tgUser.id) {
+      return res.json([]);
+    }
+
+    let user = (
+      await db
+        .select()
+        .from(telegramUsers)
+        .where(eq(telegramUsers.telegramId, tgUser.id.toString()))
+    )[0];
+
+    if (!user) {
+      user = (
+        await db
+          .select()
+          .from(telegramUsers)
+          .where(eq(telegramUsers.id, tgUser.dbUser?.id || 0))
+      )[0];
+    }
+
+    if (!user) return res.json([]);
+
+    const ordersList = await db
+      .select({
+        id: cssxOrders.id,
+        externalOrderId: cssxOrders.externalOrderId,
+        serviceId: cssxOrders.serviceId,
+        productTitle: cssxOrders.productTitle,
+        quantity: cssxOrders.quantity,
+        amountPaid: cssxOrders.amountPaid,
+        status: cssxOrders.status,
+        deliveryText: cssxOrders.deliveryText,
+        createdAt: cssxOrders.createdAt,
+      })
+      .from(cssxOrders)
+      .where(eq(cssxOrders.telegramUserId, user.id))
+      .orderBy(desc(cssxOrders.id));
+
+    res.json(ordersList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch CSxStore orders" });
   }
 });
 
@@ -13664,7 +14282,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
       // Fetch branding settings
       const storeNameSetting = await storage.getSetting("STORE_NAME");
-      const storeName = storeNameSetting?.value || "Imesh cloud store";
+      const storeName = storeNameSetting?.value || "YouuHost";
 
       const supportBtnTextSetting = await storage.getSetting("SUPPORT_BTN_TEXT");
       const supportBtnText = supportBtnTextSetting?.value || "Write to support";

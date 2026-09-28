@@ -72,18 +72,18 @@ export default function Dashboard() {
   const totalRevLkr = Math.round(((stats?.totalRevenue || 0) / 100) * lkrRate).toLocaleString();
 
   return (
-    <div className="space-y-8 animate-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8 animate-in w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl">
             Dashboard
           </h1>
-          <p className="text-white/40 text-sm mt-1">
+          <p className="text-white/40 text-xs sm:text-sm mt-1">
             Real-time multi-channel overview across Cloud Accounts, Partner Stores & SMM panels.
           </p>
         </div>
-        <div className="glass-panel px-5 py-2 rounded-full flex items-center gap-2.5 text-xs font-bold text-white shadow-lg border-white/20">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+        <div className="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-white shadow-lg border-white/20 shrink-0">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
           System Active
         </div>
       </div>
@@ -221,24 +221,24 @@ export default function Dashboard() {
       </div>
 
       {/* Chart & Recent Multi-Store Orders */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
         {/* Chart */}
-        <Card className="col-span-4 glass-card p-2 border-0 bg-white/[0.01]">
-          <CardHeader>
-            <CardTitle className="text-lg font-black text-white flex items-center justify-between">
+        <Card className="col-span-1 lg:col-span-4 glass-card p-2 sm:p-4 border-0 bg-white/[0.01]">
+          <CardHeader className="px-2 pb-4">
+            <CardTitle className="text-sm sm:text-base md:text-lg font-black text-white flex flex-wrap items-center justify-between gap-2">
               <span className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                 7-Day Multi-Store Revenue
               </span>
-              <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <span className="text-[10px] sm:text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full shrink-0">
                 Live Dynamic Feed
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[320px] w-full">
+          <CardContent className="pl-0 sm:pl-2">
+            <div className="h-[260px] sm:h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
@@ -249,13 +249,13 @@ export default function Dashboard() {
                   <XAxis 
                     dataKey="name" 
                     stroke="rgba(255,255,255,0.4)" 
-                    fontSize={12} 
+                    fontSize={11} 
                     tickLine={false} 
                     axisLine={false} 
                   />
                   <YAxis
                     stroke="rgba(255,255,255,0.4)" 
-                    fontSize={12} 
+                    fontSize={11} 
                     tickLine={false} 
                     axisLine={false} 
                     tickFormatter={(value) => `$${value}`}
@@ -265,7 +265,8 @@ export default function Dashboard() {
                       backgroundColor: '#0f0a1e', 
                       borderRadius: '12px',
                       border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#ffffff'
+                      color: '#ffffff',
+                      fontSize: '12px'
                     }}
                     formatter={(value: any) => [`$${value} USD`, "Daily Total"]}
                   />
@@ -284,53 +285,53 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Multi-Store Orders */}
-        <Card className="col-span-3 glass-card border-0 bg-white/[0.01]">
-          <CardHeader>
-            <CardTitle className="text-lg font-black text-white flex items-center justify-between">
+        <Card className="col-span-1 lg:col-span-3 glass-card border-0 bg-white/[0.01]">
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-sm sm:text-base md:text-lg font-black text-white flex items-center justify-between">
               <span>Recent Sales</span>
               <span className="text-xs text-white/40 font-normal">All Channels</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-4">
             {ordersLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-xl bg-white/5" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-[160px] bg-white/5" />
-                      <Skeleton className="h-3 w-[120px] bg-white/5" />
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-9 w-9 rounded-xl bg-white/5 shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-3.5 w-full bg-white/5" />
+                      <Skeleton className="h-2.5 w-3/4 bg-white/5" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : recentOrders.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {recentOrders.map((order: any) => {
                   const isPartner = order.orderType === "partner";
                   const isSmm = order.orderType === "smm";
                   return (
-                    <div key={order.id} className="flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    <div key={order.id} className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-xl flex items-center justify-center shrink-0 ${
                           isPartner ? 'bg-pink-500/10 text-pink-400' : isSmm ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
                         }`}>
                           {isPartner ? <Store className="w-4 h-4" /> : isSmm ? <Layers className="w-4 h-4" /> : <Server className="w-4 h-4" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black text-white truncate">
+                          <p className="text-xs font-bold text-white truncate">
                             {order.title || "Digital Product"}
                           </p>
                           <p className="text-[10px] text-white/40 truncate">
-                            {order.buyer || "Anonymous"} · <span className="text-purple-300">{order.typeLabel || "Store"}</span>
+                            {order.buyer || "Anonymous"} · <span className="text-purple-300 font-semibold">{order.typeLabel || "Store"}</span>
                           </p>
                         </div>
                       </div>
-                      <div className="text-right shrink-0 pl-2">
+                      <div className="text-right shrink-0 pl-1">
                         <p className="text-xs font-black text-emerald-400 font-mono">
                           {order.amountUsd}
                         </p>
-                        <p className="text-[10px] text-white/40">
+                        <p className="text-[9px] text-white/40 whitespace-nowrap">
                           {order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : ""}
                         </p>
                       </div>
@@ -340,7 +341,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center text-white/30 py-8">
-                <Package className="w-12 h-12 mb-3 opacity-20" />
+                <Package className="w-10 h-10 mb-2 opacity-20" />
                 <p className="text-xs font-bold">No orders recorded yet</p>
               </div>
             )}

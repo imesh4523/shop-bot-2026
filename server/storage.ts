@@ -237,10 +237,10 @@ export class DatabaseStorage implements IStorage {
     // Initialize default branding settings
     const defaultSettings = [
       { key: "INSPECTOR_BOT_TOKEN", value: "8597932397:AAEweM3gKQpDKFx0OJzdHdtIBbQ2ZVLR448" },
-      { key: "STORE_NAME", value: "Shopeefy" },
-      { key: "SUPPORT_USERNAME", value: "@rochana_imesh" },
+      { key: "STORE_NAME", value: "YouuHost" },
+      { key: "SUPPORT_USERNAME", value: "@youuhost_support" },
       { key: "SUPPORT_BTN_TEXT", value: "Write to Support" },
-      { key: "LOADING_TEXT", value: "Shopeefy..." },
+      { key: "LOADING_TEXT", value: "YouuHost..." },
       { key: "TRC20_WALLET_ADDRESS", value: "TJR7q1c8k5v74B8F91M5B1mzpml3x9k" },
       { key: "BEP20_WALLET_ADDRESS", value: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" },
       { key: "BINANCE_PAY_ID", value: "284910485" },

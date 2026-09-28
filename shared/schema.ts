@@ -587,6 +587,63 @@ export const insertSandromaniaOrderSchema = createInsertSchema(sandromaniaOrders
 export type SandromaniaOrder = typeof sandromaniaOrders.$inferSelect;
 export type InsertSandromaniaOrder = z.infer<typeof insertSandromaniaOrderSchema>;
 
+// CSxStore Partner Products
+export const cssxProducts = pgTable("cssx_products", {
+  id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  category: text("category").default("general"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CSxStore Partner Orders
+export const cssxOrders = pgTable("cssx_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  cssxProductId: integer("cssx_product_id").references(() => cssxProducts.id),
+  externalOrderId: text("external_order_id"),
+  serviceId: text("service_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  status: text("status").notNull().default("completed"),
+  deliveryText: text("delivery_text"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cssxProductsRelations = relations(cssxProducts, ({ many }) => ({
+  orders: many(cssxOrders),
+}));
+
+export const cssxOrdersRelations = relations(cssxOrders, ({ one }) => ({
+  product: one(cssxProducts, {
+    fields: [cssxOrders.cssxProductId],
+    references: [cssxProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [cssxOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertCssxProductSchema = createInsertSchema(cssxProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type CssxProductRow = typeof cssxProducts.$inferSelect;
+export type InsertCssxProduct = z.infer<typeof insertCssxProductSchema>;
+
+export const insertCssxOrderSchema = createInsertSchema(cssxOrders).omit({ id: true, createdAt: true });
+export type CssxOrderRow = typeof cssxOrders.$inferSelect;
+export type InsertCssxOrder = z.infer<typeof insertCssxOrderSchema>;
+
 // ==========================================
 // Store Mesh & Inter-Store Peer Federation
 // ==========================================

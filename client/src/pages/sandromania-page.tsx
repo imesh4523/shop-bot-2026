@@ -64,6 +64,10 @@ export const PRESET_CATEGORIES = [
   { id: "oracle", label: "Oracle Cloud" },
   { id: "linode", label: "Linode" },
   { id: "google", label: "GCP Cloud" },
+  { id: "canva", label: "Canva Pro" },
+  { id: "adobe", label: "Adobe Creative" },
+  { id: "hotmail", label: "Hotmail / Outlook" },
+  { id: "windows", label: "Windows OS" },
   { id: "spotify", label: "Spotify" },
   { id: "youtube", label: "YouTube" },
   { id: "tiktok", label: "TikTok" },
@@ -271,6 +275,31 @@ export default function SandromaniaPage() {
     },
   });
 
+  // Full Auto-Sync Live Catalog Mutation (Auto Import & Stock Sync)
+  const autoSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sandromania/auto-sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to auto-sync catalog");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "🎉 Live Partner Catalog Synced!",
+        description: data.message || `All Sandromania products (Canva, Adobe, Hotmail, etc.) have been auto-synced to your catalog.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/settings"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Auto-Sync Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const copyToClipboard = (text: string, label = "Copied to clipboard") => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -424,22 +453,38 @@ export default function SandromaniaPage() {
                   refetchSettings();
                   refetchProducts();
                   refetchOrders();
-                  syncStockMutation.mutate();
+                  autoSyncMutation.mutate();
                 }}
-                disabled={syncStockMutation.isPending}
-                variant="outline"
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-2"
+                disabled={autoSyncMutation.isPending}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-600/30 gap-1.5"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}`} /> 
-                {syncStockMutation.isPending ? "Syncing..." : "Sync Stock"}
+                <Sparkles className={`w-3.5 h-3.5 ${autoSyncMutation.isPending ? "animate-spin text-yellow-300" : "text-yellow-400"}`} /> 
+                {autoSyncMutation.isPending ? "Auto-Syncing..." : "⚡ Auto-Sync Catalog"}
               </Button>
 
-              <Button
-                onClick={() => setShowImportModal(true)}
-                className="flex-1 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] hover:opacity-95 text-white font-black rounded-xl text-xs shadow-lg shadow-[#8B5CF6]/30 gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Import Products
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    refetchSettings();
+                    refetchProducts();
+                    refetchOrders();
+                    syncStockMutation.mutate();
+                  }}
+                  disabled={syncStockMutation.isPending}
+                  variant="outline"
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}`} /> 
+                  Stock
+                </Button>
+
+                <Button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex-1 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] hover:opacity-95 text-white font-black rounded-xl text-xs shadow-lg shadow-[#8B5CF6]/30 gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Import
+                </Button>
+              </div>
             </div>
           </div>
         </div>

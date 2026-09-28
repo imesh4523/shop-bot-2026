@@ -1597,7 +1597,7 @@ export default function SettingsPage() {
                 <Input
                   id="support"
                   type="text"
-                  placeholder="e.g. @rochana_imesh"
+                  placeholder="e.g. @youuhost_support"
                   className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
                   value={supportContact}
                   onChange={(e) => setSupportContact(e.target.value)}
@@ -1704,7 +1704,7 @@ export default function SettingsPage() {
               <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Support Username (Link)</Label>
               <div className="flex gap-3">
                 <Input
-                  placeholder="e.g. @rochana_imesh"
+                  placeholder="e.g. @youuhost_support"
                   className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
                   value={supportUsername}
                   onChange={(e) => setSupportUsername(e.target.value)}

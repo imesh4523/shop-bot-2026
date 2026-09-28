@@ -5,19 +5,19 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
   RefreshCw,
-  Key,
   DollarSign,
   Package,
   ShoppingCart,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  Plus,
+  Trash2,
   Search,
   Eye,
   EyeOff,
   Copy,
   Check,
-  Globe,
   Radio,
   Clock,
   ShieldCheck,
@@ -28,14 +28,14 @@ import {
   KeyRound,
   Code2,
   Send,
-  Puzzle,
   Terminal,
-  Server,
-  Database,
-  ArrowRight,
+  SlidersHorizontal,
+  Edit,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -50,107 +50,63 @@ import { format } from "date-fns";
 const BASE_URL = "https://api.cssx.store";
 const DOCS_URL = "https://api.cssx.store/docs";
 
-const API_ENDPOINTS = [
-  {
-    method: "GET",
-    path: "/api/v1/me",
-    title: "Account Profile & Wallet",
-    description: "Returns account details, email, status, and live USDT wallet balance.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/me" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/products",
-    title: "Products Catalog",
-    description: "Fetches list of all available products with stock, pricing, and variant details.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/products" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "POST",
-    path: "/api/v1/order",
-    title: "Create Single Order",
-    description: "Purchases and provisions a product instantly. Deducts cost from your USDT wallet.",
-    samplePayload: { product_id: "PROD_123", quantity: 1, custom_data: { note: "Order via Bot" } },
-    curlExample: `curl -X POST "${BASE_URL}/api/v1/order" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"product_id": "PROD_123", "quantity": 1}'`
-  },
-  {
-    method: "POST",
-    path: "/api/v1/batch-order",
-    title: "Create Batch Orders",
-    description: "Places multiple product orders in a single atomic transaction.",
-    samplePayload: {
-      orders: [
-        { product_id: "PROD_123", quantity: 2 },
-        { product_id: "PROD_456", quantity: 1 }
-      ]
-    },
-    curlExample: `curl -X POST "${BASE_URL}/api/v1/batch-order" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"orders": [{"product_id": "PROD_123", "quantity": 2}]}'`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/orders",
-    title: "Order History",
-    description: "Fetches all recent placed orders with delivery data and statuses.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/orders" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/order/{id}",
-    title: "Get Order by ID",
-    description: "Fetches complete order details, delivered keys, license codes, or download links.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/order/ORD_98765" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/stats",
-    title: "Account Statistics",
-    description: "Returns total orders, successful orders count, spent USDT, and failure rates.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/stats" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  }
+export const PRESET_CATEGORIES = [
+  { id: "Gemini AI", label: "Gemini AI" },
+  { id: "ChatGPT / OpenAI", label: "ChatGPT / OpenAI" },
+  { id: "Claude AI", label: "Claude AI" },
+  { id: "AWS Cloud", label: "AWS Cloud" },
+  { id: "DigitalOcean", label: "DigitalOcean" },
+  { id: "MS Azure", label: "MS Azure" },
+  { id: "Oracle Cloud", label: "Oracle Cloud" },
+  { id: "Linode", label: "Linode" },
+  { id: "GCP Cloud", label: "GCP Cloud" },
+  { id: "Canva Pro", label: "Canva Pro" },
+  { id: "Adobe Creative", label: "Adobe Creative" },
+  { id: "Hotmail / Outlook", label: "Hotmail / Outlook" },
+  { id: "Windows OS", label: "Windows OS" },
+  { id: "Spotify", label: "Spotify" },
+  { id: "YouTube", label: "YouTube" },
+  { id: "TikTok", label: "TikTok" },
+  { id: "Instagram", label: "Instagram" },
+  { id: "Facebook", label: "Facebook" },
+  { id: "Telegram", label: "Telegram" },
+  { id: "Duolingo", label: "Duolingo" },
+  { id: "CapCut", label: "CapCut" },
+  { id: "Kamatera", label: "Kamatera" },
+  { id: "General / Other", label: "General / Other" },
 ];
 
 export default function CssxApiPage() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"overview" | "products" | "orders" | "docs" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"products" | "orders" | "docs" | "settings">("products");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Settings form state
+  // Settings State
   const [inputApiKey, setInputApiKey] = useState("");
   const [inputBaseUrl, setInputBaseUrl] = useState(BASE_URL);
 
-  // Order modal state
-  const [selectedProductForOrder, setSelectedProductForOrder] = useState<any | null>(null);
-  const [orderQuantity, setOrderQuantity] = useState<number>(1);
-  const [orderCustomNote, setOrderCustomNote] = useState<string>("");
+  // Edit Product Modal State
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState<string>("");
+  const [editSellingPriceUsd, setEditSellingPriceUsd] = useState<string>("");
+  const [editSellingPriceLkr, setEditSellingPriceLkr] = useState<string>("");
+  const [editCategory, setEditCategory] = useState<string>("General");
+  const [editDescription, setEditDescription] = useState<string>("");
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
+
+  // Import Modal State
+  const [importSearch, setImportSearch] = useState("");
+  const [markupPercent, setMarkupPercent] = useState<number>(40);
+  const [selectedProductsToImport, setSelectedProductsToImport] = useState<any[]>([]);
 
   // Interactive playground state
   const [playgroundEndpoint, setPlaygroundEndpoint] = useState<string>("/api/v1/me");
   const [playgroundMethod, setPlaygroundMethod] = useState<string>("GET");
-  const [playgroundPayload, setPlaygroundPayload] = useState<string>('{\n  "product_id": "1",\n  "quantity": 1\n}');
-  const [playgroundOrderId, setPlaygroundOrderId] = useState<string>("1");
+  const [playgroundPayload, setPlaygroundPayload] = useState<string>('{\n  "service_id": "5",\n  "quantity": 1\n}');
   const [playgroundResponse, setPlaygroundResponse] = useState<any | null>(null);
   const [isPlayingLoading, setIsPlayingLoading] = useState(false);
 
@@ -174,22 +130,20 @@ export default function CssxApiPage() {
     },
   });
 
-  // 2. Query Live Products
-  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts, isFetching: productsFetching } = useQuery<any[]>({
+  // 2. Query Managed Products in Store (stored in local database with custom prices)
+  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery<any[]>({
     queryKey: ["/api/admin/cssx/products"],
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/products");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to load products from CSxStore");
+        throw new Error(err.message || "Failed to load products");
       }
       return res.json();
     },
-    enabled: activeTab === "products" || activeTab === "overview",
-    retry: false
   });
 
-  // 3. Query Orders History
+  // 3. Query Orders Tracker
   const { data: orders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery<any[]>({
     queryKey: ["/api/admin/cssx/orders"],
     queryFn: async () => {
@@ -200,11 +154,23 @@ export default function CssxApiPage() {
       }
       return res.json();
     },
-    enabled: activeTab === "orders" || activeTab === "overview",
-    retry: false
   });
 
-  // Test Connection Mutation
+  // 4. Query Live Remote Catalog from CSxStore API (for import modal)
+  const { data: remoteProducts = [], isLoading: remoteProductsLoading, refetch: refetchRemoteProducts } = useQuery<any[]>({
+    queryKey: ["/api/admin/cssx/fetch-products"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/cssx/fetch-products");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to fetch live products from CSxStore");
+      }
+      return res.json();
+    },
+    enabled: showImportModal,
+  });
+
+  // Diagnostic Test Connection Mutation
   const [testResult, setTestResult] = useState<any | null>(null);
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
@@ -218,7 +184,7 @@ export default function CssxApiPage() {
       if (data.connected) {
         toast({
           title: "Connection Successful! ⚡",
-          description: `Latency: ${data.latencyMs}ms | Live Wallet: $${Number(data.walletUsdt || 0).toFixed(4)} USDT | Catalog: ${data.productCount} items`,
+          description: `Latency: ${data.latencyMs}ms | Account: ${data.account?.username || "@partner"} | Wallet: $${Number(data.walletUsdt || 0).toFixed(2)} USDT | Catalog: ${data.productCount} items`,
         });
       } else {
         toast({
@@ -228,7 +194,7 @@ export default function CssxApiPage() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchSettings();
     },
     onError: (err: any) => {
       toast({
@@ -239,7 +205,7 @@ export default function CssxApiPage() {
     },
   });
 
-  // 4. Save Settings Mutation
+  // Save Settings Mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ apiKey, baseUrl }: { apiKey: string; baseUrl: string }) => {
       const res = await fetch("/api/admin/cssx/settings", {
@@ -253,13 +219,11 @@ export default function CssxApiPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: data.status === "connected" ? "Connected Successfully!" : "Settings Saved",
+        title: data.status === "connected" ? "Connected Successfully! ⚡" : "Settings Saved",
         description: data.message,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
       refetchSettings();
-      refetchProducts();
     },
     onError: (err: any) => {
       toast({
@@ -270,63 +234,164 @@ export default function CssxApiPage() {
     },
   });
 
-  // 5. Create Order Mutation
-  const createOrderMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const res = await fetch("/api/admin/cssx/order", {
+  // Import Products Mutation
+  const importProductsMutation = useMutation({
+    mutationFn: async (payload: { products: any[]; markupPercent: number }) => {
+      const res = await fetch("/api/admin/cssx/import-products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to place order");
+      if (!res.ok) throw new Error(data.message || "Failed to import products");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "🎉 Import Complete!",
+        description: data.message,
+      });
+      setShowImportModal(false);
+      setSelectedProductsToImport([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Import Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update Product Mutation
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
+      const res = await fetch(`/api/admin/cssx/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update product");
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Order Placed!", description: "Product has been provisioned successfully." });
-      setSelectedProductForOrder(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      toast({ title: "Product Updated" });
+      setEditingProduct(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
     },
     onError: (err: any) => {
-      toast({ title: "Order Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Update Failed", description: err.message, variant: "destructive" });
     },
   });
+
+  // Delete Product Mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/cssx/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete product");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Product Deleted from Store" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
+    },
+    onError: (err: any) => {
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Sync Live Stock from CSxStore Mutation
+  const syncStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/cssx/sync-stock", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to sync stock");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "⚡ Stock Synced Successfully!",
+        description: data.message || "Updated live stock counts from CSxStore API.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      refetchProducts();
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Stock Sync Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOpenEdit = (prod: any) => {
+    setEditingProduct(prod);
+    setEditTitle(prod.title || "");
+    setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)));
+    setEditCategory(prod.category || "General");
+    setEditDescription(prod.description || "");
+    setEditIsActive(prod.isActive !== false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingProduct) return;
+    let usdVal = parseFloat(editSellingPriceUsd);
+    let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
+
+    if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
+      usdVal = parseFloat((lkrVal / 305.5).toFixed(2));
+    }
+    if (usdVal > 0 && lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 305.5);
+    }
+
+    if (isNaN(usdVal) || usdVal < 0) {
+      toast({ title: "Invalid Price", description: "Please enter a valid price.", variant: "destructive" });
+      return;
+    }
+
+    const priceCents = Math.round(usdVal * 100);
+
+    updateProductMutation.mutate({
+      id: editingProduct.id,
+      updates: {
+        title: editTitle.trim() || editingProduct.title,
+        sellingPriceUsd: priceCents,
+        sellingPriceLkr: Math.round(lkrVal),
+        category: editCategory,
+        description: editDescription,
+        isActive: editIsActive,
+      },
+    });
+  };
 
   // Interactive playground execution
   const executePlayground = async () => {
     setIsPlayingLoading(true);
     setPlaygroundResponse(null);
     try {
-      let endpoint = playgroundEndpoint;
-      if (endpoint === "/api/v1/order/{id}") {
-        endpoint = `/api/v1/orders/${playgroundOrderId || "1"}`;
-      }
-
       let res: Response;
       if (playgroundMethod === "GET") {
-        if (endpoint === "/api/v1/me") res = await fetch("/api/admin/cssx/me");
-        else if (endpoint === "/api/v1/stats") res = await fetch("/api/admin/cssx/stats");
-        else if (endpoint === "/api/v1/products") res = await fetch("/api/admin/cssx/products");
-        else if (endpoint === "/api/v1/orders") res = await fetch("/api/admin/cssx/orders");
-        else res = await fetch(`/api/admin/cssx/orders/${playgroundOrderId || "1"}`);
+        if (playgroundEndpoint === "/api/v1/me") res = await fetch("/api/admin/cssx/settings");
+        else if (playgroundEndpoint === "/api/v1/products") res = await fetch("/api/admin/cssx/fetch-products");
+        else res = await fetch("/api/admin/cssx/orders");
       } else {
         let bodyJson = {};
         try { bodyJson = JSON.parse(playgroundPayload); } catch { throw new Error("Invalid JSON body in payload."); }
-        
-        if (endpoint === "/api/v1/order") {
-          res = await fetch("/api/admin/cssx/order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyJson)
-          });
-        } else {
-          res = await fetch("/api/admin/cssx/batch-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyJson)
-          });
-        }
+        res = await fetch("/api/admin/cssx/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyJson),
+        });
       }
 
       const data = await res.json();
@@ -343,17 +408,27 @@ export default function CssxApiPage() {
     ? (showApiKey ? settingsData.apiKey : (settingsData.maskedApiKey || "••••••••••••••••"))
     : "No active key";
 
-  const walletUsdt = Number(settingsData?.walletUsdt ?? 0).toFixed(4);
-  const totalOrders = Number(settingsData?.stats?.orders ?? orders.length ?? 0);
-  const successfulOrders = Number(settingsData?.stats?.successful ?? orders.filter((o: any) => o.status === "completed" || o.status === "success").length ?? 0);
+  const walletUsdt = Number(settingsData?.walletUsdt ?? 0).toFixed(2);
+  const totalOrders = Number(orders.length);
+  const successfulOrders = Number(orders.filter((o: any) => o.status === "completed" || o.status === "success" || o.status === "approved").length);
 
-  // Filter products by search
+  // Filter local managed products
   const filteredProducts = products.filter((p: any) => {
-    const title = (p.title || p.name || "").toLowerCase();
+    const title = (p.title || "").toLowerCase();
     const cat = (p.category || "").toLowerCase();
-    const id = String(p.id || p.product_id || "");
+    const sid = String(p.serviceId || p.id || "");
     const q = searchQuery.toLowerCase();
-    return title.includes(q) || cat.includes(q) || id.includes(q);
+    const matchesSearch = title.includes(q) || cat.includes(q) || sid.includes(q);
+    const matchesCategory = selectedCategory === "all" || cat === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
+
+  // Filter remote products for import modal
+  const filteredRemote = remoteProducts.filter((r: any) => {
+    const title = (r.name || r.title || "").toLowerCase();
+    const sid = String(r.service_id || r.id || "");
+    const q = importSearch.toLowerCase();
+    return title.includes(q) || sid.includes(q);
   });
 
   return (
@@ -367,7 +442,7 @@ export default function CssxApiPage() {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className="text-2xl">🧩</span>
               <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                Reseller / Developer API
+                CSxStore Integration & Pricing
               </h1>
               <Badge
                 variant="outline"
@@ -384,7 +459,7 @@ export default function CssxApiPage() {
               </Badge>
             </div>
             <p className="text-xs md:text-sm text-purple-200/70 max-w-2xl font-medium">
-              Direct high-performance integration with <b className="text-white font-bold">CSxStore Reseller API</b>. Provision products, manage USDT wallet balance, execute batch orders, and query live delivery data.
+              Integrate <b className="text-white font-bold">CSxStore Catalog</b> into your store. Import products, configure custom selling prices in <b className="text-emerald-400">Rs (LKR) / USD</b>, and enable automated instant provisioning.
             </p>
           </div>
 
@@ -400,16 +475,13 @@ export default function CssxApiPage() {
               {testConnectionMutation.isPending ? "Testing..." : (testResult?.latencyMs ? `${testResult.latencyMs}ms Ping` : "Test Ping")}
             </Button>
 
-            <a
-              href={DOCS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 transition-all hover:scale-105 active:scale-95 shadow-sm"
+            <Button
+              onClick={() => setShowImportModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-10 px-4 shadow-lg shadow-purple-600/25 flex items-center gap-2"
             >
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span>📚 API Docs</span>
-              <ExternalLink className="w-3.5 h-3.5 text-white/50" />
-            </a>
+              <Plus className="w-4 h-4" />
+              Import Products ({remoteProducts.length || "Live"})
+            </Button>
 
             <Button
               variant="outline"
@@ -418,7 +490,7 @@ export default function CssxApiPage() {
                 refetchSettings();
                 refetchProducts();
                 refetchOrders();
-                toast({ title: "Refreshing...", description: "Fetching live CSxStore balance & data." });
+                toast({ title: "Refreshing...", description: "Fetching live CSxStore balance & products." });
               }}
               disabled={settingsLoading || productsLoading}
               className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4"
@@ -429,7 +501,7 @@ export default function CssxApiPage() {
           </div>
         </div>
 
-        {/* Live Metrics Grid matching exact specs */}
+        {/* Live Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6 pt-6 border-t border-purple-500/15">
           {/* 1. API Status */}
           <div className="bg-black/30 rounded-2xl p-3.5 border border-white/5">
@@ -447,30 +519,30 @@ export default function CssxApiPage() {
           {/* 2. Wallet USDT */}
           <div className="bg-black/30 rounded-2xl p-3.5 border border-white/5">
             <span className="text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1">
-              💰 Wallet
+              💰 CSx Wallet
             </span>
             <div className="text-sm font-black text-emerald-400">
-              {walletUsdt} <span className="text-[10px] font-bold text-emerald-400/70">USDT</span>
+              ${walletUsdt} <span className="text-[10px] font-bold text-emerald-400/70">USDT</span>
             </div>
           </div>
 
-          {/* 3. Orders */}
+          {/* 3. Managed Store Products */}
+          <div className="bg-black/30 rounded-2xl p-3.5 border border-white/5">
+            <span className="text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1">
+              🛍 In Store
+            </span>
+            <div className="text-sm font-black text-purple-300">
+              {products.length} Products
+            </div>
+          </div>
+
+          {/* 4. Orders */}
           <div className="bg-black/30 rounded-2xl p-3.5 border border-white/5">
             <span className="text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1">
               📦 Orders
             </span>
             <div className="text-sm font-black text-white">
               {totalOrders}
-            </div>
-          </div>
-
-          {/* 4. Successful */}
-          <div className="bg-black/30 rounded-2xl p-3.5 border border-white/5">
-            <span className="text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1">
-              ✅ Successful
-            </span>
-            <div className="text-sm font-black text-purple-300">
-              {successfulOrders}
             </div>
           </div>
 
@@ -510,47 +582,31 @@ export default function CssxApiPage() {
             </div>
           </div>
         </div>
-
-        {/* Notice banner matching user request */}
-        <div className="mt-4 px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs font-semibold text-purple-200/90 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-purple-400 shrink-0" />
-            <span>Your full active key is shown only inside your own CSxStore account. Keep it private.</span>
-          </div>
-          <span className="text-[11px] font-mono text-purple-300/80">Header Auth: <b className="text-white">X-API-Key: YOUR_KEY</b></span>
-        </div>
       </div>
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-6">
-        <TabsList className="bg-[#130B24] border border-purple-500/20 p-1.5 rounded-2xl grid grid-cols-2 md:grid-cols-5 gap-1.5 h-auto">
-          <TabsTrigger
-            value="overview"
-            className="rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60"
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-2" />
-            Overview
-          </TabsTrigger>
+        <TabsList className="bg-[#130B24] border border-purple-500/20 p-1.5 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-1.5 h-auto">
           <TabsTrigger
             value="products"
             className="rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60"
           >
             <Package className="w-3.5 h-3.5 mr-2" />
-            Live Products ({products.length})
+            Managed Products ({products.length})
           </TabsTrigger>
           <TabsTrigger
             value="orders"
             className="rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60"
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-2" />
-            Orders History ({orders.length})
+            Orders & Delivery ({orders.length})
           </TabsTrigger>
           <TabsTrigger
             value="docs"
             className="rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60"
           >
             <Code2 className="w-3.5 h-3.5 mr-2" />
-            📚 API Docs & Playground
+            📚 Playground & Docs
           </TabsTrigger>
           <TabsTrigger
             value="settings"
@@ -561,246 +617,199 @@ export default function CssxApiPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* 1. TAB: OVERVIEW */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Quick Action: Account & Wallet Status */}
-            <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
-                </div>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-black">
-                  LIVE WALLET
-                </Badge>
-              </div>
-              <h3 className="text-xs font-bold text-purple-300/60 uppercase">Available USDT Balance</h3>
-              <div className="text-3xl font-black text-white mt-1">
-                ${walletUsdt} <span className="text-sm font-bold text-emerald-400">USDT</span>
-              </div>
-              <p className="text-xs text-purple-200/60 mt-2">
-                Used for instant API product purchases and batch automated provisioning.
-              </p>
-              <div className="mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between">
-                <span className="text-xs text-white/50">Status: <b className="text-white">{settingsData?.statusMessage || "Active"}</b></span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => refetchSettings()}
-                  className="h-8 text-xs font-bold text-purple-300 hover:text-white hover:bg-purple-500/10"
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" /> Check Balance
-                </Button>
-              </div>
-            </div>
-
-            {/* Quick Action: Product Catalog summary */}
-            <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                  <Package className="w-5 h-5 text-purple-400" />
-                </div>
-                <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] font-black">
-                  CATALOG
-                </Badge>
-              </div>
-              <h3 className="text-xs font-bold text-purple-300/60 uppercase">Available Products</h3>
-              <div className="text-3xl font-black text-white mt-1">
-                {products.length} <span className="text-sm font-bold text-purple-400">Items</span>
-              </div>
-              <p className="text-xs text-purple-200/60 mt-2">
-                Live products in CSxStore catalog with automated provisioning.
-              </p>
-              <div className="mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between">
-                <Button
-                  size="sm"
-                  onClick={() => setActiveTab("products")}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl h-8 flex items-center justify-center gap-1"
-                >
-                  Browse Catalog <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Quick Action: Developer & Reseller Docs */}
-            <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                  <Code2 className="w-5 h-5 text-blue-400" />
-                </div>
-                <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] font-black">
-                  API V1
-                </Badge>
-              </div>
-              <h3 className="text-xs font-bold text-purple-300/60 uppercase">API Documentation</h3>
-              <div className="text-xl font-black text-white mt-1">
-                7 Endpoints Ready
-              </div>
-              <p className="text-xs text-purple-200/60 mt-2">
-                Interactive playground for /me, /products, /order, /orders, /stats.
-              </p>
-              <div className="mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between">
-                <Button
-                  size="sm"
-                  onClick={() => setActiveTab("docs")}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl h-8 flex items-center justify-center gap-1"
-                >
-                  Open Docs & Playground <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Endpoints Cheatsheet on Overview */}
-          <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-purple-400" />
-                <h3 className="text-base font-black text-white">Supported Reseller API Endpoints</h3>
-              </div>
-              <a
-                href={DOCS_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-purple-300 hover:text-white font-bold flex items-center gap-1"
-              >
-                View Full Docs <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {API_ENDPOINTS.map((ep) => (
-                <div
-                  key={ep.path + ep.method}
-                  onClick={() => {
-                    setPlaygroundEndpoint(ep.path);
-                    setPlaygroundMethod(ep.method);
-                    if (ep.samplePayload) {
-                      setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
-                    }
-                    setActiveTab("docs");
-                  }}
-                  className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/15 hover:border-purple-500/40 cursor-pointer transition-all hover:scale-[1.02] group"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span
-                      className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
-                        ep.method === "GET"
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                      }`}
-                    >
-                      {ep.method}
-                    </span>
-                    <span className="text-[10px] text-purple-300/50 font-mono group-hover:text-purple-300">Try in Playground →</span>
-                  </div>
-                  <div className="text-xs font-mono font-bold text-white mb-1">{ep.path}</div>
-                  <div className="text-[11px] text-purple-200/60 leading-snug">{ep.title}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* 2. TAB: LIVE PRODUCTS */}
+        {/* 1. TAB: MANAGED PRODUCTS */}
         <TabsContent value="products" className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <Input
-                placeholder="Search products by title, category, ID..."
+                placeholder="Search products in your store..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-[#120B24] border-purple-500/20 text-white placeholder:text-purple-300/40 rounded-2xl text-xs h-10"
               />
             </div>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => refetchProducts()}
-              disabled={productsLoading}
-              className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10"
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => syncStockMutation.mutate()}
+                disabled={syncStockMutation.isPending}
+                className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-2 ${syncStockMutation.isPending ? "animate-spin text-purple-400" : ""}`} />
+                Sync Live Stock
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={() => setShowImportModal(true)}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-2xl h-10 px-4 flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Import More Products
+              </Button>
+            </div>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all ${
+                selectedCategory === "all"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                  : "bg-[#120B24] border border-purple-500/20 text-purple-300/70 hover:text-white"
+              }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-2 ${productsLoading ? "animate-spin text-purple-400" : ""}`} />
-              Reload Products
-            </Button>
+              All Categories ({products.length})
+            </button>
+            {PRESET_CATEGORIES.map((cat) => {
+              const count = products.filter((p: any) => (p.category || "").toLowerCase() === cat.id.toLowerCase()).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all ${
+                    selectedCategory.toLowerCase() === cat.id.toLowerCase()
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                      : "bg-[#120B24] border border-purple-500/20 text-purple-300/70 hover:text-white"
+                  }`}
+                >
+                  {cat.label} ({count})
+                </button>
+              );
+            })}
           </div>
 
           {productsLoading ? (
             <div className="p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl">
               <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" />
-              <p className="text-xs font-bold text-purple-200/70">Fetching live products from CSxStore API...</p>
+              <p className="text-xs font-bold text-purple-200/70">Loading store catalog...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl">
               <Package className="w-10 h-10 text-purple-400/40 mx-auto mb-3" />
-              <h4 className="text-sm font-bold text-white">No products found</h4>
+              <h4 className="text-sm font-bold text-white">No products imported yet</h4>
               <p className="text-xs text-purple-300/60 mt-1 max-w-md mx-auto">
-                {settingsData?.apiKey
-                  ? "No products returned matching your search query, or your API key has no catalog permissions."
-                  : "Please configure your CSxStore API key in settings to fetch the live product catalog."}
+                {products.length === 0
+                  ? "Import products from CSxStore to set your own custom Rs LKR / USD selling prices and start selling."
+                  : "No products match your current search or category filter."}
               </p>
-              {!settingsData?.apiKey && (
+              {products.length === 0 && (
                 <Button
-                  size="sm"
-                  onClick={() => setActiveTab("settings")}
-                  className="mt-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl"
+                  onClick={() => setShowImportModal(true)}
+                  className="mt-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl"
                 >
-                  Configure API Key
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Import Products from CSxStore
                 </Button>
               )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map((p: any) => {
-                const prodId = p.id || p.product_id || p.code;
-                const prodName = p.title || p.name || `Product #${prodId}`;
-                const price = p.price_usdt || p.price || p.cost || 0;
-                const stock = p.stock ?? p.quantity ?? p.inventory ?? "In Stock";
-                const category = p.category || "General";
+                const costUsd = (p.costPriceUsd || 0) / 100;
+                const sellUsd = (p.sellingPriceUsd || 0) / 100;
+                const sellLkr = p.sellingPriceLkr ? Number(p.sellingPriceLkr) : Math.round(sellUsd * 305.5);
+                const profitUsd = sellUsd - costUsd;
+                const stock = p.stock ?? 0;
+                const isAvail = p.available && stock > 0;
 
                 return (
                   <div
-                    key={prodId}
-                    className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-500/40 transition-all group"
+                    key={p.id}
+                    className={`bg-[#120B24] border ${
+                      p.isActive ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/5 opacity-60"
+                    } rounded-3xl p-5 shadow-lg flex flex-col justify-between transition-all group`}
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] font-black">
-                          {category}
+                          {p.category || "General"}
                         </Badge>
-                        <span className="text-[10px] font-mono text-purple-400/60">ID: {prodId}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-purple-400/60">CSX #{p.serviceId}</span>
+                          <Switch
+                            checked={p.isActive !== false}
+                            onCheckedChange={(checked) => {
+                              updateProductMutation.mutate({
+                                id: p.id,
+                                updates: { isActive: checked },
+                              });
+                            }}
+                          />
+                        </div>
                       </div>
+
                       <h4 className="text-sm font-black text-white group-hover:text-purple-300 transition-colors line-clamp-2">
-                        {prodName}
+                        {p.title}
                       </h4>
                       {p.description && (
-                        <p className="text-xs text-purple-200/50 mt-1.5 line-clamp-2 font-medium">
+                        <p className="text-xs text-purple-200/50 mt-1 line-clamp-2 font-medium">
                           {p.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-purple-500/15 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-purple-300/60 block font-bold">Price / Stock</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-black text-emerald-400">${Number(price).toFixed(2)} USDT</span>
-                          <span className="text-[10px] font-bold text-white/50">• Stock: {stock}</span>
+                    <div className="mt-4 pt-3 border-t border-purple-500/15 space-y-2">
+                      {/* Price Grid */}
+                      <div className="grid grid-cols-2 gap-2 bg-black/40 p-2.5 rounded-2xl border border-white/5 text-xs">
+                        <div>
+                          <span className="text-[10px] text-purple-300/60 uppercase block font-bold">Selling Price</span>
+                          <div className="font-black text-emerald-400">
+                            Rs. {sellLkr.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] font-bold text-white/50">
+                            (${sellUsd.toFixed(2)} USD)
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] text-purple-300/60 uppercase block font-bold">Cost / Profit</span>
+                          <div className="font-bold text-purple-200">
+                            Cost: ${costUsd.toFixed(2)}
+                          </div>
+                          <div className="text-[10px] font-black text-emerald-300 flex items-center gap-0.5">
+                            <TrendingUp className="w-3 h-3 inline" /> +${profitUsd.toFixed(2)} Profit
+                          </div>
                         </div>
                       </div>
 
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedProductForOrder(p);
-                          setOrderQuantity(1);
-                        }}
-                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl h-8 px-3 shadow-md shadow-purple-600/20"
-                      >
-                        Order Now
-                      </Button>
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className={`w-2 h-2 rounded-full ${isAvail ? "bg-emerald-400" : "bg-red-500"}`} />
+                          <span className="font-bold text-white/70">
+                            {isAvail ? `Stock: ${stock}` : "Out of Stock"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenEdit(p)}
+                            className="h-8 px-2.5 rounded-xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 text-xs font-bold"
+                          >
+                            <Edit className="w-3.5 h-3.5 mr-1" /> Edit Price
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Remove "${p.title}" from your store catalog?`)) {
+                                deleteProductMutation.mutate(p.id);
+                              }
+                            }}
+                            className="h-8 px-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -809,10 +818,10 @@ export default function CssxApiPage() {
           )}
         </TabsContent>
 
-        {/* 3. TAB: ORDERS HISTORY */}
+        {/* 2. TAB: ORDERS HISTORY & AUDIT TRACKER */}
         <TabsContent value="orders" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-white uppercase tracking-wider">Placed CSxStore Orders</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider">CSxStore Customer Purchases & Deliveries</h3>
             <Button
               size="sm"
               variant="outline"
@@ -833,9 +842,9 @@ export default function CssxApiPage() {
           ) : orders.length === 0 ? (
             <div className="p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl">
               <ShoppingCart className="w-10 h-10 text-purple-400/40 mx-auto mb-3" />
-              <h4 className="text-sm font-bold text-white">No orders found</h4>
+              <h4 className="text-sm font-bold text-white">No CSxStore orders yet</h4>
               <p className="text-xs text-purple-300/60 mt-1 max-w-md mx-auto">
-                No orders have been placed through this CSxStore API key yet.
+                When customers purchase CSxStore products from your store, their orders, CDK licenses, and delivery data will appear here.
               </p>
             </div>
           ) : (
@@ -845,45 +854,41 @@ export default function CssxApiPage() {
                   <thead className="bg-black/40 border-b border-purple-500/15 text-purple-300/60 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="p-4">Order ID</th>
-                      <th className="p-4">Product / Item</th>
+                      <th className="p-4">Buyer</th>
+                      <th className="p-4">Product</th>
                       <th className="p-4">Qty</th>
-                      <th className="p-4">Total</th>
+                      <th className="p-4">Amount Paid</th>
                       <th className="p-4">Status</th>
-                      <th className="p-4">Delivered Data / Key</th>
+                      <th className="p-4">Delivered Data / CDK</th>
                       <th className="p-4 text-right">Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-purple-500/10">
                     {orders.map((o: any) => {
-                      const orderId = o.id || o.order_id;
-                      const prodName = o.product_name || o.product_title || o.product_id || "Item";
-                      const qty = o.quantity || 1;
-                      const price = o.total_price || o.price || 0;
-                      const status = o.status || "completed";
-                      const delivery = o.delivery_data || o.keys || o.item_data || o.license || "Delivered";
+                      const buyer = o.username ? `@${o.username}` : (o.userFirstName || o.userEmail || `User #${o.telegramId || o.telegramUserId}`);
+                      const paidCents = o.amountPaid || 0;
+                      const paidUsd = (paidCents / 100).toFixed(2);
+                      const paidLkr = Math.round((paidCents / 100) * 305.5);
 
                       return (
-                        <tr key={orderId} className="hover:bg-purple-500/5 transition-colors">
-                          <td className="p-4 font-mono font-bold text-white">#{orderId}</td>
-                          <td className="p-4 font-bold text-white/90">{prodName}</td>
-                          <td className="p-4 text-purple-200">{qty}</td>
-                          <td className="p-4 font-black text-emerald-400">${Number(price).toFixed(2)}</td>
+                        <tr key={o.id} className="hover:bg-purple-500/5 transition-colors">
+                          <td className="p-4 font-mono font-bold text-white">#{o.externalOrderId || `CSX-${o.id}`}</td>
+                          <td className="p-4 font-bold text-purple-300">{buyer}</td>
+                          <td className="p-4 font-bold text-white/90">{o.productTitle}</td>
+                          <td className="p-4 text-purple-200">{o.quantity}</td>
+                          <td className="p-4 font-black text-emerald-400">
+                            Rs. {paidLkr.toLocaleString()} <span className="text-[10px] text-white/50">(${paidUsd})</span>
+                          </td>
                           <td className="p-4">
-                            <Badge
-                              className={`text-[9px] font-black uppercase ${
-                                status === "completed" || status === "success"
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                              }`}
-                            >
-                              {status}
+                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] font-black uppercase">
+                              {o.status || "completed"}
                             </Badge>
                           </td>
                           <td className="p-4 font-mono text-[11px] text-purple-200/80 max-w-xs truncate">
-                            {typeof delivery === "object" ? JSON.stringify(delivery) : delivery}
+                            {o.deliveryText || "Delivered"}
                           </td>
                           <td className="p-4 text-right text-white/40">
-                            {o.created_at ? format(new Date(o.created_at), "MMM d, HH:mm") : "Recent"}
+                            {o.createdAt ? format(new Date(o.createdAt), "MMM d, HH:mm") : "Recent"}
                           </td>
                         </tr>
                       );
@@ -895,98 +900,32 @@ export default function CssxApiPage() {
           )}
         </TabsContent>
 
-        {/* 4. TAB: INTERACTIVE API DOCS & PLAYGROUND */}
+        {/* 3. TAB: PLAYGROUND & DOCS */}
         <TabsContent value="docs" className="space-y-6">
-          {/* Top Docs Banner */}
           <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl">
             <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
               <div>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  <span>📚 Reseller API Documentation</span>
+                  <span>📚 CSxStore API Playground</span>
                 </h3>
                 <p className="text-xs text-purple-200/70 mt-1">
-                  Full reference and interactive live testing playground for <b className="text-white">api.cssx.store</b>.
+                  Direct live interaction with <b className="text-white">api.cssx.store</b>.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <a
-                  href={DOCS_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md"
-                >
-                  <span>Official Swagger Docs</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md"
+              >
+                <span>Official Swagger Docs</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
 
-            {/* Endpoints Table View */}
-            <div className="overflow-x-auto rounded-2xl border border-purple-500/15">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-black/50 text-[10px] font-bold uppercase tracking-wider text-purple-300/70 border-b border-purple-500/15">
-                  <tr>
-                    <th className="p-3.5">Method</th>
-                    <th className="p-3.5">Endpoint</th>
-                    <th className="p-3.5">Description</th>
-                    <th className="p-3.5">Auth Header</th>
-                    <th className="p-3.5 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-purple-500/10 font-mono">
-                  {API_ENDPOINTS.map((ep) => (
-                    <tr key={ep.path} className="hover:bg-purple-500/5 transition-colors">
-                      <td className="p-3.5">
-                        <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
-                            ep.method === "GET"
-                              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          }`}
-                        >
-                          {ep.method}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-bold text-white">{ep.path}</td>
-                      <td className="p-3.5 font-sans text-purple-200/80 text-[11px]">{ep.description}</td>
-                      <td className="p-3.5 text-purple-300 text-[10.5px]">X-API-Key: YOUR_KEY</td>
-                      <td className="p-3.5 text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setPlaygroundEndpoint(ep.path);
-                            setPlaygroundMethod(ep.method);
-                            if (ep.samplePayload) {
-                              setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
-                            }
-                          }}
-                          className="h-7 text-[10px] font-black bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white rounded-lg px-2.5"
-                        >
-                          Test in Playground
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Interactive Playground Console */}
-          <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-base font-black text-white">Live API Request Playground</h3>
-              </div>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-mono">
-                Authenticated
-              </Badge>
-            </div>
-
+            {/* Interactive Console */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left: Request Config */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <select
@@ -1002,48 +941,31 @@ export default function CssxApiPage() {
                     value={playgroundEndpoint}
                     onChange={(e) => {
                       setPlaygroundEndpoint(e.target.value);
-                      const ep = API_ENDPOINTS.find((x) => x.path === e.target.value);
-                      if (ep) {
-                        setPlaygroundMethod(ep.method);
-                        if (ep.samplePayload) {
-                          setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
-                        }
+                      if (e.target.value === "/api/v1/order") {
+                        setPlaygroundMethod("POST");
+                      } else {
+                        setPlaygroundMethod("GET");
                       }
                     }}
                     className="flex-1 bg-black/50 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none"
                   >
-                    {API_ENDPOINTS.map((ep) => (
-                      <option key={ep.path} value={ep.path}>
-                        {ep.method} {ep.path} - {ep.title}
-                      </option>
-                    ))}
+                    <option value="/api/v1/me">GET /api/v1/me - Account Profile & Wallet</option>
+                    <option value="/api/v1/products">GET /api/v1/products - Full Catalog</option>
+                    <option value="/api/v1/order">POST /api/v1/order - Purchase Product</option>
+                    <option value="/api/v1/orders">GET /api/v1/orders - Reseller Orders</option>
                   </select>
                 </div>
-
-                {playgroundEndpoint === "/api/v1/order/{id}" && (
-                  <div>
-                    <label className="text-[10px] font-bold text-purple-300/60 uppercase block mb-1">
-                      Order ID:
-                    </label>
-                    <Input
-                      value={playgroundOrderId}
-                      onChange={(e) => setPlaygroundOrderId(e.target.value)}
-                      placeholder="e.g. ORD_12345"
-                      className="bg-black/50 border-purple-500/30 text-white rounded-xl text-xs font-mono"
-                    />
-                  </div>
-                )}
 
                 {playgroundMethod === "POST" && (
                   <div>
                     <label className="text-[10px] font-bold text-purple-300/60 uppercase block mb-1">
-                      JSON Request Body:
+                      JSON Payload:
                     </label>
                     <textarea
                       value={playgroundPayload}
                       onChange={(e) => setPlaygroundPayload(e.target.value)}
-                      rows={6}
-                      className="w-full bg-black/50 border border-purple-500/30 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:border-purple-400"
+                      rows={5}
+                      className="w-full bg-black/50 border border-purple-500/30 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none"
                     />
                   </div>
                 )}
@@ -1053,49 +975,29 @@ export default function CssxApiPage() {
                   disabled={isPlayingLoading}
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2"
                 >
-                  {isPlayingLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Executing Request...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" /> Send Live API Request
-                    </>
-                  )}
+                  {isPlayingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send Live Request
                 </Button>
               </div>
 
-              {/* Right: Response Console */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold text-purple-300/60 uppercase">
-                    Response Output:
-                  </span>
-                  {playgroundResponse && (
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        playgroundResponse.ok ? "text-emerald-400" : "text-red-400"
-                      }`}
-                    >
-                      HTTP {playgroundResponse.status}
-                    </span>
-                  )}
-                </div>
-
-                <div className="bg-black/70 border border-purple-500/30 rounded-2xl p-4 min-h-[220px] max-h-[350px] overflow-auto font-mono text-xs text-purple-200">
+                <span className="text-[10px] font-bold text-purple-300/60 uppercase block mb-1.5">
+                  Output:
+                </span>
+                <div className="bg-black/70 border border-purple-500/30 rounded-2xl p-4 min-h-[200px] max-h-[300px] overflow-auto font-mono text-xs text-purple-200">
                   {isPlayingLoading ? (
-                    <div className="flex items-center justify-center h-40 text-purple-400 gap-2">
+                    <div className="flex items-center justify-center h-36 text-purple-400 gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Contacting https://api.cssx.store...</span>
+                      <span>Sending request...</span>
                     </div>
                   ) : playgroundResponse ? (
                     <pre className="whitespace-pre-wrap">
                       {JSON.stringify(playgroundResponse.data || playgroundResponse.error, null, 2)}
                     </pre>
                   ) : (
-                    <div className="text-white/30 text-center flex flex-col items-center justify-center h-40">
+                    <div className="text-white/30 text-center flex flex-col items-center justify-center h-36">
                       <Terminal className="w-8 h-8 mb-2 opacity-40" />
-                      <span>Select an endpoint and click "Send Live API Request"</span>
+                      <span>Click "Send Live Request" to test</span>
                     </div>
                   )}
                 </div>
@@ -1104,7 +1006,7 @@ export default function CssxApiPage() {
           </div>
         </TabsContent>
 
-        {/* 5. TAB: SETTINGS & API KEY CONFIGURATION */}
+        {/* 4. TAB: SETTINGS & API KEY */}
         <TabsContent value="settings" className="space-y-6">
           <div className="bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 md:p-8 shadow-xl max-w-2xl mx-auto">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-purple-500/15">
@@ -1112,9 +1014,9 @@ export default function CssxApiPage() {
                 <KeyRound className="w-6 h-6 text-purple-400" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">CSxStore API Key Configuration</h3>
+                <h3 className="text-base font-black text-white">CSxStore API Credentials</h3>
                 <p className="text-xs text-purple-200/60 mt-0.5">
-                  Save your secret reseller API key to authenticate all product and wallet requests.
+                  Configure your secret reseller API key to authenticate requests.
                 </p>
               </div>
             </div>
@@ -1134,7 +1036,7 @@ export default function CssxApiPage() {
                 <div className="relative">
                   <Input
                     type={showApiKey ? "text" : "password"}
-                    placeholder="Enter your secret CSxStore API Key..."
+                    placeholder="Enter your CSxStore API Key..."
                     value={inputApiKey}
                     onChange={(e) => setInputApiKey(e.target.value)}
                     className="bg-black/40 border-purple-500/30 text-white rounded-2xl text-xs font-mono h-12 pr-12"
@@ -1147,9 +1049,6 @@ export default function CssxApiPage() {
                     {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[11px] text-purple-300/60 mt-1.5 leading-relaxed">
-                  Your full active key is shown only inside your own CSxStore account. Keep it private.
-                </p>
               </div>
 
               <div>
@@ -1173,7 +1072,7 @@ export default function CssxApiPage() {
                 >
                   {saveSettingsMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Verifying & Connecting...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Verifying Connection...
                     </>
                   ) : (
                     <>
@@ -1187,83 +1086,310 @@ export default function CssxApiPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Place Order Modal */}
-      <Dialog open={!!selectedProductForOrder} onOpenChange={(open) => !open && setSelectedProductForOrder(null)}>
-        <DialogContent className="bg-[#120B24] border border-purple-500/30 text-white rounded-3xl max-w-md">
+      {/* EDIT PRODUCT MODAL (Same UI as Sandromania) */}
+      <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+        <DialogContent className="max-w-md w-full p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-purple-400" />
-              Place Instant Product Order
-            </DialogTitle>
-            <DialogDescription className="text-xs text-purple-200/70">
-              This will place an order via <b className="text-white">POST /api/v1/order</b> and deduct from your USDT wallet.
+            <DialogTitle className="text-base font-black">Edit Product Details & Pricing</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Customize product title, category, and selling price in your store.
             </DialogDescription>
           </DialogHeader>
 
-          {selectedProductForOrder && (
+          {editingProduct && (
             <div className="space-y-4 pt-2">
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/20">
-                <span className="text-[10px] text-purple-300/60 uppercase font-bold block">Product</span>
-                <h4 className="text-sm font-black text-white">{selectedProductForOrder.title || selectedProductForOrder.name}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-black text-emerald-400">
-                    ${Number(selectedProductForOrder.price_usdt || selectedProductForOrder.price || 0).toFixed(2)} USDT
-                  </span>
-                  <span className="text-[10px] text-white/50">• ID: {selectedProductForOrder.id || selectedProductForOrder.product_id}</span>
-                </div>
-              </div>
-
+              {/* Custom Product Title */}
               <div>
-                <label className="text-xs font-bold text-purple-200 block mb-1">Quantity</label>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
+                  Custom Product Name (Title)
+                </label>
                 <Input
-                  type="number"
-                  min="1"
-                  value={orderQuantity}
-                  onChange={(e) => setOrderQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="bg-black/40 border-purple-500/30 text-white rounded-xl text-xs"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g. Gemini Pro 18 Months"
+                  className="font-bold text-sm rounded-xl"
                 />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-purple-200 block mb-1">Custom Note (Optional)</label>
-                <Input
-                  placeholder="e.g. Order from Telegram Bot"
-                  value={orderCustomNote}
-                  onChange={(e) => setOrderCustomNote(e.target.value)}
-                  className="bg-black/40 border-purple-500/30 text-white rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex items-center justify-between font-bold">
-                <span className="text-purple-200">Total USDT to Deduct:</span>
-                <span className="text-emerald-400 text-sm font-black">
-                  ${(Number(selectedProductForOrder.price_usdt || selectedProductForOrder.price || 0) * orderQuantity).toFixed(2)} USDT
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  Original CSxStore ID: #{editingProduct?.serviceId}
                 </span>
               </div>
 
+              {/* Category Selector with Quick Preset Pills */}
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
+                  Store Category
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2 max-h-36 overflow-y-auto pr-1">
+                  {PRESET_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setEditCategory(cat.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        editCategory.toLowerCase() === cat.id.toLowerCase()
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "bg-muted/70 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  placeholder="Or type custom category (e.g. Gemini, ChatGPT, Software, AI Tools)"
+                  className="text-xs rounded-xl"
+                />
+              </div>
+
+              {/* Pricing USD & LKR */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block mb-1">
+                    Selling Price ($ USD)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 0.98"
+                    value={editSellingPriceUsd}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditSellingPriceUsd(v);
+                      const n = parseFloat(v);
+                      if (!isNaN(n) && n > 0) {
+                        setEditSellingPriceLkr(String(Math.round(n * 305.5)));
+                      }
+                    }}
+                    className="font-bold text-sm rounded-xl"
+                  />
+                  <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                    Cost: ${((editingProduct?.costPriceUsd || 0) / 100).toFixed(2)}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-1">
+                    Price (Rs LKR – Fix / Easy)
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 300"
+                    value={editSellingPriceLkr}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditSellingPriceLkr(v);
+                      const n = parseFloat(v);
+                      if (!isNaN(n) && n > 0) {
+                        setEditSellingPriceUsd((n / 305.5).toFixed(2));
+                      }
+                    }}
+                    className="text-xs rounded-xl font-bold border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20"
+                  />
+                  <span className="text-[10px] text-emerald-600/80 mt-0.5 block font-semibold">
+                    Type Rs. to auto-set USD
+                  </span>
+                </div>
+              </div>
+
+              {/* Active Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border">
+                <div>
+                  <span className="text-xs font-bold block">Active in Store</span>
+                  <span className="text-[10px] text-muted-foreground">Enable customer purchases in Mini App</span>
+                </div>
+                <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
+              </div>
+
+              {/* Save Button */}
               <Button
-                onClick={() => {
-                  createOrderMutation.mutate({
-                    product_id: selectedProductForOrder.id || selectedProductForOrder.product_id,
-                    quantity: orderQuantity,
-                    custom_data: { note: orderCustomNote }
-                  });
-                }}
-                disabled={createOrderMutation.isPending}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+                onClick={handleSaveEdit}
+                disabled={updateProductMutation.isPending}
+                className="w-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white font-bold rounded-xl text-xs shadow-md"
               >
-                {createOrderMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Provisioning Order...
-                  </>
+                {updateProductMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" /> Confirm & Execute Order
-                  </>
+                  <Check className="w-4 h-4 mr-2" />
                 )}
+                Save Changes
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Products Modal */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="bg-[#120B24] border border-purple-500/30 text-white rounded-3xl max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+              <Plus className="w-5 h-5 text-purple-400" />
+              Import Products from CSxStore Catalog
+            </DialogTitle>
+            <DialogDescription className="text-xs text-purple-200/70">
+              Select products to add to your shop catalog and apply profit markup.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Import Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2 border-y border-purple-500/15">
+            <div className="relative">
+              <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Input
+                placeholder="Search remote catalog..."
+                value={importSearch}
+                onChange={(e) => setImportSearch(e.target.value)}
+                className="pl-10 bg-black/40 border-purple-500/30 text-white rounded-xl text-xs h-10"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-purple-500/20">
+              <span className="text-xs font-bold text-purple-200 shrink-0">Profit Markup:</span>
+              <Input
+                type="number"
+                min="0"
+                value={markupPercent}
+                onChange={(e) => setMarkupPercent(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-20 bg-black/60 border-purple-500/40 text-emerald-400 font-black rounded-lg text-xs h-7 text-center"
+              />
+              <span className="text-xs font-bold text-emerald-400">%</span>
+              <div className="flex gap-1 ml-auto">
+                {[20, 40, 60, 100].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setMarkupPercent(pct)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      markupPercent === pct ? "bg-purple-600 text-white" : "bg-white/5 text-purple-300 hover:bg-white/10"
+                    }`}
+                  >
+                    +{pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Remote Products List */}
+          <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-1">
+            {remoteProductsLoading ? (
+              <div className="p-12 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" />
+                <p className="text-xs font-bold text-purple-200/70">Connecting to CSxStore API...</p>
+              </div>
+            ) : filteredRemote.length === 0 ? (
+              <div className="p-12 text-center">
+                <Package className="w-8 h-8 text-purple-400/40 mx-auto mb-2" />
+                <p className="text-xs text-purple-300/60">No remote products found.</p>
+              </div>
+            ) : (
+              filteredRemote.map((item: any) => {
+                const sId = String(item.service_id || item.id);
+                const costUsd = typeof item.price === "number" ? item.price : parseFloat(item.price || "0");
+                const sellUsd = costUsd * (1 + markupPercent / 100);
+                const sellLkr = Math.round(sellUsd * 305.5);
+                const isSelected = selectedProductsToImport.some((x) => String(x.service_id || x.id) === sId);
+                const alreadyImported = products.some((p: any) => String(p.serviceId) === sId);
+
+                return (
+                  <div
+                    key={sId}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedProductsToImport(selectedProductsToImport.filter((x) => String(x.service_id || x.id) !== sId));
+                      } else {
+                        setSelectedProductsToImport([...selectedProductsToImport, item]);
+                      }
+                    }}
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? "bg-purple-600/20 border-purple-500 shadow-md"
+                        : "bg-black/30 border-purple-500/15 hover:border-purple-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${
+                        isSelected ? "bg-purple-600 border-purple-400 text-white" : "border-purple-500/30"
+                      }`}>
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-black text-white truncate">{item.name || item.title}</h5>
+                          {alreadyImported && (
+                            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px] font-bold">
+                              In Store
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-purple-300/60 mt-0.5">
+                          ID: #{sId} • Stock: <b className="text-white/80">{item.stock ?? "In Stock"}</b>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-black text-emerald-400">
+                        Rs. {sellLkr.toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-purple-200/60">
+                        Cost: ${costUsd.toFixed(2)} ➜ Sell: ${sellUsd.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Import Footer */}
+          <div className="pt-3 border-t border-purple-500/15 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (selectedProductsToImport.length === filteredRemote.length) {
+                    setSelectedProductsToImport([]);
+                  } else {
+                    setSelectedProductsToImport([...filteredRemote]);
+                  }
+                }}
+                className="text-xs font-bold text-purple-300 hover:text-white"
+              >
+                {selectedProductsToImport.length === filteredRemote.length ? "Deselect All" : "Select All"}
+              </Button>
+              <span className="text-xs text-purple-200/60">
+                ({selectedProductsToImport.length} selected)
+              </span>
+            </div>
+
+            <Button
+              onClick={() => {
+                if (selectedProductsToImport.length === 0) {
+                  toast({ title: "No products selected", description: "Please select at least one product.", variant: "destructive" });
+                  return;
+                }
+                importProductsMutation.mutate({
+                  products: selectedProductsToImport,
+                  markupPercent,
+                });
+              }}
+              disabled={importProductsMutation.isPending || selectedProductsToImport.length === 0}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl h-10 px-6 shadow-lg shadow-purple-600/25 flex items-center gap-2"
+            >
+              {importProductsMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Import Selected ({selectedProductsToImport.length})
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

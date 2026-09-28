@@ -237,7 +237,7 @@ export default function TermsPage() {
                 </a>
 
                 <a
-                  href="https://t.me/rochana_imesh"
+                  href="https://t.me/youuhost"
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 p-4 rounded-2xl bg-[#1E293B]/50 hover:bg-[#1E293B] border border-sky-500/30 transition-all group"
@@ -247,7 +247,7 @@ export default function TermsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-black text-white block group-hover:text-sky-400 transition-colors">Telegram VIP Concierge</span>
-                    <span className="text-[11px] text-[#A1A1AA] block">@rochana_imesh</span>
+                    <span className="text-[11px] text-[#A1A1AA] block">@youuhost_support</span>
                   </div>
                 </a>
               </div>

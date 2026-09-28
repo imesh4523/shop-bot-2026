@@ -177,6 +177,10 @@ function Router() {
         <ProtectedRoute component={ConnectedStoresTrackerPage} />
       </Route>
 
+      <Route path="/imeshadmindashbord/api-store-tracker">
+        <ProtectedRoute component={ConnectedStoresTrackerPage} />
+      </Route>
+
       <Route path="/imeshadmindashbord/payhere">
         <ProtectedRoute component={PayHereGatewayPage} />
       </Route>

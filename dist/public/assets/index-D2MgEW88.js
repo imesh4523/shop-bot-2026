@@ -11894,6 +11894,17 @@ const Plus = createLucideIcon("Plus", [
   ["path", { d: "M5 12h14", key: "1ays0h" }],
   ["path", { d: "M12 5v14", key: "s699le" }]
 ]);
+const Printer = createLucideIcon("Printer", [
+  [
+    "path",
+    {
+      d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2",
+      key: "143wyd"
+    }
+  ],
+  ["path", { d: "M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6", key: "1itne7" }],
+  ["rect", { x: "6", y: "14", width: "12", height: "8", rx: "1", key: "1ue0tg" }]
+]);
 const Puzzle = createLucideIcon("Puzzle", [
   [
     "path",
@@ -12090,6 +12101,16 @@ const Sparkles = createLucideIcon("Sparkles", [
   ["path", { d: "M22 5h-4", key: "1gvqau" }],
   ["path", { d: "M4 17v2", key: "vumght" }],
   ["path", { d: "M5 18H3", key: "zchphs" }]
+]);
+const SquarePen = createLucideIcon("SquarePen", [
+  ["path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7", key: "1m0v6g" }],
+  [
+    "path",
+    {
+      d: "M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z",
+      key: "ohrbg2"
+    }
+  ]
 ]);
 const Square = createLucideIcon("Square", [
   ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
@@ -18755,7 +18776,6 @@ var Title = DialogTitle$1;
 var Description = DialogDescription$1;
 var Close = DialogClose;
 const Sheet = Root$5;
-const SheetTrigger = Trigger$3;
 const SheetPortal = Portal$2;
 const SheetOverlay = reactExports.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ jsxRuntimeExports.jsx(
   Overlay,
@@ -20319,13 +20339,13 @@ function LayoutShell({ children }) {
   const [isMobileOpen, setIsMobileOpen] = reactExports.useState(false);
   const navigation = [
     { name: "Dashboard", href: "/imeshadmindashbord", icon: LayoutDashboard },
+    { name: "⚡ API Store Tracker", href: "/imeshadmindashbord/connected-stores", icon: Network, highlight: true },
     { name: "Email Hub & Receipts", href: "/imeshadmindashbord/email-hub", icon: Mail },
     { name: "All Orders", href: "/imeshadmindashbord/all-orders", icon: Layers },
     { name: "API Keys", href: "/imeshadmindashbord/api-keys", icon: Key },
     { name: "Domain Automation", href: "/imeshadmindashbord/domain-automation", icon: Globe },
     { name: "PayHere Gateway", href: "/imeshadmindashbord/payhere", icon: CreditCard },
     { name: "Store Mesh Connect", href: "/imeshadmindashbord/store-mesh", icon: Network },
-    { name: "Connected Stores Tracker", href: "/imeshadmindashbord/connected-stores", icon: Network },
     { name: "Pre-Orders", href: "/imeshadmindashbord/preorders", icon: Clock },
     { name: "Customer Audit & Fix", href: "/imeshadmindashbord/customer-tracker", icon: ShieldCheck },
     { name: "Broadcast", href: "/imeshadmindashbord/broadcast", icon: Megaphone },
@@ -20353,83 +20373,92 @@ function LayoutShell({ children }) {
     { name: "Settings", href: "/imeshadmindashbord/settings", icon: Settings }
   ];
   const NavContent = () => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full overflow-hidden", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex shrink-0 h-24 flex-none items-center px-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 font-black text-3xl text-white tracking-tighter", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl overflow-hidden shadow-2xl border border-white/10 group-hover:scale-110 transition-transform duration-500", children: /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/logo.png", className: "w-full h-full object-cover" }) }),
-      "Shopeefy"
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex shrink-0 h-20 flex-none items-center px-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 font-black text-2xl text-white tracking-tighter", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl overflow-hidden shadow-2xl border border-white/10 group-hover:scale-110 transition-transform duration-500 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/logo.png", className: "w-full h-full object-cover" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: "Shopeefy" })
     ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto pb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "grid gap-3 px-4", children: navigation.map((item) => {
-      const isActive = location2 === item.href;
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto pb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "grid gap-2 px-3", children: navigation.map((item) => {
+      const isActive = location2 === item.href || item.href === "/imeshadmindashbord/connected-stores" && location2 === "/imeshadmindashbord/api-store-tracker";
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
         Link,
         {
           href: item.href,
           className: `
-                  flex shrink-0 items-center gap-4 px-5 py-4 rounded-2xl text-sm font-black transition-all duration-500
-                  ${isActive ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/10 backdrop-blur-md" : "text-white/40 hover:bg-white/5 hover:text-white"}
+                  flex shrink-0 items-center gap-3 px-4 py-3 rounded-2xl text-xs font-black transition-all duration-300
+                  ${isActive ? "bg-purple-600/30 text-white shadow-[0_0_20px_rgba(168,85,247,0.2)] border border-purple-500/40 backdrop-blur-md" : item.highlight ? "bg-purple-950/40 text-purple-200 border border-purple-800/40 hover:bg-purple-900/50 hover:text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}
                 `,
           onClick: () => setIsMobileOpen(false),
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(item.icon, { className: `w-5 h-5 shrink-0 ${isActive ? "text-purple-400" : "text-white/30"}` }),
-            item.name
+            /* @__PURE__ */ jsxRuntimeExports.jsx(item.icon, { className: `w-4 h-4 shrink-0 ${isActive ? "text-purple-400" : item.highlight ? "text-purple-300" : "text-white/40"}` }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate flex-1", children: item.name }),
+            item.highlight && !isActive && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30", children: "LIVE" })
           ]
         },
         item.name
       );
     }) }) })
   ] });
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen relative overflow-hidden dark bg-background", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[800px] h-[800px] bg-purple-600/10 -top-40 -left-40 animate-pulse" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[600px] h-[600px] bg-indigo-600/5 bottom-20 right-20" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[400px] h-[400px] bg-purple-500/10 top-1/2 left-1/3 blur-[120px]" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(Sheet, { open: isMobileOpen, onOpenChange: setIsMobileOpen, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(SheetTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "ghost", size: "icon", className: "lg:hidden fixed top-6 left-6 z-50 glass-panel border-white/10 rounded-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Menu$1, { className: "w-6 h-6 text-white" }) }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(SheetContent, { side: "left", className: "w-80 p-0 bg-[#0f0a1a] border-r border-white/5 flex flex-col", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsx(NavContent, {}) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 border-t border-white/5 bg-white/[0.01] relative overflow-hidden", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-purple-500/10 to-transparent" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative text-[10px] text-white/30 font-black uppercase tracking-[0.4em] text-center animate-pulse", children: [
-            "Developed by ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-400", children: "Rochana Imesh" })
-          ] })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen relative overflow-x-hidden dark bg-background", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[800px] h-[800px] bg-purple-600/10 -top-40 -left-40 animate-pulse pointer-events-none" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[600px] h-[600px] bg-indigo-600/5 bottom-20 right-20 pointer-events-none" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "orb w-[400px] h-[400px] bg-purple-500/10 top-1/2 left-1/3 blur-[120px] pointer-events-none" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Sheet, { open: isMobileOpen, onOpenChange: setIsMobileOpen, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(SheetContent, { side: "left", className: "w-72 sm:w-80 p-0 bg-[#0f0a1a] border-r border-white/5 flex flex-col z-50", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsx(NavContent, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 border-t border-white/5 bg-white/[0.01] relative overflow-hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-purple-500/10 to-transparent" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative text-[10px] text-white/30 font-black uppercase tracking-[0.3em] text-center", children: [
+          "Developed by ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-400", children: "Rochana Imesh" })
         ] })
       ] })
-    ] }),
+    ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "hidden lg:flex flex-col fixed inset-y-6 left-6 z-30 w-80 bg-[#0f0a1a] rounded-[2.5rem] border border-white/10 shadow-3xl overflow-hidden group", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-hidden min-h-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(NavContent, {}) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-auto p-8 border-t border-white/5 bg-white/[0.01] space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative py-4 group/watermark", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-auto p-6 border-t border-white/5 bg-white/[0.01] space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative py-2 group/watermark", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 blur-xl opacity-0 group-hover/watermark:opacity-100 transition-opacity duration-700" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative text-[10px] text-white/20 font-black uppercase tracking-[0.3em] text-center transition-all duration-500 group-hover/watermark:text-purple-400 group-hover/watermark:scale-110 group-hover/watermark:tracking-[0.4em] drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative text-[10px] text-white/30 font-black uppercase tracking-[0.3em] text-center transition-all duration-500 group-hover/watermark:text-purple-400", children: [
           "Developed by ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 group-hover/watermark:text-white transition-colors", children: "Rochana Imesh" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/50 group-hover/watermark:text-white transition-colors", children: "Rochana Imesh" })
         ] })
       ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "lg:pl-[23rem] min-h-screen flex flex-col relative z-10", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-6 right-10 z-50 pointer-events-none select-none hidden lg:block group/float", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative px-4 py-2 bg-[#5b21b6]/60 backdrop-blur-3xl border border-white/20 dark:border-white/10 shadow-lg shadow-[0_8px_32px_rgba(0,0,0,0.3)] rounded-full transform transition-all duration-700 hover:scale-110 hover:-translate-y-2 group-hover/float:shadow-purple-500/20", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-full blur-md opacity-50 animate-pulse" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "relative text-[10px] font-black uppercase tracking-[0.3em] text-white/40 whitespace-nowrap drop-shadow-lg", children: [
-          "Designed by ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-400", children: "Rochana Imesh" })
-        ] })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "lg:hidden h-24 flex items-center justify-end gap-4 px-8 border-b border-white/5 bg-[#5b21b6]/20 backdrop-blur-md sticky top-0 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenu, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "ghost", className: "relative h-9 w-9 rounded-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Avatar, { className: "h-9 w-9", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(AvatarImage, { src: user?.profileImageUrl || void 0, alt: user?.firstName || "User" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(AvatarFallback, { children: user?.firstName?.[0] || "U" })
-        ] }) }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenuContent, { className: "w-56", align: "end", forceMount: true, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuLabel, { className: "font-normal", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col space-y-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-medium leading-none", children: user?.firstName }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs leading-none text-muted-foreground", children: "Admin" })
-          ] }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuSeparator, {}),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenuItem, { onClick: () => logout2(), children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, { className: "mr-2 h-4 w-4" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Log out" })
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "lg:pl-[22rem] min-h-screen flex flex-col relative z-10 w-full overflow-x-hidden", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "lg:hidden h-16 flex items-center justify-between px-4 sm:px-6 border-b border-white/10 bg-[#0f0a1a]/90 backdrop-blur-xl sticky top-0 z-40", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              variant: "ghost",
+              size: "icon",
+              onClick: () => setIsMobileOpen(true),
+              className: "h-10 w-10 glass-panel border-white/10 rounded-xl text-white hover:bg-white/10",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Menu$1, { className: "w-5 h-5" })
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 font-black text-lg text-white tracking-tight", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-7 h-7 rounded-lg overflow-hidden border border-white/10 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/logo.png", className: "w-full h-full object-cover" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate", children: "Shopeefy" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenu, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { variant: "ghost", className: "relative h-9 w-9 rounded-full p-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Avatar, { className: "h-9 w-9 border border-purple-500/30", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(AvatarImage, { src: user?.profileImageUrl || void 0, alt: user?.firstName || "User" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(AvatarFallback, { className: "bg-purple-950 text-purple-300 font-bold", children: user?.firstName?.[0] || "A" })
+          ] }) }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenuContent, { className: "w-56 bg-[#130b24] border-purple-500/20 text-white", align: "end", forceMount: true, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuLabel, { className: "font-normal", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col space-y-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm font-bold leading-none", children: user?.firstName || "Admin" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs leading-none text-purple-300/60", children: "Administrator" })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(DropdownMenuSeparator, { className: "bg-white/10" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(DropdownMenuItem, { onClick: () => logout2(), className: "text-red-400 focus:bg-red-500/10 focus:text-red-300", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LogOut, { className: "mr-2 h-4 w-4" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Log out" })
+            ] })
           ] })
         ] })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 p-8 lg:p-16 max-w-7xl mx-auto w-full", children })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full overflow-x-hidden", children })
     ] })
   ] });
 }
@@ -30861,6 +30890,42 @@ const sandromaniaOrders = pgTable("sandromania_orders", {
 });
 createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
 createInsertSchema(sandromaniaOrders).omit({ id: true, createdAt: true });
+const cssxProducts = pgTable("cssx_products", {
+  id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0),
+  // in cents
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0),
+  // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  category: text("category").default("general"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+const cssxOrders = pgTable("cssx_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  cssxProductId: integer("cssx_product_id").references(() => cssxProducts.id),
+  externalOrderId: text("external_order_id"),
+  serviceId: text("service_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0),
+  // in cents
+  amountPaid: integer("amount_paid").notNull().default(0),
+  // in cents
+  status: text("status").notNull().default("completed"),
+  deliveryText: text("delivery_text"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+createInsertSchema(cssxProducts).omit({ id: true, createdAt: true, updatedAt: true });
+createInsertSchema(cssxOrders).omit({ id: true, createdAt: true });
 const storeMeshNodes = pgTable("store_mesh_nodes", {
   id: serial("id").primaryKey(),
   nodeName: text("node_name").notNull(),
@@ -55785,14 +55850,14 @@ function Dashboard() {
   const dailyRevLkr = Math.round((stats?.dailyRevenue || 0) / 100 * lkrRate).toLocaleString();
   const totalRevUsd = ((stats?.totalRevenue || 0) / 100).toFixed(2);
   const totalRevLkr = Math.round((stats?.totalRevenue || 0) / 100 * lkrRate).toLocaleString();
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6 sm:space-y-8 animate-in w-full overflow-x-hidden", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Dashboard" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm mt-1", children: "Real-time multi-channel overview across Cloud Accounts, Partner Stores & SMM panels." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Dashboard" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-xs sm:text-sm mt-1", children: "Real-time multi-channel overview across Cloud Accounts, Partner Stores & SMM panels." })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-5 py-2 rounded-full flex items-center gap-2.5 text-xs font-bold text-white shadow-lg border-white/20", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-white shadow-lg border-white/20 shrink-0", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]" }),
         "System Active"
       ] })
     ] }),
@@ -55888,16 +55953,16 @@ function Dashboard() {
         }
       )
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-6 md:grid-cols-2 lg:grid-cols-7", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-4 glass-card p-2 border-0 bg-white/[0.01]", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-lg font-black text-white flex items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid gap-6 grid-cols-1 lg:grid-cols-7", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-1 lg:col-span-4 glass-card p-2 sm:p-4 border-0 bg-white/[0.01]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "px-2 pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-sm sm:text-base md:text-lg font-black text-white flex flex-wrap items-center justify-between gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-4 h-4 sm:w-5 sm:h-5 text-purple-400" }),
             "7-Day Multi-Store Revenue"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full", children: "Live Dynamic Feed" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] sm:text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full shrink-0", children: "Live Dynamic Feed" })
         ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pl-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-[320px] w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ResponsiveContainer, { width: "100%", height: "100%", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AreaChart, { data: chartData, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "pl-0 sm:pl-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-[260px] sm:h-[320px] w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ResponsiveContainer, { width: "100%", height: "100%", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -15, bottom: 0 }, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("defs", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("linearGradient", { id: "colorTotal", x1: "0", y1: "0", x2: "0", y2: "1", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "5%", stopColor: "#8B5CF6", stopOpacity: 0.4 }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "95%", stopColor: "#8B5CF6", stopOpacity: 0 })
@@ -55908,7 +55973,7 @@ function Dashboard() {
             {
               dataKey: "name",
               stroke: "rgba(255,255,255,0.4)",
-              fontSize: 12,
+              fontSize: 11,
               tickLine: false,
               axisLine: false
             }
@@ -55917,7 +55982,7 @@ function Dashboard() {
             YAxis,
             {
               stroke: "rgba(255,255,255,0.4)",
-              fontSize: 12,
+              fontSize: 11,
               tickLine: false,
               axisLine: false,
               tickFormatter: (value2) => `$${value2}`
@@ -55930,7 +55995,8 @@ function Dashboard() {
                 backgroundColor: "#0f0a1e",
                 borderRadius: "12px",
                 border: "1px solid rgba(255,255,255,0.1)",
-                color: "#ffffff"
+                color: "#ffffff",
+                fontSize: "12px"
               },
               formatter: (value2) => [`$${value2} USD`, "Daily Total"]
             }
@@ -55948,39 +56014,39 @@ function Dashboard() {
           )
         ] }) }) }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-3 glass-card border-0 bg-white/[0.01]", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-lg font-black text-white flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "col-span-1 lg:col-span-3 glass-card border-0 bg-white/[0.01]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "px-4 pt-4 pb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-sm sm:text-base md:text-lg font-black text-white flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Recent Sales" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40 font-normal", children: "All Channels" })
         ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: ordersLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: [1, 2, 3].map((i2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-10 w-10 rounded-xl bg-white/5" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 flex-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-[160px] bg-white/5" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-[120px] bg-white/5" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "px-2 sm:px-4", children: ordersLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: [1, 2, 3].map((i2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-9 w-9 rounded-xl bg-white/5 shrink-0" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 flex-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3.5 w-full bg-white/5" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-2.5 w-3/4 bg-white/5" })
           ] })
-        ] }, i2)) }) : recentOrders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: recentOrders.map((order) => {
+        ] }, i2)) }) : recentOrders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2.5", children: recentOrders.map((order) => {
           const isPartner = order.orderType === "partner";
           const isSmm = order.orderType === "smm";
-          return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${isPartner ? "bg-pink-500/10 text-pink-400" : isSmm ? "bg-purple-500/10 text-purple-400" : "bg-blue-500/10 text-blue-400"}`, children: isPartner ? /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-4 h-4" }) : isSmm ? /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 min-w-0 flex-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `h-8 w-8 sm:h-9 sm:w-9 rounded-xl flex items-center justify-center shrink-0 ${isPartner ? "bg-pink-500/10 text-pink-400" : isSmm ? "bg-purple-500/10 text-purple-400" : "bg-blue-500/10 text-blue-400"}`, children: isPartner ? /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-4 h-4" }) : isSmm ? /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Server, { className: "w-4 h-4" }) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-black text-white truncate", children: order.title || "Digital Product" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-white truncate", children: order.title || "Digital Product" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[10px] text-white/40 truncate", children: [
                   order.buyer || "Anonymous",
                   " · ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-300", children: order.typeLabel || "Store" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-300 font-semibold", children: order.typeLabel || "Store" })
                 ] })
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0 pl-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0 pl-1", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-black text-emerald-400 font-mono", children: order.amountUsd }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : "" })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[9px] text-white/40 whitespace-nowrap", children: order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : "" })
             ] })
           ] }, order.id);
         }) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "h-full flex flex-col items-center justify-center text-center text-white/30 py-8", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-12 h-12 mb-3 opacity-20" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-10 h-10 mb-2 opacity-20" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold", children: "No orders recorded yet" })
         ] }) })
       ] })
@@ -62689,7 +62755,7 @@ function SettingsPage() {
               {
                 id: "support",
                 type: "text",
-                placeholder: "e.g. @rochana_imesh",
+                placeholder: "e.g. @youuhost_support",
                 className: "glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all",
                 value: supportContact,
                 onChange: (e) => setSupportContact(e.target.value)
@@ -62797,7 +62863,7 @@ function SettingsPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Input,
                 {
-                  placeholder: "e.g. @rochana_imesh",
+                  placeholder: "e.g. @youuhost_support",
                   className: "glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all",
                   value: supportUsername,
                   onChange: (e) => setSupportUsername(e.target.value)
@@ -74686,7 +74752,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-qS6A9L85.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BbY4hXWp.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -92029,7 +92095,7 @@ function MiniAppShop$1() {
       const data = await res.json();
       setChatHistory((prev) => [...prev, { role: "bot", content: data.answer || "I'm offline right now." }]);
     } catch (err) {
-      setChatHistory((prev) => [...prev, { role: "bot", content: "Sorry, I'm having trouble connecting. Reach out to @rochana_imesh." }]);
+      setChatHistory((prev) => [...prev, { role: "bot", content: "Sorry, I'm having trouble connecting. Reach out to @youuhost_support." }]);
     } finally {
       setIsSendingChat(false);
     }
@@ -92086,10 +92152,10 @@ function MiniAppShop$1() {
   const { data: loadingTextSetting } = useQuery({
     queryKey: ["/api/settings/LOADING_TEXT"]
   });
-  const storeName = storeNameSetting?.value || "Shopeefy";
-  const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+  const storeName = storeNameSetting?.value || "YouuHost";
+  const supportUsername = supportUsernameSetting?.value || "@youuhost_support";
   supportBtnTextSetting?.value || "Write to Support";
-  const loadingText = loadingTextSetting?.value || "Shopeefy...";
+  const loadingText = loadingTextSetting?.value || "YouuHost...";
   const { data: products2, isLoading: productsLoading } = useQuery({
     queryKey: ["/api/mini/products"],
     queryFn: async () => {
@@ -105103,6 +105169,32 @@ function MiniAppShopModern() {
     enabled: activeTab === "orders",
     refetchInterval: activeTab === "orders" ? 8e3 : false
   });
+  const { data: cssxProductsList = [] } = useQuery({
+    queryKey: ["/api/mini/cssx/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/cssx/products");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    refetchInterval: 1e4
+  });
+  const { data: cssxOrdersList = [], refetch: refetchCssxOrders } = useQuery({
+    queryKey: ["/api/mini/cssx/orders"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/cssx/orders");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "orders",
+    refetchInterval: activeTab === "orders" ? 8e3 : false
+  });
   const [ordersFilter, setOrdersFilter] = reactExports.useState("all");
   const [isSyncingOrders, setIsSyncingOrders] = reactExports.useState(false);
   const handleSyncAllOrders = async () => {
@@ -105111,7 +105203,8 @@ function MiniAppShopModern() {
       await Promise.all([
         refetchOrders(),
         refetchSmmOrders(),
-        refetchSandromaniaOrders()
+        refetchSandromaniaOrders(),
+        refetchCssxOrders()
       ]);
       toast2({
         title: "Orders Synced! 🔄",
@@ -105210,14 +105303,48 @@ function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
+        priceLkr: sandroOrd.product?.sellingPriceLkr || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.sellingPriceLkr,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : /* @__PURE__ */ new Date(0),
         licenseKey: deliveredData
       });
     });
+    cssxOrdersList.forEach((cssxOrd) => {
+      const status = (cssxOrd.status || "Completed").toLowerCase();
+      if (status.includes("fail") || status.includes("cancel")) return;
+      const conf = getProviderConfig(cssxOrd.productTitle || "", cssxOrd.product?.category || "");
+      let statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200", children: "Auto-Delivered" });
+      if (status.includes("pend") || status.includes("process")) {
+        statusBadge = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200", children: "Processing" });
+      }
+      let deliveredData = cssxOrd.deliveryText || cssxOrd.deliveredData || (cssxOrd.responsePayload ? typeof cssxOrd.responsePayload === "string" ? cssxOrd.responsePayload : JSON.stringify(cssxOrd.responsePayload) : "");
+      if (typeof deliveredData === "string") {
+        deliveredData = deliveredData.trim();
+        if (deliveredData.startsWith('"') && deliveredData.endsWith('"') && deliveredData.length > 2) {
+          deliveredData = deliveredData.slice(1, -1);
+        }
+      }
+      const prodTitle = cssxOrd.productTitle || cssxOrd.product?.title || cssxProductsList.find((p2) => p2.id === cssxOrd.cssxProductId || p2.serviceId === cssxOrd.serviceId)?.title || "Digital Product";
+      const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || 3e3 + cssxOrd.id}`;
+      list.push({
+        id: `cssx-${cssxOrd.id}`,
+        rawId: cssxOrd.id,
+        orderType: "license",
+        orderNumber: orderNum,
+        title: prodTitle,
+        categoryTag: conf.tag || "Digital License",
+        badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
+        status: cssxOrd.status || "Completed",
+        statusBadge,
+        priceCents: cssxOrd.amountPaid || 0,
+        quantity: cssxOrd.quantity || 1,
+        date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : /* @__PURE__ */ new Date(0),
+        licenseKey: deliveredData
+      });
+    });
     list.sort((a2, b2) => b2.date.getTime() - a2.date.getTime());
     return list;
-  }, [orders2, smmOrdersList, sandromaniaOrdersList, smmServicesList]);
+  }, [orders2, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList]);
   const filteredOrders = reactExports.useMemo(() => {
     if (ordersFilter === "all") return unifiedOrdersList;
     return unifiedOrdersList.filter((item) => item.orderType === ordersFilter);
@@ -105298,6 +105425,9 @@ Support: https://t.me/youuhost_support
   const [detailSandromaniaProduct, setDetailSandromaniaProduct] = reactExports.useState(null);
   const [sandromaniaOrderQty, setSandromaniaOrderQty] = reactExports.useState(1);
   const [isSandromaniaPurchasing, setIsSandromaniaPurchasing] = reactExports.useState(false);
+  const [detailCssxProduct, setDetailCssxProduct] = reactExports.useState(null);
+  const [cssxOrderQty, setCssxOrderQty] = reactExports.useState(1);
+  const [isCssxPurchasing, setIsCssxPurchasing] = reactExports.useState(false);
   const [purchasedDeltas, setPurchasedDeltas] = reactExports.useState(() => {
     try {
       const saved = localStorage.getItem("yh_purchased_sold_deltas");
@@ -105332,7 +105462,7 @@ Support: https://t.me/youuhost_support
   const { data: supportUserSetting } = useQuery({
     queryKey: ["/api/settings/SUPPORT_USERNAME"]
   });
-  const supportUser = supportUserSetting?.value || "@rochana_imesh";
+  const supportUser = supportUserSetting?.value || "@youuhost_support";
   const { data: depositMethods } = useQuery({
     queryKey: ["/api/mini/deposit/methods"],
     queryFn: async () => {
@@ -105340,7 +105470,7 @@ Support: https://t.me/youuhost_support
         const res = await fetch("/api/mini/deposit/methods");
         return res.json();
       } catch {
-        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@rochana_imesh" };
+        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@youuhost_support" };
       }
     }
   });
@@ -106111,7 +106241,8 @@ ${finalDetails}`;
         const totalStock2 = products2.reduce((acc, p2) => acc + (p2.stockCount || 0), 0);
         const activeSmmCount = smmServicesList.filter((s2) => s2.isActive !== false).length;
         const activeSandroCount = sandromaniaProductsList.filter((s2) => s2.isActive !== false).length;
-        return (totalStock2 > 0 ? totalStock2 : products2.length) + activeSmmCount + activeSandroCount;
+        const activeCssxCount = cssxProductsList.filter((s2) => s2.isActive !== false).length;
+        return (totalStock2 > 0 ? totalStock2 : products2.length) + activeSmmCount + activeSandroCount + activeCssxCount;
       }
       const matching = products2.filter((p2) => {
         const conf = getProviderConfig(p2.name, p2.type);
@@ -106130,11 +106261,19 @@ ${finalDetails}`;
         const targetCat = categoryId.toLowerCase();
         return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
       });
+      const matchingCssx = cssxProductsList.filter((s2) => {
+        if (s2.isActive === false) return false;
+        const title = (s2.title || "").toLowerCase();
+        const cat = (s2.category || "").toLowerCase();
+        const targetCat = categoryId.toLowerCase();
+        return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
+      });
       const totalStock = matching.reduce((acc, p2) => acc + (p2.stockCount || 0), 0);
       const sandroStock = matchingSandro.reduce((acc, s2) => acc + (s2.stock || s2.stockCount || 1), 0);
-      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock;
+      const cssxStock = matchingCssx.reduce((acc, s2) => acc + (s2.stock || s2.stockCount || 1), 0);
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock + cssxStock;
     };
-  }, [products2, smmServicesList, sandromaniaProductsList]);
+  }, [products2, smmServicesList, sandromaniaProductsList, cssxProductsList]);
   const filteredProducts = reactExports.useMemo(() => {
     return products2.filter((p2) => {
       const conf = getProviderConfig(p2.name, p2.type);
@@ -106165,6 +106304,17 @@ ${finalDetails}`;
       return matchesCategory && matchesSearch;
     });
   }, [sandromaniaProductsList, selectedCategory, searchQuery]);
+  const filteredCssxProducts = reactExports.useMemo(() => {
+    return cssxProductsList.filter((p2) => {
+      if (p2.isActive === false) return false;
+      const title = (p2.title || "").toLowerCase();
+      const cat = (p2.category || "").toLowerCase();
+      const targetCat = selectedCategory.toLowerCase();
+      const matchesCategory = targetCat === "all" || cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
+      const matchesSearch = !searchQuery.trim() || title.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [cssxProductsList, selectedCategory, searchQuery]);
   const unifiedCatalogItems = reactExports.useMemo(() => {
     const list = [];
     filteredSmmServices.forEach((smm) => {
@@ -106185,6 +106335,15 @@ ${finalDetails}`;
         orderScore: isOutOfStock ? 1 : 0
       });
     });
+    filteredCssxProducts.forEach((cssxProd) => {
+      const isOutOfStock = cssxProd.isActive === false || cssxProd.stock !== void 0 && cssxProd.stock <= 0 && cssxProd.available === false;
+      list.push({
+        type: "cssx",
+        data: cssxProd,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0
+      });
+    });
     filteredProducts.forEach((prod) => {
       const availableStock = typeof prod.stockCount === "number" ? prod.stockCount : 0;
       const isOutOfStock = prod.isActive === false || availableStock <= 0;
@@ -106197,7 +106356,7 @@ ${finalDetails}`;
     });
     list.sort((a2, b2) => a2.orderScore - b2.orderScore);
     return list;
-  }, [filteredSmmServices, filteredSandromaniaProducts, filteredProducts]);
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredProducts]);
   const formatSandromaniaPrice = (sandProdOrPriceCents, qty = 1) => {
     if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
       const prod = sandProdOrPriceCents;
@@ -106213,6 +106372,29 @@ ${finalDetails}`;
       return `$${usd2.toFixed(2)}`;
     }
     const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
+    const totalCents = priceCents * qty;
+    const usd = totalCents / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString()}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+  const formatCssxPrice = (cssxProdOrPriceCents, qty = 1) => {
+    if (typeof cssxProdOrPriceCents === "object" && cssxProdOrPriceCents !== null) {
+      const prod = cssxProdOrPriceCents;
+      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
+      }
+      const totalCents2 = (prod.sellingPriceUsd || 0) * qty;
+      const usd2 = totalCents2 / 100;
+      if (selectedCurrency === "LKR") {
+        const lkr = Math.round(usd2 * lkrRate);
+        return `Rs. ${lkr.toLocaleString()}`;
+      }
+      return `$${usd2.toFixed(2)}`;
+    }
+    const priceCents = typeof cssxProdOrPriceCents === "number" ? cssxProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
     if (selectedCurrency === "LKR") {
@@ -106301,6 +106483,89 @@ ${finalDetails}`;
       });
     } finally {
       setIsSandromaniaPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+    }
+  };
+  const handleCssxPurchase = async () => {
+    if (!detailCssxProduct) return;
+    if (!isCustomerLoggedIn) {
+      toast2({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to complete your purchase."
+      });
+      setDetailCssxProduct(null);
+      setActiveTab("profile");
+      return;
+    }
+    const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+    const userBalanceUsd = (user?.balance || 0) / 100;
+    const totalPriceUsd = totalCents / 100;
+    if (userBalanceUsd < totalPriceUsd) {
+      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
+      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+      setShortfallContext({
+        productName: detailCssxProduct.title,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd
+      });
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast2({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`
+      });
+      setDetailCssxProduct(null);
+      setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    setIsCssxPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Digital License...",
+      subtitle: "Connecting to CSxStore API & generating credentials..."
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
+      const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
+        productId: detailCssxProduct.id,
+        quantity: cssxOrderQty,
+        currency: selectedCurrency
+      });
+      await res.json();
+      recordPurchasedDelta(`cssx_${detailCssxProduct.id}`, cssxOrderQty);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      toast2({
+        title: "🎉 Purchase Successful!",
+        description: "Your digital license keys and credentials have been delivered."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/cssx/orders"] });
+      refetchUser();
+      refetchCssxOrders();
+      setDetailCssxProduct(null);
+      setActiveTab("orders");
+    } catch (err) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      toast2({
+        title: "Order Failed",
+        description: err.message || "Failed to process CSxStore purchase.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCssxPurchasing(false);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
@@ -107180,6 +107445,92 @@ ${finalDetails}`;
               `sandro-prod-${sandProd.id}`
             );
           }
+          if (item.type === "cssx") {
+            const cssxProd = item.data;
+            const isOutOfStock2 = item.isOutOfStock;
+            const cleanTitle = cssxProd.title || "Digital Product";
+            const cleanCat = cssxProd.category || "General";
+            const conf2 = getProviderConfig(cleanTitle, cleanCat);
+            const priceFormatted2 = formatCssxPrice(cssxProd, 1);
+            const availableStock2 = cssxProd.stock ?? 99;
+            const stats2 = getItemStats(cssxProd, "sandromania");
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              motion.div,
+              {
+                whileHover: isOutOfStock2 ? {} : { y: -3 },
+                whileTap: isOutOfStock2 ? {} : { scale: 0.98 },
+                onClick: () => {
+                  if (isOutOfStock2) {
+                    toast2({ title: "Out of Stock", description: "This product is currently fully out of stock.", variant: "destructive" });
+                    return;
+                  }
+                  setDetailCssxProduct(cssxProd);
+                  setCssxOrderQty(1);
+                },
+                className: `bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${isOutOfStock2 ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"}`,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${conf2.bgBadge}`, children: conf2.tag }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100 flex items-center gap-0.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-2.5 h-2.5" }),
+                      " Auto-CDK"
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative my-2 py-3 flex items-center justify-center", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "div",
+                      {
+                        className: `w-20 h-20 rounded-full bg-gradient-to-br ${conf2.blobColor} absolute blur-sm`
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: cleanTitle, type: cleanCat, className: "w-12 h-12" }) }),
+                    isOutOfStock2 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3 h-3 text-slate-300 shrink-0" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "FULLY OUT OF STOCK" })
+                    ] }) })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors", children: cleanTitle }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-1 text-[9.5px]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold flex items-center gap-0.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-500 font-black", children: [
+                          "★ ",
+                          stats2.rating
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                          "(",
+                          stats2.sold.toLocaleString(),
+                          " sold)"
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9px] font-bold shrink-0 ${!isOutOfStock2 ? "text-emerald-600" : "text-slate-400"}`, children: !isOutOfStock2 ? availableStock2 < 90 ? `${availableStock2} in stock` : "In stock" : "Out of stock" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted2 }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "Instant Auto" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        disabled: isOutOfStock2,
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          if (isOutOfStock2) return;
+                          setDetailCssxProduct(cssxProd);
+                          setCssxOrderQty(1);
+                        },
+                        className: `w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOutOfStock2 ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" : "bg-gradient-to-tr from-[#8E54E9] to-[#5B42F3] text-white shadow-md shadow-[#8E54E9]/20 hover:opacity-95 active:scale-90"}`,
+                        children: isOutOfStock2 ? /* @__PURE__ */ jsxRuntimeExports.jsx(Ban, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" })
+                      }
+                    )
+                  ] })
+                ]
+              },
+              `cssx-prod-${cssxProd.id}`
+            );
+          }
           const prod = item.data;
           const isOutOfStock = item.isOutOfStock;
           const conf = getProviderConfig(prod.name, prod.type);
@@ -107495,7 +107846,7 @@ ${finalDetails}`;
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold text-[#7E7998]", children: [
                       "Paid: ",
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black font-mono text-[#181432]", children: formatBalanceInCurrentCurrency(ord.priceCents) })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black font-mono text-[#181432]", children: selectedCurrency === "LKR" ? `Rs. ${(ord.priceLkr ? Number(ord.priceLkr) : Math.round(ord.priceCents / 100 * lkrRate)).toLocaleString()}` : `$${(ord.priceCents / 100).toFixed(2)}` })
                     ] }),
                     selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#9490A8] font-mono", children: [
                       "($",
@@ -107503,7 +107854,7 @@ ${finalDetails}`;
                       ")"
                     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-[#9490A8] font-mono", children: [
                       "(Rs. ",
-                      Math.round(ord.priceCents / 100 * lkrRate).toLocaleString(),
+                      (ord.priceLkr ? Number(ord.priceLkr) : Math.round(ord.priceCents / 100 * lkrRate)).toLocaleString(),
                       ")"
                     ] })
                   ] }),
@@ -109521,6 +109872,180 @@ ${finalDetails}`;
                 disabled: isSandromaniaPurchasing,
                 className: "flex-1 py-3.5 bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
                 children: isSandromaniaPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
+                  " Sign In to Buy"
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4" }),
+                  " Buy Now (Auto Delivery) 🚀"
+                ] })
+              }
+            ) })
+          ] });
+        })() })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Dialog,
+      {
+        open: !!detailCssxProduct,
+        onOpenChange: (open2) => {
+          if (!open2) {
+            setDetailCssxProduct(null);
+            setAppliedCoupon(null);
+          }
+        },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { hideClose: true, className: "max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50", children: detailCssxProduct && (() => {
+          const cleanTitle = detailCssxProduct.title || "Digital Product";
+          const cleanCat = detailCssxProduct.category || "General";
+          const availableStock = detailCssxProduct.stock ?? 99;
+          const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+          const userBalCents = user?.balance || 0;
+          const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: () => {
+                    setDetailCssxProduct(null);
+                    setAppliedCoupon(null);
+                  },
+                  className: "w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { className: "w-4 h-4" })
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: () => toggleFavorite(`cssx_${detailCssxProduct.id}`),
+                  className: "w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#7E7998] hover:text-red-500 transition-colors border border-[#ECEEF8]",
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Heart,
+                    {
+                      className: `w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : ""}`
+                    }
+                  )
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative py-4 flex items-center justify-center mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-28 h-28 rounded-full bg-gradient-to-tr from-[#E9D5FF] to-[#DBEAFE] absolute blur-sm" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative z-10 drop-shadow-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: cleanTitle, type: cleanCat, className: "w-14 h-14" }) })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-2 mb-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-black text-[#181432] leading-tight", children: cleanTitle }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] font-bold text-[#6B658B] block mt-0.5", children: [
+                  cleanCat,
+                  " · Instant CDK Auto-Delivery"
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-black text-[#181432]", children: formatCssxPrice(detailCssxProduct, cssxOrderQty) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "total price" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3 flex-wrap", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-500 animate-pulse" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "In Stock: ",
+                  availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"
+                ] })
+              ] }),
+              (() => {
+                const stats = getItemStats(detailCssxProduct, "sandromania");
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Star, { className: "w-3 h-3 fill-amber-400 text-amber-400" }),
+                    " ",
+                    stats.rating
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-[#7E7998] font-medium", children: [
+                    "(",
+                    stats.sold.toLocaleString(),
+                    " sold • ",
+                    stats.reviewsCount,
+                    " reviews)"
+                  ] })
+                ] });
+              })()
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B658B] leading-relaxed mb-5", children: detailCssxProduct.description || "Instant CDK license key / account generated automatically upon purchase. 100% genuine digital product with full activation guarantee." }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: "Quantity" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: () => {
+                        setCssxOrderQty((q2) => Math.max(1, q2 - 1));
+                        setAppliedCoupon(null);
+                      },
+                      disabled: cssxOrderQty <= 1,
+                      className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Minus, { className: "w-3 h-3" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432] min-w-[14px] text-center", children: cssxOrderQty }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: () => {
+                        setCssxOrderQty((q2) => q2 + 1);
+                        setAppliedCoupon(null);
+                      },
+                      className: "w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all",
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3 h-3" })
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#7E7998] mr-1.5", children: "Total:" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatCssxPrice(detailCssxProduct, cssxOrderQty) })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-purple-50/80 border border-purple-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { className: "w-4 h-4 text-purple-600 shrink-0 mt-0.5" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] text-purple-950", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-extrabold block", children: "Instant Auto-Fulfillment" }),
+                "Your license key / digital CDK will be generated immediately via CSxStore and stored in your ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Orders" }),
+                " tab with 1-click copy."
+              ] })
+            ] }),
+            userBalCents < totalCents && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold block", children: "⚠️ Insufficient Wallet Balance" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-amber-800", children: [
+                  "Balance: ",
+                  formatBalanceInCurrentCurrency(userBalCents),
+                  " · Needed: ",
+                  formatCssxPrice(detailCssxProduct, cssxOrderQty)
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setDetailCssxProduct(null);
+                    setActiveTab("wallet");
+                  },
+                  className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[11px] shadow-sm transition-all",
+                  children: "Top Up"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: handleCssxPurchase,
+                disabled: isCssxPurchasing,
+                className: "flex-1 py-3.5 bg-gradient-to-r from-[#8E54E9] via-[#5B42F3] to-[#00C9FF] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50",
+                children: isCssxPurchasing ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }),
                   " Sign In to Buy"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
@@ -111734,7 +112259,7 @@ function N1PanelPage() {
     ] }) })
   ] });
 }
-const PRESET_CATEGORIES = [
+const PRESET_CATEGORIES$1 = [
   { id: "gemini", label: "Gemini AI" },
   { id: "chatgpt", label: "ChatGPT / OpenAI" },
   { id: "claude", label: "Claude AI" },
@@ -111744,6 +112269,10 @@ const PRESET_CATEGORIES = [
   { id: "oracle", label: "Oracle Cloud" },
   { id: "linode", label: "Linode" },
   { id: "google", label: "GCP Cloud" },
+  { id: "canva", label: "Canva Pro" },
+  { id: "adobe", label: "Adobe Creative" },
+  { id: "hotmail", label: "Hotmail / Outlook" },
+  { id: "windows", label: "Windows OS" },
   { id: "spotify", label: "Spotify" },
   { id: "youtube", label: "YouTube" },
   { id: "tiktok", label: "TikTok" },
@@ -111925,6 +112454,29 @@ function SandromaniaPage() {
       });
     }
   });
+  const autoSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sandromania/auto-sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to auto-sync catalog");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "🎉 Live Partner Catalog Synced!",
+        description: data.message || `All Sandromania products (Canva, Adobe, Hotmail, etc.) have been auto-synced to your catalog.`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sandromania/settings"] });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Auto-Sync Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
   const copyToClipboard = (text2, label = "Copied to clipboard") => {
     if (!text2) return;
     navigator.clipboard.writeText(text2);
@@ -112051,28 +112603,47 @@ function SandromaniaPage() {
                   refetchSettings();
                   refetchProducts();
                   refetchOrders();
-                  syncStockMutation.mutate();
+                  autoSyncMutation.mutate();
                 },
-                disabled: syncStockMutation.isPending,
-                variant: "outline",
-                className: "flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-2",
+                disabled: autoSyncMutation.isPending,
+                className: "flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-600/30 gap-1.5",
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}` }),
-                  syncStockMutation.isPending ? "Syncing..." : "Sync Stock"
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: `w-3.5 h-3.5 ${autoSyncMutation.isPending ? "animate-spin text-yellow-300" : "text-yellow-400"}` }),
+                  autoSyncMutation.isPending ? "Auto-Syncing..." : "⚡ Auto-Sync Catalog"
                 ]
               }
             ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                onClick: () => setShowImportModal(true),
-                className: "flex-1 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] hover:opacity-95 text-white font-black rounded-xl text-xs shadow-lg shadow-[#8B5CF6]/30 gap-1.5",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
-                  " Import Products"
-                ]
-              }
-            )
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  onClick: () => {
+                    refetchSettings();
+                    refetchProducts();
+                    refetchOrders();
+                    syncStockMutation.mutate();
+                  },
+                  disabled: syncStockMutation.isPending,
+                  variant: "outline",
+                  className: "flex-1 bg-white/10 hover:bg-white/20 text-white border-white/15 rounded-xl text-xs font-bold gap-1.5",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 ${syncStockMutation.isPending ? "animate-spin text-purple-300" : ""}` }),
+                    "Stock"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  onClick: () => setShowImportModal(true),
+                  className: "flex-1 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] hover:opacity-95 text-white font-black rounded-xl text-xs shadow-lg shadow-[#8B5CF6]/30 gap-1",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-3.5 h-3.5" }),
+                    " Import"
+                  ]
+                }
+              )
+            ] })
           ] })
         ] })
       ] })
@@ -112618,7 +113189,7 @@ function SandromaniaPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-muted-foreground block mb-1", children: "Store Category" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5 mb-2", children: PRESET_CATEGORIES.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5 mb-2", children: PRESET_CATEGORIES$1.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
               type: "button",
@@ -112711,100 +113282,54 @@ function SandromaniaPage() {
 }
 const BASE_URL = "https://api.cssx.store";
 const DOCS_URL = "https://api.cssx.store/docs";
-const API_ENDPOINTS = [
-  {
-    method: "GET",
-    path: "/api/v1/me",
-    title: "Account Profile & Wallet",
-    description: "Returns account details, email, status, and live USDT wallet balance.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/me" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/products",
-    title: "Products Catalog",
-    description: "Fetches list of all available products with stock, pricing, and variant details.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/products" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "POST",
-    path: "/api/v1/order",
-    title: "Create Single Order",
-    description: "Purchases and provisions a product instantly. Deducts cost from your USDT wallet.",
-    samplePayload: { product_id: "PROD_123", quantity: 1, custom_data: { note: "Order via Bot" } },
-    curlExample: `curl -X POST "${BASE_URL}/api/v1/order" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"product_id": "PROD_123", "quantity": 1}'`
-  },
-  {
-    method: "POST",
-    path: "/api/v1/batch-order",
-    title: "Create Batch Orders",
-    description: "Places multiple product orders in a single atomic transaction.",
-    samplePayload: {
-      orders: [
-        { product_id: "PROD_123", quantity: 2 },
-        { product_id: "PROD_456", quantity: 1 }
-      ]
-    },
-    curlExample: `curl -X POST "${BASE_URL}/api/v1/batch-order" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"orders": [{"product_id": "PROD_123", "quantity": 2}]}'`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/orders",
-    title: "Order History",
-    description: "Fetches all recent placed orders with delivery data and statuses.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/orders" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/order/{id}",
-    title: "Get Order by ID",
-    description: "Fetches complete order details, delivered keys, license codes, or download links.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/order/ORD_98765" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  },
-  {
-    method: "GET",
-    path: "/api/v1/stats",
-    title: "Account Statistics",
-    description: "Returns total orders, successful orders count, spent USDT, and failure rates.",
-    samplePayload: null,
-    curlExample: `curl -X GET "${BASE_URL}/api/v1/stats" \\
-  -H "X-API-Key: YOUR_KEY" \\
-  -H "Accept: application/json"`
-  }
+const PRESET_CATEGORIES = [
+  { id: "Gemini AI", label: "Gemini AI" },
+  { id: "ChatGPT / OpenAI", label: "ChatGPT / OpenAI" },
+  { id: "Claude AI", label: "Claude AI" },
+  { id: "AWS Cloud", label: "AWS Cloud" },
+  { id: "DigitalOcean", label: "DigitalOcean" },
+  { id: "MS Azure", label: "MS Azure" },
+  { id: "Oracle Cloud", label: "Oracle Cloud" },
+  { id: "Linode", label: "Linode" },
+  { id: "GCP Cloud", label: "GCP Cloud" },
+  { id: "Canva Pro", label: "Canva Pro" },
+  { id: "Adobe Creative", label: "Adobe Creative" },
+  { id: "Hotmail / Outlook", label: "Hotmail / Outlook" },
+  { id: "Windows OS", label: "Windows OS" },
+  { id: "Spotify", label: "Spotify" },
+  { id: "YouTube", label: "YouTube" },
+  { id: "TikTok", label: "TikTok" },
+  { id: "Instagram", label: "Instagram" },
+  { id: "Facebook", label: "Facebook" },
+  { id: "Telegram", label: "Telegram" },
+  { id: "Duolingo", label: "Duolingo" },
+  { id: "CapCut", label: "CapCut" },
+  { id: "Kamatera", label: "Kamatera" },
+  { id: "General / Other", label: "General / Other" }
 ];
 function CssxApiPage() {
   const { toast: toast2 } = useToast();
-  const [activeTab, setActiveTab] = reactExports.useState("overview");
+  const [activeTab, setActiveTab] = reactExports.useState("products");
   const [searchQuery, setSearchQuery] = reactExports.useState("");
+  const [selectedCategory, setSelectedCategory] = reactExports.useState("all");
+  const [showImportModal, setShowImportModal] = reactExports.useState(false);
   const [showApiKey, setShowApiKey] = reactExports.useState(false);
   const [copiedText, setCopiedText] = reactExports.useState(null);
   const [inputApiKey, setInputApiKey] = reactExports.useState("");
   const [inputBaseUrl, setInputBaseUrl] = reactExports.useState(BASE_URL);
-  const [selectedProductForOrder, setSelectedProductForOrder] = reactExports.useState(null);
-  const [orderQuantity, setOrderQuantity] = reactExports.useState(1);
-  const [orderCustomNote, setOrderCustomNote] = reactExports.useState("");
+  const [editingProduct, setEditingProduct] = reactExports.useState(null);
+  const [editTitle, setEditTitle] = reactExports.useState("");
+  const [editSellingPriceUsd, setEditSellingPriceUsd] = reactExports.useState("");
+  const [editSellingPriceLkr, setEditSellingPriceLkr] = reactExports.useState("");
+  const [editCategory, setEditCategory] = reactExports.useState("General");
+  const [editDescription, setEditDescription] = reactExports.useState("");
+  const [editIsActive, setEditIsActive] = reactExports.useState(true);
+  const [importSearch, setImportSearch] = reactExports.useState("");
+  const [markupPercent, setMarkupPercent] = reactExports.useState(40);
+  const [selectedProductsToImport, setSelectedProductsToImport] = reactExports.useState([]);
   const [playgroundEndpoint, setPlaygroundEndpoint] = reactExports.useState("/api/v1/me");
   const [playgroundMethod, setPlaygroundMethod] = reactExports.useState("GET");
-  const [playgroundPayload, setPlaygroundPayload] = reactExports.useState('{\n  "product_id": "1",\n  "quantity": 1\n}');
-  const [playgroundOrderId, setPlaygroundOrderId] = reactExports.useState("1");
+  const [playgroundPayload, setPlaygroundPayload] = reactExports.useState('{\n  "service_id": "5",\n  "quantity": 1\n}');
   const [playgroundResponse, setPlaygroundResponse] = reactExports.useState(null);
   const [isPlayingLoading, setIsPlayingLoading] = reactExports.useState(false);
   const copyToClipboard = (text2, label) => {
@@ -112824,18 +113349,16 @@ function CssxApiPage() {
       return data;
     }
   });
-  const { data: products2 = [], isLoading: productsLoading, refetch: refetchProducts, isFetching: productsFetching } = useQuery({
+  const { data: products2 = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ["/api/admin/cssx/products"],
     queryFn: async () => {
       const res = await fetch("/api/admin/cssx/products");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to load products from CSxStore");
+        throw new Error(err.message || "Failed to load products");
       }
       return res.json();
-    },
-    enabled: activeTab === "products" || activeTab === "overview",
-    retry: false
+    }
   });
   const { data: orders2 = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ["/api/admin/cssx/orders"],
@@ -112846,9 +113369,19 @@ function CssxApiPage() {
         throw new Error(err.message || "Failed to load orders");
       }
       return res.json();
+    }
+  });
+  const { data: remoteProducts = [], isLoading: remoteProductsLoading, refetch: refetchRemoteProducts } = useQuery({
+    queryKey: ["/api/admin/cssx/fetch-products"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/cssx/fetch-products");
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to fetch live products from CSxStore");
+      }
+      return res.json();
     },
-    enabled: activeTab === "orders" || activeTab === "overview",
-    retry: false
+    enabled: showImportModal
   });
   const [testResult, setTestResult] = reactExports.useState(null);
   const testConnectionMutation = useMutation({
@@ -112863,7 +113396,7 @@ function CssxApiPage() {
       if (data.connected) {
         toast2({
           title: "Connection Successful! ⚡",
-          description: `Latency: ${data.latencyMs}ms | Live Wallet: $${Number(data.walletUsdt || 0).toFixed(4)} USDT | Catalog: ${data.productCount} items`
+          description: `Latency: ${data.latencyMs}ms | Account: ${data.account?.username || "@partner"} | Wallet: $${Number(data.walletUsdt || 0).toFixed(2)} USDT | Catalog: ${data.productCount} items`
         });
       } else {
         toast2({
@@ -112873,7 +113406,7 @@ function CssxApiPage() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchSettings();
     },
     onError: (err) => {
       toast2({
@@ -112896,13 +113429,11 @@ function CssxApiPage() {
     },
     onSuccess: (data) => {
       toast2({
-        title: data.status === "connected" ? "Connected Successfully!" : "Settings Saved",
+        title: data.status === "connected" ? "Connected Successfully! ⚡" : "Settings Saved",
         description: data.message
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
       refetchSettings();
-      refetchProducts();
     },
     onError: (err) => {
       toast2({
@@ -112912,42 +113443,141 @@ function CssxApiPage() {
       });
     }
   });
-  const createOrderMutation = useMutation({
+  const importProductsMutation = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch("/api/admin/cssx/order", {
+      const res = await fetch("/api/admin/cssx/import-products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to place order");
+      if (!res.ok) throw new Error(data.message || "Failed to import products");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "🎉 Import Complete!",
+        description: data.message
+      });
+      setShowImportModal(false);
+      setSelectedProductsToImport([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
+    },
+    onError: (err) => {
+      toast2({
+        title: "Import Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id: id2, updates }) => {
+      const res = await fetch(`/api/admin/cssx/products/${id2}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update product");
       return data;
     },
     onSuccess: () => {
-      toast2({ title: "Order Placed!", description: "Product has been provisioned successfully." });
-      setSelectedProductForOrder(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      toast2({ title: "Product Updated" });
+      setEditingProduct(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
     },
     onError: (err) => {
-      toast2({ title: "Order Failed", description: err.message, variant: "destructive" });
+      toast2({ title: "Update Failed", description: err.message, variant: "destructive" });
     }
   });
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id2) => {
+      const res = await fetch(`/api/admin/cssx/products/${id2}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete product");
+      return data;
+    },
+    onSuccess: () => {
+      toast2({ title: "Product Deleted from Store" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      refetchProducts();
+    },
+    onError: (err) => {
+      toast2({ title: "Delete Failed", description: err.message, variant: "destructive" });
+    }
+  });
+  const syncStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/cssx/sync-stock", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to sync stock");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast2({
+        title: "⚡ Stock Synced Successfully!",
+        description: data.message || "Updated live stock counts from CSxStore API."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cssx/settings"] });
+      refetchProducts();
+    },
+    onError: (err) => {
+      toast2({
+        title: "Stock Sync Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  });
+  const handleOpenEdit = (prod) => {
+    setEditingProduct(prod);
+    setEditTitle(prod.title || "");
+    setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round((prod.sellingPriceUsd || 0) / 100 * 305.5)));
+    setEditCategory(prod.category || "General");
+    setEditDescription(prod.description || "");
+    setEditIsActive(prod.isActive !== false);
+  };
+  const handleSaveEdit = () => {
+    if (!editingProduct) return;
+    let usdVal = parseFloat(editSellingPriceUsd);
+    let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
+    if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
+      usdVal = parseFloat((lkrVal / 305.5).toFixed(2));
+    }
+    if (usdVal > 0 && lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 305.5);
+    }
+    if (isNaN(usdVal) || usdVal < 0) {
+      toast2({ title: "Invalid Price", description: "Please enter a valid price.", variant: "destructive" });
+      return;
+    }
+    const priceCents = Math.round(usdVal * 100);
+    updateProductMutation.mutate({
+      id: editingProduct.id,
+      updates: {
+        title: editTitle.trim() || editingProduct.title,
+        sellingPriceUsd: priceCents,
+        sellingPriceLkr: Math.round(lkrVal),
+        category: editCategory,
+        description: editDescription,
+        isActive: editIsActive
+      }
+    });
+  };
   const executePlayground = async () => {
     setIsPlayingLoading(true);
     setPlaygroundResponse(null);
     try {
-      let endpoint = playgroundEndpoint;
-      if (endpoint === "/api/v1/order/{id}") {
-        endpoint = `/api/v1/orders/${playgroundOrderId || "1"}`;
-      }
       let res;
       if (playgroundMethod === "GET") {
-        if (endpoint === "/api/v1/me") res = await fetch("/api/admin/cssx/me");
-        else if (endpoint === "/api/v1/stats") res = await fetch("/api/admin/cssx/stats");
-        else if (endpoint === "/api/v1/products") res = await fetch("/api/admin/cssx/products");
-        else if (endpoint === "/api/v1/orders") res = await fetch("/api/admin/cssx/orders");
-        else res = await fetch(`/api/admin/cssx/orders/${playgroundOrderId || "1"}`);
+        if (playgroundEndpoint === "/api/v1/me") res = await fetch("/api/admin/cssx/settings");
+        else if (playgroundEndpoint === "/api/v1/products") res = await fetch("/api/admin/cssx/fetch-products");
+        else res = await fetch("/api/admin/cssx/orders");
       } else {
         let bodyJson = {};
         try {
@@ -112955,19 +113585,11 @@ function CssxApiPage() {
         } catch {
           throw new Error("Invalid JSON body in payload.");
         }
-        if (endpoint === "/api/v1/order") {
-          res = await fetch("/api/admin/cssx/order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyJson)
-          });
-        } else {
-          res = await fetch("/api/admin/cssx/batch-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyJson)
-          });
-        }
+        res = await fetch("/api/admin/cssx/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyJson)
+        });
       }
       const data = await res.json();
       setPlaygroundResponse({ status: res.status, ok: res.ok, data });
@@ -112979,15 +113601,23 @@ function CssxApiPage() {
   };
   const isConnected = settingsData?.status === "connected";
   const activeKeyDisplay = settingsData?.apiKey ? showApiKey ? settingsData.apiKey : settingsData.maskedApiKey || "••••••••••••••••" : "No active key";
-  const walletUsdt = Number(settingsData?.walletUsdt ?? 0).toFixed(4);
-  const totalOrders = Number(settingsData?.stats?.orders ?? orders2.length ?? 0);
-  const successfulOrders = Number(settingsData?.stats?.successful ?? orders2.filter((o2) => o2.status === "completed" || o2.status === "success").length ?? 0);
+  const walletUsdt = Number(settingsData?.walletUsdt ?? 0).toFixed(2);
+  const totalOrders = Number(orders2.length);
+  Number(orders2.filter((o2) => o2.status === "completed" || o2.status === "success" || o2.status === "approved").length);
   const filteredProducts = products2.filter((p2) => {
-    const title = (p2.title || p2.name || "").toLowerCase();
+    const title = (p2.title || "").toLowerCase();
     const cat = (p2.category || "").toLowerCase();
-    const id2 = String(p2.id || p2.product_id || "");
+    const sid = String(p2.serviceId || p2.id || "");
     const q2 = searchQuery.toLowerCase();
-    return title.includes(q2) || cat.includes(q2) || id2.includes(q2);
+    const matchesSearch = title.includes(q2) || cat.includes(q2) || sid.includes(q2);
+    const matchesCategory = selectedCategory === "all" || cat === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
+  const filteredRemote = remoteProducts.filter((r2) => {
+    const title = (r2.name || r2.title || "").toLowerCase();
+    const sid = String(r2.service_id || r2.id || "");
+    const q2 = importSearch.toLowerCase();
+    return title.includes(q2) || sid.includes(q2);
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6 max-w-7xl mx-auto p-4 md:p-8", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#120B24] via-[#1A1035] to-[#25134A] border border-purple-500/20 shadow-2xl p-6 md:p-8", children: [
@@ -112996,7 +113626,7 @@ function CssxApiPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-2 flex-wrap", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl", children: "🧩" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl md:text-3xl font-black text-white tracking-tight", children: "Reseller / Developer API" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl md:text-3xl font-black text-white tracking-tight", children: "CSxStore Integration & Pricing" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               Badge,
               {
@@ -113010,9 +113640,11 @@ function CssxApiPage() {
             )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs md:text-sm text-purple-200/70 max-w-2xl font-medium", children: [
-            "Direct high-performance integration with ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white font-bold", children: "CSxStore Reseller API" }),
-            ". Provision products, manage USDT wallet balance, execute batch orders, and query live delivery data."
+            "Integrate ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white font-bold", children: "CSxStore Catalog" }),
+            " into your store. Import products, configure custom selling prices in ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-emerald-400", children: "Rs (LKR) / USD" }),
+            ", and enable automated instant provisioning."
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 flex-wrap", children: [
@@ -113031,16 +113663,15 @@ function CssxApiPage() {
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "a",
+            Button,
             {
-              href: DOCS_URL,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              className: "inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 transition-all hover:scale-105 active:scale-95 shadow-sm",
+              onClick: () => setShowImportModal(true),
+              className: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-10 px-4 shadow-lg shadow-purple-600/25 flex items-center gap-2",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { className: "w-4 h-4 text-purple-400" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "📚 API Docs" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5 text-white/50" })
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
+                "Import Products (",
+                remoteProducts.length || "Live",
+                ")"
               ]
             }
           ),
@@ -113053,7 +113684,7 @@ function CssxApiPage() {
                 refetchSettings();
                 refetchProducts();
                 refetchOrders();
-                toast2({ title: "Refreshing...", description: "Fetching live CSxStore balance & data." });
+                toast2({ title: "Refreshing...", description: "Fetching live CSxStore balance & products." });
               },
               disabled: settingsLoading || productsLoading,
               className: "rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4",
@@ -113074,20 +113705,24 @@ function CssxApiPage() {
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 rounded-2xl p-3.5 border border-white/5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "💰 Wallet" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "💰 CSx Wallet" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-sm font-black text-emerald-400", children: [
+            "$",
             walletUsdt,
             " ",
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-emerald-400/70", children: "USDT" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 rounded-2xl p-3.5 border border-white/5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "📦 Orders" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm font-black text-white", children: totalOrders })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "🛍 In Store" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-sm font-black text-purple-300", children: [
+            products2.length,
+            " Products"
+          ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 rounded-2xl p-3.5 border border-white/5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "✅ Successful" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm font-black text-purple-300", children: successfulOrders })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1", children: "📦 Orders" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm font-black text-white", children: totalOrders })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black/30 rounded-2xl p-3.5 border border-white/5 relative group", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase tracking-wider block mb-1 flex items-center justify-between", children: [
@@ -113119,31 +113754,10 @@ function CssxApiPage() {
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[11px] font-bold text-white/90 truncate font-mono", children: settingsData?.baseUrl || BASE_URL })
         ] })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs font-semibold text-purple-200/90 flex items-center justify-between flex-wrap gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-purple-400 shrink-0" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Your full active key is shown only inside your own CSxStore account. Keep it private." })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] font-mono text-purple-300/80", children: [
-          "Header Auth: ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white", children: "X-API-Key: YOUR_KEY" })
-        ] })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: (v2) => setActiveTab(v2), className: "space-y-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-[#130B24] border border-purple-500/20 p-1.5 rounded-2xl grid grid-cols-2 md:grid-cols-5 gap-1.5 h-auto", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          TabsTrigger,
-          {
-            value: "overview",
-            className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 mr-2" }),
-              "Overview"
-            ]
-          }
-        ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-[#130B24] border border-purple-500/20 p-1.5 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-1.5 h-auto", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           TabsTrigger,
           {
@@ -113151,7 +113765,7 @@ function CssxApiPage() {
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-3.5 h-3.5 mr-2" }),
-              "Live Products (",
+              "Managed Products (",
               products2.length,
               ")"
             ]
@@ -113164,7 +113778,7 @@ function CssxApiPage() {
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-3.5 h-3.5 mr-2" }),
-              "Orders History (",
+              "Orders & Delivery (",
               orders2.length,
               ")"
             ]
@@ -113177,7 +113791,7 @@ function CssxApiPage() {
             className: "rounded-xl font-black text-xs py-2.5 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-white/60",
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(CodeXml, { className: "w-3.5 h-3.5 mr-2" }),
-              "📚 API Docs & Playground"
+              "📚 Playground & Docs"
             ]
           }
         ),
@@ -113193,139 +113807,6 @@ function CssxApiPage() {
           }
         )
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsContent, { value: "overview", className: "space-y-6", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-6", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DollarSign, { className: "w-5 h-5 text-emerald-400" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-black", children: "LIVE WALLET" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-bold text-purple-300/60 uppercase", children: "Available USDT Balance" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-3xl font-black text-white mt-1", children: [
-              "$",
-              walletUsdt,
-              " ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-emerald-400", children: "USDT" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/60 mt-2", children: "Used for instant API product purchases and batch automated provisioning." }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-white/50", children: [
-                "Status: ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white", children: settingsData?.statusMessage || "Active" })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  size: "sm",
-                  variant: "ghost",
-                  onClick: () => refetchSettings(),
-                  className: "h-8 text-xs font-bold text-purple-300 hover:text-white hover:bg-purple-500/10",
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3 h-3 mr-1" }),
-                    " Check Balance"
-                  ]
-                }
-              )
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-5 h-5 text-purple-400" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] font-black", children: "CATALOG" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-bold text-purple-300/60 uppercase", children: "Available Products" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-3xl font-black text-white mt-1", children: [
-              products2.length,
-              " ",
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-purple-400", children: "Items" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/60 mt-2", children: "Live products in CSxStore catalog with automated provisioning." }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                size: "sm",
-                onClick: () => setActiveTab("products"),
-                className: "w-full bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl h-8 flex items-center justify-center gap-1",
-                children: [
-                  "Browse Catalog ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowRight, { className: "w-3.5 h-3.5" })
-                ]
-              }
-            ) })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CodeXml, { className: "w-5 h-5 text-blue-400" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] font-black", children: "API V1" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-bold text-purple-300/60 uppercase", children: "API Documentation" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xl font-black text-white mt-1", children: "7 Endpoints Ready" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/60 mt-2", children: "Interactive playground for /me, /products, /order, /orders, /stats." }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 pt-4 border-t border-purple-500/10 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                size: "sm",
-                onClick: () => setActiveTab("docs"),
-                className: "w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl h-8 flex items-center justify-center gap-1",
-                children: [
-                  "Open Docs & Playground ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowRight, { className: "w-3.5 h-3.5" })
-                ]
-              }
-            ) })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-5 h-5 text-purple-400" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-white", children: "Supported Reseller API Endpoints" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "a",
-              {
-                href: DOCS_URL,
-                target: "_blank",
-                rel: "noreferrer",
-                className: "text-xs text-purple-300 hover:text-white font-bold flex items-center gap-1",
-                children: [
-                  "View Full Docs ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3", children: API_ENDPOINTS.map((ep) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              onClick: () => {
-                setPlaygroundEndpoint(ep.path);
-                setPlaygroundMethod(ep.method);
-                if (ep.samplePayload) {
-                  setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
-                }
-                setActiveTab("docs");
-              },
-              className: "p-3.5 rounded-2xl bg-black/40 border border-purple-500/15 hover:border-purple-500/40 cursor-pointer transition-all hover:scale-[1.02] group",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "span",
-                    {
-                      className: `text-[10px] font-black px-2 py-0.5 rounded-md ${ep.method === "GET" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`,
-                      children: ep.method
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-300/50 font-mono group-hover:text-purple-300", children: "Try in Playground →" })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-mono font-bold text-white mb-1", children: ep.path }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[11px] text-purple-200/60 leading-snug", children: ep.title })
-              ]
-            },
-            ep.path + ep.method
-          )) })
-        ] })
-      ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsContent, { value: "products", className: "space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-center justify-between gap-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full sm:w-80", children: [
@@ -113333,103 +113814,202 @@ function CssxApiPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               Input,
               {
-                placeholder: "Search products by title, category, ID...",
+                placeholder: "Search products in your store...",
                 value: searchQuery,
                 onChange: (e) => setSearchQuery(e.target.value),
                 className: "pl-10 bg-[#120B24] border-purple-500/20 text-white placeholder:text-purple-300/40 rounded-2xl text-xs h-10"
               }
             )
           ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 flex-wrap w-full sm:w-auto", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                variant: "outline",
+                size: "sm",
+                onClick: () => syncStockMutation.mutate(),
+                disabled: syncStockMutation.isPending,
+                className: "rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10 px-4",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 mr-2 ${syncStockMutation.isPending ? "animate-spin text-purple-400" : ""}` }),
+                  "Sync Live Stock"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                size: "sm",
+                onClick: () => setShowImportModal(true),
+                className: "bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-2xl h-10 px-4 flex items-center gap-1.5",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
+                  "Import More Products"
+                ]
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            Button,
+            "button",
             {
-              size: "sm",
-              variant: "outline",
-              onClick: () => refetchProducts(),
-              disabled: productsLoading,
-              className: "rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 font-bold text-xs h-10",
+              onClick: () => setSelectedCategory("all"),
+              className: `px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all ${selectedCategory === "all" ? "bg-purple-600 text-white shadow-md shadow-purple-600/30" : "bg-[#120B24] border border-purple-500/20 text-purple-300/70 hover:text-white"}`,
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 mr-2 ${productsLoading ? "animate-spin text-purple-400" : ""}` }),
-                "Reload Products"
+                "All Categories (",
+                products2.length,
+                ")"
               ]
             }
-          )
+          ),
+          PRESET_CATEGORIES.map((cat) => {
+            const count2 = products2.filter((p2) => (p2.category || "").toLowerCase() === cat.id.toLowerCase()).length;
+            if (count2 === 0) return null;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: () => setSelectedCategory(cat.id),
+                className: `px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all ${selectedCategory.toLowerCase() === cat.id.toLowerCase() ? "bg-purple-600 text-white shadow-md shadow-purple-600/30" : "bg-[#120B24] border border-purple-500/20 text-purple-300/70 hover:text-white"}`,
+                children: [
+                  cat.label,
+                  " (",
+                  count2,
+                  ")"
+                ]
+              },
+              cat.id
+            );
+          })
         ] }),
         productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-purple-200/70", children: "Fetching live products from CSxStore API..." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-purple-200/70", children: "Loading store catalog..." })
         ] }) : filteredProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-10 h-10 text-purple-400/40 mx-auto mb-3" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-white", children: "No products found" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300/60 mt-1 max-w-md mx-auto", children: settingsData?.apiKey ? "No products returned matching your search query, or your API key has no catalog permissions." : "Please configure your CSxStore API key in settings to fetch the live product catalog." }),
-          !settingsData?.apiKey && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-white", children: "No products imported yet" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300/60 mt-1 max-w-md mx-auto", children: products2.length === 0 ? "Import products from CSxStore to set your own custom Rs LKR / USD selling prices and start selling." : "No products match your current search or category filter." }),
+          products2.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
             Button,
             {
-              size: "sm",
-              onClick: () => setActiveTab("settings"),
-              className: "mt-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl",
-              children: "Configure API Key"
+              onClick: () => setShowImportModal(true),
+              className: "mt-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs rounded-xl",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4 mr-1.5" }),
+                "Import Products from CSxStore"
+              ]
             }
           )
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: filteredProducts.map((p2) => {
-          const prodId = p2.id || p2.product_id || p2.code;
-          const prodName = p2.title || p2.name || `Product #${prodId}`;
-          const price = p2.price_usdt || p2.price || p2.cost || 0;
-          const stock = p2.stock ?? p2.quantity ?? p2.inventory ?? "In Stock";
-          const category = p2.category || "General";
+          const costUsd = (p2.costPriceUsd || 0) / 100;
+          const sellUsd = (p2.sellingPriceUsd || 0) / 100;
+          const sellLkr = p2.sellingPriceLkr ? Number(p2.sellingPriceLkr) : Math.round(sellUsd * 305.5);
+          const profitUsd = sellUsd - costUsd;
+          const stock = p2.stock ?? 0;
+          const isAvail = p2.available && stock > 0;
           return /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "div",
             {
-              className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-500/40 transition-all group",
+              className: `bg-[#120B24] border ${p2.isActive ? "border-purple-500/20 hover:border-purple-500/40" : "border-white/5 opacity-60"} rounded-3xl p-5 shadow-lg flex flex-col justify-between transition-all group`,
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2 mb-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] font-black", children: category }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-purple-400/60", children: [
-                      "ID: ",
-                      prodId
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] font-black", children: p2.category || "General" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-purple-400/60", children: [
+                        "CSX #",
+                        p2.serviceId
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Switch,
+                        {
+                          checked: p2.isActive !== false,
+                          onCheckedChange: (checked) => {
+                            updateProductMutation.mutate({
+                              id: p2.id,
+                              updates: { isActive: checked }
+                            });
+                          }
+                        }
+                      )
                     ] })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-white group-hover:text-purple-300 transition-colors line-clamp-2", children: prodName }),
-                  p2.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/50 mt-1.5 line-clamp-2 font-medium", children: p2.description })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-white group-hover:text-purple-300 transition-colors line-clamp-2", children: p2.title }),
+                  p2.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/50 mt-1 line-clamp-2 font-medium", children: p2.description })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 pt-4 border-t border-purple-500/15 flex items-center justify-between", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-300/60 block font-bold", children: "Price / Stock" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-black text-emerald-400", children: [
-                        "$",
-                        Number(price).toFixed(2),
-                        " USDT"
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 pt-3 border-t border-purple-500/15 space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2 bg-black/40 p-2.5 rounded-2xl border border-white/5 text-xs", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-300/60 uppercase block font-bold", children: "Selling Price" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-black text-emerald-400", children: [
+                        "Rs. ",
+                        sellLkr.toLocaleString()
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-white/50", children: [
-                        "• Stock: ",
-                        stock
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] font-bold text-white/50", children: [
+                        "($",
+                        sellUsd.toFixed(2),
+                        " USD)"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-300/60 uppercase block font-bold", children: "Cost / Profit" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-purple-200", children: [
+                        "Cost: $",
+                        costUsd.toFixed(2)
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] font-black text-emerald-300 flex items-center gap-0.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-3 h-3 inline" }),
+                        " +$",
+                        profitUsd.toFixed(2),
+                        " Profit"
                       ] })
                     ] })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    Button,
-                    {
-                      size: "sm",
-                      onClick: () => {
-                        setSelectedProductForOrder(p2);
-                        setOrderQuantity(1);
-                      },
-                      className: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl h-8 px-3 shadow-md shadow-purple-600/20",
-                      children: "Order Now"
-                    }
-                  )
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `w-2 h-2 rounded-full ${isAvail ? "bg-emerald-400" : "bg-red-500"}` }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white/70", children: isAvail ? `Stock: ${stock}` : "Out of Stock" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        Button,
+                        {
+                          size: "sm",
+                          variant: "outline",
+                          onClick: () => handleOpenEdit(p2),
+                          className: "h-8 px-2.5 rounded-xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 text-xs font-bold",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(SquarePen, { className: "w-3.5 h-3.5 mr-1" }),
+                            " Edit Price"
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Button,
+                        {
+                          size: "sm",
+                          variant: "ghost",
+                          onClick: () => {
+                            if (confirm(`Remove "${p2.title}" from your store catalog?`)) {
+                              deleteProductMutation.mutate(p2.id);
+                            }
+                          },
+                          className: "h-8 px-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10",
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-3.5 h-3.5" })
+                        }
+                      )
+                    ] })
+                  ] })
                 ] })
               ]
             },
-            prodId
+            p2.id
           );
         }) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsContent, { value: "orders", className: "space-y-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-white uppercase tracking-wider", children: "Placed CSxStore Orders" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-black text-white uppercase tracking-wider", children: "CSxStore Customer Purchases & Deliveries" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             Button,
             {
@@ -113450,230 +114030,153 @@ function CssxApiPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-purple-200/70", children: "Loading order records..." })
         ] }) : orders2.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-12 text-center bg-[#120B24] border border-purple-500/20 rounded-3xl", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-10 h-10 text-purple-400/40 mx-auto mb-3" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-white", children: "No orders found" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300/60 mt-1 max-w-md mx-auto", children: "No orders have been placed through this CSxStore API key yet." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-white", children: "No CSxStore orders yet" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300/60 mt-1 max-w-md mx-auto", children: "When customers purchase CSxStore products from your store, their orders, CDK licenses, and delivery data will appear here." })
         ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl overflow-hidden shadow-xl", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-black/40 border-b border-purple-500/15 text-purple-300/60 font-bold uppercase tracking-wider text-[10px]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Order ID" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Product / Item" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Buyer" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Product" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Qty" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Total" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Amount Paid" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Status" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Delivered Data / Key" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4", children: "Delivered Data / CDK" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-4 text-right", children: "Date" })
           ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-purple-500/10", children: orders2.map((o2) => {
-            const orderId = o2.id || o2.order_id;
-            const prodName = o2.product_name || o2.product_title || o2.product_id || "Item";
-            const qty = o2.quantity || 1;
-            const price = o2.total_price || o2.price || 0;
-            const status = o2.status || "completed";
-            const delivery = o2.delivery_data || o2.keys || o2.item_data || o2.license || "Delivered";
+            const buyer = o2.username ? `@${o2.username}` : o2.userFirstName || o2.userEmail || `User #${o2.telegramId || o2.telegramUserId}`;
+            const paidCents = o2.amountPaid || 0;
+            const paidUsd = (paidCents / 100).toFixed(2);
+            const paidLkr = Math.round(paidCents / 100 * 305.5);
             return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-purple-500/5 transition-colors", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-4 font-mono font-bold text-white", children: [
                 "#",
-                orderId
+                o2.externalOrderId || `CSX-${o2.id}`
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 font-bold text-white/90", children: prodName }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 text-purple-200", children: qty }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 font-bold text-purple-300", children: buyer }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 font-bold text-white/90", children: o2.productTitle }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 text-purple-200", children: o2.quantity }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "p-4 font-black text-emerald-400", children: [
-                "$",
-                Number(price).toFixed(2)
+                "Rs. ",
+                paidLkr.toLocaleString(),
+                " ",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/50", children: [
+                  "($",
+                  paidUsd,
+                  ")"
+                ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Badge,
-                {
-                  className: `text-[9px] font-black uppercase ${status === "completed" || status === "success" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-amber-500/10 text-amber-400 border-amber-500/30"}`,
-                  children: status
-                }
-              ) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 font-mono text-[11px] text-purple-200/80 max-w-xs truncate", children: typeof delivery === "object" ? JSON.stringify(delivery) : delivery }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 text-right text-white/40", children: o2.created_at ? format(new Date(o2.created_at), "MMM d, HH:mm") : "Recent" })
-            ] }, orderId);
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] font-black uppercase", children: o2.status || "completed" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 font-mono text-[11px] text-purple-200/80 max-w-xs truncate", children: o2.deliveryText || "Delivered" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-4 text-right text-white/40", children: o2.createdAt ? format(new Date(o2.createdAt), "MMM d, HH:mm") : "Recent" })
+            ] }, o2.id);
           }) })
         ] }) }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsContent, { value: "docs", className: "space-y-6", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between flex-wrap gap-4 mb-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-black text-white flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "📚 Reseller API Documentation" }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-purple-200/70 mt-1", children: [
-                "Full reference and interactive live testing playground for ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white", children: "api.cssx.store" }),
-                "."
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "a",
-              {
-                href: DOCS_URL,
-                target: "_blank",
-                rel: "noreferrer",
-                className: "px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Official Swagger Docs" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
-                ]
-              }
-            ) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "docs", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between flex-wrap gap-4 mb-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-black text-white flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "📚 CSxStore API Playground" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-purple-200/70 mt-1", children: [
+              "Direct live interaction with ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white", children: "api.cssx.store" }),
+              "."
+            ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto rounded-2xl border border-purple-500/15", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "bg-black/50 text-[10px] font-bold uppercase tracking-wider text-purple-300/70 border-b border-purple-500/15", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3.5", children: "Method" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3.5", children: "Endpoint" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3.5", children: "Description" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3.5", children: "Auth Header" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "p-3.5 text-right", children: "Action" })
-            ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-purple-500/10 font-mono", children: API_ENDPOINTS.map((ep) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "hover:bg-purple-500/5 transition-colors", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "a",
+            {
+              href: DOCS_URL,
+              target: "_blank",
+              rel: "noreferrer",
+              className: "px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Official Swagger Docs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "select",
                 {
-                  className: `text-[10px] font-black px-2 py-0.5 rounded-md ${ep.method === "GET" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`,
-                  children: ep.method
+                  value: playgroundMethod,
+                  onChange: (e) => setPlaygroundMethod(e.target.value),
+                  className: "bg-black/50 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-black text-white focus:outline-none",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "GET", children: "GET" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "POST", children: "POST" })
+                  ]
                 }
-              ) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3.5 font-bold text-white", children: ep.path }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3.5 font-sans text-purple-200/80 text-[11px]", children: ep.description }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3.5 text-purple-300 text-[10.5px]", children: "X-API-Key: YOUR_KEY" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "p-3.5 text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Button,
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "select",
                 {
-                  size: "sm",
-                  onClick: () => {
-                    setPlaygroundEndpoint(ep.path);
-                    setPlaygroundMethod(ep.method);
-                    if (ep.samplePayload) {
-                      setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
+                  value: playgroundEndpoint,
+                  onChange: (e) => {
+                    setPlaygroundEndpoint(e.target.value);
+                    if (e.target.value === "/api/v1/order") {
+                      setPlaygroundMethod("POST");
+                    } else {
+                      setPlaygroundMethod("GET");
                     }
                   },
-                  className: "h-7 text-[10px] font-black bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white rounded-lg px-2.5",
-                  children: "Test in Playground"
-                }
-              ) })
-            ] }, ep.path)) })
-          ] }) })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 shadow-xl", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-5 h-5 text-emerald-400" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-white", children: "Live API Request Playground" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-mono", children: "Authenticated" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "select",
-                  {
-                    value: playgroundMethod,
-                    onChange: (e) => setPlaygroundMethod(e.target.value),
-                    className: "bg-black/50 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-black text-white focus:outline-none",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "GET", children: "GET" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "POST", children: "POST" })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "select",
-                  {
-                    value: playgroundEndpoint,
-                    onChange: (e) => {
-                      setPlaygroundEndpoint(e.target.value);
-                      const ep = API_ENDPOINTS.find((x2) => x2.path === e.target.value);
-                      if (ep) {
-                        setPlaygroundMethod(ep.method);
-                        if (ep.samplePayload) {
-                          setPlaygroundPayload(JSON.stringify(ep.samplePayload, null, 2));
-                        }
-                      }
-                    },
-                    className: "flex-1 bg-black/50 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none",
-                    children: API_ENDPOINTS.map((ep) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: ep.path, children: [
-                      ep.method,
-                      " ",
-                      ep.path,
-                      " - ",
-                      ep.title
-                    ] }, ep.path))
-                  }
-                )
-              ] }),
-              playgroundEndpoint === "/api/v1/order/{id}" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[10px] font-bold text-purple-300/60 uppercase block mb-1", children: "Order ID:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Input,
-                  {
-                    value: playgroundOrderId,
-                    onChange: (e) => setPlaygroundOrderId(e.target.value),
-                    placeholder: "e.g. ORD_12345",
-                    className: "bg-black/50 border-purple-500/30 text-white rounded-xl text-xs font-mono"
-                  }
-                )
-              ] }),
-              playgroundMethod === "POST" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[10px] font-bold text-purple-300/60 uppercase block mb-1", children: "JSON Request Body:" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "textarea",
-                  {
-                    value: playgroundPayload,
-                    onChange: (e) => setPlaygroundPayload(e.target.value),
-                    rows: 6,
-                    className: "w-full bg-black/50 border border-purple-500/30 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:border-purple-400"
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Button,
-                {
-                  onClick: executePlayground,
-                  disabled: isPlayingLoading,
-                  className: "w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2",
-                  children: isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
-                    " Executing Request..."
-                  ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
-                    " Send Live API Request"
-                  ] })
+                  className: "flex-1 bg-black/50 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "/api/v1/me", children: "GET /api/v1/me - Account Profile & Wallet" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "/api/v1/products", children: "GET /api/v1/products - Full Catalog" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "/api/v1/order", children: "POST /api/v1/order - Purchase Product" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "/api/v1/orders", children: "GET /api/v1/orders - Reseller Orders" })
+                  ]
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase", children: "Response Output:" }),
-                playgroundResponse && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "span",
-                  {
-                    className: `text-[10px] font-mono font-bold ${playgroundResponse.ok ? "text-emerald-400" : "text-red-400"}`,
-                    children: [
-                      "HTTP ",
-                      playgroundResponse.status
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black/70 border border-purple-500/30 rounded-2xl p-4 min-h-[220px] max-h-[350px] overflow-auto font-mono text-xs text-purple-200", children: isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-center h-40 text-purple-400 gap-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Contacting https://api.cssx.store..." })
-              ] }) : playgroundResponse ? /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "whitespace-pre-wrap", children: JSON.stringify(playgroundResponse.data || playgroundResponse.error, null, 2) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-white/30 text-center flex flex-col items-center justify-center h-40", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-8 h-8 mb-2 opacity-40" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: 'Select an endpoint and click "Send Live API Request"' })
-              ] }) })
-            ] })
+            playgroundMethod === "POST" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-[10px] font-bold text-purple-300/60 uppercase block mb-1", children: "JSON Payload:" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "textarea",
+                {
+                  value: playgroundPayload,
+                  onChange: (e) => setPlaygroundPayload(e.target.value),
+                  rows: 5,
+                  className: "w-full bg-black/50 border border-purple-500/30 rounded-xl p-3 text-xs font-mono text-emerald-400 focus:outline-none"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                onClick: executePlayground,
+                disabled: isPlayingLoading,
+                className: "w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2",
+                children: [
+                  isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
+                  "Send Live Request"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-purple-300/60 uppercase block mb-1.5", children: "Output:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black/70 border border-purple-500/30 rounded-2xl p-4 min-h-[200px] max-h-[300px] overflow-auto font-mono text-xs text-purple-200", children: isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-center h-36 text-purple-400 gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sending request..." })
+            ] }) : playgroundResponse ? /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "whitespace-pre-wrap", children: JSON.stringify(playgroundResponse.data || playgroundResponse.error, null, 2) }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-white/30 text-center flex flex-col items-center justify-center h-36", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-8 h-8 mb-2 opacity-40" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: 'Click "Send Live Request" to test' })
+            ] }) })
           ] })
         ] })
-      ] }),
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(TabsContent, { value: "settings", className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#120B24] border border-purple-500/20 rounded-3xl p-6 md:p-8 shadow-xl max-w-2xl mx-auto", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-6 pb-4 border-b border-purple-500/15", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { className: "w-6 h-6 text-purple-400" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-white", children: "CSxStore API Key Configuration" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/60 mt-0.5", children: "Save your secret reseller API key to authenticate all product and wallet requests." })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-white", children: "CSxStore API Credentials" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-200/60 mt-0.5", children: "Configure your secret reseller API key to authenticate requests." })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -113695,7 +114198,7 @@ function CssxApiPage() {
                     Input,
                     {
                       type: showApiKey ? "text" : "password",
-                      placeholder: "Enter your secret CSxStore API Key...",
+                      placeholder: "Enter your CSxStore API Key...",
                       value: inputApiKey,
                       onChange: (e) => setInputApiKey(e.target.value),
                       className: "bg-black/40 border-purple-500/30 text-white rounded-2xl text-xs font-mono h-12 pr-12"
@@ -113710,8 +114213,7 @@ function CssxApiPage() {
                       children: showApiKey ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-4 h-4" })
                     }
                   )
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-purple-300/60 mt-1.5 leading-relaxed", children: "Your full active key is shown only inside your own CSxStore account. Keep it private." })
+                ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-black text-purple-200 uppercase tracking-wider block mb-1.5", children: "API Base URL" }),
@@ -113734,7 +114236,7 @@ function CssxApiPage() {
                   className: "w-full h-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-90 text-white font-black text-xs rounded-2xl shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2",
                   children: saveSettingsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
-                    " Verifying & Connecting..."
+                    " Verifying Connection..."
                   ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4" }),
                     " Save & Test Connection"
@@ -113746,86 +114248,272 @@ function CssxApiPage() {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedProductForOrder, onOpenChange: (open2) => !open2 && setSelectedProductForOrder(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "bg-[#120B24] border border-purple-500/30 text-white rounded-3xl max-w-md", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!editingProduct, onOpenChange: (open2) => !open2 && setEditingProduct(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-md w-full p-6 rounded-3xl max-h-[90vh] overflow-y-auto", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black text-white flex items-center gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-5 h-5 text-purple-400" }),
-          "Place Instant Product Order"
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogDescription, { className: "text-xs text-purple-200/70", children: [
-          "This will place an order via ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white", children: "POST /api/v1/order" }),
-          " and deduct from your USDT wallet."
-        ] })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { className: "text-base font-black", children: "Edit Product Details & Pricing" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-muted-foreground", children: "Customize product title, category, and selling price in your store." })
       ] }),
-      selectedProductForOrder && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-2xl bg-black/40 border border-purple-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-300/60 uppercase font-bold block", children: "Product" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-white", children: selectedProductForOrder.title || selectedProductForOrder.name }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-emerald-400", children: [
-              "$",
-              Number(selectedProductForOrder.price_usdt || selectedProductForOrder.price || 0).toFixed(2),
-              " USDT"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/50", children: [
-              "• ID: ",
-              selectedProductForOrder.id || selectedProductForOrder.product_id
-            ] })
+      editingProduct && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-muted-foreground block mb-1", children: "Custom Product Name (Title)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              value: editTitle,
+              onChange: (e) => setEditTitle(e.target.value),
+              placeholder: "e.g. Gemini Pro 18 Months",
+              className: "font-bold text-sm rounded-xl"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-muted-foreground mt-0.5 block", children: [
+            "Original CSxStore ID: #",
+            editingProduct?.serviceId
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-purple-200 block mb-1", children: "Quantity" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-muted-foreground block mb-1", children: "Store Category" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5 mb-2 max-h-36 overflow-y-auto pr-1", children: PRESET_CATEGORIES.map((cat) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setEditCategory(cat.id),
+              className: `px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${editCategory.toLowerCase() === cat.id.toLowerCase() ? "bg-purple-600 text-white shadow-xs" : "bg-muted/70 text-muted-foreground hover:bg-muted"}`,
+              children: cat.label
+            },
+            cat.id
+          )) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              value: editCategory,
+              onChange: (e) => setEditCategory(e.target.value),
+              placeholder: "Or type custom category (e.g. Gemini, ChatGPT, Software, AI Tools)",
+              className: "text-xs rounded-xl"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-muted-foreground block mb-1", children: "Selling Price ($ USD)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                step: "0.01",
+                placeholder: "e.g. 0.98",
+                value: editSellingPriceUsd,
+                onChange: (e) => {
+                  const v2 = e.target.value;
+                  setEditSellingPriceUsd(v2);
+                  const n2 = parseFloat(v2);
+                  if (!isNaN(n2) && n2 > 0) {
+                    setEditSellingPriceLkr(String(Math.round(n2 * 305.5)));
+                  }
+                },
+                className: "font-bold text-sm rounded-xl"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-muted-foreground mt-0.5 block", children: [
+              "Cost: $",
+              ((editingProduct?.costPriceUsd || 0) / 100).toFixed(2)
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-1", children: "Price (Rs LKR – Fix / Easy)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                placeholder: "e.g. 300",
+                value: editSellingPriceLkr,
+                onChange: (e) => {
+                  const v2 = e.target.value;
+                  setEditSellingPriceLkr(v2);
+                  const n2 = parseFloat(v2);
+                  if (!isNaN(n2) && n2 > 0) {
+                    setEditSellingPriceUsd((n2 / 305.5).toFixed(2));
+                  }
+                },
+                className: "text-xs rounded-xl font-bold border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-600/80 mt-0.5 block font-semibold", children: "Type Rs. to auto-set USD" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold block", children: "Active in Store" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "Enable customer purchases in Mini App" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editIsActive, onCheckedChange: setEditIsActive })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: handleSaveEdit,
+            disabled: updateProductMutation.isPending,
+            className: "w-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white font-bold rounded-xl text-xs shadow-md",
+            children: [
+              updateProductMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4 mr-2" }),
+              "Save Changes"
+            ]
+          }
+        )
+      ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showImportModal, onOpenChange: setShowImportModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "bg-[#120B24] border border-purple-500/30 text-white rounded-3xl max-w-4xl max-h-[85vh] flex flex-col", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-lg font-black text-white flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-5 h-5 text-purple-400" }),
+          "Import Products from CSxStore Catalog"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-purple-200/70", children: "Select products to add to your shop catalog and apply profit markup." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 py-2 border-y border-purple-500/15", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              placeholder: "Search remote catalog...",
+              value: importSearch,
+              onChange: (e) => setImportSearch(e.target.value),
+              className: "pl-10 bg-black/40 border-purple-500/30 text-white rounded-xl text-xs h-10"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-purple-500/20", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-200 shrink-0", children: "Profit Markup:" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Input,
             {
               type: "number",
-              min: "1",
-              value: orderQuantity,
-              onChange: (e) => setOrderQuantity(Math.max(1, parseInt(e.target.value) || 1)),
-              className: "bg-black/40 border-purple-500/30 text-white rounded-xl text-xs"
+              min: "0",
+              value: markupPercent,
+              onChange: (e) => setMarkupPercent(Math.max(0, parseInt(e.target.value) || 0)),
+              className: "w-20 bg-black/60 border-purple-500/40 text-emerald-400 font-black rounded-lg text-xs h-7 text-center"
             }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-purple-200 block mb-1", children: "Custom Note (Optional)" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-emerald-400", children: "%" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-1 ml-auto", children: [20, 40, 60, 100].map((pct) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
             {
-              placeholder: "e.g. Order from Telegram Bot",
-              value: orderCustomNote,
-              onChange: (e) => setOrderCustomNote(e.target.value),
-              className: "bg-black/40 border-purple-500/30 text-white rounded-xl text-xs"
+              type: "button",
+              onClick: () => setMarkupPercent(pct),
+              className: `px-2 py-0.5 rounded text-[10px] font-bold ${markupPercent === pct ? "bg-purple-600 text-white" : "bg-white/5 text-purple-300 hover:bg-white/10"}`,
+              children: [
+                "+",
+                pct,
+                "%"
+              ]
+            },
+            pct
+          )) })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto space-y-2 py-2 pr-1", children: remoteProductsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-12 text-center", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-purple-200/70", children: "Connecting to CSxStore API..." })
+      ] }) : filteredRemote.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-12 text-center", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-8 h-8 text-purple-400/40 mx-auto mb-2" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300/60", children: "No remote products found." })
+      ] }) : filteredRemote.map((item) => {
+        const sId = String(item.service_id || item.id);
+        const costUsd = typeof item.price === "number" ? item.price : parseFloat(item.price || "0");
+        const sellUsd = costUsd * (1 + markupPercent / 100);
+        const sellLkr = Math.round(sellUsd * 305.5);
+        const isSelected = selectedProductsToImport.some((x2) => String(x2.service_id || x2.id) === sId);
+        const alreadyImported = products2.some((p2) => String(p2.serviceId) === sId);
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            onClick: () => {
+              if (isSelected) {
+                setSelectedProductsToImport(selectedProductsToImport.filter((x2) => String(x2.service_id || x2.id) !== sId));
+              } else {
+                setSelectedProductsToImport([...selectedProductsToImport, item]);
+              }
+            },
+            className: `p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${isSelected ? "bg-purple-600/20 border-purple-500 shadow-md" : "bg-black/30 border-purple-500/15 hover:border-purple-500/30"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 min-w-0", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${isSelected ? "bg-purple-600 border-purple-400 text-white" : "border-purple-500/30"}`, children: isSelected && /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3.5 h-3.5" }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("h5", { className: "text-xs font-black text-white truncate", children: item.name || item.title }),
+                    alreadyImported && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px] font-bold", children: "In Store" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-purple-300/60 mt-0.5", children: [
+                    "ID: #",
+                    sId,
+                    " • Stock: ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("b", { className: "text-white/80", children: item.stock ?? "In Stock" })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs font-black text-emerald-400", children: [
+                  "Rs. ",
+                  sellLkr.toLocaleString()
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-purple-200/60", children: [
+                  "Cost: $",
+                  costUsd.toFixed(2),
+                  " ➜ Sell: $",
+                  sellUsd.toFixed(2)
+                ] })
+              ] })
+            ]
+          },
+          sId
+        );
+      }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-3 border-t border-purple-500/15 flex items-center justify-between gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              type: "button",
+              variant: "ghost",
+              size: "sm",
+              onClick: () => {
+                if (selectedProductsToImport.length === filteredRemote.length) {
+                  setSelectedProductsToImport([]);
+                } else {
+                  setSelectedProductsToImport([...filteredRemote]);
+                }
+              },
+              className: "text-xs font-bold text-purple-300 hover:text-white",
+              children: selectedProductsToImport.length === filteredRemote.length ? "Deselect All" : "Select All"
             }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex items-center justify-between font-bold", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-purple-200", children: "Total USDT to Deduct:" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-400 text-sm font-black", children: [
-            "$",
-            (Number(selectedProductForOrder.price_usdt || selectedProductForOrder.price || 0) * orderQuantity).toFixed(2),
-            " USDT"
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-purple-200/60", children: [
+            "(",
+            selectedProductsToImport.length,
+            " selected)"
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Button,
           {
             onClick: () => {
-              createOrderMutation.mutate({
-                product_id: selectedProductForOrder.id || selectedProductForOrder.product_id,
-                quantity: orderQuantity,
-                custom_data: { note: orderCustomNote }
+              if (selectedProductsToImport.length === 0) {
+                toast2({ title: "No products selected", description: "Please select at least one product.", variant: "destructive" });
+                return;
+              }
+              importProductsMutation.mutate({
+                products: selectedProductsToImport,
+                markupPercent
               });
             },
-            disabled: createOrderMutation.isPending,
-            className: "w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2",
-            children: createOrderMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
-              " Provisioning Order..."
-            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4" }),
-              " Confirm & Execute Order"
-            ] })
+            disabled: importProductsMutation.isPending || selectedProductsToImport.length === 0,
+            className: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl h-10 px-6 shadow-lg shadow-purple-600/25 flex items-center gap-2",
+            children: [
+              importProductsMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "w-4 h-4" }),
+              "Import Selected (",
+              selectedProductsToImport.length,
+              ")"
+            ]
           }
         )
       ] })
@@ -118847,6 +119535,8 @@ function ConnectedStoresTrackerPage() {
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [copiedOrderId, setCopiedOrderId] = reactExports.useState(null);
   const [viewingOrder, setViewingOrder] = reactExports.useState(null);
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = reactExports.useState(null);
+  const [showPdfModal, setShowPdfModal] = reactExports.useState(false);
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["/api/admin/connected-stores/analytics", selectedStore, timeRange, startDate, endDate],
     queryFn: async () => {
@@ -118864,37 +119554,64 @@ function ConnectedStoresTrackerPage() {
     setCopiedOrderId(id2);
     toast2({
       title: "Copied!",
-      description: "Credential content copied to clipboard."
+      description: "Content copied to clipboard."
     });
     setTimeout(() => setCopiedOrderId(null), 2e3);
   };
   const filteredOrders = (data?.orders || []).filter((ord) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
-    return ord.productName.toLowerCase().includes(term) || ord.storeName.toLowerCase().includes(term) || ord.id.toString().includes(term) || ord.customerName && ord.customerName.toLowerCase().includes(term) || ord.apiKey && ord.apiKey.toLowerCase().includes(term) || ord.deliveredContent && ord.deliveredContent.toLowerCase().includes(term);
+    return (ord.productName || "").toLowerCase().includes(term) || (ord.storeName || "").toLowerCase().includes(term) || ord.id.toString().toLowerCase().includes(term) || ord.customerName && ord.customerName.toLowerCase().includes(term) || ord.apiKey && ord.apiKey.toLowerCase().includes(term) || ord.deliveredContent && ord.deliveredContent.toLowerCase().includes(term);
   });
+  const calculatedTotalUsd = filteredOrders.reduce((acc, o2) => {
+    const s2 = (o2.status || "").toLowerCase();
+    if (s2 === "failed" || s2 === "cancelled") return acc;
+    return acc + (parseFloat(o2.priceUsd) || (o2.priceCents ? o2.priceCents / 100 : 0));
+  }, 0);
+  const lkrRate = data?.summary?.usdToLkrRate || 305.5;
+  const calculatedTotalLkr = Math.round(calculatedTotalUsd * lkrRate);
+  const handlePrintPdf = () => {
+    window.print();
+  };
+  const activeStoreName = selectedStore === "all" ? "All Connected Stores & API Channels" : selectedStore === "sandromania" ? "Sandromania CDK Partner Store" : selectedStore === "cssx" ? "CSxStore CDK Partner Store" : selectedStore === "cssx_smm" ? "CSSX / SMM Social Boost API" : selectedStore === "n1panel" ? "N1Panel SMM Platform" : selectedStore === "direct" ? "Direct Cloud Store (Web/MiniApp)" : data?.stores?.find((s2) => s2.id === selectedStore)?.name || selectedStore;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 md:p-10 space-y-8 max-w-7xl mx-auto text-slate-100", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-10 w-10 rounded-xl bg-purple-950/80 border border-purple-800/80 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Network, { className: "w-5 h-5" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-10 w-10 rounded-xl bg-purple-950/80 border border-purple-800/80 flex items-center justify-center text-purple-400 shadow-md", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Network, { className: "w-5 h-5" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-black tracking-tight text-white flex items-center gap-2", children: "Connected Stores & API Partner Tracker" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-slate-400 text-sm mt-0.5", children: "Real-time purchase analytics, duration filtering, and delivered goods tracker across all connected stores." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2", children: "Connected Stores & API Partner Tracker" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-slate-400 text-xs md:text-sm mt-0.5", children: "Real-time purchase analytics, duration filtering, and delivered goods tracker across all connected stores." })
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        Button,
-        {
-          onClick: () => refetch(),
-          variant: "outline",
-          disabled: isFetching,
-          className: "gap-2 bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800 hover:text-white shrink-0",
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-4 h-4 ${isFetching ? "animate-spin text-purple-400" : ""}` }),
-            "Refresh Live Stream"
-          ]
-        }
-      )
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 flex-wrap", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => refetch(),
+            variant: "outline",
+            disabled: isFetching,
+            className: "gap-2 bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800 hover:text-white shrink-0 text-xs font-bold rounded-xl",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-4 h-4 ${isFetching ? "animate-spin text-purple-400" : ""}` }),
+              "Refresh Live Stream"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: () => {
+              setSelectedInvoiceOrder(null);
+              setShowPdfModal(true);
+            },
+            className: "gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-purple-600/25 shrink-0",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { className: "w-4 h-4" }),
+              "Export Store Statement (PDF)"
+            ]
+          }
+        )
+      ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-slate-900/60 border-slate-800 backdrop-blur-md", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-4 items-center", children: [
@@ -118904,14 +119621,15 @@ function ConnectedStoresTrackerPage() {
             " Channel / Provider Filter"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(Select, { value: selectedStore, onValueChange: setSelectedStore, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "bg-slate-950 border-slate-800 text-slate-200 text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "All Connected Stores" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(SelectTrigger, { className: "bg-slate-950 border-slate-800 text-slate-200 text-xs rounded-xl", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SelectValue, { placeholder: "All Connected Stores" }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectContent, { className: "bg-slate-950 border-slate-800 text-slate-200", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "all", children: "🌐 All Channels & API Stores" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "sandromania", children: "🛍️ Sandromania CDK Shop" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "cssx", children: "💎 CSxStore CDK Partner Shop" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "cssx_smm", children: "🚀 CSSX / CDX Social Boost API" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "n1panel", children: "⚡ N1Panel SMM Platform" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(SelectItem, { value: "direct", children: "🛒 Direct Cloud Store (Web/MiniApp)" }),
-              data?.stores?.filter((st2) => !["all", "sandromania", "cssx_smm", "n1panel", "direct"].includes(st2.id)).map((st2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectItem, { value: st2.id, children: [
+              data?.stores?.filter((st2) => !["all", "sandromania", "cssx", "cssx_smm", "n1panel", "direct"].includes(st2.id)).map((st2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(SelectItem, { value: st2.id, children: [
                 "🔑 ",
                 st2.name
               ] }, st2.id))
@@ -118923,12 +119641,12 @@ function ConnectedStoresTrackerPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3.5 h-3.5 text-blue-400" }),
             " Time Duration"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { value: timeRange, onValueChange: setTimeRange, className: "w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-slate-950 border border-slate-800 grid grid-cols-5 h-9", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "24h", className: "text-xs", children: "24 Hours" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "7d", className: "text-xs", children: "7 Days" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "30d", className: "text-xs", children: "30 Days" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "month", className: "text-xs", children: "This Month" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "custom", className: "text-xs", children: "Custom" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Tabs, { value: timeRange, onValueChange: setTimeRange, className: "w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-slate-950 border border-slate-800 grid grid-cols-5 h-9 rounded-xl", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "24h", className: "text-xs font-bold", children: "24 Hours" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "7d", className: "text-xs font-bold", children: "7 Days" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "30d", className: "text-xs font-bold", children: "30 Days" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "month", className: "text-xs font-bold", children: "This Month" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TabsTrigger, { value: "custom", className: "text-xs font-bold", children: "Custom" })
           ] }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
@@ -118944,7 +119662,7 @@ function ConnectedStoresTrackerPage() {
                 placeholder: "Search item, order #, buyer email, key...",
                 value: searchTerm,
                 onChange: (e) => setSearchTerm(e.target.value),
-                className: "pl-9 bg-slate-950 border-slate-800 text-xs text-slate-200 h-9"
+                className: "pl-9 bg-slate-950 border-slate-800 text-xs text-slate-200 h-9 rounded-xl"
               }
             )
           ] })
@@ -118952,34 +119670,34 @@ function ConnectedStoresTrackerPage() {
       ] }),
       timeRange === "custom" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs text-slate-400", children: "Start Date" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-slate-400", children: "Start Date" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Input,
             {
               type: "date",
               value: startDate,
               onChange: (e) => setStartDate(e.target.value),
-              className: "bg-slate-950 border-slate-800 text-xs text-slate-200"
+              className: "bg-slate-950 border-slate-800 text-xs text-slate-200 rounded-xl font-bold"
             }
           )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs text-slate-400", children: "End Date" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-slate-400", children: "End Date" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Input,
             {
               type: "date",
               value: endDate,
               onChange: (e) => setEndDate(e.target.value),
-              className: "bg-slate-950 border-slate-800 text-xs text-slate-200"
+              className: "bg-slate-950 border-slate-800 text-xs text-slate-200 rounded-xl font-bold"
             }
           )
         ] })
       ] })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden rounded-3xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider", children: "Total Revenue (USD)" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(DollarSign, { className: "w-4 h-4 text-emerald-400" })
@@ -118987,13 +119705,13 @@ function ConnectedStoresTrackerPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black text-emerald-400 font-mono", children: [
             "$",
-            data?.summary?.totalRevenueUsd || "0.00"
+            calculatedTotalUsd > 0 ? calculatedTotalUsd.toFixed(2) : data?.summary?.totalRevenueUsd || "0.00"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-slate-400 mt-1", children: "in selected time window" })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden rounded-3xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider", children: "Total Revenue (LKR)" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingUp, { className: "w-4 h-4 text-blue-400" })
@@ -119001,36 +119719,34 @@ function ConnectedStoresTrackerPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black text-blue-400 font-mono", children: [
             "Rs. ",
-            (data?.summary?.totalRevenueLkr || 0).toLocaleString()
+            (calculatedTotalLkr > 0 ? calculatedTotalLkr : data?.summary?.totalRevenueLkr || 0).toLocaleString()
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-slate-400 mt-1", children: [
             "Rate: ~1 USD = ",
-            data?.summary?.usdToLkrRate || 315,
+            data?.summary?.usdToLkrRate || 305.5,
             " LKR"
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden rounded-3xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider", children: "Total Purchases" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-4 h-4 text-purple-400" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black text-purple-300 font-mono", children: [
-            data?.summary?.totalOrders || 0,
+            filteredOrders.length,
             " items"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-slate-400 mt-1", children: [
-            data?.summary?.completedOrders || 0,
-            " completed • ",
-            data?.summary?.failedOrders || 0,
-            " failed"
+            filteredOrders.filter((o2) => ["completed", "approved", "success"].includes((o2.status || "").toLowerCase())).length,
+            " completed"
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-sm relative overflow-hidden rounded-3xl", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "flex flex-row items-center justify-between pb-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xs font-semibold text-slate-400 uppercase tracking-wider", children: "Active Store Channels" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-4 h-4 text-indigo-400" })
@@ -119040,27 +119756,27 @@ function ConnectedStoresTrackerPage() {
             (data?.stores || []).length,
             " connected"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-slate-400 mt-1", children: "Sandromania, CSSX, N1Panel, API & Direct" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-slate-400 mt-1", children: "Sandromania, CSxStore, SMM, API & Direct" })
         ] })
       ] })
     ] }),
-    data?.stores && data.stores.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/60 border-slate-800", children: [
+    data?.stores && data.stores.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/60 border-slate-800 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "pb-3 border-b border-slate-800/60", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-sm font-bold flex items-center gap-2", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-4 h-4 text-purple-400" }),
           "Connected Channel Performance Overview"
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Filter by Sandromania, CSSX / CDX SMM, N1Panel, Direct Shop, or Reseller API Keys." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-xs", children: "Filter by Sandromania, CSxStore, CSSX / SMM, N1Panel, Direct Shop, or Reseller API Keys." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3", children: data.stores.map((st2) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "div",
         {
           onClick: () => setSelectedStore(st2.id),
-          className: `p-3.5 rounded-xl border transition-all cursor-pointer ${selectedStore === st2.id ? "bg-purple-950/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]" : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"}`,
+          className: `p-3.5 rounded-2xl border transition-all cursor-pointer ${selectedStore === st2.id ? "bg-purple-950/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]" : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"}`,
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-1.5", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-white truncate", children: st2.name }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: `text-[9.5px] uppercase font-bold shrink-0 ${st2.id === "sandromania" ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" : st2.id === "cssx_smm" || st2.id === "n1panel" ? "border-purple-500/30 text-purple-300 bg-purple-500/10" : "border-slate-700 text-blue-300"}`, children: st2.type ? String(st2.type).toUpperCase() : "STORE" })
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: `text-[9.5px] uppercase font-bold shrink-0 ${st2.id === "sandromania" ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" : st2.id === "cssx" ? "border-cyan-500/30 text-cyan-300 bg-cyan-500/10" : st2.id === "cssx_smm" || st2.id === "n1panel" ? "border-purple-500/30 text-purple-300 bg-purple-500/10" : "border-slate-700 text-blue-300"}`, children: st2.type ? String(st2.type).toUpperCase() : "STORE" })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2.5 flex items-baseline justify-between text-xs", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-slate-400", children: [
@@ -119077,12 +119793,14 @@ function ConnectedStoresTrackerPage() {
         st2.id
       )) }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-xl overflow-hidden", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-slate-900/80 border-slate-800 shadow-xl overflow-hidden rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "border-b border-slate-800/80 pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-base font-bold flex items-center gap-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-4 h-4 text-purple-400" }),
-            "Filtered Purchases & Delivered Goods Stream"
+            "Filtered Purchases & Delivered Goods Stream (",
+            filteredOrders.length,
+            ")"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-xs", children: [
             "Showing ",
@@ -119090,14 +119808,14 @@ function ConnectedStoresTrackerPage() {
             " orders matching your duration and store filters."
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "secondary", className: "bg-slate-800 text-slate-300 self-start sm:self-auto text-xs", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "secondary", className: "bg-slate-800 text-slate-300 self-start sm:self-auto text-xs font-bold", children: [
           timeRange.toUpperCase(),
           " Duration Filter"
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-0", children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-16 text-slate-500 animate-pulse", children: "Loading connected store analytics stream..." }) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-16 text-slate-500", children: "No orders found for the selected store and time duration." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-0", children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-16 text-slate-500 animate-pulse font-bold", children: "Loading connected store analytics stream..." }) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-16 text-slate-500 font-bold", children: "No orders found for the selected store and time duration." }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { className: "bg-slate-950/80", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-slate-800", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-xs text-slate-400 w-24", children: "Order #" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-xs text-slate-400 w-28", children: "Order #" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-xs text-slate-400", children: "Product / Item" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-xs text-slate-400", children: "Buyer Details" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-xs text-slate-400", children: "Channel / Provider" }),
@@ -119108,14 +119826,12 @@ function ConnectedStoresTrackerPage() {
         ] }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: filteredOrders.map((ord) => {
           const isSandromania = ord.storeType === "sandromania" || ord.id.toString().includes("PARTNER");
+          const isCssx = ord.storeType === "cssx" || ord.id.toString().includes("CSX");
           const isSmm = ord.storeType === "cssx_smm" || ord.id.toString().includes("SMM");
           return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-slate-800/60 hover:bg-slate-800/30 transition-colors", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-mono text-xs font-bold text-purple-400", children: [
-              "#",
-              ord.id
-            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "font-mono text-xs font-bold text-purple-400", children: String(ord.id).startsWith("#") ? ord.id : `#${ord.id}` }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-semibold text-xs text-white max-w-[200px] truncate", children: ord.productName }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-semibold text-xs text-white max-w-[220px] truncate", children: ord.productName }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-500", children: [
                 "ID: ",
                 ord.productId
@@ -119130,7 +119846,7 @@ function ConnectedStoresTrackerPage() {
               !ord.customerName && !ord.customerEmail && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-slate-400", children: ord.buyer || "Customer" })
             ] }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: `text-[11px] gap-1.5 py-0.5 font-bold ${isSandromania ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300" : isSmm ? "bg-purple-950/40 border-purple-500/40 text-purple-300" : "bg-slate-950 border-slate-700 text-slate-300"}`, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: `text-[11px] gap-1.5 py-0.5 font-bold ${isSandromania ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300" : isCssx ? "bg-cyan-950/40 border-cyan-500/40 text-cyan-300" : isSmm ? "bg-purple-950/40 border-purple-500/40 text-purple-300" : "bg-slate-950 border-slate-700 text-slate-300"}`, children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Store, { className: "w-3 h-3" }),
                 ord.storeName || ord.storeSource
               ] }),
@@ -119147,44 +119863,63 @@ function ConnectedStoresTrackerPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-400", children: [
                 "Rs. ",
-                ord.priceLkr?.toLocaleString() || "0"
+                ord.priceLkr ? Number(ord.priceLkr).toLocaleString() : Math.round((parseFloat(ord.priceUsd) || 0) * lkrRate).toLocaleString()
               ] })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-center", children: ord.status === "completed" || ord.status === "approved" || ord.status === "success" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-medium", children: "Completed" }) : ord.status === "pending" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-amber-500/20 text-amber-400 border-amber-500/40 text-[10px] font-medium", children: "Pending" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-medium", children: ord.status }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-center", children: ord.status === "completed" || ord.status === "approved" || ord.status === "success" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-black", children: "Completed" }) : ord.status === "pending" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-amber-500/20 text-amber-400 border-amber-500/40 text-[10px] font-black", children: "Pending" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-black", children: ord.status }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-xs text-slate-400 whitespace-nowrap", children: ord.createdAt ? new Date(ord.createdAt).toLocaleString() : "N/A" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-end space-x-2", children: ord.deliveredContent ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-end space-x-1.5 flex-wrap", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 Button,
                 {
                   size: "sm",
                   variant: "ghost",
-                  className: "h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800",
-                  onClick: () => setViewingOrder(ord),
+                  className: "h-7 text-xs gap-1 text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 rounded-lg px-2",
+                  onClick: () => {
+                    setSelectedInvoiceOrder(ord);
+                    setShowPdfModal(true);
+                  },
+                  title: "Download/Print PDF Invoice for this order",
                   children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-3 h-3 text-blue-400" }),
-                    " View"
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { className: "w-3 h-3 text-purple-400" }),
+                    " Invoice"
                   ]
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                Button,
-                {
-                  size: "sm",
-                  variant: "ghost",
-                  className: "h-7 text-xs gap-1.5 text-slate-300 hover:text-white bg-slate-950 border border-slate-800",
-                  onClick: () => copyToClipboard(ord.deliveredContent, ord.id),
-                  children: [
-                    copiedOrderId === ord.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3 h-3 text-emerald-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3 text-purple-400" }),
-                    "Copy"
-                  ]
-                }
-              )
-            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-amber-400/80 italic", children: "Manual/Pending" }) }) })
+              ord.deliveredContent ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "ghost",
+                    className: "h-7 text-xs gap-1 text-slate-300 hover:text-white bg-slate-950 border border-slate-800 rounded-lg px-2",
+                    onClick: () => setViewingOrder(ord),
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-3 h-3 text-blue-400" }),
+                      " View"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "ghost",
+                    className: "h-7 text-xs gap-1 text-slate-300 hover:text-white bg-slate-950 border border-slate-800 rounded-lg px-2",
+                    onClick: () => copyToClipboard(ord.deliveredContent, ord.id),
+                    children: [
+                      copiedOrderId === ord.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-3 h-3 text-emerald-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3 text-purple-400" }),
+                      "Copy"
+                    ]
+                  }
+                )
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-amber-400/80 italic px-1", children: "Auto-Delivered" })
+            ] }) })
           ] }, ord.id);
         }) })
       ] }) }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!viewingOrder, onOpenChange: () => setViewingOrder(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-xl bg-slate-950 border-slate-800 text-slate-100", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!viewingOrder, onOpenChange: () => setViewingOrder(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-xl bg-slate-950 border-slate-800 text-slate-100 rounded-3xl", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "flex items-center justify-between text-base font-bold", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -119192,7 +119927,7 @@ function ConnectedStoresTrackerPage() {
             viewingOrder?.id,
             " Delivery Credentials"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "border-emerald-500/40 text-emerald-400 text-xs", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "border-emerald-500/40 text-emerald-400 text-xs font-mono", children: [
             "$",
             viewingOrder?.priceUsd,
             " USD"
@@ -119208,13 +119943,13 @@ function ConnectedStoresTrackerPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold text-slate-400 block mb-2", children: "Delivered Content / Login Credentials:" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs font-mono text-emerald-300 overflow-x-auto select-all whitespace-pre-wrap break-all", children: viewingOrder?.deliveredContent || "No credential content recorded." })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-mono text-emerald-300 overflow-x-auto select-all whitespace-pre-wrap break-all", children: viewingOrder?.deliveredContent || "No credential content recorded." })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end gap-2 pt-2", children: viewingOrder?.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Button,
           {
             onClick: () => copyToClipboard(viewingOrder.deliveredContent, viewingOrder.id),
-            className: "bg-purple-600 hover:bg-purple-500 text-white text-xs gap-1.5",
+            className: "bg-purple-600 hover:bg-purple-500 text-white text-xs gap-1.5 rounded-xl font-bold",
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3.5 h-3.5" }),
               "Copy Credentials"
@@ -119222,6 +119957,172 @@ function ConnectedStoresTrackerPage() {
           }
         ) })
       ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: showPdfModal, onOpenChange: setShowPdfModal, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "max-w-xl max-h-[96vh] overflow-y-auto bg-slate-900/95 border border-slate-800 text-slate-100 rounded-3xl p-4 md:p-6 shadow-2xl backdrop-blur-xl", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between border-b border-slate-800 pb-3 mb-4 print:hidden", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-base font-bold text-white flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { className: "w-4 h-4 text-emerald-400" }),
+            selectedInvoiceOrder ? `Order #${selectedInvoiceOrder.id} Invoice Receipt` : `Partner Store Ledger (${activeStoreName})`
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { className: "text-xs text-slate-400", children: "Official Order Confirmation & verified invoice receipt." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            onClick: handlePrintPdf,
+            className: "bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 px-3.5 py-1.5 h-8",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Printer, { className: "w-3.5 h-3.5" }),
+              "Print / Save PDF"
+            ]
+          }
+        ) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          id: "printable-statement",
+          className: "bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center mb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center text-2xl font-black tracking-tight select-none", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#FF5C5C]", children: "youu" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#5B42F3]", children: "host" })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[24px] border border-[#f1f5f9] shadow-sm p-6 md:p-7", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl md:text-[22px] font-bold text-[#111827] mb-2 text-center tracking-tight flex items-center justify-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Order Confirmed" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "img",
+                  {
+                    src: "https://img.icons8.com/color/96/verified-badge.png",
+                    alt: "Verified",
+                    className: "w-5 h-5 inline-block"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[14px] font-semibold text-[#475569] mb-1.5 text-center", children: [
+                "Hello ",
+                selectedInvoiceOrder ? selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer" : filteredOrders.length > 0 && filteredOrders[0].customerName ? filteredOrders[0].customerName : "Valued Customer",
+                ","
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[13px] leading-relaxed text-[#64748b] mb-5 text-center max-w-[360px] mx-auto", children: [
+                "Your purchase has been processed successfully. Below are the order receipt details for Order ",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("strong", { children: [
+                  "#",
+                  selectedInvoiceOrder ? selectedInvoiceOrder.id : filteredOrders.length > 0 ? filteredOrders[0].rawId || filteredOrders[0].id : "SUMMARY"
+                ] }),
+                "."
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-4 text-[11.5px] text-slate-600 flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Date: " }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-800", children: selectedInvoiceOrder && selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Store: " }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-700", children: selectedInvoiceOrder ? selectedInvoiceOrder.storeName || selectedInvoiceOrder.storeSource : activeStoreName })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs border-collapse my-4", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t border-b border-[#e2e8f0] text-[#111827] text-[12px] font-semibold", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-left font-semibold", children: "Description" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-right font-semibold", children: "Unit price" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-center font-semibold", children: "Qty" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-right font-semibold", children: "Amount" })
+                ] }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("tbody", { className: "divide-y divide-[#f1f5f9] text-[12.5px]", children: [
+                  selectedInvoiceOrder ? /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1 font-normal text-[#475569] leading-snug", children: selectedInvoiceOrder.productName }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                      "$",
+                      parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2),
+                      " USD"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1 text-center font-normal text-[#475569]", children: "1" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1 text-right font-semibold text-[#111827] whitespace-nowrap", children: [
+                      "$",
+                      parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2),
+                      " USD"
+                    ] })
+                  ] }) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 10).map((ord, idx) => {
+                    const usd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1 font-normal text-[#475569] leading-snug", children: ord.productName }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                        "$",
+                        usd.toFixed(2),
+                        " USD"
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1 text-center font-normal text-[#475569]", children: "1" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1 text-right font-semibold text-[#111827] whitespace-nowrap", children: [
+                        "$",
+                        usd.toFixed(2),
+                        " USD"
+                      ] })
+                    ] }, idx);
+                  }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t border-[#f1f5f9]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1 text-right text-[11.5px] text-[#64748b]", children: "Discounts" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1 text-right text-[11.5px] text-[#64748b]", children: "$0.00" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1 text-right text-[11.5px] text-[#64748b]", children: "Subtotal" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1 text-right text-[11.5px] text-[#64748b]", children: [
+                      "$",
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]", children: "Total" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]", children: [
+                      "$",
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]", children: "Payment" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]", children: [
+                      "$",
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1 text-right text-[11px] font-semibold text-blue-600", children: "Settled (LKR)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1 text-right text-[11px] font-bold text-blue-600", children: [
+                      "Rs. ",
+                      selectedInvoiceOrder ? (selectedInvoiceOrder.priceLkr ? Number(selectedInvoiceOrder.priceLkr) : Math.round((parseFloat(selectedInvoiceOrder.priceUsd) || 0) * lkrRate)).toLocaleString() : calculatedTotalLkr.toLocaleString()
+                    ] })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-5 mb-4 text-center print:hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Button,
+                {
+                  onClick: handlePrintPdf,
+                  className: "w-full max-w-[280px] bg-[#00d166] hover:bg-[#00b859] text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/20",
+                  children: "Download / Print Invoice"
+                }
+              ) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center text-[11px] text-[#64748b] leading-relaxed mt-4 pt-3 border-t border-slate-100", children: [
+                "Your official PDF invoice and digital credentials have been recorded.",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+                "Best Regards, ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-[#111827]", children: "YouuHost Team" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 text-center text-[10px] text-[#94a3b8] leading-tight", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-0.5", children: "https://youuhost.com" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Automated delivery dispatch. Keep your credentials secure." })
+            ] })
+          ]
+        }
+      )
     ] }) })
   ] });
 }
@@ -120705,7 +121606,7 @@ function TermsPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "a",
                 {
-                  href: "https://t.me/rochana_imesh",
+                  href: "https://t.me/youuhost",
                   target: "_blank",
                   rel: "noreferrer",
                   className: "flex items-center gap-3 p-4 rounded-2xl bg-[#1E293B]/50 hover:bg-[#1E293B] border border-sky-500/30 transition-all group",
@@ -120713,7 +121614,7 @@ function TermsPage() {
                     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: "w-5 h-5" }) }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-white block group-hover:text-sky-400 transition-colors", children: "Telegram VIP Concierge" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#A1A1AA] block", children: "@rochana_imesh" })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-[#A1A1AA] block", children: "@youuhost_support" })
                     ] })
                   ]
                 }
@@ -120839,6 +121740,7 @@ function Router() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: DomainAutomationPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/store-mesh", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: StoreMeshPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/connected-stores", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ConnectedStoresTrackerPage }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/api-store-tracker", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: ConnectedStoresTrackerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PayHereGatewayPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/customer-tracker", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: CustomerTrackerPage }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/imeshadmindashbord/preorders", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProtectedRoute, { component: PreordersPage }) }),

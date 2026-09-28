@@ -1315,6 +1315,35 @@ export default function MiniAppShopModern() {
     refetchInterval: activeTab === "orders" ? 8000 : false,
   });
 
+  // CSxStore Products & Orders Queries
+  const { data: cssxProductsList = [] } = useQuery<any[]>({
+    queryKey: ["/api/mini/cssx/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/cssx/products");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    refetchInterval: 10000,
+  });
+
+  const { data: cssxOrdersList = [], refetch: refetchCssxOrders } = useQuery<any[]>({
+    queryKey: ["/api/mini/cssx/orders"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/cssx/orders");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "orders",
+    refetchInterval: activeTab === "orders" ? 8000 : false,
+  });
+
   // Orders Tab Filter & Unified List State
   const [ordersFilter, setOrdersFilter] = useState<"all" | "account" | "smm" | "license">("all");
   const [isSyncingOrders, setIsSyncingOrders] = useState(false);
@@ -1326,6 +1355,7 @@ export default function MiniAppShopModern() {
         refetchOrders(),
         refetchSmmOrders(),
         refetchSandromaniaOrders(),
+        refetchCssxOrders(),
       ]);
       toast({
         title: "Orders Synced! 🔄",
@@ -1479,8 +1509,66 @@ export default function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
+        priceLkr: sandroOrd.product?.sellingPriceLkr || (sandromaniaProductsList.find((p: any) => p.id === sandroOrd.sandromaniaProductId || p.externalProductId === sandroOrd.externalProductId)?.sellingPriceLkr),
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : new Date(0),
+        licenseKey: deliveredData,
+      });
+    });
+
+    // 4. CSxStore CDK Orders
+    cssxOrdersList.forEach((cssxOrd: any) => {
+      const status = (cssxOrd.status || "Completed").toLowerCase();
+      if (status.includes("fail") || status.includes("cancel")) return;
+
+      const conf = getProviderConfig(cssxOrd.productTitle || "", cssxOrd.product?.category || "");
+
+      let statusBadge = (
+        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+          Auto-Delivered
+        </span>
+      );
+      if (status.includes("pend") || status.includes("process")) {
+        statusBadge = (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+            Processing
+          </span>
+        );
+      }
+
+      let deliveredData =
+        cssxOrd.deliveryText ||
+        cssxOrd.deliveredData ||
+        (cssxOrd.responsePayload ? (typeof cssxOrd.responsePayload === "string" ? cssxOrd.responsePayload : JSON.stringify(cssxOrd.responsePayload)) : "");
+
+      if (typeof deliveredData === "string") {
+        deliveredData = deliveredData.trim();
+        if (deliveredData.startsWith('"') && deliveredData.endsWith('"') && deliveredData.length > 2) {
+          deliveredData = deliveredData.slice(1, -1);
+        }
+      }
+
+      const prodTitle =
+        cssxOrd.productTitle ||
+        cssxOrd.product?.title ||
+        (cssxProductsList.find((p: any) => p.id === cssxOrd.cssxProductId || p.serviceId === cssxOrd.serviceId)?.title) ||
+        "Digital Product";
+
+      const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || (3000 + cssxOrd.id)}`;
+
+      list.push({
+        id: `cssx-${cssxOrd.id}`,
+        rawId: cssxOrd.id,
+        orderType: "license",
+        orderNumber: orderNum,
+        title: prodTitle,
+        categoryTag: conf.tag || "Digital License",
+        badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
+        status: cssxOrd.status || "Completed",
+        statusBadge,
+        priceCents: cssxOrd.amountPaid || 0,
+        quantity: cssxOrd.quantity || 1,
+        date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
       });
     });
@@ -1489,7 +1577,7 @@ export default function MiniAppShopModern() {
     list.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return list;
-  }, [orders, smmOrdersList, sandromaniaOrdersList, smmServicesList]);
+  }, [orders, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList]);
 
   const filteredOrders = useMemo(() => {
     if (ordersFilter === "all") return unifiedOrdersList;
@@ -1564,6 +1652,11 @@ Support: https://t.me/youuhost_support
   const [sandromaniaOrderQty, setSandromaniaOrderQty] = useState<number>(1);
   const [isSandromaniaPurchasing, setIsSandromaniaPurchasing] = useState(false);
 
+  // CSxStore Modal & Ordering State
+  const [detailCssxProduct, setDetailCssxProduct] = useState<any | null>(null);
+  const [cssxOrderQty, setCssxOrderQty] = useState<number>(1);
+  const [isCssxPurchasing, setIsCssxPurchasing] = useState(false);
+
   // Instant Sold Counts delta tracking persisted in localStorage
   const [purchasedDeltas, setPurchasedDeltas] = useState<Record<string, number>>(() => {
     try {
@@ -1612,7 +1705,7 @@ Support: https://t.me/youuhost_support
     queryKey: ["/api/settings/SUPPORT_USERNAME"],
   });
 
-  const supportUser = supportUserSetting?.value || "@rochana_imesh";
+  const supportUser = supportUserSetting?.value || "@youuhost_support";
 
   const { data: depositMethods } = useQuery<{ binancePayId: string; cryptomusEnabled: boolean; payhereEnabled?: boolean; payhereGatewayUrl?: string; supportUsername: string }>({
     queryKey: ["/api/mini/deposit/methods"],
@@ -1621,7 +1714,7 @@ Support: https://t.me/youuhost_support
         const res = await fetch("/api/mini/deposit/methods");
         return res.json();
       } catch {
-        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@rochana_imesh" };
+        return { binancePayId: "284910485", cryptomusEnabled: true, payhereEnabled: true, supportUsername: "@youuhost_support" };
       }
     },
   });
@@ -2506,7 +2599,8 @@ Support: https://t.me/youuhost_support
         const totalStock = products.reduce((acc, p) => acc + (p.stockCount || 0), 0);
         const activeSmmCount = smmServicesList.filter((s: any) => s.isActive !== false).length;
         const activeSandroCount = sandromaniaProductsList.filter((s: any) => s.isActive !== false).length;
-        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount + activeSandroCount;
+        const activeCssxCount = cssxProductsList.filter((s: any) => s.isActive !== false).length;
+        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount + activeSandroCount + activeCssxCount;
       }
       const matching = products.filter((p) => {
         const conf = getProviderConfig(p.name, p.type);
@@ -2529,11 +2623,19 @@ Support: https://t.me/youuhost_support
         const targetCat = categoryId.toLowerCase();
         return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
       });
+      const matchingCssx = cssxProductsList.filter((s: any) => {
+        if (s.isActive === false) return false;
+        const title = (s.title || "").toLowerCase();
+        const cat = (s.category || "").toLowerCase();
+        const targetCat = categoryId.toLowerCase();
+        return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
+      });
       const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
       const sandroStock = matchingSandro.reduce((acc, s) => acc + (s.stock || s.stockCount || 1), 0);
-      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock;
+      const cssxStock = matchingCssx.reduce((acc, s) => acc + (s.stock || s.stockCount || 1), 0);
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock + cssxStock;
     };
-  }, [products, smmServicesList, sandromaniaProductsList]);
+  }, [products, smmServicesList, sandromaniaProductsList, cssxProductsList]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -2597,10 +2699,33 @@ Support: https://t.me/youuhost_support
     });
   }, [sandromaniaProductsList, selectedCategory, searchQuery]);
 
+  // Filtered CSxStore Partner Products
+  const filteredCssxProducts = useMemo(() => {
+    return cssxProductsList.filter((p: any) => {
+      if (p.isActive === false) return false;
+      const title = (p.title || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      const targetCat = selectedCategory.toLowerCase();
+
+      const matchesCategory =
+        targetCat === "all" ||
+        cat === targetCat ||
+        cat.includes(targetCat) ||
+        title.includes(targetCat);
+
+      const matchesSearch =
+        !searchQuery.trim() ||
+        title.includes(searchQuery.toLowerCase()) ||
+        cat.includes(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [cssxProductsList, selectedCategory, searchQuery]);
+
   // Unified Catalog Items with In-Stock prioritized at the TOP and Out-of-Stock sorted to the BOTTOM
   const unifiedCatalogItems = useMemo(() => {
     const list: Array<{
-      type: "smm" | "sandromania" | "product";
+      type: "smm" | "sandromania" | "cssx" | "product";
       data: any;
       isOutOfStock: boolean;
       orderScore: number;
@@ -2617,7 +2742,7 @@ Support: https://t.me/youuhost_support
       });
     });
 
-    // 2. Sandromania Partner Products (e.g. Gemini, Canva, etc. - in stock by default unless isActive === false)
+    // 2. Sandromania Partner Products
     filteredSandromaniaProducts.forEach((sandProd: any) => {
       const isOutOfStock = sandProd.isActive === false;
       list.push({
@@ -2628,7 +2753,18 @@ Support: https://t.me/youuhost_support
       });
     });
 
-    // 3. Direct Cloud & Account Products (In stock if stockCount > 0 and isActive !== false)
+    // 3. CSxStore Partner Products
+    filteredCssxProducts.forEach((cssxProd: any) => {
+      const isOutOfStock = cssxProd.isActive === false || (cssxProd.stock !== undefined && cssxProd.stock <= 0 && cssxProd.available === false);
+      list.push({
+        type: "cssx",
+        data: cssxProd,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0,
+      });
+    });
+
+    // 4. Direct Cloud & Account Products (In stock if stockCount > 0 and isActive !== false)
     filteredProducts.forEach((prod: any) => {
       const availableStock = typeof prod.stockCount === "number" ? prod.stockCount : 0;
       const isOutOfStock = prod.isActive === false || availableStock <= 0;
@@ -2644,7 +2780,7 @@ Support: https://t.me/youuhost_support
     list.sort((a, b) => a.orderScore - b.orderScore);
 
     return list;
-  }, [filteredSmmServices, filteredSandromaniaProducts, filteredProducts]);
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredProducts]);
 
   // Format Sandromania price helper
   const formatSandromaniaPrice = (sandProdOrPriceCents: any, qty: number = 1) => {
@@ -2662,6 +2798,31 @@ Support: https://t.me/youuhost_support
       return `$${usd.toFixed(2)}`;
     }
     const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
+    const totalCents = priceCents * qty;
+    const usd = totalCents / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString()}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
+  // Format CSxStore price helper
+  const formatCssxPrice = (cssxProdOrPriceCents: any, qty: number = 1) => {
+    if (typeof cssxProdOrPriceCents === "object" && cssxProdOrPriceCents !== null) {
+      const prod = cssxProdOrPriceCents;
+      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
+      }
+      const totalCents = (prod.sellingPriceUsd || 0) * qty;
+      const usd = totalCents / 100;
+      if (selectedCurrency === "LKR") {
+        const lkr = Math.round(usd * lkrRate);
+        return `Rs. ${lkr.toLocaleString()}`;
+      }
+      return `$${usd.toFixed(2)}`;
+    }
+    const priceCents = typeof cssxProdOrPriceCents === "number" ? cssxProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
     if (selectedCurrency === "LKR") {
@@ -2761,6 +2922,100 @@ Support: https://t.me/youuhost_support
       });
     } finally {
       setIsSandromaniaPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+    }
+  };
+
+  // Handle CSxStore Instant Auto-Delivery Purchase
+  const handleCssxPurchase = async () => {
+    if (!detailCssxProduct) return;
+
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to complete your purchase.",
+      });
+      setDetailCssxProduct(null);
+      setActiveTab("profile");
+      return;
+    }
+
+    const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+    const userBalanceUsd = (user?.balance || 0) / 100;
+    const totalPriceUsd = totalCents / 100;
+
+    if (userBalanceUsd < totalPriceUsd) {
+      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
+      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+
+      setShortfallContext({
+        productName: detailCssxProduct.title,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd,
+      });
+
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+      });
+
+      setDetailCssxProduct(null);
+      setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setIsCssxPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Digital License...",
+      subtitle: "Connecting to CSxStore API & generating credentials...",
+    });
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
+      const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
+        productId: detailCssxProduct.id,
+        quantity: cssxOrderQty,
+        currency: selectedCurrency,
+      });
+      await res.json();
+      recordPurchasedDelta(`cssx_${detailCssxProduct.id}`, cssxOrderQty);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      toast({
+        title: "🎉 Purchase Successful!",
+        description: "Your digital license keys and credentials have been delivered.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/cssx/orders"] });
+      refetchUser();
+      refetchCssxOrders();
+      setDetailCssxProduct(null);
+      setActiveTab("orders");
+    } catch (err: any) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      toast({
+        title: "Order Failed",
+        description: err.message || "Failed to process CSxStore purchase.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCssxPurchasing(false);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
@@ -3797,6 +4052,106 @@ Support: https://t.me/youuhost_support
                     );
                   }
 
+                  if (item.type === "cssx") {
+                    const cssxProd = item.data;
+                    const isOutOfStock = item.isOutOfStock;
+                    const cleanTitle = cssxProd.title || "Digital Product";
+                    const cleanCat = cssxProd.category || "General";
+                    const conf = getProviderConfig(cleanTitle, cleanCat);
+                    const priceFormatted = formatCssxPrice(cssxProd, 1);
+                    const availableStock = cssxProd.stock ?? 99;
+                    const stats = getItemStats(cssxProd, "sandromania");
+
+                    return (
+                      <motion.div
+                        key={`cssx-prod-${cssxProd.id}`}
+                        whileHover={isOutOfStock ? {} : { y: -3 }}
+                        whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+                        onClick={() => {
+                          if (isOutOfStock) {
+                            toast({ title: "Out of Stock", description: "This product is currently fully out of stock.", variant: "destructive" });
+                            return;
+                          }
+                          setDetailCssxProduct(cssxProd);
+                          setCssxOrderQty(1);
+                        }}
+                        className={`bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${
+                          isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
+                        }`}
+                      >
+                        {/* Top Action: Provider Tag & Instant Delivery Tag */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                            {conf.tag}
+                          </span>
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100 flex items-center gap-0.5">
+                            <ShopBagIcon className="w-2.5 h-2.5" /> Auto-CDK
+                          </span>
+                        </div>
+
+                        {/* Centered Image with Real Brand Icon, Organic Blob Background & Centered Out of Stock Badge */}
+                        <div className="relative my-2 py-3 flex items-center justify-center">
+                          <div
+                            className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
+                          />
+                          <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <BrandIcon name={cleanTitle} type={cleanCat} className="w-12 h-12" />
+                          </div>
+
+                          {isOutOfStock && (
+                            <div className="absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none">
+                              <div className="bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                                <Ban className="w-3 h-3 text-slate-300 shrink-0" />
+                                <span>FULLY OUT OF STOCK</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="mt-1">
+                          <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
+                            {cleanTitle}
+                          </h4>
+                          <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                            <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                              <span className="text-amber-500 font-black">★ {stats.rating}</span>
+                              <span>({stats.sold.toLocaleString()} sold)</span>
+                            </span>
+                            <span className={`text-[9px] font-bold shrink-0 ${!isOutOfStock ? "text-emerald-600" : "text-slate-400"}`}>
+                              {!isOutOfStock ? (availableStock < 90 ? `${availableStock} in stock` : "In stock") : "Out of stock"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Price & Add (+) Button */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                          <div>
+                            <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                            <span className="text-[9px] text-[#7E7998] block">Instant Auto</span>
+                          </div>
+
+                          <button
+                            disabled={isOutOfStock}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isOutOfStock) return;
+                              setDetailCssxProduct(cssxProd);
+                              setCssxOrderQty(1);
+                            }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              isOutOfStock
+                                ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                                : "bg-gradient-to-tr from-[#8E54E9] to-[#5B42F3] text-white shadow-md shadow-[#8E54E9]/20 hover:opacity-95 active:scale-90"
+                            }`}
+                          >
+                            {isOutOfStock ? <Ban className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
                   // item.type === "product"
                   const prod = item.data;
                   const isOutOfStock = item.isOutOfStock;
@@ -4166,7 +4521,11 @@ Support: https://t.me/youuhost_support
                             Qty: <span className="font-black text-[#5B42F3]">{ord.quantity?.toLocaleString() || 1}</span>
                           </span>
                           <span className="font-bold text-[#7E7998]">
-                            Paid: <span className="font-black font-mono text-[#181432]">{formatBalanceInCurrentCurrency(ord.priceCents)}</span>
+                            Paid: <span className="font-black font-mono text-[#181432]">
+                              {selectedCurrency === "LKR"
+                                ? `Rs. ${(ord.priceLkr ? Number(ord.priceLkr) : Math.round((ord.priceCents / 100) * lkrRate)).toLocaleString()}`
+                                : `$${(ord.priceCents / 100).toFixed(2)}`}
+                            </span>
                           </span>
                           {selectedCurrency === "LKR" ? (
                             <span className="text-[10px] text-[#9490A8] font-mono">
@@ -4174,7 +4533,7 @@ Support: https://t.me/youuhost_support
                             </span>
                           ) : (
                             <span className="text-[10px] text-[#9490A8] font-mono">
-                              (Rs. {Math.round((ord.priceCents / 100) * lkrRate).toLocaleString()})
+                              (Rs. {(ord.priceLkr ? Number(ord.priceLkr) : Math.round((ord.priceCents / 100) * lkrRate)).toLocaleString()})
                             </span>
                           )}
                         </div>
@@ -6487,6 +6846,196 @@ Support: https://t.me/youuhost_support
                     className="flex-1 py-3.5 bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
                   >
                     {isSandromaniaPurchasing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : !isCustomerLoggedIn ? (
+                      <>
+                        <UserIcon className="w-4 h-4" /> Sign In to Buy
+                      </>
+                    ) : (
+                      <>
+                        <ShopBagIcon className="w-4 h-4" /> Buy Now (Auto Delivery) 🚀
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* CSxStore Product Details & Purchase Dialog */}
+      <Dialog
+        open={!!detailCssxProduct}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailCssxProduct(null);
+            setAppliedCoupon(null);
+          }
+        }}
+      >
+        <DialogContent hideClose={true} className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50">
+          {detailCssxProduct && (() => {
+            const cleanTitle = detailCssxProduct.title || "Digital Product";
+            const cleanCat = detailCssxProduct.category || "General";
+            const availableStock = detailCssxProduct.stock ?? 99;
+            const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+            const userBalCents = user?.balance || 0;
+            const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
+
+            return (
+              <div>
+                {/* Top Action Header: Back Arrow & Favorite Heart */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => {
+                      setDetailCssxProduct(null);
+                      setAppliedCoupon(null);
+                    }}
+                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => toggleFavorite(`cssx_${detailCssxProduct.id}`)}
+                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#7E7998] hover:text-red-500 transition-colors border border-[#ECEEF8]"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Centered Visual with Brand Icon & Sleek Organic Blob */}
+                <div className="relative py-4 flex items-center justify-center mb-4">
+                  <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-[#E9D5FF] to-[#DBEAFE] absolute blur-sm" />
+                  <div className="relative z-10 drop-shadow-sm">
+                    <BrandIcon name={cleanTitle} type={cleanCat} className="w-14 h-14" />
+                  </div>
+                </div>
+
+                {/* Title, Badge, Rating & Price */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <h3 className="text-lg font-black text-[#181432] leading-tight">{cleanTitle}</h3>
+                    <span className="text-[11px] font-bold text-[#6B658B] block mt-0.5">
+                      {cleanCat || "Digital Goods"} · Instant CDK Auto-Delivery
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-black text-[#181432]">
+                      {formatCssxPrice(detailCssxProduct, cssxOrderQty)}
+                    </span>
+                    <span className="text-[9px] text-[#7E7998] block">total price</span>
+                  </div>
+                </div>
+
+                {/* Stock Status & Rating Pill */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>In Stock: {availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"}</span>
+                  </div>
+
+                  {(() => {
+                    const stats = getItemStats(detailCssxProduct, "sandromania");
+                    return (
+                      <>
+                        <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {stats.rating}
+                        </div>
+                        <span className="text-[11px] text-[#7E7998] font-medium">
+                          ({stats.sold.toLocaleString()} sold • {stats.reviewsCount} reviews)
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
+                  {detailCssxProduct.description ||
+                    "Instant CDK license key / account generated automatically upon purchase. 100% genuine digital product with full activation guarantee."}
+                </p>
+
+                {/* Quantity Stepper & Price Summary */}
+                <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-[#181432]">Quantity</span>
+                    <div className="flex items-center bg-white rounded-full px-2.5 py-1 shadow-xs border border-[#ECEEF8] gap-2.5">
+                      <button
+                        onClick={() => {
+                          setCssxOrderQty((q) => Math.max(1, q - 1));
+                          setAppliedCoupon(null);
+                        }}
+                        disabled={cssxOrderQty <= 1}
+                        className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs font-black text-[#181432] min-w-[14px] text-center">
+                        {cssxOrderQty}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setCssxOrderQty((q) => q + 1);
+                          setAppliedCoupon(null);
+                        }}
+                        className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
+                    <span className="text-sm font-black text-[#181432]">
+                      {formatCssxPrice(detailCssxProduct, cssxOrderQty)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Instant Auto-Delivery Note */}
+                <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs">
+                  <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-purple-950">
+                    <span className="font-extrabold block">Instant Auto-Fulfillment</span>
+                    Your license key / digital CDK will be generated immediately via CSxStore and stored in your <b>Orders</b> tab with 1-click copy.
+                  </div>
+                </div>
+
+                {/* Balance Check Notice */}
+                {userBalCents < totalCents && isCustomerLoggedIn && (
+                  <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold block">⚠️ Insufficient Wallet Balance</span>
+                      <span className="text-[11px] text-amber-800">
+                        Balance: {formatBalanceInCurrentCurrency(userBalCents)} · Needed: {formatCssxPrice(detailCssxProduct, cssxOrderQty)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailCssxProduct(null);
+                        setActiveTab("wallet");
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[11px] shadow-sm transition-all"
+                    >
+                      Top Up
+                    </button>
+                  </div>
+                )}
+
+                {/* Purchase Button */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCssxPurchase}
+                    disabled={isCssxPurchasing}
+                    className="flex-1 py-3.5 bg-gradient-to-r from-[#8E54E9] via-[#5B42F3] to-[#00C9FF] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+                  >
+                    {isCssxPurchasing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : !isCustomerLoggedIn ? (
                       <>

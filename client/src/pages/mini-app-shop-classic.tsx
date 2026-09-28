@@ -312,7 +312,7 @@ export default function MiniAppShop() {
       const data = await res.json();
       setChatHistory(prev => [...prev, { role: 'bot', content: data.answer || "I'm offline right now." }]);
     } catch (err) {
-      setChatHistory(prev => [...prev, { role: 'bot', content: "Sorry, I'm having trouble connecting. Reach out to @rochana_imesh." }]);
+      setChatHistory(prev => [...prev, { role: 'bot', content: "Sorry, I'm having trouble connecting. Reach out to @youuhost_support." }]);
     } finally {
       setIsSendingChat(false);
     }
@@ -385,10 +385,10 @@ export default function MiniAppShop() {
     queryKey: ["/api/settings/LOADING_TEXT"],
   });
 
-  const storeName = storeNameSetting?.value || "Shopeefy";
-  const supportUsername = supportUsernameSetting?.value || "@rochana_imesh";
+  const storeName = storeNameSetting?.value || "YouuHost";
+  const supportUsername = supportUsernameSetting?.value || "@youuhost_support";
   const supportBtnText = supportBtnTextSetting?.value || "Write to Support";
-  const loadingText = loadingTextSetting?.value || "Shopeefy...";
+  const loadingText = loadingTextSetting?.value || "YouuHost...";
 
   const { data: products, isLoading: productsLoading } = useQuery<(Product & { stockCount?: number })[]>({
     queryKey: ["/api/mini/products"],
