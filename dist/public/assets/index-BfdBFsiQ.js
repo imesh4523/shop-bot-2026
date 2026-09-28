@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DZnly0qV.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DnuVI1d-.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -102967,16 +102967,16 @@ function PaymentProcessingModal({
 }
 const DEFAULT_CATEGORIES = [
   { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
-  { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 1, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
-  { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 2, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
-  { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 3, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
-  { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 4, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
-  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 5, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
-  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 6, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
-  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 7, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
-  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 8, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
-  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 9, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
-  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 10, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+  { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+  { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 2, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+  { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 3, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+  { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 4, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+  { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 5, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+  { id: "google", label: "GCP", iconType: "google", enabled: true, order: 6, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+  { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 7, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
+  { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 8, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+  { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 9, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
+  { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 10, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
   { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
   { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 12, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
   { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 13, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
@@ -104531,12 +104531,13 @@ function MiniAppShopModern() {
     queryFn: async () => {
       try {
         const res = await fetch("/api/mini/best-sellers");
-        if (!res.ok) return { featured: [], allStats: {} };
+        if (!res.ok) return { featured: [], enableLightingBorder: true, allStats: {} };
         return res.json();
       } catch {
-        return { featured: [], allStats: {} };
+        return { featured: [], enableLightingBorder: true, allStats: {} };
       }
-    }
+    },
+    staleTime: 30 * 1e3
   });
   const { data: smmServicesList = [] } = useQuery({
     queryKey: ["/api/mini/smm/services"],
@@ -105391,7 +105392,8 @@ ${finalDetails}`;
     queryFn: async () => {
       const res = await fetch("/api/categories/config");
       return res.json();
-    }
+    },
+    staleTime: 60 * 1e3
   });
   const categories = reactExports.useMemo(() => {
     if (categoryConfigData && Array.isArray(categoryConfigData.categories) && categoryConfigData.categories.length > 0) {
@@ -106139,6 +106141,7 @@ ${finalDetails}`;
                   const totalSold = stats?.totalSoldCount || 3e3;
                   const badgeLabel = stats?.badge || p2.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
                   const badgeGradient = idx % 2 === 0 ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
+                  const isLightingActive = bestSellersData?.enableLightingBorder !== false;
                   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "div",
                     {
@@ -106147,8 +106150,12 @@ ${finalDetails}`;
                         setDetailProduct(realProd);
                         setQuantity(1);
                       },
-                      className: "relative min-w-[205px] w-[205px] h-[220px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden",
+                      className: `relative min-w-[205px] w-[205px] h-[220px] rounded-3xl p-4 shadow-sm hover:shadow-xl flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-300 hover:-translate-y-1 group overflow-hidden ${isLightingActive ? "bg-transparent" : "bg-white border border-[#ECEEF8]"}`,
                       children: [
+                        isLightingActive && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-[-150%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,#FF007A_0deg,#7928CA_90deg,#0070F3_180deg,#00DFD8_270deg,#FF007A_360deg)] opacity-95" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-[1.5px] rounded-[22px] bg-white pointer-events-none" })
+                        ] }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                           "div",
                           {
@@ -106157,7 +106164,7 @@ ${finalDetails}`;
                             children: badgeLabel
                           }
                         ) }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center text-center mt-5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center text-center mt-5 relative z-10", children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: p2.name, type: p2.type, className: "w-7 h-7" }) }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1", children: p2.name }),
                           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold text-[#7E7998] mt-1 inline-flex items-center gap-1", children: [
@@ -106172,7 +106179,7 @@ ${finalDetails}`;
                             ] })
                           ] })
                         ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-2 border-t border-[#F5F4FC]", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-2 border-t border-[#F5F4FC] relative z-10", children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
                           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity", children: "Buy Now" })
                         ] })
@@ -119150,6 +119157,7 @@ function BestSellersPage() {
   const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [items, setItems] = reactExports.useState([]);
+  const [enableLightingBorder, setEnableLightingBorder] = reactExports.useState(true);
   const [hasChanges, setHasChanges] = reactExports.useState(false);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["/api/admin/best-sellers"]
@@ -119158,13 +119166,16 @@ function BestSellersPage() {
     if (data?.products) {
       setItems(data.products);
     }
+    if (data?.enableLightingBorder !== void 0) {
+      setEnableLightingBorder(data.enableLightingBorder);
+    }
   }, [data]);
   const saveMutation = useMutation({
-    mutationFn: async (updatedConfig) => {
+    mutationFn: async (payload) => {
       const res = await fetch("/api/admin/best-sellers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: updatedConfig })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error("Failed to save best sellers configuration");
       return res.json();
@@ -119175,7 +119186,7 @@ function BestSellersPage() {
       setHasChanges(false);
       toast2({
         title: "Settings Saved! 🎉",
-        description: "Best Sellers & Hot Deals slider and sold counts are now live in Mini App."
+        description: "Best Sellers & Hot Deals slider, sold counts and lighting animation are now live in Mini App."
       });
     },
     onError: (err) => {
@@ -119211,7 +119222,7 @@ function BestSellersPage() {
       customRating: Number(item.customRating || 4.9),
       customReviewsCount: Number(item.customReviewsCount || 120)
     }));
-    saveMutation.mutate(configToSave);
+    saveMutation.mutate({ config: configToSave, enableLightingBorder });
   };
   const handleSetAllBaseSold = (amount) => {
     setItems(
@@ -119281,25 +119292,44 @@ function BestSellersPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-5 h-5" }) })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-emerald-950/20 col-span-1 sm:col-span-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex flex-col justify-between h-full space-y-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-emerald-950/20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex flex-col justify-between h-full space-y-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-emerald-300 uppercase tracking-wider", children: "⚡ 1-Click Sold Count Presets" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Real purchases add +1 automatically" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-emerald-300 uppercase tracking-wider", children: "⚡ 1-Click Sold Presets" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Purchases +1" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-2 pt-1", children: [1e3, 2500, 3e3, 5e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1.5 pt-1", children: [1e3, 2500, 3e3, 5e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           Button,
           {
             size: "sm",
             variant: "outline",
             onClick: () => handleSetAllBaseSold(amt),
-            className: "glass-panel border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 text-white text-xs rounded-xl h-8 font-bold",
-            children: [
-              "Set all to ",
-              amt.toLocaleString()
-            ]
+            className: "glass-panel border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 text-white text-[11px] rounded-xl h-7 px-2 font-bold",
+            children: amt.toLocaleString()
           },
           amt
         )) })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-gradient-to-br from-indigo-950/30 to-purple-950/30 border border-indigo-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-indigo-300 uppercase tracking-wider", children: "🌈 RGB Lighting Border" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "relative flex h-2 w-2", children: [
+              enableLightingBorder && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `relative inline-flex rounded-full h-2 w-2 ${enableLightingBorder ? "bg-pink-500" : "bg-gray-500"}` })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/50", children: "Animated neon glowing border around cards" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Switch,
+          {
+            checked: enableLightingBorder,
+            onCheckedChange: (val) => {
+              setEnableLightingBorder(val);
+              setHasChanges(true);
+            }
+          }
+        ) })
       ] }) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-4 items-center justify-between", children: [

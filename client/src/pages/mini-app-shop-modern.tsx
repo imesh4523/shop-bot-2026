@@ -1118,17 +1118,18 @@ export default function MiniAppShopModern() {
     enabled: activeTab === "wallet" || activeTab === "profile",
   });
 
-  const { data: bestSellersData } = useQuery<{ featured: any[]; allStats: Record<number, any> }>({
+  const { data: bestSellersData } = useQuery<{ featured: any[]; enableLightingBorder?: boolean; allStats: Record<number, any> }>({
     queryKey: ["/api/mini/best-sellers"],
     queryFn: async () => {
       try {
         const res = await fetch("/api/mini/best-sellers");
-        if (!res.ok) return { featured: [], allStats: {} };
+        if (!res.ok) return { featured: [], enableLightingBorder: true, allStats: {} };
         return res.json();
       } catch {
-        return { featured: [], allStats: {} };
+        return { featured: [], enableLightingBorder: true, allStats: {} };
       }
     },
+    staleTime: 30 * 1000,
   });
 
   // SMM Services & Orders Queries
@@ -2116,6 +2117,7 @@ Support: https://t.me/youuhost_support
       const res = await fetch("/api/categories/config");
       return res.json();
     },
+    staleTime: 60 * 1000,
   });
 
   const categories: CustomCategoryItem[] = useMemo(() => {
@@ -3018,6 +3020,8 @@ Support: https://t.me/youuhost_support
                         ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
                         : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
 
+                      const isLightingActive = bestSellersData?.enableLightingBorder !== false;
+
                       return (
                         <div
                           key={`bestseller-${p.id}`}
@@ -3026,8 +3030,18 @@ Support: https://t.me/youuhost_support
                             setDetailProduct(realProd);
                             setQuantity(1);
                           }}
-                          className="relative min-w-[205px] w-[205px] h-[220px] bg-white rounded-3xl p-4 shadow-sm hover:shadow-md border border-[#ECEEF8] flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-200 hover:-translate-y-1 group overflow-hidden"
+                          className={`relative min-w-[205px] w-[205px] h-[220px] rounded-3xl p-4 shadow-sm hover:shadow-xl flex flex-col justify-between shrink-0 cursor-pointer transition-all duration-300 hover:-translate-y-1 group overflow-hidden ${
+                            isLightingActive ? "bg-transparent" : "bg-white border border-[#ECEEF8]"
+                          }`}
                         >
+                          {/* Animated Glowing RGB / Neon Lighting Border Ring */}
+                          {isLightingActive && (
+                            <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
+                              <div className="absolute inset-[-150%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,#FF007A_0deg,#7928CA_90deg,#0070F3_180deg,#00DFD8_270deg,#FF007A_360deg)] opacity-95" />
+                              <div className="absolute inset-[1.5px] rounded-[22px] bg-white pointer-events-none" />
+                            </div>
+                          )}
+
                           {/* Top-Right 45° Corner Angle Ribbon */}
                           <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
                             <div
@@ -3039,7 +3053,7 @@ Support: https://t.me/youuhost_support
                           </div>
 
                           {/* Center Brand Icon & Title */}
-                          <div className="flex flex-col items-center text-center mt-5">
+                          <div className="flex flex-col items-center text-center mt-5 relative z-10">
                             <div className="w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
                               <BrandIcon name={p.name} type={p.type} className="w-7 h-7" />
                             </div>
@@ -3056,7 +3070,7 @@ Support: https://t.me/youuhost_support
                           </div>
 
                           {/* Bottom Price & Action */}
-                          <div className="flex items-center justify-between pt-2 border-t border-[#F5F4FC]">
+                          <div className="flex items-center justify-between pt-2 border-t border-[#F5F4FC] relative z-10">
                             <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
                             <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white text-[10px] font-black shadow-xs group-hover:opacity-90 transition-opacity">
                               Buy Now

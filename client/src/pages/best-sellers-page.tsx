@@ -56,9 +56,10 @@ export default function BestSellersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState<BestSellerItem[]>([]);
+  const [enableLightingBorder, setEnableLightingBorder] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery<{ products: BestSellerItem[]; config: any[] }>({
+  const { data, isLoading, refetch } = useQuery<{ products: BestSellerItem[]; config: any[]; enableLightingBorder?: boolean }>({
     queryKey: ["/api/admin/best-sellers"],
   });
 
@@ -66,14 +67,17 @@ export default function BestSellersPage() {
     if (data?.products) {
       setItems(data.products);
     }
+    if (data?.enableLightingBorder !== undefined) {
+      setEnableLightingBorder(data.enableLightingBorder);
+    }
   }, [data]);
 
   const saveMutation = useMutation({
-    mutationFn: async (updatedConfig: any[]) => {
+    mutationFn: async (payload: { config: any[]; enableLightingBorder: boolean }) => {
       const res = await fetch("/api/admin/best-sellers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: updatedConfig }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to save best sellers configuration");
       return res.json();
@@ -84,7 +88,7 @@ export default function BestSellersPage() {
       setHasChanges(false);
       toast({
         title: "Settings Saved! 🎉",
-        description: "Best Sellers & Hot Deals slider and sold counts are now live in Mini App.",
+        description: "Best Sellers & Hot Deals slider, sold counts and lighting animation are now live in Mini App.",
       });
     },
     onError: (err: any) => {
@@ -122,7 +126,7 @@ export default function BestSellersPage() {
       customRating: Number(item.customRating || 4.9),
       customReviewsCount: Number(item.customReviewsCount || 120),
     }));
-    saveMutation.mutate(configToSave);
+    saveMutation.mutate({ config: configToSave, enableLightingBorder });
   };
 
   const handleSetAllBaseSold = (amount: number) => {
@@ -208,24 +212,48 @@ export default function BestSellersPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-0 bg-emerald-950/20 col-span-1 sm:col-span-2">
+        <Card className="glass-card border-0 bg-emerald-950/20">
           <CardContent className="p-5 flex flex-col justify-between h-full space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">⚡ 1-Click Sold Count Presets</p>
-              <span className="text-[11px] text-white/40">Real purchases add +1 automatically</span>
+              <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">⚡ 1-Click Sold Presets</p>
+              <span className="text-[10px] text-white/40">Purchases +1</span>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {[1000, 2500, 3000, 5000].map((amt) => (
                 <Button
                   key={amt}
                   size="sm"
                   variant="outline"
                   onClick={() => handleSetAllBaseSold(amt)}
-                  className="glass-panel border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 text-white text-xs rounded-xl h-8 font-bold"
+                  className="glass-panel border-white/10 hover:bg-emerald-500/20 hover:text-emerald-300 text-white text-[11px] rounded-xl h-7 px-2 font-bold"
                 >
-                  Set all to {amt.toLocaleString()}
+                  {amt.toLocaleString()}
                 </Button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-0 bg-gradient-to-br from-indigo-950/30 to-purple-950/30 border border-indigo-500/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-indigo-300 uppercase tracking-wider">🌈 RGB Lighting Border</p>
+                <span className="relative flex h-2 w-2">
+                  {enableLightingBorder && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>}
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${enableLightingBorder ? "bg-pink-500" : "bg-gray-500"}`}></span>
+                </span>
+              </div>
+              <p className="text-[11px] text-white/50">Animated neon glowing border around cards</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={enableLightingBorder}
+                onCheckedChange={(val) => {
+                  setEnableLightingBorder(val);
+                  setHasChanges(true);
+                }}
+              />
             </div>
           </CardContent>
         </Card>

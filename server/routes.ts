@@ -2887,9 +2887,16 @@ export async function registerRoutes(
 
       const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
       let config: any[] = [];
+      let enableLightingBorder: boolean = true;
       if (setting && setting.value) {
         try {
-          config = JSON.parse(setting.value);
+          const parsed = JSON.parse(setting.value);
+          if (Array.isArray(parsed)) {
+            config = parsed;
+          } else if (parsed && typeof parsed === "object") {
+            config = Array.isArray(parsed.config) ? parsed.config : [];
+            enableLightingBorder = parsed.enableLightingBorder !== false;
+          }
         } catch {
           config = [];
         }
@@ -2913,7 +2920,7 @@ export async function registerRoutes(
         };
       });
 
-      res.json({ products: productsWithStats, config });
+      res.json({ products: productsWithStats, config, enableLightingBorder });
     } catch (err: any) {
       console.error("GET /api/admin/best-sellers error:", err);
       res.status(500).json({ message: err.message });
@@ -2922,8 +2929,12 @@ export async function registerRoutes(
 
   app.post("/api/admin/best-sellers", isAuth, async (req, res) => {
     try {
-      const { config } = req.body;
-      await storage.setSetting("FEATURED_BEST_SELLERS_CONFIG", JSON.stringify(config || []));
+      const { config, enableLightingBorder } = req.body;
+      const dataToSave = {
+        config: Array.isArray(config) ? config : [],
+        enableLightingBorder: enableLightingBorder !== false,
+      };
+      await storage.setSetting("FEATURED_BEST_SELLERS_CONFIG", JSON.stringify(dataToSave));
       res.json({ success: true, message: "Best Sellers & Sold Counts updated successfully" });
     } catch (err: any) {
       console.error("POST /api/admin/best-sellers error:", err);
@@ -2942,9 +2953,16 @@ export async function registerRoutes(
 
       const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
       let config: any[] = [];
+      let enableLightingBorder: boolean = true;
       if (setting && setting.value) {
         try {
-          config = JSON.parse(setting.value);
+          const parsed = JSON.parse(setting.value);
+          if (Array.isArray(parsed)) {
+            config = parsed;
+          } else if (parsed && typeof parsed === "object") {
+            config = Array.isArray(parsed.config) ? parsed.config : [];
+            enableLightingBorder = parsed.enableLightingBorder !== false;
+          }
         } catch {
           config = [];
         }
@@ -2979,6 +2997,7 @@ export async function registerRoutes(
 
       res.json({
         featured,
+        enableLightingBorder,
         allStats: productsWithStats.reduce((acc: any, curr) => {
           acc[curr.id] = curr;
           return acc;
@@ -3502,16 +3521,16 @@ export async function registerRoutes(
 
   const BUILTIN_DEFAULT_CATEGORIES = [
     { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
-    { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 1, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
-    { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 2, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
-    { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 3, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
-    { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 4, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
-    { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 5, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
-    { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 6, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
-    { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 7, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
-    { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 8, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
-    { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 9, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
-    { id: "google", label: "GCP", iconType: "google", enabled: true, order: 10, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+    { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 1, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+    { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 2, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+    { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 3, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+    { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 4, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+    { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 5, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+    { id: "google", label: "GCP", iconType: "google", enabled: true, order: 6, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+    { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 7, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
+    { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 8, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+    { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 9, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
+    { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 10, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
     { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
     { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 12, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
     { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 13, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
