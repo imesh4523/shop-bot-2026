@@ -2038,10 +2038,10 @@ Support: https://t.me/youuhost_support
     }
 
     const usdNum = binanceCalculatedUsd;
-    if (usdNum < 0.5) {
+    if (usdNum < 0.1) {
       toast({
         title: "Invalid Amount",
-        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 150" : "Minimum top-up is $0.50",
+        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 35" : "Minimum top-up is $0.10",
         variant: "destructive"
       });
       return;
@@ -4101,8 +4101,8 @@ Support: https://t.me/youuhost_support
                       </span>
                     )}
                   </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
-                    {(selectedCurrency === "LKR" ? ["500", "1000", "5000", "20000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-5" : "grid-cols-5"} gap-1.5 mb-2`}>
+                    {(selectedCurrency === "LKR" ? ["50", "100", "500", "1000", "5000"] : ["0.1", "1", "5", "10", "20"]).map((amt) => {
                       const isSelected = binanceAmount === amt;
                       return (
                         <button
@@ -4126,11 +4126,11 @@ Support: https://t.me/youuhost_support
                     </span>
                     <input
                       type="number"
-                      min="1"
-                      step={selectedCurrency === "LKR" ? "100" : "0.5"}
+                      min="0.1"
+                      step={selectedCurrency === "LKR" ? "10" : "0.1"}
                       value={binanceAmount}
                       onChange={(e) => setBinanceAmount(e.target.value)}
-                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 2500)" : "Custom Amount in USD (e.g. 15)"}
+                      placeholder={selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 500)" : "Custom Amount in USD (e.g. 0.1)"}
                       className="w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#F3BA2F]"
                     />
                   </div>

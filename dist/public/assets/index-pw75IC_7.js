@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-canVlvQG.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CIwHhiYw.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105308,10 +105308,10 @@ ${finalDetails}`;
       return;
     }
     const usdNum = binanceCalculatedUsd;
-    if (usdNum < 0.5) {
+    if (usdNum < 0.1) {
       toast2({
         title: "Invalid Amount",
-        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 150" : "Minimum top-up is $0.50",
+        description: selectedCurrency === "LKR" ? "Minimum top-up is Rs. 35" : "Minimum top-up is $0.10",
         variant: "destructive"
       });
       return;
@@ -107056,7 +107056,7 @@ ${finalDetails}`;
                   " LKR"
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`, children: (selectedCurrency === "LKR" ? ["500", "1000", "5000", "20000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `grid ${selectedCurrency === "LKR" ? "grid-cols-5" : "grid-cols-5"} gap-1.5 mb-2`, children: (selectedCurrency === "LKR" ? ["50", "100", "500", "1000", "5000"] : ["0.1", "1", "5", "10", "20"]).map((amt) => {
                 const isSelected = binanceAmount === amt;
                 return /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
@@ -107075,11 +107075,11 @@ ${finalDetails}`;
                   "input",
                   {
                     type: "number",
-                    min: "1",
-                    step: selectedCurrency === "LKR" ? "100" : "0.5",
+                    min: "0.1",
+                    step: selectedCurrency === "LKR" ? "10" : "0.1",
                     value: binanceAmount,
                     onChange: (e) => setBinanceAmount(e.target.value),
-                    placeholder: selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 2500)" : "Custom Amount in USD (e.g. 15)",
+                    placeholder: selectedCurrency === "LKR" ? "Custom Amount in LKR (e.g. 500)" : "Custom Amount in USD (e.g. 0.1)",
                     className: "w-full bg-[#F8F7FD] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-2 text-xs font-black text-[#181432] focus:outline-none focus:border-[#F3BA2F]"
                   }
                 )

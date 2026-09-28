@@ -3059,8 +3059,8 @@ export async function registerRoutes(
       const numAmount = parseFloat(amount);
       const cleanTx = (orderId || txId || '').trim();
 
-      if (isNaN(numAmount) || numAmount < 1) {
-        return res.status(400).json({ success: false, message: "Invalid amount. Minimum top-up is $1." });
+      if (isNaN(numAmount) || numAmount < 0.1) {
+        return res.status(400).json({ success: false, message: "Invalid amount. Minimum top-up is $0.10." });
       }
 
       if (!cleanTx || cleanTx.length < 4) {
