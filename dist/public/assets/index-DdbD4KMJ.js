@@ -74682,7 +74682,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DVvUzTjA.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CLwPRzwK.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105471,20 +105471,40 @@ ${finalDetails}`;
     queryFn: async () => {
       try {
         const res = await fetch("/api/currency/rates");
-        return res.json();
+        const data = await res.json();
+        if (data?.rates?.LKR) {
+          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
+        }
+        return data;
       } catch {
-        return { rates: { USD: 1, LKR: 305.5 }, defaultCurrency: "USD", isSriLanka: false };
+        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
+        return { rates: { USD: 1, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
       }
+    },
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem("cached_lkr_rate");
+        if (cached) {
+          return { rates: { USD: 1, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
+        }
+      } catch {
+      }
+      return void 0;
     },
     staleTime: 5 * 60 * 1e3
   });
   reactExports.useEffect(() => {
-    if (currencyData && !localStorage.getItem("app_currency")) {
-      const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
-      setSelectedCurrency(detected);
+    if (currencyData) {
+      if (currencyData.rates?.LKR) {
+        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
+      }
+      if (!localStorage.getItem("app_currency")) {
+        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
+        setSelectedCurrency(detected);
+      }
     }
   }, [currencyData]);
-  const lkrRate = currencyData?.rates?.LKR || 305.5;
+  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
   const [binanceAmount, setBinanceAmount] = reactExports.useState(() => {
     return localStorage.getItem("app_currency") === "LKR" ? "1000" : "5";
   });
@@ -106321,6 +106341,28 @@ ${finalDetails}`;
       return false;
     }
   };
+  const formatDeliveredCredentialsForCopy = (raw, qty = 1) => {
+    if (!raw) return "";
+    const clean = raw.trim();
+    let items = [];
+    if (clean.startsWith("[") && clean.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed)) items = parsed.map(String).map((s2) => s2.trim()).filter(Boolean);
+      } catch {
+      }
+    }
+    if (items.length === 0) {
+      items = clean.split(/\r?\n/).map((l2) => l2.trim()).filter(Boolean);
+    }
+    if (items.length > 1) {
+      return items.map((line2, idx) => {
+        const num = String(idx + 1).padStart(2, "0");
+        return `item ${num} - ${line2}`;
+      }).join("\n\n");
+    }
+    return clean;
+  };
   const copyToClipboard = (text2, title = "Copied to Clipboard") => {
     if (!text2) return;
     try {
@@ -106334,7 +106376,7 @@ ${finalDetails}`;
     }
     setCopiedText(text2);
     setTimeout(() => setCopiedText(null), 2500);
-    toast2({ title, description: `${text2} copied to clipboard.`, duration: 2e3 });
+    toast2({ title, description: `Copied to clipboard.`, duration: 2e3 });
   };
   const handleSendChat = async () => {
     if (!chatMsg.trim() || isChatSending) return;
@@ -107148,16 +107190,16 @@ ${finalDetails}`;
                   }
                 ),
                 ord.licenseKey && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200", onClick: (e) => e.stopPropagation(), children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px] font-extrabold text-emerald-800 uppercase tracking-wide flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 text-emerald-600" }),
                       " Digital Credentials / CDK:"
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs(
                       "button",
                       {
-                        onClick: () => copyToClipboard(ord.licenseKey, "License Data Copied"),
-                        className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs",
+                        onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋"),
+                        className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform",
                         children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-2.5 h-2.5" }),
                           " Copy"
@@ -107165,7 +107207,7 @@ ${finalDetails}`;
                       }
                     )
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[11px] text-emerald-950 font-bold bg-white/80 p-2 rounded-xl border border-emerald-100 break-all select-all whitespace-pre-wrap", children: ord.licenseKey })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-16 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner", children: ord.licenseKey })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-1.5 border-t border-[#F5F4FC]", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
@@ -108385,14 +108427,14 @@ ${finalDetails}`;
         ] })
       ) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedTxDetail, onOpenChange: (open2) => !open2 && setSelectedTxDetail(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-md w-[92vw] sm:w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-8", children: selectedTxDetail && (() => {
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedTxDetail, onOpenChange: (open2) => !open2 && setSelectedTxDetail(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-[360px] sm:max-w-md w-[92vw] bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] p-4 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-6", children: selectedTxDetail && (() => {
       const isDeposit = selectedTxDetail.type === "deposit";
       const isLkrCurrency = (selectedTxDetail.currency || "").toUpperCase() === "LKR";
       const statusLower = (selectedTxDetail.status || "").toLowerCase();
       const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
       const isPending = statusLower === "pending" || statusLower === "processing";
       const isRefunded = statusLower === "refunded";
-      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogHeader, { className: "sr-only", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { children: "Transaction Details" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(DialogDescription, { children: "Overview and receipt of transaction" })
@@ -108402,53 +108444,53 @@ ${finalDetails}`;
             "button",
             {
               onClick: () => setSelectedTxDetail(null),
-              className: "w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]",
+              className: "w-8 h-8 rounded-full bg-white shadow-xs flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8] active:scale-95",
               children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowLeft, { className: "w-4 h-4" })
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `text-[10.5px] font-black uppercase px-3 py-1 rounded-full flex items-center gap-1.5 border shadow-2xs ${isSuccess ? "bg-emerald-50 text-emerald-600 border-emerald-200" : isPending ? "bg-amber-50 text-amber-600 border-amber-200" : isRefunded ? "bg-sky-50 text-sky-600 border-sky-200" : "bg-red-50 text-red-600 border-red-200"}`, children: [
-            isSuccess ? /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5" }) : isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3.5 h-3.5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3.5 h-3.5" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `text-[10px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1.5 border shadow-2xs ${isSuccess ? "bg-emerald-50 text-emerald-600 border-emerald-200" : isPending ? "bg-amber-50 text-amber-600 border-amber-200" : isRefunded ? "bg-sky-50 text-sky-600 border-sky-200" : "bg-red-50 text-red-600 border-red-200"}`, children: [
+            isSuccess ? /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }) : isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3 h-3" }),
             selectedTxDetail.status
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 rounded-3xl bg-white border border-[#ECEEF8] shadow-md mx-auto mb-3 flex items-center justify-center p-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TransactionBrandIcon, { tx: selectedTxDetail, className: "w-12 h-12" }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432]", children: selectedTxDetail.title }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[11px] font-bold text-[#7E7998] mt-0.5", children: selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order") }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-3 p-3.5 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: isLkrCurrency ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black font-mono text-emerald-700", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-white border border-[#ECEEF8] shadow-sm mx-auto mb-2 flex items-center justify-center p-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TransactionBrandIcon, { tx: selectedTxDetail, className: "w-10 h-10" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm sm:text-base font-black text-[#181432] line-clamp-1", children: selectedTxDetail.title }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10.5px] font-bold text-[#7E7998] mt-0.5", children: selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order") }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-2.5 p-3 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: isLkrCurrency ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-emerald-700", children: [
               "+Rs. ",
               selectedTxDetail.amountLkr || (selectedTxDetail.amountCents / 100).toLocaleString(),
               " LKR"
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs font-bold text-[#7E7998] font-mono mt-0.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] font-bold text-[#7E7998] font-mono mt-0.5", children: [
               "≈ $",
               selectedTxDetail.amountUsd || (selectedTxDetail.amountCents / 100 / lkrRate).toFixed(2),
               " USD"
             ] })
           ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black font-mono", children: isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs font-bold text-[#7E7998] font-mono mt-0.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xl sm:text-2xl font-black font-mono", children: isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] font-bold text-[#7E7998] font-mono mt-0.5", children: [
               "≈ Rs. ",
               selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString(),
               " LKR"
             ] })
           ] }) })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-4 rounded-2xl border border-[#ECEEF8] space-y-3 text-xs shadow-2xs", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-3.5 rounded-2xl border border-[#ECEEF8] space-y-2.5 text-[11.5px] shadow-2xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-[#F5F4FC]", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#9490A8] font-bold", children: "Reference ID:" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
                 onClick: () => {
-                  navigator.clipboard.writeText(selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}`);
-                  toast2({ title: "Reference ID Copied! 📋" });
+                  const refText = selectedTxDetail.reference || `#YOUUHOST-${selectedTxDetail.rawId || selectedTxDetail.id}`;
+                  copyToClipboard(refText, "Reference ID Copied! 📋");
                 },
-                className: "font-mono font-black text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8]",
+                className: "font-mono font-black text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95",
                 children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}` }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3 text-[#9490A8]" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "max-w-[170px] truncate", children: selectedTxDetail.reference || `#YOUUHOST-${selectedTxDetail.rawId || selectedTxDetail.id}` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3 text-[#9490A8] shrink-0" })
                 ]
               }
             )
@@ -108469,65 +108511,64 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsx(DualCardIcon, {}),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Card Payment" })
             ] }) : selectedTxDetail.method === "binance_pay" || selectedTxDetail.method === "binance" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-600 flex items-center gap-1.5 font-bold", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(SiBinance, { className: "w-4 h-4 text-[#E5A91E]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SiBinance, { className: "w-3.5 h-3.5 text-[#E5A91E]" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Binance Pay" })
             ] }) : selectedTxDetail.method === "cryptomus" || selectedTxDetail.method === "crypto" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-purple-600 flex items-center gap-1.5 font-bold", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(CryptomusLogo, { className: "w-4 h-4" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CryptomusLogo, { className: "w-3.5 h-3.5" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Cryptomus" })
             ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-600 flex items-center gap-1.5 font-bold", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-4 h-4 text-emerald-600" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-3.5 h-3.5 text-emerald-600" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Wallet Balance" })
             ] }) })
           ] }),
-          selectedTxDetail.details && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1", children: [
+          selectedTxDetail.details && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-0.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#9490A8] font-bold block mb-1", children: "Details:" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[#181432] bg-[#F8F7FD] p-2.5 rounded-xl border border-[#ECEEF8] leading-relaxed text-[11px]", children: selectedTxDetail.details })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[#181432] bg-[#F8F7FD] p-2 rounded-xl border border-[#ECEEF8] leading-relaxed text-[11px] break-words", children: selectedTxDetail.details })
           ] }),
-          selectedTxDetail.type === "smm" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1 space-y-2", children: [
+          selectedTxDetail.type === "smm" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-0.5 space-y-1.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#9490A8] font-bold block", children: "SMM Order Details:" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]", children: [
               selectedTxDetail.smmLink && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10px] text-[#9490A8] font-bold uppercase", children: "Target Link" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[#5B42F3] break-all select-all font-semibold mt-0.5", children: selectedTxDetail.smmLink })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[9.5px] text-[#9490A8] font-bold uppercase", children: "Target Link" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[#5B42F3] break-all select-all font-semibold mt-0.5 text-[10.5px]", children: selectedTxDetail.smmLink })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-2 pt-1 border-t border-[#ECEEF8]", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-2 rounded-xl border border-[#ECEEF8] text-center", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-bold text-[#9490A8] block uppercase", children: "Quantity" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-1.5 pt-1 border-t border-[#ECEEF8]", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-[#9490A8] block uppercase", children: "Quantity" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-[#181432] text-xs", children: selectedTxDetail.smmQuantity || 0 })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-2 rounded-xl border border-[#ECEEF8] text-center", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-bold text-sky-600 block uppercase", children: "Start Count" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-sky-600 block uppercase", children: "Start Count" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-sky-600 text-xs", children: selectedTxDetail.startCount || "0" })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-2 rounded-xl border border-[#ECEEF8] text-center", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9.5px] font-bold text-amber-600 block uppercase", children: "Remains" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] font-bold text-amber-600 block uppercase", children: "Remains" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-amber-600 text-xs", children: selectedTxDetail.remains || "0" })
                 ] })
               ] })
             ] })
           ] }),
-          selectedTxDetail.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1", children: [
+          selectedTxDetail.deliveredContent && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-0.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-700 font-extrabold flex items-center gap-1 text-[11.5px]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-700 font-extrabold flex items-center gap-1 text-[11px]", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-3.5 h-3.5 text-emerald-600" }),
-                " Delivered Account / License Key:"
+                " Delivered Account / License:"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "button",
                 {
                   onClick: () => {
-                    navigator.clipboard.writeText(selectedTxDetail.deliveredContent);
-                    toast2({ title: "Account Info Copied! 📋" });
+                    copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent), "Account Info Copied! 📋");
                   },
-                  className: "text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1",
+                  className: "text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95",
                   children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" }),
-                    " Copy Content"
+                    " Copy"
                   ]
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-3 bg-[#181432] text-emerald-400 font-mono text-[10.5px] rounded-xl overflow-x-auto whitespace-pre-wrap select-all", children: selectedTxDetail.deliveredContent })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed", children: selectedTxDetail.deliveredContent })
           ] }),
           isRefunded && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-[11px] font-bold flex items-center gap-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { className: "w-4 h-4 text-sky-600 shrink-0" }),
@@ -108538,7 +108579,7 @@ ${finalDetails}`;
           Button,
           {
             onClick: () => setSelectedTxDetail(null),
-            className: "w-full h-11 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] text-xs font-black rounded-2xl shadow-2xs transition-all",
+            className: "w-full h-10 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] text-xs font-black rounded-2xl shadow-2xs transition-all active:scale-95",
             children: "Close Receipt"
           }
         )
@@ -109533,8 +109574,8 @@ ${finalDetails}`;
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "button",
                   {
-                    onClick: () => copyToClipboard(ord.licenseKey, "License Data Copied"),
-                    className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2 py-0.5 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95",
+                    onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋"),
+                    className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform",
                     children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" }),
                       " Copy"
@@ -109542,7 +109583,7 @@ ${finalDetails}`;
                   }
                 )
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold", children: ord.licenseKey })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold", children: ord.licenseKey })
             ] }),
             ord.orderType === "smm" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5 overflow-hidden w-full", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between text-xs font-black text-[#D92078]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [

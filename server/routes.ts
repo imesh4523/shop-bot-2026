@@ -2552,7 +2552,7 @@ export async function registerRoutes(
           currency: "USD",
           method: isApiOrder ? "api_key" : "wallet_balance",
           status: o.orders.status, // "completed", "failed", "pending", "refunded"
-          reference: isApiOrder ? `#YH-API-${o.orders.id}` : `#ORD-${o.orders.id}`,
+          reference: isApiOrder ? `#YOUUHOST-API-${o.orders.id}` : `#YOUUHOST-${o.orders.id}`,
           isApiOrder,
           deliveredContent: o.credentials?.content || null,
           details: isApiOrder
@@ -2593,7 +2593,7 @@ export async function registerRoutes(
           currency: "USD",
           method: "wallet_balance",
           status: s.smm_orders.status || "Pending",
-          reference: `#YH-${s.smm_orders.id}`,
+          reference: s.smm_orders.externalOrderId ? `#YOUUHOST-${s.smm_orders.externalOrderId}` : `#YOUUHOST-${s.smm_orders.id}`,
           isApiOrder: false,
           details: `Target: ${s.smm_orders.link || "N/A"} (${s.smm_orders.quantity || 0} units)`,
           createdAt: s.smm_orders.createdAt || new Date(),
@@ -2615,7 +2615,7 @@ export async function registerRoutes(
           id: `PARTNER-${sp.id}`,
           rawId: sp.id,
           type: "partner" as const,
-          category: "Sandromania Partner Order",
+          category: "Digital License Delivery",
           title: sp.productTitle || "Partner Digital Goods",
           amountCents: -(sp.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
@@ -2624,9 +2624,9 @@ export async function registerRoutes(
           currency: "USD",
           method: "wallet_balance",
           status: sp.status === "approved" ? "completed" : sp.status,
-          reference: `#SM-${sp.id}`,
+          reference: sp.externalOrderId ? `#YOUUHOST-${sp.externalOrderId}` : `#YOUUHOST-${sp.id}`,
           deliveredContent: sp.deliveryText || null,
-          details: `Partner Order #${sp.externalOrderId || sp.id}: ${sp.productTitle}`,
+          details: `Order for ${sp.productTitle}. Instant digital credentials delivered.`,
           createdAt: sp.createdAt || new Date(),
           updatedAt: sp.createdAt || new Date()
         };
@@ -3759,8 +3759,10 @@ export async function registerRoutes(
         dateFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       } else if (timeRange === "7d") {
         dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      } else if (timeRange === "30d") {
+      } else if (timeRange === "30d" || timeRange === "30days") {
         dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (timeRange === "month" || timeRange === "thismonth") {
+        dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
       } else if (timeRange === "custom" && startDate) {
         dateFrom = new Date(String(startDate));
       }

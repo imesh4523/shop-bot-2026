@@ -1823,23 +1823,42 @@ Support: https://t.me/youuhost_support
     queryFn: async () => {
       try {
         const res = await fetch("/api/currency/rates");
-        return res.json();
+        const data = await res.json();
+        if (data?.rates?.LKR) {
+          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
+        }
+        return data;
       } catch {
-        return { rates: { USD: 1.0, LKR: 305.50 }, defaultCurrency: "USD", isSriLanka: false };
+        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
+        return { rates: { USD: 1.0, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
       }
+    },
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem("cached_lkr_rate");
+        if (cached) {
+          return { rates: { USD: 1.0, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
+        }
+      } catch {}
+      return undefined;
     },
     staleTime: 5 * 60 * 1000,
   });
 
   // Auto-apply detected currency on first visit if user hasn't toggled yet
   useEffect(() => {
-    if (currencyData && !localStorage.getItem("app_currency")) {
-      const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
-      setSelectedCurrency(detected);
+    if (currencyData) {
+      if (currencyData.rates?.LKR) {
+        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
+      }
+      if (!localStorage.getItem("app_currency")) {
+        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
+        setSelectedCurrency(detected);
+      }
     }
   }, [currencyData]);
 
-  const lkrRate = currencyData?.rates?.LKR || 305.50;
+  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
 
   // Binance Pay Interactive State
   const [binanceAmount, setBinanceAmount] = useState<string>(() => {
@@ -2834,6 +2853,29 @@ Support: https://t.me/youuhost_support
     }
   };
 
+  const formatDeliveredCredentialsForCopy = (raw: string, qty: number = 1) => {
+    if (!raw) return "";
+    const clean = raw.trim();
+    // Check if multiple items are delimited by newlines or JSON array
+    let items: string[] = [];
+    if (clean.startsWith("[") && clean.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed)) items = parsed.map(String).map(s => s.trim()).filter(Boolean);
+      } catch {}
+    }
+    if (items.length === 0) {
+      items = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    }
+    if (items.length > 1) {
+      return items.map((line, idx) => {
+        const num = String(idx + 1).padStart(2, "0");
+        return `item ${num} - ${line}`;
+      }).join("\n\n");
+    }
+    return clean;
+  };
+
   const copyToClipboard = (text: string, title = "Copied to Clipboard") => {
     if (!text) return;
     try {
@@ -2847,7 +2889,7 @@ Support: https://t.me/youuhost_support
     }
     setCopiedText(text);
     setTimeout(() => setCopiedText(null), 2500);
-    toast({ title, description: `${text} copied to clipboard.`, duration: 2000 });
+    toast({ title, description: `Copied to clipboard.`, duration: 2000 });
   };
 
   const handleSendChat = async () => {
@@ -3795,18 +3837,18 @@ Support: https://t.me/youuhost_support
                       {/* Digital License / CDK for Sandromania Orders */}
                       {ord.licenseKey && (
                         <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wide flex items-center gap-1">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
                             </span>
                             <button
-                              onClick={() => copyToClipboard(ord.licenseKey, "License Data Copied")}
-                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs"
+                              onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋")}
+                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform"
                             >
                               <Copy className="w-2.5 h-2.5" /> Copy
                             </button>
                           </div>
-                          <div className="font-mono text-[11px] text-emerald-950 font-bold bg-white/80 p-2 rounded-xl border border-emerald-100 break-all select-all whitespace-pre-wrap">
+                          <div className="font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-16 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
                             {ord.licenseKey}
                           </div>
                         </div>
@@ -5177,7 +5219,7 @@ Support: https://t.me/youuhost_support
 
       {/* TRANSACTION DETAILS POPUP MODAL */}
       <Dialog open={!!selectedTxDetail} onOpenChange={(open) => !open && setSelectedTxDetail(null)}>
-        <DialogContent className="max-w-md w-[92vw] sm:w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-8">
+        <DialogContent className="max-w-[360px] sm:max-w-md w-[92vw] bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] p-4 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-6">
           {selectedTxDetail && (() => {
             const isDeposit = selectedTxDetail.type === "deposit";
             const isLkrCurrency = (selectedTxDetail.currency || "").toUpperCase() === "LKR";
@@ -5187,7 +5229,7 @@ Support: https://t.me/youuhost_support
             const isRefunded = statusLower === "refunded";
 
             return (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 <DialogHeader className="sr-only">
                   <DialogTitle>Transaction Details</DialogTitle>
                   <DialogDescription>Overview and receipt of transaction</DialogDescription>
@@ -5197,12 +5239,12 @@ Support: https://t.me/youuhost_support
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setSelectedTxDetail(null)}
-                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]"
+                    className="w-8 h-8 rounded-full bg-white shadow-xs flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8] active:scale-95"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
 
-                  <span className={`text-[10.5px] font-black uppercase px-3 py-1 rounded-full flex items-center gap-1.5 border shadow-2xs ${
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1.5 border shadow-2xs ${
                     isSuccess
                       ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                       : isPending
@@ -5211,44 +5253,44 @@ Support: https://t.me/youuhost_support
                       ? "bg-sky-50 text-sky-600 border-sky-200"
                       : "bg-red-50 text-red-600 border-red-200"
                   }`}>
-                    {isSuccess ? <CheckCircle2 className="w-3.5 h-3.5" /> : isPending ? <Clock className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    {isSuccess ? <CheckCircle2 className="w-3 h-3" /> : isPending ? <Clock className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                     {selectedTxDetail.status}
                   </span>
                 </div>
 
                 {/* Center Brand Visual & Amount */}
-                <div className="text-center py-2">
-                  <div className="w-16 h-16 rounded-3xl bg-white border border-[#ECEEF8] shadow-md mx-auto mb-3 flex items-center justify-center p-2">
-                    <TransactionBrandIcon tx={selectedTxDetail} className="w-12 h-12" />
+                <div className="text-center py-1">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-[#ECEEF8] shadow-sm mx-auto mb-2 flex items-center justify-center p-2">
+                    <TransactionBrandIcon tx={selectedTxDetail} className="w-10 h-10" />
                   </div>
-                  <h3 className="text-base font-black text-[#181432]">
+                  <h3 className="text-sm sm:text-base font-black text-[#181432] line-clamp-1">
                     {selectedTxDetail.title}
                   </h3>
-                  <div className="text-[11px] font-bold text-[#7E7998] mt-0.5">
+                  <div className="text-[10.5px] font-bold text-[#7E7998] mt-0.5">
                     {selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order")}
                   </div>
 
                   {/* Currency Amount Card */}
-                  <div className={`mt-3 p-3.5 rounded-2xl border text-center ${
+                  <div className={`mt-2.5 p-3 rounded-2xl border text-center ${
                     isDeposit
                       ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800"
                       : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"
                   }`}>
                     {isLkrCurrency ? (
                       <>
-                        <div className="text-2xl font-black font-mono text-emerald-700">
+                        <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700">
                           +Rs. {selectedTxDetail.amountLkr || (selectedTxDetail.amountCents / 100).toLocaleString()} LKR
                         </div>
-                        <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
+                        <div className="text-[11px] font-bold text-[#7E7998] font-mono mt-0.5">
                           ≈ ${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents / 100) / lkrRate).toFixed(2)} USD
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="text-2xl font-black font-mono">
+                        <div className="text-xl sm:text-2xl font-black font-mono">
                           {isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD`}
                         </div>
-                        <div className="text-xs font-bold text-[#7E7998] font-mono mt-0.5">
+                        <div className="text-[11px] font-bold text-[#7E7998] font-mono mt-0.5">
                           ≈ Rs. {selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()} LKR
                         </div>
                       </>
@@ -5257,18 +5299,18 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 {/* Metadata Details List */}
-                <div className="bg-white p-4 rounded-2xl border border-[#ECEEF8] space-y-3 text-xs shadow-2xs">
+                <div className="bg-white p-3.5 rounded-2xl border border-[#ECEEF8] space-y-2.5 text-[11.5px] shadow-2xs">
                   <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
                     <span className="text-[#9490A8] font-bold">Reference ID:</span>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}`);
-                        toast({ title: "Reference ID Copied! 📋" });
+                        const refText = selectedTxDetail.reference || `#YOUUHOST-${selectedTxDetail.rawId || selectedTxDetail.id}`;
+                        copyToClipboard(refText, "Reference ID Copied! 📋");
                       }}
-                      className="font-mono font-black text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8]"
+                      className="font-mono font-black text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95"
                     >
-                      <span>{selectedTxDetail.reference || `#TX-${selectedTxDetail.rawId || selectedTxDetail.id}`}</span>
-                      <Copy className="w-3 h-3 text-[#9490A8]" />
+                      <span className="max-w-[170px] truncate">{selectedTxDetail.reference || `#YOUUHOST-${selectedTxDetail.rawId || selectedTxDetail.id}`}</span>
+                      <Copy className="w-3 h-3 text-[#9490A8] shrink-0" />
                     </button>
                   </div>
 
@@ -5295,17 +5337,17 @@ Support: https://t.me/youuhost_support
                         </span>
                       ) : selectedTxDetail.method === "binance_pay" || selectedTxDetail.method === "binance" ? (
                         <span className="text-amber-600 flex items-center gap-1.5 font-bold">
-                          <SiBinance className="w-4 h-4 text-[#E5A91E]" />
+                          <SiBinance className="w-3.5 h-3.5 text-[#E5A91E]" />
                           <span>Binance Pay</span>
                         </span>
                       ) : selectedTxDetail.method === "cryptomus" || selectedTxDetail.method === "crypto" ? (
                         <span className="text-purple-600 flex items-center gap-1.5 font-bold">
-                          <CryptomusLogo className="w-4 h-4" />
+                          <CryptomusLogo className="w-3.5 h-3.5" />
                           <span>Cryptomus</span>
                         </span>
                       ) : (
                         <span className="text-emerald-600 flex items-center gap-1.5 font-bold">
-                          <Wallet className="w-4 h-4 text-emerald-600" />
+                          <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Wallet Balance</span>
                         </span>
                       )}
@@ -5313,9 +5355,9 @@ Support: https://t.me/youuhost_support
                   </div>
 
                   {selectedTxDetail.details && (
-                    <div className="pt-1">
+                    <div className="pt-0.5">
                       <span className="text-[#9490A8] font-bold block mb-1">Details:</span>
-                      <p className="text-[#181432] bg-[#F8F7FD] p-2.5 rounded-xl border border-[#ECEEF8] leading-relaxed text-[11px]">
+                      <p className="text-[#181432] bg-[#F8F7FD] p-2 rounded-xl border border-[#ECEEF8] leading-relaxed text-[11px] break-words">
                         {selectedTxDetail.details}
                       </p>
                     </div>
@@ -5323,29 +5365,29 @@ Support: https://t.me/youuhost_support
 
                   {/* SMM Target Link, Start Count, Remains & Quantity */}
                   {selectedTxDetail.type === "smm" && (
-                    <div className="pt-1 space-y-2">
+                    <div className="pt-0.5 space-y-1.5">
                       <span className="text-[#9490A8] font-bold block">SMM Order Details:</span>
-                      <div className="bg-[#F8F7FD] p-3 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]">
+                      <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]">
                         {selectedTxDetail.smmLink && (
                           <div>
-                            <div className="text-[10px] text-[#9490A8] font-bold uppercase">Target Link</div>
-                            <div className="font-mono text-[#5B42F3] break-all select-all font-semibold mt-0.5">
+                            <div className="text-[9.5px] text-[#9490A8] font-bold uppercase">Target Link</div>
+                            <div className="font-mono text-[#5B42F3] break-all select-all font-semibold mt-0.5 text-[10.5px]">
                               {selectedTxDetail.smmLink}
                             </div>
                           </div>
                         )}
 
-                        <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[#ECEEF8]">
-                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
-                            <span className="text-[9.5px] font-bold text-[#9490A8] block uppercase">Quantity</span>
+                        <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-[#ECEEF8]">
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9px] font-bold text-[#9490A8] block uppercase">Quantity</span>
                             <span className="font-black text-[#181432] text-xs">{selectedTxDetail.smmQuantity || 0}</span>
                           </div>
-                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
-                            <span className="text-[9.5px] font-bold text-sky-600 block uppercase">Start Count</span>
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9px] font-bold text-sky-600 block uppercase">Start Count</span>
                             <span className="font-black text-sky-600 text-xs">{selectedTxDetail.startCount || "0"}</span>
                           </div>
-                          <div className="bg-white p-2 rounded-xl border border-[#ECEEF8] text-center">
-                            <span className="text-[9.5px] font-bold text-amber-600 block uppercase">Remains</span>
+                          <div className="bg-white p-1.5 rounded-xl border border-[#ECEEF8] text-center">
+                            <span className="text-[9px] font-bold text-amber-600 block uppercase">Remains</span>
                             <span className="font-black text-amber-600 text-xs">{selectedTxDetail.remains || "0"}</span>
                           </div>
                         </div>
@@ -5355,22 +5397,21 @@ Support: https://t.me/youuhost_support
 
                   {/* Delivered Credentials / License Key Box */}
                   {selectedTxDetail.deliveredContent && (
-                    <div className="pt-1">
+                    <div className="pt-0.5">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-emerald-700 font-extrabold flex items-center gap-1 text-[11.5px]">
-                          <ShopBagIcon className="w-3.5 h-3.5 text-emerald-600" /> Delivered Account / License Key:
+                        <span className="text-emerald-700 font-extrabold flex items-center gap-1 text-[11px]">
+                          <ShopBagIcon className="w-3.5 h-3.5 text-emerald-600" /> Delivered Account / License:
                         </span>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedTxDetail.deliveredContent);
-                            toast({ title: "Account Info Copied! 📋" });
+                            copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent), "Account Info Copied! 📋");
                           }}
-                          className="text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1"
+                          className="text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95"
                         >
-                          <Copy className="w-3 h-3" /> Copy Content
+                          <Copy className="w-3 h-3" /> Copy
                         </button>
                       </div>
-                      <pre className="p-3 bg-[#181432] text-emerald-400 font-mono text-[10.5px] rounded-xl overflow-x-auto whitespace-pre-wrap select-all">
+                      <pre className="p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed">
                         {selectedTxDetail.deliveredContent}
                       </pre>
                     </div>
@@ -5388,7 +5429,7 @@ Support: https://t.me/youuhost_support
                 {/* Close Button */}
                 <Button
                   onClick={() => setSelectedTxDetail(null)}
-                  className="w-full h-11 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] text-xs font-black rounded-2xl shadow-2xs transition-all"
+                  className="w-full h-10 bg-white hover:bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] text-xs font-black rounded-2xl shadow-2xs transition-all active:scale-95"
                 >
                   Close Receipt
                 </Button>
@@ -6515,14 +6556,14 @@ Support: https://t.me/youuhost_support
                         Digital License / Activation CDK
                       </div>
                       <button
-                        onClick={() => copyToClipboard(ord.licenseKey, "License Data Copied")}
-                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2 py-0.5 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95"
+                        onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋")}
+                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform"
                       >
                         <Copy className="w-3 h-3" /> Copy
                       </button>
                     </div>
 
-                    <div className="bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold">
+                    <div className="bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold">
                       {ord.licenseKey}
                     </div>
                   </div>

@@ -1514,8 +1514,16 @@ h1, h2, h3, h4, h5, h6 {
   height: 100svh;
 }
 
+.max-h-16{
+  max-height: 4rem;
+}
+
 .max-h-24{
   max-height: 6rem;
+}
+
+.max-h-28{
+  max-height: 7rem;
 }
 
 .max-h-36{
@@ -2028,6 +2036,10 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 160px;
 }
 
+.max-w-\[170px\]{
+  max-width: 170px;
+}
+
 .max-w-\[180px\]{
   max-width: 180px;
 }
@@ -2054,6 +2066,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .max-w-\[320px\]{
   max-width: 320px;
+}
+
+.max-w-\[360px\]{
+  max-width: 360px;
 }
 
 .max-w-\[440px\]{
@@ -11817,10 +11833,6 @@ body:has(.tg-mini-app) {
     width: auto;
   }
 
-  .sm\:w-full{
-    width: 100%;
-  }
-
   .sm\:max-w-\[380px\]{
     max-width: 380px;
   }
@@ -12052,6 +12064,11 @@ body:has(.tg-mini-app) {
 
   .sm\:text-\[9px\]{
     font-size: 9px;
+  }
+
+  .sm\:text-base{
+    font-size: 1rem;
+    line-height: 1.5rem;
   }
 
   .sm\:text-lg{
