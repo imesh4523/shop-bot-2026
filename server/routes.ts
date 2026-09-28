@@ -2861,19 +2861,17 @@ export async function registerRoutes(
       if (setting && setting.value) {
         try {
           const banners = JSON.parse(setting.value);
-          if (Array.isArray(banners) && banners.length > 0) {
+          if (Array.isArray(banners)) {
             const activeOnly = banners.filter((b: any) => b.isActive !== false);
-            if (activeOnly.length > 0) {
-              return res.json(activeOnly);
-            }
+            return res.json({ banners: activeOnly, isConfigured: true });
           }
         } catch {
-          return res.json(null);
+          return res.json({ banners: [], isConfigured: false });
         }
       }
-      return res.json(null);
+      return res.json({ banners: [], isConfigured: false });
     } catch (err: any) {
-      res.json(null);
+      res.json({ banners: [], isConfigured: false });
     }
   });
 

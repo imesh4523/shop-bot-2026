@@ -855,13 +855,29 @@ export default function MiniAppShopModern() {
   const [termsModalCustomText, setTermsModalCustomText] = useState<string | null>(null);
 
   // Dynamic Hero Banners Query
-  const { data: dynamicHeroBannersData } = useQuery<{ banners: any[] }>({
+  const { data: dynamicHeroBannersData } = useQuery<{ banners?: any[]; isConfigured?: boolean } | any[]>({
     queryKey: ["/api/mini/hero-banners"],
   });
 
-  const activeHeroSlides = (dynamicHeroBannersData?.banners && Array.isArray(dynamicHeroBannersData.banners) && dynamicHeroBannersData.banners.length > 0)
-    ? dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false)
-    : HERO_SLIDES;
+  const activeHeroSlides = React.useMemo(() => {
+    if (!dynamicHeroBannersData) return HERO_SLIDES;
+
+    if (Array.isArray(dynamicHeroBannersData)) {
+      return dynamicHeroBannersData.filter((b: any) => b.isActive !== false);
+    }
+
+    if (dynamicHeroBannersData.isConfigured) {
+      return Array.isArray(dynamicHeroBannersData.banners)
+        ? dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false)
+        : [];
+    }
+
+    if (Array.isArray(dynamicHeroBannersData.banners) && dynamicHeroBannersData.banners.length > 0) {
+      return dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false);
+    }
+
+    return HERO_SLIDES;
+  }, [dynamicHeroBannersData]);
 
   // Hero Auto-Swap & Touch/Mouse Swipe Carousel State
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
@@ -2782,177 +2798,179 @@ Support: https://t.me/youuhost_support
             </div>
 
             {/* Auto-Swapping & Touch-Swiping Feature Hero Carousel */}
-            <div 
-              className="relative group overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing"
-              onMouseEnter={() => setIsHeroPaused(true)}
-              onMouseLeave={() => {
-                setIsHeroPaused(false);
-                heroDragStartX.current = null;
-              }}
-              onTouchStart={handleHeroTouchStart}
-              onTouchEnd={handleHeroTouchEnd}
-              onMouseDown={handleHeroMouseDown}
-              onMouseUp={handleHeroMouseUp}
-            >
-              {activeHeroSlides.map((slide: any, idx: number) => {
-                const isActive = idx === currentHeroSlide;
-                const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
-                const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
-                const slideBorder = slide.borderColor || "border-[#ECEEF8]";
-                const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
-                const featuresList: string[] = Array.isArray(slide.features) ? slide.features : [];
+            {activeHeroSlides.length > 0 && (
+              <div 
+                className="relative group overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing"
+                onMouseEnter={() => setIsHeroPaused(true)}
+                onMouseLeave={() => {
+                  setIsHeroPaused(false);
+                  heroDragStartX.current = null;
+                }}
+                onTouchStart={handleHeroTouchStart}
+                onTouchEnd={handleHeroTouchEnd}
+                onMouseDown={handleHeroMouseDown}
+                onMouseUp={handleHeroMouseUp}
+              >
+                {activeHeroSlides.map((slide: any, idx: number) => {
+                  const isActive = idx === currentHeroSlide;
+                  const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
+                  const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
+                  const slideBorder = slide.borderColor || "border-[#ECEEF8]";
+                  const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
+                  const featuresList: string[] = Array.isArray(slide.features) ? slide.features : [];
 
-                const handleSlideClick = () => {
-                  if (slide.actionType === "product" && slide.actionTarget) {
-                    const foundProd = products.find((p) => p.id.toString() === slide.actionTarget.toString() || p.name.toLowerCase() === slide.actionTarget.toLowerCase());
-                    if (foundProd) {
-                      setDetailProduct(foundProd);
-                      setQuantity(1);
-                      return;
+                  const handleSlideClick = () => {
+                    if (slide.actionType === "product" && slide.actionTarget) {
+                      const foundProd = products.find((p) => p.id.toString() === slide.actionTarget.toString() || p.name.toLowerCase() === slide.actionTarget.toLowerCase());
+                      if (foundProd) {
+                        setDetailProduct(foundProd);
+                        setQuantity(1);
+                        return;
+                      }
                     }
-                  }
 
-                  const targetCat = slide.actionTarget || slide.categoryTarget || "";
-                  if (targetCat && targetCat !== "ALL") {
-                    const matched = products.find((p) => {
-                      const pName = (p.name || "").toLowerCase();
-                      const pType = (p.type || "").toLowerCase();
-                      const cat = targetCat.toLowerCase();
-                      return pName.includes(cat) || pType.includes(cat);
-                    });
-                    if (matched) {
-                      setDetailProduct(matched);
-                      setQuantity(1);
-                    } else {
-                      setSelectedCategory(targetCat);
-                      toast({
-                        title: `${slide.title || targetCat} 🎯`,
-                        description: "Showing available packages & deals below."
+                    const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                    if (targetCat && targetCat !== "ALL") {
+                      const matched = products.find((p) => {
+                        const pName = (p.name || "").toLowerCase();
+                        const pType = (p.type || "").toLowerCase();
+                        const cat = targetCat.toLowerCase();
+                        return pName.includes(cat) || pType.includes(cat);
                       });
+                      if (matched) {
+                        setDetailProduct(matched);
+                        setQuantity(1);
+                      } else {
+                        setSelectedCategory(targetCat);
+                        toast({
+                          title: `${slide.title || targetCat} 🎯`,
+                          description: "Showing available packages & deals below."
+                        });
+                        const el = document.getElementById("best-sellers-heading");
+                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                      }
+                    } else {
                       const el = document.getElementById("best-sellers-heading");
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }
-                  } else {
-                    const el = document.getElementById("best-sellers-heading");
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
-                  }
-                };
+                  };
 
-                // Full Photo Banner Mode
-                if (slide.bannerType === "full_image") {
+                  // Full Photo Banner Mode
+                  if (slide.bannerType === "full_image") {
+                    return (
+                      <div
+                        key={slide.id || idx}
+                        onClick={handleSlideClick}
+                        className={`rounded-3xl border transition-all duration-700 overflow-hidden cursor-pointer shadow-sm relative ${
+                          isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
+                        } ${slideBorder}`}
+                      >
+                        <img
+                          src={slideImage}
+                          alt={slide.title || "Promo Banner"}
+                          className="w-full h-auto min-h-[145px] max-h-[210px] object-cover rounded-3xl"
+                          onError={(e) => {
+                            (e.target as any).style.display = "none";
+                          }}
+                        />
+
+                        {/* Dots */}
+                        <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full">
+                          {activeHeroSlides.map((_: any, dotIdx: number) => (
+                            <button
+                              key={dotIdx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentHeroSlide(dotIdx);
+                              }}
+                              className={`transition-all duration-300 rounded-full h-1.5 ${
+                                dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40"
+                              }`}
+                              aria-label={`Slide ${dotIdx + 1}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Interactive 3D Card Mode
                   return (
                     <div
                       key={slide.id || idx}
-                      onClick={handleSlideClick}
-                      className={`rounded-3xl border transition-all duration-700 overflow-hidden cursor-pointer shadow-sm relative ${
+                      className={`p-5 rounded-3xl border transition-all duration-700 ${
                         isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
-                      } ${slideBorder}`}
+                      } bg-gradient-to-r ${slideBg} ${slideBorder}`}
                     >
-                      <img
-                        src={slideImage}
-                        alt={slide.title || "Promo Banner"}
-                        className="w-full h-auto min-h-[145px] max-h-[210px] object-cover rounded-3xl"
-                        onError={(e) => {
-                          (e.target as any).style.display = "none";
-                        }}
-                      />
+                      <div className="relative z-10 max-w-[62%]">
+                        <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
+                          {slide.title}
+                        </h2>
+                        <div className="text-[12px] font-black text-[#5B42F3] mb-2.5">
+                          {slide.subtitle}
+                        </div>
 
-                      {/* Dots */}
-                      <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full">
-                        {activeHeroSlides.map((_: any, dotIdx: number) => (
+                        {/* Genuine Pro Features Bullet List */}
+                        {featuresList.length > 0 && (
+                          <div className="space-y-1 mb-3.5">
+                            {featuresList.map((feat, fIdx) => (
+                              <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span className="line-clamp-1">{feat}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div>
                           <button
-                            key={dotIdx}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setCurrentHeroSlide(dotIdx);
+                              handleSlideClick();
                             }}
-                            className={`transition-all duration-300 rounded-full h-1.5 ${
-                              dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40"
-                            }`}
-                            aria-label={`Slide ${dotIdx + 1}`}
-                          />
-                        ))}
+                            className={`px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
+                          >
+                            {slide.ctaText || "Buy Now"} <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* High-res Transparent Product Visual */}
+                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
+                        <div className={`w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute`} />
+                        <img
+                          src={slideImage}
+                          alt={slide.title || "Banner"}
+                          className="w-28 h-28 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.target as any).style.display = "none";
+                          }}
+                        />
+                      </div>
+
+                      {/* Carousel Navigation Indicator Dots */}
+                      <div className="absolute bottom-3 right-4 flex items-center gap-2 z-20">
+                        <div className="flex items-center gap-1.5">
+                          {activeHeroSlides.map((_: any, dotIdx: number) => (
+                            <button
+                              key={dotIdx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentHeroSlide(dotIdx);
+                              }}
+                              className={`transition-all duration-300 rounded-full h-1.5 ${
+                                dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
+                              }`}
+                              aria-label={`Slide ${dotIdx + 1}`}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
-                }
-
-                // Interactive 3D Card Mode
-                return (
-                  <div
-                    key={slide.id || idx}
-                    className={`p-5 rounded-3xl border transition-all duration-700 ${
-                      isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
-                    } bg-gradient-to-r ${slideBg} ${slideBorder}`}
-                  >
-                    <div className="relative z-10 max-w-[62%]">
-                      <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
-                        {slide.title}
-                      </h2>
-                      <div className="text-[12px] font-black text-[#5B42F3] mb-2.5">
-                        {slide.subtitle}
-                      </div>
-
-                      {/* Genuine Pro Features Bullet List */}
-                      {featuresList.length > 0 && (
-                        <div className="space-y-1 mb-3.5">
-                          {featuresList.map((feat, fIdx) => (
-                            <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                              <span className="line-clamp-1">{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSlideClick();
-                          }}
-                          className={`px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
-                        >
-                          {slide.ctaText || "Buy Now"} <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* High-res Transparent Product Visual */}
-                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center">
-                      <div className={`w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute`} />
-                      <img
-                        src={slideImage}
-                        alt={slide.title || "Banner"}
-                        className="w-28 h-28 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as any).style.display = "none";
-                        }}
-                      />
-                    </div>
-
-                    {/* Carousel Navigation Indicator Dots */}
-                    <div className="absolute bottom-3 right-4 flex items-center gap-2 z-20">
-                      <div className="flex items-center gap-1.5">
-                        {activeHeroSlides.map((_: any, dotIdx: number) => (
-                          <button
-                            key={dotIdx}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentHeroSlide(dotIdx);
-                            }}
-                            className={`transition-all duration-300 rounded-full h-1.5 ${
-                              dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
-                            }`}
-                            aria-label={`Slide ${dotIdx + 1}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                })}
+              </div>
+            )}
 
             {/* Best Sellers & Trending Sub-Slider */}
             {products.length > 0 && (
