@@ -2120,7 +2120,10 @@ Support: https://t.me/youuhost_support
 
   const categories: CustomCategoryItem[] = useMemo(() => {
     if (categoryConfigData && Array.isArray(categoryConfigData.categories) && categoryConfigData.categories.length > 0) {
-      return categoryConfigData.categories.filter((c) => c.enabled !== false);
+      const savedCats = categoryConfigData.categories.filter((c) => c.enabled !== false);
+      const savedIds = new Set(savedCats.map((c) => c.id.toLowerCase()));
+      const missingDefaults = DEFAULT_CATEGORIES.filter((dc) => !savedIds.has(dc.id.toLowerCase()) && dc.enabled !== false);
+      return [...savedCats, ...missingDefaults];
     }
     return DEFAULT_CATEGORIES.filter((c) => c.enabled !== false);
   }, [categoryConfigData]);

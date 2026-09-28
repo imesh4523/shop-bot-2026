@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-Di0VdC_e.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CQtT095L.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103082,7 +103082,11 @@ function CategoriesManagerPage() {
   reactExports.useEffect(() => {
     if (serverData) {
       if (serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
-        setCategoriesList(serverData.categories);
+        const savedIds = new Set(serverData.categories.map((c2) => c2.id.toLowerCase()));
+        const missingDefaults = DEFAULT_CATEGORIES.filter((dc) => !savedIds.has(dc.id.toLowerCase()));
+        setCategoriesList([...serverData.categories, ...missingDefaults]);
+      } else {
+        setCategoriesList(DEFAULT_CATEGORIES);
       }
       if (serverData.productBadges && typeof serverData.productBadges === "object") {
         setProductBadges(serverData.productBadges);
@@ -105397,7 +105401,10 @@ ${finalDetails}`;
   });
   const categories = reactExports.useMemo(() => {
     if (categoryConfigData && Array.isArray(categoryConfigData.categories) && categoryConfigData.categories.length > 0) {
-      return categoryConfigData.categories.filter((c2) => c2.enabled !== false);
+      const savedCats = categoryConfigData.categories.filter((c2) => c2.enabled !== false);
+      const savedIds = new Set(savedCats.map((c2) => c2.id.toLowerCase()));
+      const missingDefaults = DEFAULT_CATEGORIES.filter((dc) => !savedIds.has(dc.id.toLowerCase()) && dc.enabled !== false);
+      return [...savedCats, ...missingDefaults];
     }
     return DEFAULT_CATEGORIES.filter((c2) => c2.enabled !== false);
   }, [categoryConfigData]);

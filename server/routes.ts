@@ -3500,6 +3500,32 @@ export async function registerRoutes(
     }
   });
 
+  const BUILTIN_DEFAULT_CATEGORIES = [
+    { id: "all", label: "All", iconType: "all", enabled: true, order: 0 },
+    { id: "windows", label: "Windows", iconType: "windows", enabled: true, order: 1, badgeEnabled: true, badgeText: "KEY", badgeColor: "blue" },
+    { id: "canva", label: "Canva", iconType: "canva", enabled: true, order: 2, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+    { id: "hotmail", label: "Hotmail", iconType: "hotmail", enabled: true, order: 3, badgeEnabled: true, badgeText: "MAIL", badgeColor: "blue" },
+    { id: "adobe", label: "Adobe", iconType: "adobe", enabled: true, order: 4, badgeEnabled: true, badgeText: "VIP", badgeColor: "red" },
+    { id: "aws", label: "AWS", iconType: "aws", enabled: true, order: 5, badgeEnabled: true, badgeText: "HOT", badgeColor: "red" },
+    { id: "digitalocean", label: "DigitalOcean", iconType: "digitalocean", enabled: true, order: 6, badgeEnabled: false, badgeText: "PROMO", badgeColor: "blue" },
+    { id: "azure", label: "Azure", iconType: "azure", enabled: true, order: 7, badgeEnabled: true, badgeText: "POPULAR", badgeColor: "purple" },
+    { id: "oracle", label: "Oracle", iconType: "oracle", enabled: true, order: 8, badgeEnabled: false, badgeText: "NEW", badgeColor: "amber" },
+    { id: "linode", label: "Linode", iconType: "linode", enabled: true, order: 9, badgeEnabled: false, badgeText: "", badgeColor: "emerald" },
+    { id: "google", label: "GCP", iconType: "google", enabled: true, order: 10, badgeEnabled: true, badgeText: "PRO", badgeColor: "blue" },
+    { id: "telegram", label: "Telegram", iconType: "telegram", enabled: true, order: 11, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+    { id: "spotify", label: "Spotify", iconType: "spotify", enabled: true, order: 12, badgeEnabled: false, badgeText: "MUSIC", badgeColor: "emerald" },
+    { id: "youtube", label: "YouTube", iconType: "youtube", enabled: true, order: 13, badgeEnabled: true, badgeText: "4K", badgeColor: "red" },
+    { id: "tiktok", label: "TikTok", iconType: "tiktok", enabled: true, order: 14, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+    { id: "instagram", label: "Instagram", iconType: "instagram", enabled: true, order: 15, badgeEnabled: false, badgeText: "", badgeColor: "pink" },
+    { id: "facebook", label: "Facebook", iconType: "facebook", enabled: true, order: 16, badgeEnabled: false, badgeText: "", badgeColor: "blue" },
+    { id: "chatgpt", label: "ChatGPT", iconType: "chatgpt", enabled: true, order: 17, badgeEnabled: true, badgeText: "AI", badgeColor: "emerald" },
+    { id: "gemini", label: "Gemini", iconType: "gemini", enabled: true, order: 18, badgeEnabled: true, badgeText: "AI", badgeColor: "blue" },
+    { id: "claude", label: "Claude", iconType: "claude", enabled: true, order: 19, badgeEnabled: true, badgeText: "NEW", badgeColor: "amber" },
+    { id: "capcut", label: "CapCut", iconType: "capcut", enabled: true, order: 20, badgeEnabled: true, badgeText: "PRO", badgeColor: "pink" },
+    { id: "kamatera", label: "Kamatera", iconType: "kamatera", enabled: true, order: 21, badgeEnabled: false, badgeText: "", badgeColor: "amber" },
+    { id: "duolingo", label: "Duolingo", iconType: "duolingo", enabled: true, order: 22, badgeEnabled: false, badgeText: "PRO", badgeColor: "emerald" },
+  ];
+
   // Category & Provider Customizer Endpoints (Public & Admin)
   app.get("/api/categories/config", async (req, res) => {
     try {
@@ -3507,13 +3533,14 @@ export async function registerRoutes(
       if (setting && setting.value) {
         try {
           const parsed = JSON.parse(setting.value);
-          if (Array.isArray(parsed)) {
-            return res.json({ categories: parsed, productBadges: {} });
-          }
-          return res.json(parsed);
+          let cats = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.categories) ? parsed.categories : []);
+          const savedIds = new Set(cats.map((c: any) => (c.id || "").toLowerCase()));
+          const missingDefaults = BUILTIN_DEFAULT_CATEGORIES.filter(dc => !savedIds.has(dc.id.toLowerCase()));
+          cats = [...cats, ...missingDefaults];
+          return res.json({ categories: cats, productBadges: parsed?.productBadges || {} });
         } catch (e) {}
       }
-      res.json({ categories: null, productBadges: {} });
+      res.json({ categories: BUILTIN_DEFAULT_CATEGORIES, productBadges: {} });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -3522,15 +3549,15 @@ export async function registerRoutes(
   app.get("/api/admin/categories/config", isAuth, async (req, res) => {
     try {
       const setting = await storage.getSetting("CUSTOM_CATEGORIES_CONFIG");
-      let data: any = { categories: null, productBadges: {} };
+      let data: any = { categories: BUILTIN_DEFAULT_CATEGORIES, productBadges: {} };
       if (setting && setting.value) {
         try {
           const parsed = JSON.parse(setting.value);
-          if (Array.isArray(parsed)) {
-            data = { categories: parsed, productBadges: {} };
-          } else {
-            data = parsed;
-          }
+          let cats = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.categories) ? parsed.categories : []);
+          const savedIds = new Set(cats.map((c: any) => (c.id || "").toLowerCase()));
+          const missingDefaults = BUILTIN_DEFAULT_CATEGORIES.filter(dc => !savedIds.has(dc.id.toLowerCase()));
+          cats = [...cats, ...missingDefaults];
+          data = { categories: cats, productBadges: parsed?.productBadges || {} };
         } catch (e) {}
       }
       res.json(data);

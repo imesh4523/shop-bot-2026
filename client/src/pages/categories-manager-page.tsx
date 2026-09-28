@@ -158,7 +158,11 @@ export default function CategoriesManagerPage() {
   useEffect(() => {
     if (serverData) {
       if (serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
-        setCategoriesList(serverData.categories);
+        const savedIds = new Set(serverData.categories.map((c) => c.id.toLowerCase()));
+        const missingDefaults = DEFAULT_CATEGORIES.filter((dc) => !savedIds.has(dc.id.toLowerCase()));
+        setCategoriesList([...serverData.categories, ...missingDefaults]);
+      } else {
+        setCategoriesList(DEFAULT_CATEGORIES);
       }
       if (serverData.productBadges && typeof serverData.productBadges === "object") {
         setProductBadges(serverData.productBadges);
