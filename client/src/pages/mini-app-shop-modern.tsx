@@ -2185,7 +2185,7 @@ Support: https://t.me/youuhost_support
     }
   };
 
-  // Handle Verify OTP (supports explicit code or form submit)
+  // Handle Verify OTP (supports explicit code or form submit with satisfying 2.5s Lottie Animation)
   const handleVerifyOtp = async (eOrCode?: React.FormEvent | string) => {
     let codeToVerify = authOtp.trim();
     if (typeof eOrCode === "string") {
@@ -2202,7 +2202,15 @@ Support: https://t.me/youuhost_support
       });
       return;
     }
+
     setIsVerifyingOtp(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Verifying Security Code...",
+      subtitle: "Authenticating your YouuHost session...",
+    });
+
+    const startTime = Date.now();
     try {
       const res = await fetch("/api/auth/customer/verify-otp", {
         method: "POST",
@@ -2213,8 +2221,15 @@ Support: https://t.me/youuhost_support
       if (!res.ok) {
         throw new Error(data.message || "Verification failed.");
       }
+
+      // Satisfying 2.5s delay with custom Lottie animation
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, 2500 - elapsed);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast({
-        title: "Welcome!",
+        title: "🎉 Welcome!",
         description: `Successfully signed in as ${data.user?.email || data.user?.firstName}!`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
@@ -2224,6 +2239,7 @@ Support: https://t.me/youuhost_support
       setAuthOtp("");
       setOtpSent(false);
     } catch (err: any) {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast({
         title: "Verification Failed",
         description: err.message || "Invalid or expired code.",
@@ -2231,6 +2247,7 @@ Support: https://t.me/youuhost_support
       });
     } finally {
       setIsVerifyingOtp(false);
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
     }
   };
 
@@ -2241,6 +2258,11 @@ Support: https://t.me/youuhost_support
   // Handle Google Sign In
   const handleGoogleSignIn = () => {
     setIsGoogleLoading(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Connecting to Google...",
+      subtitle: "Redirecting to secure Google Sign-In...",
+    });
     window.location.href = "/api/auth/customer/google/login";
   };
 
@@ -2503,12 +2525,20 @@ Support: https://t.me/youuhost_support
     }
 
     setIsSandromaniaPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Digital License...",
+      subtitle: "Connecting to automated delivery system & generating credentials...",
+    });
+
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
       });
       await res.json();
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "🎉 Purchase Successful!",
         description: "Your digital license keys and credentials have been delivered.",
@@ -2520,6 +2550,7 @@ Support: https://t.me/youuhost_support
       setDetailSandromaniaProduct(null);
       setActiveTab("orders");
     } catch (err: any) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "Order Failed",
         description: err.message || "Failed to process partner purchase.",
@@ -2527,6 +2558,7 @@ Support: https://t.me/youuhost_support
       });
     } finally {
       setIsSandromaniaPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -2724,13 +2756,21 @@ Support: https://t.me/youuhost_support
     }
 
     setIsSmmPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Placing SMM Boost Order...",
+      subtitle: "Dispatching order to automated high-speed servers...",
+    });
+
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/smm/purchase", {
         smmServiceId: detailSmmService.id,
         link: smmTargetLink.trim(),
         quantity: smmOrderQty,
       });
       await res.json();
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "🎉 SMM Order Placed!",
         description: `Your ${detailSmmService.name} order is now being processed.`,
@@ -2743,6 +2783,7 @@ Support: https://t.me/youuhost_support
       setSmmTargetLink("");
       setActiveTab("orders");
     } catch (err: any) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "Order Notice",
         description: err.message || "Failed to submit SMM order.",
@@ -2750,6 +2791,7 @@ Support: https://t.me/youuhost_support
       });
     } finally {
       setIsSmmPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -3253,11 +3295,8 @@ Support: https://t.me/youuhost_support
 
             {/* Products, Sandromania & SMM Services Grid */}
             {productsLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-[#7E7998] col-span-2">
+              <div className="flex flex-col items-center justify-center py-10 col-span-2">
                 <LottiePayment size={140} />
-                <span className="text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-1">
-                  Loading Catalog...
-                </span>
               </div>
             ) : (filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0) ? (
               <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]">
@@ -5029,9 +5068,8 @@ Support: https://t.me/youuhost_support
 
                     {/* Transactions List */}
                     {isLoadingTransactions ? (
-                      <div className="p-8 text-center text-xs text-[#7E7998] flex flex-col items-center justify-center">
+                      <div className="p-8 text-center flex flex-col items-center justify-center">
                         <LottiePayment size={100} />
-                        <span className="mt-2 font-bold text-[#5B42F3]">Loading transactions...</span>
                       </div>
                     ) : transactionsList.length === 0 ? (
                       <div className="p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]">

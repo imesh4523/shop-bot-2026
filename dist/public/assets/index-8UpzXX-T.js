@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-D_FWGnOT.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-m9mQmjrC.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105458,6 +105458,12 @@ ${finalDetails}`;
       return;
     }
     setIsVerifyingOtp(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Verifying Security Code...",
+      subtitle: "Authenticating your YouuHost session..."
+    });
+    const startTime = Date.now();
     try {
       const res = await fetch("/api/auth/customer/verify-otp", {
         method: "POST",
@@ -105468,8 +105474,12 @@ ${finalDetails}`;
       if (!res.ok) {
         throw new Error(data.message || "Verification failed.");
       }
+      const elapsed = Date.now() - startTime;
+      const delay2 = Math.max(0, 2500 - elapsed);
+      await new Promise((resolve) => setTimeout(resolve, delay2));
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast2({
-        title: "Welcome!",
+        title: "🎉 Welcome!",
         description: `Successfully signed in as ${data.user?.email || data.user?.firstName}!`
       });
       queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
@@ -105479,6 +105489,7 @@ ${finalDetails}`;
       setAuthOtp("");
       setOtpSent(false);
     } catch (err) {
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
       toast2({
         title: "Verification Failed",
         description: err.message || "Invalid or expired code.",
@@ -105486,6 +105497,7 @@ ${finalDetails}`;
       });
     } finally {
       setIsVerifyingOtp(false);
+      setPaymentModal({ isOpen: false, title: "", subtitle: "" });
     }
   };
   const { data: googleConfig } = useQuery({
@@ -105493,6 +105505,11 @@ ${finalDetails}`;
   });
   const handleGoogleSignIn = () => {
     setIsGoogleLoading(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Connecting to Google...",
+      subtitle: "Redirecting to secure Google Sign-In..."
+    });
     window.location.href = "/api/auth/customer/google/login";
   };
   const handleLogout = async () => {
@@ -105691,12 +105708,19 @@ ${finalDetails}`;
       return;
     }
     setIsSandromaniaPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Processing Digital License...",
+      subtitle: "Connecting to automated delivery system & generating credentials..."
+    });
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty
       });
       await res.json();
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 Purchase Successful!",
         description: "Your digital license keys and credentials have been delivered."
@@ -105708,6 +105732,7 @@ ${finalDetails}`;
       setDetailSandromaniaProduct(null);
       setActiveTab("orders");
     } catch (err) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "Order Failed",
         description: err.message || "Failed to process partner purchase.",
@@ -105715,6 +105740,7 @@ ${finalDetails}`;
       });
     } finally {
       setIsSandromaniaPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
   const handleApplyCoupon = async () => {
@@ -105874,13 +105900,20 @@ ${finalDetails}`;
       return;
     }
     setIsSmmPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Placing SMM Boost Order...",
+      subtitle: "Dispatching order to automated high-speed servers..."
+    });
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2400));
       const res = await miniApiRequest("POST", "/api/mini/smm/purchase", {
         smmServiceId: detailSmmService.id,
         link: smmTargetLink.trim(),
         quantity: smmOrderQty
       });
       await res.json();
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "🎉 SMM Order Placed!",
         description: `Your ${detailSmmService.name} order is now being processed.`
@@ -105893,6 +105926,7 @@ ${finalDetails}`;
       setSmmTargetLink("");
       setActiveTab("orders");
     } catch (err) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast2({
         title: "Order Notice",
         description: err.message || "Failed to submit SMM order.",
@@ -105900,6 +105934,7 @@ ${finalDetails}`;
       });
     } finally {
       setIsSmmPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
     }
   };
   const [copiedText, setCopiedText] = reactExports.useState(null);
@@ -106326,10 +106361,7 @@ ${finalDetails}`;
             }
           )
         ] }),
-        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center py-12 text-[#7E7998] col-span-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black uppercase tracking-widest text-[#5B42F3]/80 animate-pulse mt-1", children: "Loading Catalog..." })
-        ] }) : filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
+        productsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col items-center justify-center py-10 col-span-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 140 }) }) : filteredProducts.length === 0 && filteredSmmServices.length === 0 && filteredSandromaniaProducts.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-8 text-center shadow-sm border border-[#ECEEF8]", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-12 h-12 mx-auto text-[#8FA597]/75 mb-2.5" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-bold text-[#1C3324]", children: "No products found" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-[#6B8574] mt-1", children: "Try another category or search query." })
@@ -107929,10 +107961,7 @@ ${finalDetails}`;
                 }
               )
             ] }),
-            isLoadingTransactions ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center text-xs text-[#7E7998] flex flex-col items-center justify-center", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 100 }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-2 font-bold text-[#5B42F3]", children: "Loading transactions..." })
-            ] }) : transactionsList.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]", children: [
+            isLoadingTransactions ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-8 text-center flex flex-col items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 100 }) }) : transactionsList.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 text-center space-y-1 bg-[#F8F7FD] rounded-2xl border border-dashed border-[#ECEEF8]", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Receipt, { className: "w-8 h-8 text-[#9490A8]/40 mx-auto" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs font-bold text-[#181432]", children: "No Transactions Yet" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998]", children: "Top up your wallet or purchase a service to see records here." })

@@ -7022,10 +7022,6 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(91 66 243 / 0.4);
 }
 
-.text-\[\#5B42F3\]\/80{
-  color: rgb(91 66 243 / 0.8);
-}
-
 .text-\[\#6B658B\]{
   --tw-text-opacity: 1;
   color: rgb(107 101 139 / var(--tw-text-opacity, 1));
