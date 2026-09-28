@@ -242,14 +242,17 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     }
   }
 
-  // General API endpoints -> 200 requests per minute per IP
+  // General API endpoints -> Bypass /api/v1 as it uses its dedicated 70 req/sec limiter
   if (url.startsWith("/api/")) {
+    if (url.startsWith("/api/v1")) {
+      return next();
+    }
     const generalLimit = rateLimitMap.get(ip);
     if (!generalLimit || now > generalLimit.resetAt) {
       rateLimitMap.set(ip, { count: 1, resetAt: now + 60000 });
     } else {
       generalLimit.count += 1;
-      if (generalLimit.count > 250) {
+      if (generalLimit.count > 1000) {
         logThreat(req, "rate_limit_exceeded", "blocked");
         return res.status(429).json({
           error: "RATE_LIMIT_EXCEEDED",

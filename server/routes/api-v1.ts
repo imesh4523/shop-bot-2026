@@ -73,8 +73,56 @@ apiV1Router.use((req, res, next) => {
   next();
 });
 
+// Rate limiter: Max 70 requests per second per user / API key
+const apiV1RateLimitMap = new Map<string, { count: number; windowStart: number }>();
+
+// Periodic cleanup of stale rate limiter keys every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of apiV1RateLimitMap.entries()) {
+    if (now - val.windowStart > 5000) {
+      apiV1RateLimitMap.delete(key);
+    }
+  }
+}, 60000);
+
+function apiV1RateLimiter(req: AuthenticatedApiRequest, res: Response, next: NextFunction) {
+  const identifier = req.apiKey?.id ? `key_${req.apiKey.id}` : `user_${req.telegramUser?.id || req.ip}`;
+  const now = Date.now();
+  const limit = 70; // 70 requests per second per user/key
+
+  const entry = apiV1RateLimitMap.get(identifier);
+  if (!entry || now - entry.windowStart >= 1000) {
+    apiV1RateLimitMap.set(identifier, { count: 1, windowStart: now });
+    res.setHeader("X-RateLimit-Limit", limit);
+    res.setHeader("X-RateLimit-Remaining", limit - 1);
+    res.setHeader("X-RateLimit-Reset", Math.ceil((now + 1000) / 1000));
+    return next();
+  }
+
+  entry.count += 1;
+  const remaining = Math.max(0, limit - entry.count);
+  const resetTime = Math.ceil((entry.windowStart + 1000) / 1000);
+
+  res.setHeader("X-RateLimit-Limit", limit);
+  res.setHeader("X-RateLimit-Remaining", remaining);
+  res.setHeader("X-RateLimit-Reset", resetTime);
+
+  if (entry.count > limit) {
+    return res.status(429).json({
+      error: "rate_limit_exceeded",
+      message: `Rate limit exceeded. Maximum ${limit} requests per second allowed per user.`,
+      statusCode: 429,
+      retryAfter: Math.max(1, Math.ceil((entry.windowStart + 1000 - now) / 1000))
+    });
+  }
+
+  next();
+}
+
 // Apply auth middleware to all /api/v1 routes
 apiV1Router.use(authenticateApiKey as any);
+apiV1Router.use(apiV1RateLimiter as any);
 
 /**
  * GET /api/v1/me

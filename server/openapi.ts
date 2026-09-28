@@ -21,7 +21,7 @@ export function getOpenApiSpec(baseUrl: string = "/") {
     ...openApiSpec,
     info: {
       ...openApiSpec.info,
-      description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n- **Current Host**: \`${currentHostServer}\`\n- **API Subdomain**: \`${apiSubdomain}\``,
+      description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **70 requests / second** per user / API key.\n\n## Base URL\n- **Current Host**: \`${currentHostServer}\`\n- **API Subdomain**: \`${apiSubdomain}\``,
     },
     servers: [
       {
@@ -41,7 +41,7 @@ export const openApiSpec = {
   openapi: "3.0.3",
   info: {
     title: "youuhost API",
-    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **5 requests / second** per API key.\n\n## Base URL\n\`/api/v1\``,
+    description: `Official REST API for **youuhost** cloud store.\n\n## Authentication\nSend your API key in the \`X-API-Key\` header on every request.\nGenerate or manage keys from the Telegram bot (\`/api\`) or your Admin Dashboard.\n\n## Rate limits\nMaximum **70 requests / second** per user / API key.\n\n## Base URL\n\`/api/v1\``,
     version: "1.0.0",
     contact: {
       name: "youuhost Support",

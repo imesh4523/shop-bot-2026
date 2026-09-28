@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-m9mQmjrC.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-canVlvQG.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -106897,7 +106897,10 @@ ${finalDetails}`;
             "button",
             {
               type: "button",
-              onClick: () => setIsAuthModalOpen(true),
+              onClick: () => {
+                setActiveTab("profile");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              },
               className: "w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white text-xs font-black shadow-sm hover:opacity-95 transition-all shrink-0 whitespace-nowrap active:scale-95",
               children: "Sign In Now"
             }
@@ -109717,7 +109720,7 @@ function MiniAppShop() {
     queryKey: ["/api/settings/MINI_APP_THEME"]
   });
   if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center bg-[#F8F9FD]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-[#6C5CE7]" }) });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center bg-[#F8F9FD]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 160 }) });
   }
   const activeTheme = themeSetting?.value || "v2_modern";
   if (activeTheme === "v1_classic") {

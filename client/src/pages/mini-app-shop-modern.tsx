@@ -3914,7 +3914,10 @@ Support: https://t.me/youuhost_support
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsAuthModalOpen(true)}
+                  onClick={() => {
+                    setActiveTab("profile");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                   className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white text-xs font-black shadow-sm hover:opacity-95 transition-all shrink-0 whitespace-nowrap active:scale-95"
                 >
                   Sign In Now
