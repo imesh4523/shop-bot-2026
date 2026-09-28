@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CQtT095L.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-DZnly0qV.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103011,13 +103011,7 @@ const renderCategoryBrandIcon = (iconType, customUrl, className = "w-5 h-5") => 
       return /* @__PURE__ */ jsxRuntimeExports.jsx(SiCanva, { className: `${className} text-[#00C4CC]` });
     case "hotmail":
     case "outlook":
-      return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 6.5h7.5A2.5 2.5 0 0124 9v6a2.5 2.5 0 01-2.5 2.5H14v-11z", fill: "#0078D4" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 6.5l-5 4.5v-9l5 4.5z", fill: "#106EBE" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M0 6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H2a2 2 0 01-2-2V6z", fill: "#0078D4" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "12", r: "3", fill: "#FFFFFF" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "7", cy: "12", r: "1.5", fill: "#0078D4" })
-      ] });
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/assets/hotmail.png", alt: "Hotmail / Outlook", className: `${className} shrink-0 object-contain` });
     case "adobe":
     case "adobe_express":
       return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 3h7.5v18l-7.5-18zM9.5 3H2v18l7.5-18zm2.5 9.2l3.8 8.8h-3l-1.3-3.4h-3.4l2.4-5.4h1.5z", fill: "#FA0F00" }) });

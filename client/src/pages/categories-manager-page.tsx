@@ -92,15 +92,7 @@ export const renderCategoryBrandIcon = (iconType?: string, customUrl?: string, c
     case "canva": return <SiCanva className={`${className} text-[#00C4CC]`} />;
     case "hotmail":
     case "outlook":
-      return (
-        <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
-          <path d="M14 6.5h7.5A2.5 2.5 0 0124 9v6a2.5 2.5 0 01-2.5 2.5H14v-11z" fill="#0078D4"/>
-          <path d="M14 6.5l-5 4.5v-9l5 4.5z" fill="#106EBE"/>
-          <path d="M0 6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H2a2 2 0 01-2-2V6z" fill="#0078D4"/>
-          <circle cx="7" cy="12" r="3" fill="#FFFFFF"/>
-          <circle cx="7" cy="12" r="1.5" fill="#0078D4"/>
-        </svg>
-      );
+      return <img src="/assets/hotmail.png" alt="Hotmail / Outlook" className={`${className} shrink-0 object-contain`} />;
     case "adobe":
     case "adobe_express":
       return (
