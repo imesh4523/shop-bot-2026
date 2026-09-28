@@ -1883,6 +1883,16 @@ Support: https://t.me/youuhost_support
     }
   };
 
+  // Smart shortfall context for pre-filling Top-up amounts when balance is insufficient
+  const [shortfallContext, setShortfallContext] = useState<{
+    productName: string;
+    shortfallLkr: number;
+    shortfallUsd: number;
+    cardSuggestedLkr: number;
+    neededLkr: number;
+    neededUsd: number;
+  } | null>(null);
+
   // Formatter for product pricing
   const formatProductPrice = (prod: Product, qty: number = 1) => {
     if (selectedCurrency === "LKR") {
@@ -1895,6 +1905,30 @@ Support: https://t.me/youuhost_support
     }
     const totalUsd = (prod.price * qty) / 100;
     return `$${totalUsd.toFixed(2)}`;
+  };
+
+  // Robust formatters for discounted coupon prices ensuring no 'undefined' in any currency
+  const formatCouponPrice = (coupon: any) => {
+    if (!coupon) return "";
+    if (selectedCurrency === "LKR") {
+      const lkrVal = coupon.finalPriceLkr != null 
+        ? coupon.finalPriceLkr 
+        : Math.round(Number(coupon.finalAmountUsd || coupon.finalPriceUsd || 0) * lkrRate);
+      return `Rs. ${Number(lkrVal).toLocaleString()}`;
+    }
+    const usdVal = coupon.finalPriceUsd || coupon.finalAmountUsd || (Number(coupon.finalAmountCents || coupon.finalPriceCents || 0) / 100).toFixed(2);
+    return `$${usdVal} USD`;
+  };
+
+  const formatCouponDiscount = (coupon: any) => {
+    if (!coupon) return "";
+    if (selectedCurrency === "LKR") {
+      const lkrVal = coupon.discountLkr != null 
+        ? coupon.discountLkr 
+        : Math.round(Number(coupon.discountUsd || 0) * lkrRate);
+      return `Rs. ${Number(lkrVal).toLocaleString()} saved`;
+    }
+    return `$${coupon.discountUsd || "0.00"} USD saved`;
   };
 
   const formatBalanceInCurrentCurrency = (balanceCents: number) => {
@@ -2548,16 +2582,38 @@ Support: https://t.me/youuhost_support
     const totalPriceUsd = totalCents / 100;
 
     if (userBalanceUsd < totalPriceUsd) {
-      const neededStr = formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty);
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
+      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
-      toast({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive",
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+
+      setShortfallContext({
+        productName: detailSandromaniaProduct.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd,
       });
+
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+      });
+
       setDetailSandromaniaProduct(null);
       setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -2676,23 +2732,63 @@ Support: https://t.me/youuhost_support
       return;
     }
 
-    const userBalanceUsd = (user?.balance || 0) / 100;
-    const originalPriceUsd = (detailProduct.price * quantity) / 100;
-    const finalPriceUsd = appliedCoupon 
-      ? (appliedCoupon.finalPriceCents / 100) 
-      : originalPriceUsd;
+    const userBalanceCents = user?.balance || 0;
+    const userBalanceUsd = userBalanceCents / 100;
+    const originalPriceCents = detailProduct.price * quantity;
+    const finalPriceCents = appliedCoupon 
+      ? appliedCoupon.finalPriceCents 
+      : originalPriceCents;
+    const finalPriceUsd = finalPriceCents / 100;
 
-    if (userBalanceUsd < finalPriceUsd) {
-      const neededStr = `$${finalPriceUsd.toFixed(2)} USD`;
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+    if (userBalanceCents < finalPriceCents) {
+      // 1. Calculate shortfall in USD
+      const shortfallCents = Math.max(0, finalPriceCents - userBalanceCents);
+      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
 
-      toast({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive",
+      // 2. Calculate shortfall in LKR
+      let neededLkr = 0;
+      if ((detailProduct as any).priceLkr && (detailProduct as any).priceLkr > 0) {
+        const prodLkrTotal = (detailProduct as any).priceLkr * quantity;
+        const discountLkr = appliedCoupon?.discountLkr || 0;
+        neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+      } else {
+        neededLkr = Math.round((finalPriceCents / 100) * lkrRate);
+      }
+      const userBalanceLkr = Math.floor((userBalanceCents / 100) * lkrRate);
+      const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
+
+      // 3. Card payment rounded up to next multiple of 50 (e.g. shortfall 220 -> 250)
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+      const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
+
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(cardSuggestedUsd.toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+
+      setShortfallContext({
+        productName: detailProduct.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr,
+        neededUsd: finalPriceUsd,
       });
-      setActiveTab("wallet");
+
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+      });
+
       setDetailProduct(null);
+      setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -2778,19 +2874,39 @@ Support: https://t.me/youuhost_support
     const totalPriceUsd = totalCents / 100;
 
     if (userBalanceUsd < totalPriceUsd) {
-      const neededStr =
-        selectedCurrency === "LKR"
-          ? `Rs. ${Math.round(totalPriceUsd * lkrRate).toLocaleString()}`
-          : `$${totalPriceUsd.toFixed(2)}`;
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+      const shortfallCents = totalCents - (user?.balance || 0);
+      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
+      const shortfallLkr = Math.round((shortfallCents / 100) * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
-      toast({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive",
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+
+      setShortfallContext({
+        productName: detailSmmService.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd,
       });
+
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd} USD`;
+      toast({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+      });
+
       setDetailSmmService(null);
       setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -3984,6 +4100,48 @@ Support: https://t.me/youuhost_support
                 >
                   Sign In Now
                 </button>
+              </div>
+            )}
+
+            {/* Smart Shortfall Auto-Fill Banner */}
+            {shortfallContext && (
+              <div className="bg-gradient-to-r from-[#5B42F3]/10 via-[#00C9FF]/10 to-[#FF5E62]/10 border border-[#5B42F3]/30 rounded-3xl p-4 shadow-sm relative overflow-hidden animate-in fade-in">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-black text-[#181432]">
+                          Quick Top-up for {shortfallContext.productName}
+                        </span>
+                        <span className="text-[10px] font-bold bg-[#5B42F3] text-white px-2 py-0.5 rounded-full font-mono">
+                          Shortfall: {selectedCurrency === "LKR" ? `Rs. ${shortfallContext.shortfallLkr.toLocaleString()}` : `$${shortfallContext.shortfallUsd.toFixed(2)} USD`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium text-[#7E7998] mt-1 leading-snug">
+                        {selectedCurrency === "LKR" ? (
+                          <>
+                            Card payment auto-rounded to <strong className="text-[#0052CC]">Rs. {shortfallContext.cardSuggestedLkr}</strong> (multiples of 50). Binance & Cryptomus set to <strong className="text-[#F3BA2F]">Rs. {shortfallContext.shortfallLkr}</strong>.
+                          </>
+                        ) : (
+                          <>
+                            Required balance pre-filled across Card, Binance & Cryptomus gateways.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShortfallContext(null)}
+                    className="p-1 text-[#9490A8] hover:text-[#181432] rounded-lg transition-colors shrink-0"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -5577,7 +5735,7 @@ Support: https://t.me/youuhost_support
                               {formatProductPrice(detailProduct, quantity)}
                             </span>
                             <span className="text-sm font-black text-emerald-600">
-                              ${appliedCoupon.finalPriceUsd} USD
+                              {formatCouponPrice(appliedCoupon)}
                             </span>
                           </div>
                         ) : (
@@ -5628,7 +5786,7 @@ Support: https://t.me/youuhost_support
                             <div>
                               <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
                               <span className="text-emerald-700 font-semibold ml-1.5">
-                                (-${appliedCoupon.discountUsd} USD saved)
+                                (-{formatCouponDiscount(appliedCoupon)})
                               </span>
                             </div>
                           </div>
@@ -5697,7 +5855,7 @@ Support: https://t.me/youuhost_support
                             <>
                               <ShopBagIcon className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
                               <span>
-                                Purchase Now • {appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)}
+                                Purchase Now • {appliedCoupon ? formatCouponPrice(appliedCoupon) : formatProductPrice(detailProduct, quantity)}
                               </span>
                             </>
                           )}

@@ -74686,7 +74686,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-o-N51W2g.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CRpED8dE.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105581,6 +105581,7 @@ ${finalDetails}`;
       setPayhereAmount("5");
     }
   };
+  const [shortfallContext, setShortfallContext] = reactExports.useState(null);
   const formatProductPrice = (prod, qty = 1) => {
     if (selectedCurrency === "LKR") {
       if (prod.priceLkr && prod.priceLkr > 0) {
@@ -105592,6 +105593,23 @@ ${finalDetails}`;
     }
     const totalUsd = prod.price * qty / 100;
     return `$${totalUsd.toFixed(2)}`;
+  };
+  const formatCouponPrice = (coupon) => {
+    if (!coupon) return "";
+    if (selectedCurrency === "LKR") {
+      const lkrVal = coupon.finalPriceLkr != null ? coupon.finalPriceLkr : Math.round(Number(coupon.finalAmountUsd || coupon.finalPriceUsd || 0) * lkrRate);
+      return `Rs. ${Number(lkrVal).toLocaleString()}`;
+    }
+    const usdVal = coupon.finalPriceUsd || coupon.finalAmountUsd || (Number(coupon.finalAmountCents || coupon.finalPriceCents || 0) / 100).toFixed(2);
+    return `$${usdVal} USD`;
+  };
+  const formatCouponDiscount = (coupon) => {
+    if (!coupon) return "";
+    if (selectedCurrency === "LKR") {
+      const lkrVal = coupon.discountLkr != null ? coupon.discountLkr : Math.round(Number(coupon.discountUsd || 0) * lkrRate);
+      return `Rs. ${Number(lkrVal).toLocaleString()} saved`;
+    }
+    return `$${coupon.discountUsd || "0.00"} USD saved`;
   };
   const formatBalanceInCurrentCurrency = (balanceCents) => {
     const usd = (balanceCents || 0) / 100;
@@ -106137,15 +106155,34 @@ ${finalDetails}`;
     const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
     if (userBalanceUsd < totalPriceUsd) {
-      const neededStr = formatSandromaniaPrice(detailSandromaniaProduct.sellingPriceUsd, sandromaniaOrderQty);
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
+      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+      setShortfallContext({
+        productName: detailSandromaniaProduct.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd
+      });
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
       toast2({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive"
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`
       });
       setDetailSandromaniaProduct(null);
       setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     setIsSandromaniaPurchasing(true);
@@ -106248,19 +106285,50 @@ ${finalDetails}`;
       setQuantity(Math.max(1, liveStockCount));
       return;
     }
-    const userBalanceUsd = (user?.balance || 0) / 100;
-    const originalPriceUsd = detailProduct.price * quantity / 100;
-    const finalPriceUsd = appliedCoupon ? appliedCoupon.finalPriceCents / 100 : originalPriceUsd;
-    if (userBalanceUsd < finalPriceUsd) {
-      const neededStr = `$${finalPriceUsd.toFixed(2)} USD`;
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
-      toast2({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive"
+    const userBalanceCents = user?.balance || 0;
+    const originalPriceCents = detailProduct.price * quantity;
+    const finalPriceCents = appliedCoupon ? appliedCoupon.finalPriceCents : originalPriceCents;
+    const finalPriceUsd = finalPriceCents / 100;
+    if (userBalanceCents < finalPriceCents) {
+      const shortfallCents = Math.max(0, finalPriceCents - userBalanceCents);
+      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
+      let neededLkr = 0;
+      if (detailProduct.priceLkr && detailProduct.priceLkr > 0) {
+        const prodLkrTotal = detailProduct.priceLkr * quantity;
+        const discountLkr = appliedCoupon?.discountLkr || 0;
+        neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+      } else {
+        neededLkr = Math.round(finalPriceCents / 100 * lkrRate);
+      }
+      const userBalanceLkr = Math.floor(userBalanceCents / 100 * lkrRate);
+      const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+      const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(cardSuggestedUsd.toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+      setShortfallContext({
+        productName: detailProduct.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr,
+        neededUsd: finalPriceUsd
       });
-      setActiveTab("wallet");
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast2({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`
+      });
       setDetailProduct(null);
+      setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     setIsPurchasing(true);
@@ -106331,15 +106399,35 @@ ${finalDetails}`;
     const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
     if (userBalanceUsd < totalPriceUsd) {
-      const neededStr = selectedCurrency === "LKR" ? `Rs. ${Math.round(totalPriceUsd * lkrRate).toLocaleString()}` : `$${totalPriceUsd.toFixed(2)}`;
-      const currentBalStr = formatBalanceInCurrentCurrency(user?.balance || 0);
+      const shortfallCents = totalCents - (user?.balance || 0);
+      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
+      const shortfallLkr = Math.round(shortfallCents / 100 * lkrRate);
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+      setShortfallContext({
+        productName: detailSmmService.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededUsd: totalPriceUsd
+      });
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd} USD`;
       toast2({
-        title: "Insufficient Balance",
-        description: `You need ${neededStr}, but your balance is ${currentBalStr}. Please top up your wallet.`,
-        variant: "destructive"
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`
       });
       setDetailSmmService(null);
       setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     setIsSmmPurchasing(true);
@@ -107371,6 +107459,46 @@ ${finalDetails}`;
             }
           )
         ] }),
+        shortfallContext && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-gradient-to-r from-[#5B42F3]/10 via-[#00C9FF]/10 to-[#FF5E62]/10 border border-[#5B42F3]/30 rounded-3xl p-4 shadow-sm relative overflow-hidden animate-in fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3 min-w-0", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5B42F3] to-[#00C9FF] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Zap, { className: "w-5 h-5" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 flex-wrap", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-[#181432]", children: [
+                  "Quick Top-up for ",
+                  shortfallContext.productName
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-bold bg-[#5B42F3] text-white px-2 py-0.5 rounded-full font-mono", children: [
+                  "Shortfall: ",
+                  selectedCurrency === "LKR" ? `Rs. ${shortfallContext.shortfallLkr.toLocaleString()}` : `$${shortfallContext.shortfallUsd.toFixed(2)} USD`
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] font-medium text-[#7E7998] mt-1 leading-snug", children: selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                "Card payment auto-rounded to ",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("strong", { className: "text-[#0052CC]", children: [
+                  "Rs. ",
+                  shortfallContext.cardSuggestedLkr
+                ] }),
+                " (multiples of 50). Binance & Cryptomus set to ",
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("strong", { className: "text-[#F3BA2F]", children: [
+                  "Rs. ",
+                  shortfallContext.shortfallLkr
+                ] }),
+                "."
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: "Required balance pre-filled across Card, Binance & Cryptomus gateways." }) })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setShortfallContext(null),
+              className: "p-1 text-[#9490A8] hover:text-[#181432] rounded-lg transition-colors shrink-0",
+              title: "Dismiss",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X$1, { className: "w-4 h-4" })
+            }
+          )
+        ] }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-4 h-4 text-[#D92078]" }),
@@ -108760,11 +108888,7 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#7E7998] mr-1.5", children: "Total:" }),
               appliedCoupon ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex flex-col items-end", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] line-through text-slate-400 font-semibold", children: formatProductPrice(detailProduct, quantity) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-black text-emerald-600", children: [
-                  "$",
-                  appliedCoupon.finalPriceUsd,
-                  " USD"
-                ] })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-emerald-600", children: formatCouponPrice(appliedCoupon) })
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-black text-[#181432]", children: formatProductPrice(detailProduct, liveStockCount <= 0 ? 1 : quantity) })
             ] })
           ] }),
@@ -108804,9 +108928,9 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono font-bold text-emerald-800", children: appliedCoupon.code }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-700 font-semibold ml-1.5", children: [
-                  "(-$",
-                  appliedCoupon.discountUsd,
-                  " USD saved)"
+                  "(-",
+                  formatCouponDiscount(appliedCoupon),
+                  ")"
                 ] })
               ] })
             ] }),
@@ -108876,7 +109000,7 @@ ${finalDetails}`;
                 /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-white group-hover:scale-110 transition-transform" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
                   "Purchase Now • ",
-                  appliedCoupon ? `$${appliedCoupon.finalPriceUsd} USD` : formatProductPrice(detailProduct, quantity)
+                  appliedCoupon ? formatCouponPrice(appliedCoupon) : formatProductPrice(detailProduct, quantity)
                 ] })
               ] })
             }
