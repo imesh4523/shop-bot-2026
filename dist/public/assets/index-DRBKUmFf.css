@@ -2454,6 +2454,10 @@ h1, h2, h3, h4, h5, h6 {
   resize: none;
 }
 
+.scroll-mt-4{
+  scroll-margin-top: 1rem;
+}
+
 .list-inside{
   list-style-position: inside;
 }
@@ -3036,6 +3040,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .border-\[\#5B42F3\]\/20{
   border-color: rgb(91 66 243 / 0.2);
+}
+
+.border-\[\#6C5CE7\]{
+  --tw-border-opacity: 1;
+  border-color: rgb(108 92 231 / var(--tw-border-opacity, 1));
 }
 
 .border-\[\#D5CDF7\]{
@@ -8481,6 +8490,10 @@ h1, h2, h3, h4, h5, h6 {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(4px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.ring-\[\#6C5CE7\]\/15{
+  --tw-ring-color: rgb(108 92 231 / 0.15);
 }
 
 .ring-pink-500\/40{

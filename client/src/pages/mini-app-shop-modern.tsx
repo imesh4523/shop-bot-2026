@@ -206,6 +206,114 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
   return res;
 };
 
+// 6-Digit Curved OTP Box Input Component (supports smooth typing, auto-focus, paste all 6 digits, and auto-submit)
+function SixDigitOtpInput({
+  value,
+  onChange,
+  onComplete,
+  disabled,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onComplete?: (code: string) => void;
+  disabled?: boolean;
+}) {
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const digits = useMemo(() => {
+    const arr = value.split("").slice(0, 6);
+    while (arr.length < 6) arr.push("");
+    return arr;
+  }, [value]);
+
+  const handleChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (!raw) {
+      const newDigits = [...digits];
+      newDigits[index] = "";
+      const newVal = newDigits.join("");
+      onChange(newVal);
+      return;
+    }
+
+    if (raw.length > 1) {
+      // Multiple digits entered/pasted into single field
+      const pasted = raw.slice(0, 6);
+      onChange(pasted);
+      const nextIdx = Math.min(pasted.length, 5);
+      inputsRef.current[nextIdx]?.focus();
+      if (pasted.length === 6 && onComplete) {
+        onComplete(pasted);
+      }
+      return;
+    }
+
+    const newDigits = [...digits];
+    newDigits[index] = raw[raw.length - 1];
+    const newVal = newDigits.join("");
+    onChange(newVal);
+
+    if (raw && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    }
+    if (newVal.length === 6 && onComplete) {
+      onComplete(newVal);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!digits[index] && index > 0) {
+        inputsRef.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pastedData) return;
+    onChange(pastedData);
+    const targetIdx = Math.min(pastedData.length, 5);
+    inputsRef.current[targetIdx]?.focus();
+    if (pastedData.length === 6 && onComplete) {
+      onComplete(pastedData);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+      {[0, 1, 2, 3, 4, 5].map((idx) => {
+        const isFilled = Boolean(digits[idx]);
+        return (
+          <input
+            key={idx}
+            ref={(el) => (inputsRef.current[idx] = el)}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            disabled={disabled}
+            value={digits[idx] || ""}
+            onChange={(e) => handleChange(idx, e)}
+            onKeyDown={(e) => handleKeyDown(idx, e)}
+            onPaste={handlePaste}
+            onFocus={(e) => e.target.select()}
+            className={`w-11 h-12 sm:w-12 sm:h-12 text-center text-lg font-black font-mono rounded-2xl border transition-all duration-200 outline-none ${
+              isFilled
+                ? "bg-white border-[#6C5CE7] text-[#181432] shadow-sm ring-2 ring-[#6C5CE7]/15 scale-[1.02]"
+                : "bg-[#F8F9FD] border-[#ECEEF8] text-[#181432] focus:bg-white focus:border-[#6C5CE7] focus:ring-2 focus:ring-[#6C5CE7]/20"
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // Custom Crisp Vector & Brand Logos (Transparent Backgrounds)
 const OracleLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
@@ -880,34 +988,42 @@ export default function MiniAppShopModern() {
   const [termsModalProduct, setTermsModalProduct] = useState<string | null>(null);
   const [termsModalCustomText, setTermsModalCustomText] = useState<string | null>(null);
 
-  // Dynamic Hero Banners Query
-  const { data: dynamicHeroBannersData } = useQuery<{ banners?: any[]; isConfigured?: boolean } | any[]>({
+  // Dynamic Hero Banners Query (cached with graceful loading prevention)
+  const { data: dynamicHeroBannersData, isLoading: isHeroBannersLoading } = useQuery<{ banners?: any[]; isConfigured?: boolean } | any[]>({
     queryKey: ["/api/mini/hero-banners"],
+    staleTime: 60 * 1000,
   });
 
   const activeHeroSlides = useMemo(() => {
-    if (!dynamicHeroBannersData) return HERO_SLIDES;
+    if (!dynamicHeroBannersData) {
+      if (isHeroBannersLoading) return [];
+      return HERO_SLIDES;
+    }
 
     if (Array.isArray(dynamicHeroBannersData)) {
-      return dynamicHeroBannersData.filter((b: any) => b.isActive !== false);
+      const filtered = dynamicHeroBannersData.filter((b: any) => b.isActive !== false);
+      return filtered.length > 0 ? filtered : HERO_SLIDES;
     }
 
     if (dynamicHeroBannersData.isConfigured) {
-      return Array.isArray(dynamicHeroBannersData.banners)
+      const filtered = Array.isArray(dynamicHeroBannersData.banners)
         ? dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false)
         : [];
+      return filtered.length > 0 ? filtered : HERO_SLIDES;
     }
 
     if (Array.isArray(dynamicHeroBannersData.banners) && dynamicHeroBannersData.banners.length > 0) {
-      return dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false);
+      const filtered = dynamicHeroBannersData.banners.filter((b: any) => b.isActive !== false);
+      return filtered.length > 0 ? filtered : HERO_SLIDES;
     }
 
     return HERO_SLIDES;
-  }, [dynamicHeroBannersData]);
+  }, [dynamicHeroBannersData, isHeroBannersLoading]);
 
   // Hero Auto-Swap & Touch/Mouse Swipe Carousel State
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const [heroSearchFocusKeyword, setHeroSearchFocusKeyword] = useState<string>("");
   const heroTouchStartX = useRef<number | null>(null);
   const heroTouchStartY = useRef<number | null>(null);
   const heroDragStartX = useRef<number | null>(null);
@@ -2069,10 +2185,16 @@ Support: https://t.me/youuhost_support
     }
   };
 
-  // Handle Verify OTP
-  const handleVerifyOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!authOtp || authOtp.length < 6) {
+  // Handle Verify OTP (supports explicit code or form submit)
+  const handleVerifyOtp = async (eOrCode?: React.FormEvent | string) => {
+    let codeToVerify = authOtp.trim();
+    if (typeof eOrCode === "string") {
+      codeToVerify = eOrCode.trim();
+    } else if (eOrCode && "preventDefault" in eOrCode && typeof eOrCode.preventDefault === "function") {
+      eOrCode.preventDefault();
+    }
+
+    if (!codeToVerify || codeToVerify.length < 6) {
       toast({
         title: "Invalid Code",
         description: "Please enter the 6-digit verification code.",
@@ -2085,7 +2207,7 @@ Support: https://t.me/youuhost_support
       const res = await fetch("/api/auth/customer/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: authEmail.trim(), code: authOtp.trim() }),
+        body: JSON.stringify({ email: authEmail.trim(), code: codeToVerify }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -2886,29 +3008,23 @@ Support: https://t.me/youuhost_support
                       }
                     }
 
-                    const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                    const targetCat = (slide.actionTarget || slide.categoryTarget || slide.title || "").trim();
                     if (targetCat && targetCat !== "ALL") {
-                      const matched = products.find((p) => {
-                        const pName = (p.name || "").toLowerCase();
-                        const pType = (p.type || "").toLowerCase();
-                        const cat = targetCat.toLowerCase();
-                        return pName.includes(cat) || pType.includes(cat);
-                      });
+                      setHeroSearchFocusKeyword(targetCat);
+                      const matched = categories.find((c) => 
+                        c.id.toLowerCase() === targetCat.toLowerCase() || 
+                        targetCat.toLowerCase().includes(c.id.toLowerCase()) ||
+                        c.label.toLowerCase().includes(targetCat.toLowerCase())
+                      );
                       if (matched) {
-                        setDetailProduct(matched);
-                        setQuantity(1);
-                      } else {
-                        setSelectedCategory(targetCat);
-                        toast({
-                          title: `${slide.title || targetCat} 🎯`,
-                          description: "Showing available packages & deals below."
-                        });
-                        const el = document.getElementById("best-sellers-heading");
-                        if (el) el.scrollIntoView({ behavior: "smooth" });
+                        setSelectedCategory(matched.id);
                       }
-                    } else {
-                      const el = document.getElementById("best-sellers-heading");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }
+
+                    // Smoothly scroll to Best Sellers & Hot Deals section without notification
+                    const el = document.getElementById("best-sellers-heading");
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
                     }
                   };
 
@@ -3009,7 +3125,7 @@ Support: https://t.me/youuhost_support
 
             {/* Best Sellers & Trending Sub-Slider */}
             {products.length > 0 && (
-              <div className="mb-7">
+              <div id="best-sellers-heading" className="mb-7 scroll-mt-4">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 relative">
@@ -3032,12 +3148,23 @@ Support: https://t.me/youuhost_support
                   }}
                 >
                   {(() => {
-                    const featuredList = (bestSellersData?.featured && bestSellersData.featured.length > 0)
+                    let featuredList = (bestSellersData?.featured && bestSellersData.featured.length > 0)
                       ? bestSellersData.featured.map((f: any) => {
                           const real = products.find((p) => p.id === f.id);
                           return real ? { ...real, ...f } : f;
                         })
                       : products.slice(0, 6);
+
+                    if (heroSearchFocusKeyword) {
+                      const kw = heroSearchFocusKeyword.toLowerCase();
+                      featuredList = [...featuredList].sort((a, b) => {
+                        const aMatch = (a.name || "").toLowerCase().includes(kw) || (a.category || "").toLowerCase().includes(kw) || (a.type || "").toLowerCase().includes(kw);
+                        const bMatch = (b.name || "").toLowerCase().includes(kw) || (b.category || "").toLowerCase().includes(kw) || (b.type || "").toLowerCase().includes(kw);
+                        if (aMatch && !bMatch) return -1;
+                        if (!aMatch && bMatch) return 1;
+                        return 0;
+                      });
+                    }
 
                     return featuredList.map((p: any, idx: number) => {
                       const priceFormatted = formatProductPrice(p);
@@ -4272,22 +4399,15 @@ Support: https://t.me/youuhost_support
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-[#6B658B] block mb-1.5 uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-[#6B658B] block mb-2 uppercase tracking-wider">
                           Enter 6-Digit Verification Code
                         </label>
-                        <div className="relative">
-                          <KeyRound className="w-4 h-4 text-[#9490A8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            maxLength={6}
-                            required
-                            autoFocus
-                            placeholder="123456"
-                            value={authOtp}
-                            onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ""))}
-                            className="w-full pl-10 pr-4 py-3 bg-[#F8F9FD] border border-[#ECEEF8] rounded-2xl text-center text-lg font-black tracking-[0.3em] font-mono text-[#181432] placeholder:text-[#A09CB8] focus:outline-none focus:border-[#6C5CE7] focus:ring-2 focus:ring-[#6C5CE7]/20 transition-all"
-                          />
-                        </div>
+                        <SixDigitOtpInput
+                          value={authOtp}
+                          onChange={setAuthOtp}
+                          onComplete={(code) => handleVerifyOtp(code)}
+                          disabled={isVerifyingOtp}
+                        />
                       </div>
 
                       <Button
