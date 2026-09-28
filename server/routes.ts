@@ -16895,6 +16895,60 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
     }
   });
 
+  // --- ENTERPRISE SEO: ROBOTS.TXT ---
+  app.get("/robots.txt", (req, res) => {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    const domain = `${req.protocol}://${req.get("host") || "youuhost.com"}`;
+    res.send(`User-agent: *
+Allow: /
+Allow: /shop
+Allow: /api-docs
+Allow: /terms
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /api/private
+
+Sitemap: ${domain}/sitemap.xml
+`);
+  });
+
+  // --- ENTERPRISE SEO: DYNAMIC SITEMAP.XML ---
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      const domain = `${req.protocol}://${req.get("host") || "youuhost.com"}`;
+      const now = new Date().toISOString().split("T")[0];
+
+      const staticPages = [
+        { loc: `${domain}/`, priority: "1.0", changefreq: "daily" },
+        { loc: `${domain}/shop`, priority: "0.9", changefreq: "daily" },
+        { loc: `${domain}/api-docs`, priority: "0.8", changefreq: "weekly" },
+        { loc: `${domain}/terms`, priority: "0.5", changefreq: "monthly" }
+      ];
+
+      const activeProducts = await storage.getProducts();
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
+
+      for (const p of staticPages) {
+        xml += `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+      }
+
+      for (const prod of activeProducts) {
+        if (prod.status === "available") {
+          const prodUrl = `${domain}/?product=${prod.id}`;
+          xml += `  <url>\n    <loc>${prodUrl}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+        }
+      }
+
+      xml += `</urlset>`;
+      res.send(xml);
+    } catch (e: any) {
+      res.status(500).send("Error generating sitemap");
+    }
+  });
+
   console.log('[REGISTER ROUTES] Calling initBot()...');
   await initBot().catch(err => console.error("Initial bot setup failed:", err));
   initAdminBotController().catch(err => console.error("Admin bot setup failed:", err));

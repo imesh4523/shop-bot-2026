@@ -18,13 +18,26 @@ export function serveStatic(app: Express) {
   });
 
   // fall through to index.html for all frontend SPA GET routes
+  let cachedIndexHtml: string | null = null;
+  const indexPath = path.resolve(distPath, "index.html");
+  if (fs.existsSync(indexPath)) {
+    try {
+      cachedIndexHtml = fs.readFileSync(indexPath, "utf8");
+    } catch {}
+  }
+
   app.use((req, res, next) => {
     if (req.method === "GET" && !req.path.startsWith("/api")) {
-      const indexPath = path.resolve(distPath, "index.html");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      
+      // Serve cached or live index.html
+      if (cachedIndexHtml) {
+        return res.status(200).send(cachedIndexHtml);
+      }
+
       return res.sendFile(indexPath, (err) => {
         if (err && !res.headersSent) {
-          res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.status(200).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>YouuHost</title></head><body><div id="root"></div></body></html>`);
+          res.status(200).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>YouuHost · Cloud & AI Store</title></head><body><div id="root"></div></body></html>`);
         }
       });
     }
