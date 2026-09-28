@@ -74115,7 +74115,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BGeSS7WH.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BFxBRrKp.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -103638,13 +103638,33 @@ function ShopBagIcon({ className = "w-4 h-4", ...props }) {
   );
 }
 function VerifiedBadgeIcon({ className = "w-3.5 h-3.5" }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "img",
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "svg",
     {
-      src: "/assets/verified_badge.svg",
-      className: `${className} inline-block shrink-0 align-middle object-contain pointer-events-none select-none`,
-      alt: "Verified",
-      loading: "lazy"
+      viewBox: "0 0 512 512",
+      className: `${className} inline-block shrink-0 align-middle pointer-events-none select-none`,
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("defs", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("linearGradient", { id: "verified-dual-split", x1: "0%", y1: "0%", x2: "100%", y2: "0%", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "50%", stopColor: "#38B6FF" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("stop", { offset: "50%", stopColor: "#2979FF" })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { fill: "url(#verified-dual-split)", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "64", y: "64", width: "384", height: "384", rx: "88", ry: "88" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "64", y: "64", width: "384", height: "384", rx: "88", ry: "88", transform: "rotate(45 256 256)" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "path",
+          {
+            d: "M165 265 L228 328 L350 190",
+            stroke: "#FFFFFF",
+            strokeWidth: "46",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        )
+      ]
     }
   );
 }
@@ -105919,10 +105939,10 @@ ${finalDetails}`;
             })
           }
         ),
-        activeHeroSlides.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        activeHeroSlides.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "div",
           {
-            className: "relative group overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing",
+            className: "relative group overflow-hidden rounded-3xl mb-7 h-[175px] sm:h-[195px] shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing border border-[#ECEEF8]",
             onMouseEnter: () => setIsHeroPaused(true),
             onMouseLeave: () => {
               setIsHeroPaused(false);
@@ -105932,141 +105952,125 @@ ${finalDetails}`;
             onTouchEnd: handleHeroTouchEnd,
             onMouseDown: handleHeroMouseDown,
             onMouseUp: handleHeroMouseUp,
-            children: activeHeroSlides.map((slide, idx) => {
-              const isActive = idx === currentHeroSlide;
-              const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
-              const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
-              const slideBorder = slide.borderColor || "border-[#ECEEF8]";
-              const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
-              const featuresList = Array.isArray(slide.features) ? slide.features : [];
-              const handleSlideClick = () => {
-                if (slide.actionType === "product" && slide.actionTarget) {
-                  const foundProd = products2.find((p2) => p2.id.toString() === slide.actionTarget.toString() || p2.name.toLowerCase() === slide.actionTarget.toLowerCase());
-                  if (foundProd) {
-                    setDetailProduct(foundProd);
-                    setQuantity(1);
-                    return;
+            children: [
+              activeHeroSlides.map((slide, idx) => {
+                const isActive = idx === currentHeroSlide;
+                const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
+                const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
+                const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
+                const featuresList = Array.isArray(slide.features) ? slide.features : [];
+                const handleSlideClick = () => {
+                  if (slide.actionType === "product" && slide.actionTarget) {
+                    const foundProd = products2.find((p2) => p2.id.toString() === slide.actionTarget.toString() || p2.name.toLowerCase() === slide.actionTarget.toLowerCase());
+                    if (foundProd) {
+                      setDetailProduct(foundProd);
+                      setQuantity(1);
+                      return;
+                    }
                   }
-                }
-                const targetCat = slide.actionTarget || slide.categoryTarget || "";
-                if (targetCat && targetCat !== "ALL") {
-                  const matched = products2.find((p2) => {
-                    const pName = (p2.name || "").toLowerCase();
-                    const pType = (p2.type || "").toLowerCase();
-                    const cat = targetCat.toLowerCase();
-                    return pName.includes(cat) || pType.includes(cat);
-                  });
-                  if (matched) {
-                    setDetailProduct(matched);
-                    setQuantity(1);
-                  } else {
-                    setSelectedCategory(targetCat);
-                    toast2({
-                      title: `${slide.title || targetCat} 🎯`,
-                      description: "Showing available packages & deals below."
+                  const targetCat = slide.actionTarget || slide.categoryTarget || "";
+                  if (targetCat && targetCat !== "ALL") {
+                    const matched = products2.find((p2) => {
+                      const pName = (p2.name || "").toLowerCase();
+                      const pType = (p2.type || "").toLowerCase();
+                      const cat = targetCat.toLowerCase();
+                      return pName.includes(cat) || pType.includes(cat);
                     });
+                    if (matched) {
+                      setDetailProduct(matched);
+                      setQuantity(1);
+                    } else {
+                      setSelectedCategory(targetCat);
+                      toast2({
+                        title: `${slide.title || targetCat} 🎯`,
+                        description: "Showing available packages & deals below."
+                      });
+                      const el = document.getElementById("best-sellers-heading");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }
+                  } else {
                     const el = document.getElementById("best-sellers-heading");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
                   }
-                } else {
-                  const el = document.getElementById("best-sellers-heading");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }
-              };
-              if (slide.bannerType === "full_image") {
-                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    onClick: handleSlideClick,
-                    className: `rounded-3xl border transition-all duration-700 overflow-hidden cursor-pointer shadow-sm relative ${isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"} ${slideBorder}`,
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                };
+                if (slide.bannerType === "full_image") {
+                  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      onClick: handleSlideClick,
+                      className: `absolute inset-0 w-full h-full transition-all duration-700 overflow-hidden cursor-pointer ${isActive ? "opacity-100 pointer-events-auto scale-100 z-10" : "opacity-0 pointer-events-none scale-95 z-0"}`,
+                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                         "img",
                         {
                           src: slideImage,
                           alt: slide.title || "Promo Banner",
-                          className: "w-full h-auto min-h-[145px] max-h-[210px] object-cover rounded-3xl",
-                          onError: (e) => {
-                            e.target.style.display = "none";
-                          }
-                        }
-                      ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-3 right-4 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full", children: activeHeroSlides.map((_2, dotIdx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "button",
-                        {
-                          onClick: (e) => {
-                            e.stopPropagation();
-                            setCurrentHeroSlide(dotIdx);
-                          },
-                          className: `transition-all duration-300 rounded-full h-1.5 ${dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40"}`,
-                          "aria-label": `Slide ${dotIdx + 1}`
-                        },
-                        dotIdx
-                      )) })
-                    ]
-                  },
-                  slide.id || idx
-                );
-              }
-              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "div",
-                {
-                  className: `p-5 rounded-3xl border transition-all duration-700 ${isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"} bg-gradient-to-r ${slideBg} ${slideBorder}`,
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 max-w-[62%]", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-[17px] font-black text-[#181432] leading-tight mb-0.5", children: slide.title }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[12px] font-black text-[#5B42F3] mb-2.5", children: slide.subtitle }),
-                      featuresList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 mb-3.5", children: featuresList.map((feat, fIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-emerald-500 shrink-0" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "line-clamp-1", children: feat })
-                      ] }, fIdx)) }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        "button",
-                        {
-                          onClick: (e) => {
-                            e.stopPropagation();
-                            handleSlideClick();
-                          },
-                          className: `px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`,
-                          children: [
-                            slide.ctaText || "Buy Now",
-                            " ",
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-3.5 h-3.5" })
-                          ]
-                        }
-                      ) })
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute -right-2 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute` }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "img",
-                        {
-                          src: slideImage,
-                          alt: slide.title || "Banner",
-                          className: "w-28 h-28 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500",
+                          className: "w-full h-full object-cover rounded-3xl",
                           onError: (e) => {
                             e.target.style.display = "none";
                           }
                         }
                       )
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-3 right-4 flex items-center gap-2 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: activeHeroSlides.map((_2, dotIdx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        onClick: (e) => {
-                          e.stopPropagation();
-                          setCurrentHeroSlide(dotIdx);
-                        },
-                        className: `transition-all duration-300 rounded-full h-1.5 ${dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"}`,
-                        "aria-label": `Slide ${dotIdx + 1}`
-                      },
-                      dotIdx
-                    )) }) })
-                  ]
+                    },
+                    slide.id || idx
+                  );
+                }
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    onClick: handleSlideClick,
+                    className: `absolute inset-0 w-full h-full p-5 rounded-3xl transition-all duration-700 flex flex-col justify-between cursor-pointer ${isActive ? "opacity-100 pointer-events-auto scale-100 z-10" : "opacity-0 pointer-events-none scale-95 z-0"} bg-gradient-to-r ${slideBg}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 max-w-[62%]", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-[17px] font-black text-[#181432] leading-tight mb-0.5", children: slide.title }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[12px] font-black text-[#5B42F3] mb-2", children: slide.subtitle }),
+                        featuresList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 mb-2", children: featuresList.slice(0, 2).map((feat, fIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-[10px] font-bold text-[#3D3656]", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-emerald-500 shrink-0" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "line-clamp-1", children: feat })
+                        ] }, fIdx)) }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                          "span",
+                          {
+                            className: `inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95`,
+                            children: [
+                              slide.ctaText || "Buy Now",
+                              " ",
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronRight, { className: "w-3.5 h-3.5" })
+                            ]
+                          }
+                        ) })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "absolute -right-2 top-1/2 -translate-y-1/2 w-36 h-36 opacity-95 pointer-events-none flex items-center justify-center", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-28 h-28 rounded-full ${slide.glowColor || "bg-purple-400/20"} blur-xl absolute` }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "img",
+                          {
+                            src: slideImage,
+                            alt: slide.title || "Banner",
+                            className: "w-28 h-28 object-contain drop-shadow-xl transform hover:scale-105 transition-transform duration-500",
+                            onError: (e) => {
+                              e.target.style.display = "none";
+                            }
+                          }
+                        )
+                      ] })
+                    ]
+                  },
+                  slide.id || idx
+                );
+              }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-3 right-4 flex items-center gap-1.5 z-30 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full pointer-events-auto", children: activeHeroSlides.map((_2, dotIdx) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setCurrentHeroSlide(dotIdx);
+                  },
+                  className: `transition-all duration-300 rounded-full h-1.5 ${dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"}`,
+                  "aria-label": `Slide ${dotIdx + 1}`
                 },
-                slide.id || idx
-              );
-            })
+                dotIdx
+              )) })
+            ]
           }
         ),
         products2.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-7", children: [
@@ -106352,9 +106356,9 @@ ${finalDetails}`;
                             " sold)"
                           ] })
                         ] }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-600 font-extrabold flex items-center gap-0.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#2563EB] font-black flex items-center gap-1", children: [
                           "Verified ",
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(VerifiedBadgeIcon, { className: "w-3 h-3" })
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(VerifiedBadgeIcon, { className: "w-3.5 h-3.5" })
                         ] })
                       ] });
                     })()

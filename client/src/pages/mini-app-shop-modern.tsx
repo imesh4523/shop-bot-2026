@@ -109,15 +109,37 @@ function ShopBagIcon({ className = "w-4 h-4", ...props }: React.SVGProps<SVGSVGE
   );
 }
 
-// Official Telegram / Meta 8-point Dual-Tone Verified Badge (100% Transparent Background)
+// Official Telegram / Meta 8-point Dual-Tone Verified Badge (100% Transparent Background, Inline Vector)
 function VerifiedBadgeIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
-    <img
-      src="/assets/verified_badge.svg"
-      className={`${className} inline-block shrink-0 align-middle object-contain pointer-events-none select-none`}
-      alt="Verified"
-      loading="lazy"
-    />
+    <svg
+      viewBox="0 0 512 512"
+      className={`${className} inline-block shrink-0 align-middle pointer-events-none select-none`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient id="verified-dual-split" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="50%" stopColor="#38B6FF" />
+          <stop offset="50%" stopColor="#2979FF" />
+        </linearGradient>
+      </defs>
+
+      {/* 8-Lobed Scalloped Star Badge Body (Two 45° Rotated Rounded Rectangles) */}
+      <g fill="url(#verified-dual-split)">
+        <rect x="64" y="64" width="384" height="384" rx="88" ry="88" />
+        <rect x="64" y="64" width="384" height="384" rx="88" ry="88" transform="rotate(45 256 256)" />
+      </g>
+
+      {/* Clean Rounded Pure White Checkmark */}
+      <path
+        d="M165 265 L228 328 L350 190"
+        stroke="#FFFFFF"
+        strokeWidth="46"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -2800,7 +2822,7 @@ Support: https://t.me/youuhost_support
             {/* Auto-Swapping & Touch-Swiping Feature Hero Carousel */}
             {activeHeroSlides.length > 0 && (
               <div 
-                className="relative group overflow-hidden rounded-3xl mb-7 shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing"
+                className="relative group overflow-hidden rounded-3xl mb-7 h-[175px] sm:h-[195px] shadow-sm transition-all duration-500 select-none cursor-grab active:cursor-grabbing border border-[#ECEEF8]"
                 onMouseEnter={() => setIsHeroPaused(true)}
                 onMouseLeave={() => {
                   setIsHeroPaused(false);
@@ -2815,7 +2837,6 @@ Support: https://t.me/youuhost_support
                   const isActive = idx === currentHeroSlide;
                   const slideImage = slide.image || slide.imageSrc || "https://img.icons8.com/color/144/capcut.png";
                   const slideBg = slide.bgGradient || slide.gradientBg || "from-[#F0FDF4] via-[#E0F2FE] to-[#F3E8FF]";
-                  const slideBorder = slide.borderColor || "border-[#ECEEF8]";
                   const slideBtnBg = slide.btnGradient || "from-[#FF5E62] to-[#6C5CE7]";
                   const featuresList: string[] = Array.isArray(slide.features) ? slide.features : [];
 
@@ -2861,35 +2882,18 @@ Support: https://t.me/youuhost_support
                       <div
                         key={slide.id || idx}
                         onClick={handleSlideClick}
-                        className={`rounded-3xl border transition-all duration-700 overflow-hidden cursor-pointer shadow-sm relative ${
-                          isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
-                        } ${slideBorder}`}
+                        className={`absolute inset-0 w-full h-full transition-all duration-700 overflow-hidden cursor-pointer ${
+                          isActive ? "opacity-100 pointer-events-auto scale-100 z-10" : "opacity-0 pointer-events-none scale-95 z-0"
+                        }`}
                       >
                         <img
                           src={slideImage}
                           alt={slide.title || "Promo Banner"}
-                          className="w-full h-auto min-h-[145px] max-h-[210px] object-cover rounded-3xl"
+                          className="w-full h-full object-cover rounded-3xl"
                           onError={(e) => {
                             (e.target as any).style.display = "none";
                           }}
                         />
-
-                        {/* Dots */}
-                        <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full">
-                          {activeHeroSlides.map((_: any, dotIdx: number) => (
-                            <button
-                              key={dotIdx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentHeroSlide(dotIdx);
-                              }}
-                              className={`transition-all duration-300 rounded-full h-1.5 ${
-                                dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40"
-                              }`}
-                              aria-label={`Slide ${dotIdx + 1}`}
-                            />
-                          ))}
-                        </div>
                       </div>
                     );
                   }
@@ -2898,23 +2902,24 @@ Support: https://t.me/youuhost_support
                   return (
                     <div
                       key={slide.id || idx}
-                      className={`p-5 rounded-3xl border transition-all duration-700 ${
-                        isActive ? "opacity-100 relative pointer-events-auto scale-100" : "opacity-0 absolute inset-0 pointer-events-none scale-95"
-                      } bg-gradient-to-r ${slideBg} ${slideBorder}`}
+                      onClick={handleSlideClick}
+                      className={`absolute inset-0 w-full h-full p-5 rounded-3xl transition-all duration-700 flex flex-col justify-between cursor-pointer ${
+                        isActive ? "opacity-100 pointer-events-auto scale-100 z-10" : "opacity-0 pointer-events-none scale-95 z-0"
+                      } bg-gradient-to-r ${slideBg}`}
                     >
                       <div className="relative z-10 max-w-[62%]">
                         <h2 className="text-[17px] font-black text-[#181432] leading-tight mb-0.5">
                           {slide.title}
                         </h2>
-                        <div className="text-[12px] font-black text-[#5B42F3] mb-2.5">
+                        <div className="text-[12px] font-black text-[#5B42F3] mb-2">
                           {slide.subtitle}
                         </div>
 
                         {/* Genuine Pro Features Bullet List */}
                         {featuresList.length > 0 && (
-                          <div className="space-y-1 mb-3.5">
-                            {featuresList.map((feat, fIdx) => (
-                              <div key={fIdx} className="flex items-center gap-1.5 text-[10.5px] font-bold text-[#3D3656]">
+                          <div className="space-y-1 mb-2">
+                            {featuresList.slice(0, 2).map((feat, fIdx) => (
+                              <div key={fIdx} className="flex items-center gap-1.5 text-[10px] font-bold text-[#3D3656]">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                 <span className="line-clamp-1">{feat}</span>
                               </div>
@@ -2923,15 +2928,11 @@ Support: https://t.me/youuhost_support
                         )}
                         
                         <div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSlideClick();
-                            }}
-                            className={`px-5 py-2 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95 flex items-center gap-1.5`}
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r ${slideBtnBg} text-white rounded-full text-xs font-black shadow-md shadow-[#5B42F3]/20 hover:opacity-95 transition-all active:scale-95`}
                           >
                             {slide.ctaText || "Buy Now"} <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
+                          </span>
                         </div>
                       </div>
 
@@ -2947,28 +2948,26 @@ Support: https://t.me/youuhost_support
                           }}
                         />
                       </div>
-
-                      {/* Carousel Navigation Indicator Dots */}
-                      <div className="absolute bottom-3 right-4 flex items-center gap-2 z-20">
-                        <div className="flex items-center gap-1.5">
-                          {activeHeroSlides.map((_: any, dotIdx: number) => (
-                            <button
-                              key={dotIdx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentHeroSlide(dotIdx);
-                              }}
-                              className={`transition-all duration-300 rounded-full h-1.5 ${
-                                dotIdx === currentHeroSlide ? "w-5 bg-[#5B42F3]" : "w-1.5 bg-black/15 hover:bg-black/30"
-                              }`}
-                              aria-label={`Slide ${dotIdx + 1}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
                     </div>
                   );
                 })}
+
+                {/* Common Carousel Navigation Indicator Dots */}
+                <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-30 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full pointer-events-auto">
+                  {activeHeroSlides.map((_: any, dotIdx: number) => (
+                    <button
+                      key={dotIdx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentHeroSlide(dotIdx);
+                      }}
+                      className={`transition-all duration-300 rounded-full h-1.5 ${
+                        dotIdx === currentHeroSlide ? "w-4 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"
+                      }`}
+                      aria-label={`Slide ${dotIdx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -3307,8 +3306,8 @@ Support: https://t.me/youuhost_support
                                 <span className="text-amber-500 font-black">★ {rating}</span>
                                 <span>({totalSold.toLocaleString()} sold)</span>
                               </span>
-                              <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
-                                Verified <VerifiedBadgeIcon className="w-3 h-3" />
+                              <span className="text-[#2563EB] font-black flex items-center gap-1">
+                                Verified <VerifiedBadgeIcon className="w-3.5 h-3.5" />
                               </span>
                             </div>
                           );
