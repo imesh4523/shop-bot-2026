@@ -4279,13 +4279,28 @@ export async function registerRoutes(
           if (targetEmail && targetEmail.includes("@")) {
             const orderCreds = result.availableItems.map((item: any) => item.content);
             const orderNo = `ORD-2026-${result.availableItems[0]?.id || Math.floor(100000 + Math.random() * 900000)}`;
-            const orderTotalFormatted = `$${((result.finalDeductAmount || result.product.price * result.quantity) / 100).toFixed(2)} USD`;
+            
+            const origUnitPriceCents = result.product.price;
+            const origTotalCents = origUnitPriceCents * result.quantity;
+            const finalPaidCents = result.finalDeductAmount;
+            const discountCents = Math.max(0, origTotalCents - finalPaidCents);
+
+            const unitPriceFormatted = `$${(origUnitPriceCents / 100).toFixed(2)} USD`;
+            const subtotalFormatted = `$${(origTotalCents / 100).toFixed(2)} USD`;
+            const discountFormatted = discountCents > 0 ? `$${(discountCents / 100).toFixed(2)} USD` : undefined;
+            const orderTotalFormatted = `$${(finalPaidCents / 100).toFixed(2)} USD`;
+            const promoCodeStr = result.appliedPromo?.code || undefined;
+
             const emailHtml = buildOrderCredentialsEmailHtml({
               toEmail: targetEmail,
               recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
               orderId: orderNo,
               productName: result.product.name,
               quantity: result.quantity,
+              unitPrice: unitPriceFormatted,
+              subtotal: subtotalFormatted,
+              discountAmount: discountFormatted,
+              discountCode: promoCodeStr,
               amount: orderTotalFormatted,
               credentials: orderCreds,
               ctaText: "Manage Your Orders",
@@ -4296,6 +4311,9 @@ export async function registerRoutes(
               toEmail: targetEmail,
               recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
               amount: orderTotalFormatted,
+              subtotal: subtotalFormatted,
+              discountAmount: discountFormatted,
+              discountCode: promoCodeStr,
               planTitle: result.product.name,
               billingCycle: "One-Time / Digital License",
               paymentMethod: "wallet_balance",
@@ -5949,9 +5967,45 @@ app.get("/api/admin/cssx/orders/:id", isAuth, async (req, res) => {
 
 // --- Public Mini-App Sandromania Shop Routes ---
 
-// Get active Sandromania products for customer store
+// Cache for throttling Sandromania stock sync (sync at most once every 20 seconds)
+let lastSandromaniaStockSync = 0;
+
+// Get active Sandromania products for customer store (with live stock auto-sync)
 app.get("/api/mini/sandromania/products", verifyMiniAppAuth, async (req, res) => {
   try {
+    const now = Date.now();
+    if (now - lastSandromaniaStockSync > 20000) {
+      lastSandromaniaStockSync = now;
+      // Background non-blocking live stock sync from partner API
+      (async () => {
+        try {
+          const remoteProducts = await SandromaniaService.getProducts();
+          if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+            const localProducts = await db.select().from(sandromaniaProducts);
+            for (const local of localProducts) {
+              const match = remoteProducts.find((r: any) => parseInt(r.id) === local.externalProductId);
+              if (match) {
+                const liveStock = typeof match.stock === 'number' 
+                  ? match.stock 
+                  : (match.stock !== undefined && match.stock !== null && match.stock !== "" ? parseInt(match.stock) : (match.available ? 99 : 0));
+                
+                await db
+                  .update(sandromaniaProducts)
+                  .set({
+                    stock: isNaN(liveStock) ? (match.available ? 99 : 0) : liveStock,
+                    available: Boolean(match.available),
+                    updatedAt: new Date()
+                  })
+                  .where(eq(sandromaniaProducts.id, local.id));
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn("[Sandromania Live Stock Auto-Sync] Warning:", (syncErr as any)?.message);
+        }
+      })();
+    }
+
     const productsList = await db
       .select()
       .from(sandromaniaProducts)
@@ -6010,7 +6064,16 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         .set({ balance: sql`${telegramUsers.balance} - ${totalCents}` })
         .where(eq(telegramUsers.id, user.id));
 
-      // 3. Place order via Sandromania Partner API with Idempotency Key
+      // 3. Decrement local stock immediately
+      await tx
+        .update(sandromaniaProducts)
+        .set({ 
+          stock: sql`GREATEST(0, ${sandromaniaProducts.stock} - ${qty})`,
+          updatedAt: new Date()
+        })
+        .where(eq(sandromaniaProducts.id, product.id));
+
+      // 4. Place order via Sandromania Partner API with Idempotency Key
       const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
       let partnerOrderRes: any = null;
       try {
@@ -6028,7 +6091,7 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
       const orderStatus = orderData.status || "approved";
 
-      // 4. Save order in our database
+      // 5. Save order in our database
       const [newOrder] = await tx
         .insert(sandromaniaOrders)
         .values({
@@ -6050,8 +6113,78 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         order: newOrder,
         newBalance: user.balance - totalCents,
         deliveryText,
+        user,
       };
     });
+
+    // Auto-send Order Confirmation & Credentials Email to customer for Connected Store purchase
+    (async () => {
+      try {
+        const targetEmail = tgUser.email || result.user?.email;
+        if (targetEmail && targetEmail.includes("@")) {
+          const orderNo = `PARTNER-${result.order.id}`;
+          const orderTotalFormatted = `$${(totalCents / 100).toFixed(2)} USD`;
+          const unitPriceFormatted = `$${(product.sellingPriceUsd / 100).toFixed(2)} USD`;
+          const subtotalFormatted = `$${(totalCents / 100).toFixed(2)} USD`;
+          const credsArray = result.deliveryText ? result.deliveryText.split(/\r?\n/).filter(Boolean) : ["Delivery completed."];
+
+          const emailHtml = buildOrderCredentialsEmailHtml({
+            toEmail: targetEmail,
+            recipientName: tgUser.first_name || result.user?.firstName || "Valued Customer",
+            orderId: orderNo,
+            productName: product.title,
+            quantity: qty,
+            unitPrice: unitPriceFormatted,
+            subtotal: subtotalFormatted,
+            amount: orderTotalFormatted,
+            credentials: credsArray,
+            ctaText: "Manage Your Orders",
+            ctaUrl: "https://youuhost.com/shop",
+          });
+
+          const pdfBuf = generateInvoicePdf({
+            toEmail: targetEmail,
+            recipientName: tgUser.first_name || result.user?.firstName || "Valued Customer",
+            amount: orderTotalFormatted,
+            subtotal: subtotalFormatted,
+            planTitle: product.title,
+            billingCycle: "One-Time / Digital Good",
+            paymentMethod: "wallet_balance",
+            referenceId: orderNo,
+          });
+
+          const txtBuf = generateCredentialsTxt({
+            orderId: orderNo,
+            productName: product.title,
+            recipientName: tgUser.first_name || result.user?.firstName || "Valued Customer",
+            credentials: credsArray,
+          });
+
+          await sendLuxuryEmail({
+            toEmail: targetEmail,
+            recipientName: tgUser.first_name || result.user?.firstName || "Valued Customer",
+            subject: `Order #${orderNo} Confirmed - Your Product Credentials`,
+            html: emailHtml,
+            templateType: "order_credentials",
+            metadata: { orderId: orderNo, sandromaniaOrderId: result.order.id, quantity: qty },
+            attachments: [
+              {
+                filename: `invoice_${orderNo}.pdf`,
+                content: pdfBuf,
+                contentType: "application/pdf",
+              },
+              {
+                filename: `credentials_${orderNo}.txt`,
+                content: txtBuf,
+                contentType: "text/plain",
+              },
+            ],
+          });
+        }
+      } catch (mailErr) {
+        console.error("[Email Hub - Sandromania Auto-Dispatch Error]:", mailErr);
+      }
+    })();
 
     res.json({
       success: true,

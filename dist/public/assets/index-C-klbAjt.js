@@ -74686,7 +74686,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-CRpED8dE.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-SizOiEJz.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105007,14 +105007,16 @@ function MiniAppShopModern() {
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/products");
       return res.json();
-    }
+    },
+    refetchInterval: 1e4
   });
   const { data: offers = [] } = useQuery({
     queryKey: ["/api/mini/offers"],
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/offers");
       return res.json();
-    }
+    },
+    refetchInterval: 1e4
   });
   const { data: orders2 = [], refetch: refetchOrders } = useQuery({
     queryKey: ["/api/mini/orders"],
@@ -105085,7 +105087,8 @@ function MiniAppShopModern() {
       } catch {
         return [];
       }
-    }
+    },
+    refetchInterval: 1e4
   });
   const { data: sandromaniaOrdersList = [], refetch: refetchSandromaniaOrders } = useQuery({
     queryKey: ["/api/mini/sandromania/orders"],
@@ -105144,8 +105147,8 @@ function MiniAppShopModern() {
         priceCents: ord.product?.price || 0,
         quantity: 1,
         date: ord.createdAt ? new Date(ord.createdAt) : /* @__PURE__ */ new Date(0),
-        credentialData: ord.credential?.data,
-        twoFactorSecret: ord.credential?.twoFactorSecret
+        credentialData: ord.credential?.content || ord.credential?.data || ord.credentialData || ord.credentialContent || ord.content || (typeof ord.credential === "string" ? ord.credential : ""),
+        twoFactorSecret: ord.credential?.twoFactorSecret || ord.twoFactorSecret
       });
     });
     smmOrdersList.forEach((smmOrd) => {
@@ -107314,28 +107317,7 @@ ${finalDetails}`;
                     onCopy: (c2) => copyToClipboard(c2, "2FA Code Copied")
                   }
                 ) }),
-                ord.credentialData && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "div",
-                  {
-                    onClick: (e) => e.stopPropagation(),
-                    className: "bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 overflow-hidden flex-1", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { className: "w-3 h-3 text-[#5B42F3] shrink-0" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-mono text-[#5B42F3] truncate select-all", children: ord.credentialData })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "button",
-                        {
-                          onClick: () => copyToClipboard(ord.credentialData, "Credentials Copied"),
-                          className: "text-[10px] font-bold text-[#D92078] hover:underline shrink-0",
-                          children: "Copy"
-                        }
-                      )
-                    ]
-                  }
-                ),
-                ord.licenseKey && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200", onClick: (e) => e.stopPropagation(), children: [
+                (ord.credentialData || ord.licenseKey) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200", onClick: (e) => e.stopPropagation(), children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 text-emerald-600" }),
@@ -107344,7 +107326,7 @@ ${finalDetails}`;
                     /* @__PURE__ */ jsxRuntimeExports.jsxs(
                       "button",
                       {
-                        onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋"),
+                        onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.credentialData || ord.licenseKey, ord.quantity), "Credentials Copied! 📋"),
                         className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform",
                         children: [
                           /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-2.5 h-2.5" }),
@@ -107353,7 +107335,7 @@ ${finalDetails}`;
                       }
                     )
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-16 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner", children: ord.licenseKey })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner", children: ord.credentialData || ord.licenseKey })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-1.5 border-t border-[#F5F4FC]", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
@@ -108754,7 +108736,7 @@ ${finalDetails}`;
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed", children: selectedTxDetail.deliveredContent })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed break-all w-full max-w-full", children: selectedTxDetail.deliveredContent })
           ] }),
           isRefunded && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-[11px] font-bold flex items-center gap-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { className: "w-4 h-4 text-sky-600 shrink-0" }),

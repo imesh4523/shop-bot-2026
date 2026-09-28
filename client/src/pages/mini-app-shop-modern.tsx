@@ -1207,6 +1207,7 @@ export default function MiniAppShopModern() {
       const res = await miniApiRequest("GET", "/api/mini/products");
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   const { data: offers = [] } = useQuery<SpecialOffer[]>({
@@ -1215,6 +1216,7 @@ export default function MiniAppShopModern() {
       const res = await miniApiRequest("GET", "/api/mini/offers");
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   const { data: orders = [], refetch: refetchOrders } = useQuery<Order[]>({
@@ -1296,6 +1298,7 @@ export default function MiniAppShopModern() {
         return [];
       }
     },
+    refetchInterval: 10000,
   });
 
   const { data: sandromaniaOrdersList = [], refetch: refetchSandromaniaOrders } = useQuery<any[]>({
@@ -1368,8 +1371,8 @@ export default function MiniAppShopModern() {
         priceCents: ord.product?.price || 0,
         quantity: 1,
         date: ord.createdAt ? new Date(ord.createdAt) : new Date(0),
-        credentialData: ord.credential?.data,
-        twoFactorSecret: ord.credential?.twoFactorSecret,
+        credentialData: ord.credential?.content || ord.credential?.data || ord.credentialData || ord.credentialContent || ord.content || (typeof ord.credential === "string" ? ord.credential : ""),
+        twoFactorSecret: ord.credential?.twoFactorSecret || ord.twoFactorSecret,
       });
     });
 
@@ -3931,43 +3934,22 @@ Support: https://t.me/youuhost_support
                         </div>
                       )}
 
-                      {/* Credential Data for Account Orders */}
-                      {ord.credentialData && (
-                        <div 
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] flex items-center justify-between gap-2"
-                        >
-                          <div className="flex items-center gap-1.5 overflow-hidden flex-1">
-                            <KeyRound className="w-3 h-3 text-[#5B42F3] shrink-0" />
-                            <span className="text-[10px] font-mono text-[#5B42F3] truncate select-all">
-                              {ord.credentialData}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => copyToClipboard(ord.credentialData, "Credentials Copied")}
-                            className="text-[10px] font-bold text-[#D92078] hover:underline shrink-0"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Digital License / CDK for Sandromania Orders */}
-                      {ord.licenseKey && (
+                      {/* Unified Digital Credentials / CDK Box for Account & Partner Orders */}
+                      {(ord.credentialData || ord.licenseKey) && (
                         <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
                             </span>
                             <button
-                              onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋")}
+                              onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.credentialData || ord.licenseKey, ord.quantity), "Credentials Copied! 📋")}
                               className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform"
                             >
                               <Copy className="w-2.5 h-2.5" /> Copy
                             </button>
                           </div>
-                          <div className="font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-16 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
-                            {ord.licenseKey}
+                          <div className="font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
+                            {ord.credentialData || ord.licenseKey}
                           </div>
                         </div>
                       )}
@@ -5571,7 +5553,7 @@ Support: https://t.me/youuhost_support
                           <Copy className="w-3 h-3" /> Copy
                         </button>
                       </div>
-                      <pre className="p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed">
+                      <pre className="p-2.5 bg-[#181432] text-emerald-400 font-mono text-[10px] rounded-xl max-h-28 overflow-y-auto whitespace-pre-wrap select-all leading-relaxed break-all w-full max-w-full">
                         {selectedTxDetail.deliveredContent}
                       </pre>
                     </div>

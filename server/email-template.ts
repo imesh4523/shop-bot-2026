@@ -40,10 +40,11 @@ export interface OrderCredentialsEmailProps {
   orderId: string | number;
   productName: string;
   quantity: number;
-  amount: string; // e.g. "$50.00 USD" or "Rs. 1,815 LKR"
-  discountAmount?: string;
-  discountCode?: string;
-  subtotal?: string;
+  unitPrice?: string; // e.g. "$1.00 USD" (original price per item before discount)
+  amount: string; // e.g. "$0.90 USD" (final charged total)
+  discountAmount?: string; // e.g. "$0.10 USD"
+  discountCode?: string; // e.g. "OFFER10"
+  subtotal?: string; // e.g. "$1.00 USD" (total before discount)
   credentials?: string[];
   dateStr?: string;
   ctaText?: string;
@@ -269,12 +270,13 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(71, 85, 105);
   const cleanPlanText = plan.length > 40 ? plan.substring(0, 38) + "..." : plan;
+  const originalUnitPrice = props.subtotal ? sanitizeCurrencyAmount(props.subtotal) : amount;
   doc.text(cleanPlanText, left, y);
-  doc.text(amount, 120, y, { align: "right" });
+  doc.text(originalUnitPrice, 120, y, { align: "right" });
   doc.text("1", 145, y, { align: "center" });
   doc.setFont("helvetica", "bold");
   doc.setTextColor(17, 24, 39);
-  doc.text(amount, right, y, { align: "right" });
+  doc.text(originalUnitPrice, right, y, { align: "right" });
 
   y += 8;
   doc.setDrawColor(241, 245, 249);
@@ -294,6 +296,8 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
     if (props.discountCode) discountLabel = `Discounts (${props.discountCode})`;
   }
 
+  const subtotalNumeric = props.subtotal ? sanitizeCurrencyAmount(props.subtotal).replace(/\s*(USD|LKR)/gi, "").trim() : cleanNumAmount;
+
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
@@ -303,7 +307,7 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 
   y += 5;
   doc.text("Subtotal", 145, y, { align: "right" });
-  doc.text(cleanNumAmount, right, y, { align: "right" });
+  doc.text(subtotalNumeric, right, y, { align: "right" });
 
   y += 6;
   doc.setFont("helvetica", "bold");
@@ -594,9 +598,9 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
                 <tbody>
                   <tr>
                     <td align="left" style="padding: 14px 4px; font-size: 13px; color: #475569; line-height: 1.4;">${prodName}</td>
-                    <td align="right" style="padding: 14px 4px; font-size: 13px; color: #475569;">${amount}</td>
+                    <td align="right" style="padding: 14px 4px; font-size: 13px; color: #475569;">${props.unitPrice ? sanitizeCurrencyAmount(props.unitPrice) : (props.subtotal ? sanitizeCurrencyAmount(props.subtotal) : amount)}</td>
                     <td align="center" style="padding: 14px 4px; font-size: 13px; color: #475569;">${qty}</td>
-                    <td align="right" style="padding: 14px 4px; font-size: 13px; font-weight: 600; color: #111827;">${amount}</td>
+                    <td align="right" style="padding: 14px 4px; font-size: 13px; font-weight: 600; color: #111827;">${props.subtotal ? sanitizeCurrencyAmount(props.subtotal) : amount}</td>
                   </tr>
                   <tr style="border-top: 1px solid #f1f5f9;">
                     <td colspan="2"></td>
