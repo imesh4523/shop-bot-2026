@@ -1236,8 +1236,21 @@ export async function registerRoutes(
   const verifyMiniAppAuth = async (req: Request, res: Response, next: NextFunction) => {
     const initData = req.headers['x-telegram-init-data'] as string;
     if (!initData) {
-      // Check web customer session
-      const customerUserId = (req.session as any)?.customerUserId;
+      // Check web customer session or resilient client headers
+      let customerUserId = (req.session as any)?.customerUserId;
+      if (!customerUserId) {
+        const headerId = req.headers['x-customer-user-id'] as string;
+        const headerEmail = req.headers['x-customer-email'] as string;
+        if (headerId && !isNaN(Number(headerId))) {
+          customerUserId = parseInt(headerId, 10);
+        } else if (headerEmail) {
+          try {
+            const foundUser = await storage.getTelegramUserByEmail(headerEmail);
+            if (foundUser) customerUserId = foundUser.id;
+          } catch {}
+        }
+      }
+
       if (customerUserId) {
         try {
           const customer = await storage.getTelegramUserById(customerUserId);
@@ -2552,7 +2565,7 @@ export async function registerRoutes(
         let amountFormatted = "";
 
         if (isLkr) {
-          lkrVal = (p.amount / 100);
+          lkrVal = p.amount >= 1000 ? Math.round(p.amount / 100) : Math.round((p.amount / 100) * lkrRate);
           usdVal = lkrVal / lkrRate;
           amountFormatted = `+Rs. ${lkrVal.toLocaleString()}`;
         } else {
@@ -2636,12 +2649,12 @@ export async function registerRoutes(
           rawId: o.orders.id,
           type: isApiOrder ? ("api" as const) : ("purchase" as const),
           category: isApiOrder ? "Developer API Order" : "Cloud Account Purchase",
-          title: o.products?.name || "Digital Cloud Product",
+          title: o.products?.name ? `${o.products.name}${isApiOrder ? " (API)" : ""}` : "Digital Cloud Product",
           productType: o.products?.type || "Standard",
-          amountCents: -(o.products?.price || 0),
-          amountUsd: costUsd.toFixed(2),
-          amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)}`,
+          amountCents: isFailed ? 0 : -(o.products?.price || 0),
+          amountUsd: isFailed ? "0.00" : costUsd.toFixed(2),
+          amountLkr: isFailed ? "0" : costLkr.toLocaleString(),
+          amountFormatted: isFailed ? "$0.00" : `-$${costUsd.toFixed(2)}`,
           currency: "USD",
           method: isApiOrder ? "api_key" : "wallet_balance",
           status: o.orders.status, // "completed", "failed", "pending", "refunded"
@@ -2671,8 +2684,8 @@ export async function registerRoutes(
           id: `YH-${s.smm_orders.id}`,
           rawId: s.smm_orders.id,
           type: "smm" as const,
-          category: "YouuHost Social Boost",
-          title: s.smm_services?.name || `YouuHost Service #${s.smm_orders.smmServiceId}`,
+          category: s.smm_services?.category ? `${s.smm_services.category} Boost` : "Social Media Boost",
+          title: s.smm_services?.name || `Social Service #${s.smm_orders.smmServiceId}`,
           smmCategory: s.smm_services?.category || "Social Media",
           smmLink: s.smm_orders.link || "",
           smmQuantity: s.smm_orders.quantity || 0,
@@ -2705,6 +2718,7 @@ export async function registerRoutes(
         const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
         const fixedLkr = sp.sandromania_products?.sellingPriceLkr;
         const costLkr = fixedLkr ? Number(fixedLkr) : Math.round(costUsd * lkrRate);
+        const isLkr = Boolean(fixedLkr && Number(fixedLkr) > 0);
 
         return {
           id: `YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
@@ -2715,8 +2729,8 @@ export async function registerRoutes(
           amountCents: -(sp.sandromania_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)}`,
-          currency: "USD",
+          amountFormatted: isLkr ? `-Rs. ${costLkr.toLocaleString()}` : `-$${costUsd.toFixed(2)}`,
+          currency: isLkr ? "LKR" : "USD",
           method: "wallet_balance",
           status: sp.sandromania_orders.status === "approved" ? "completed" : sp.sandromania_orders.status,
           reference: `#YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
@@ -8257,14 +8271,6 @@ app.post("/api/spam-protector/ban", isAuth, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
-const escapeHTML = (str: string = ''): string => {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-};
 
 const patchBotMethods = (targetBot: TelegramBot) => {
   if ((targetBot as any).__patched) return;

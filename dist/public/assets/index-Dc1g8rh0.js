@@ -74741,7 +74741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-C0vwFyiR.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CVGaJq3N.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87500,10 +87500,10 @@ function TelegramUsersPage() {
     let rounded = Math.round(rawLkr);
     for (const step of [1e3, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem === step - 1 || rem === step - 2) {
+      if (rem >= step - 6) {
         rounded += step - rem;
         break;
-      } else if (rem === 1 || rem === 2) {
+      } else if (rem <= 6 && rem > 0) {
         rounded -= rem;
         break;
       }
@@ -104321,12 +104321,24 @@ const compressImageToDataUrl = (file, maxWidth = 1e3, maxHeight = 1e3, quality =
 };
 const miniApiRequest = async (method, path, body) => {
   const initData = getTelegramInitData();
+  let headers = {
+    "Content-Type": "application/json",
+    "x-telegram-init-data": initData
+  };
+  try {
+    if (typeof window !== "undefined") {
+      const savedUserStr = localStorage.getItem("yh_active_user");
+      if (savedUserStr) {
+        const u2 = JSON.parse(savedUserStr);
+        if (u2?.id) headers["x-customer-user-id"] = String(u2.id);
+        if (u2?.email) headers["x-customer-email"] = u2.email;
+      }
+    }
+  } catch {
+  }
   const res = await fetch(path, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-telegram-init-data": initData
-    },
+    headers,
     credentials: "include",
     body: body ? JSON.stringify(body) : void 0
   });
@@ -104574,7 +104586,26 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
-  if (tx?.isApiOrder || type === "api" || method === "api_key" || method === "api" || title.includes("developer api") || title.includes("api key") || title.includes("api order") || title.includes("api purchase") || title.includes("api transaction")) {
+  const category = (tx?.category || "").toLowerCase();
+  const smmLink = (tx?.smmLink || "").toLowerCase();
+  const smmCategory = (tx?.smmCategory || "").toLowerCase();
+  if (type === "smm" || category.includes("smm") || category.includes("social") || smmCategory || smmLink || title.includes("facebook") || title.includes("instagram") || title.includes("youtube") || title.includes("tiktok") || title.includes("telegram")) {
+    const combinedStr = `${title} ${smmLink} ${smmCategory}`.toLowerCase();
+    let smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: combinedStr, type: tx?.smmCategory || "Social", className: "w-5 h-5" });
+    if (combinedStr.includes("facebook") || combinedStr.includes("fb")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaFacebook, { className: "w-5 h-5 text-[#1877F2]" });
+    } else if (combinedStr.includes("instagram") || combinedStr.includes("ig")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaInstagram, { className: "w-5 h-5 text-[#E1306C]" });
+    } else if (combinedStr.includes("youtube") || combinedStr.includes("yt")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaYoutube, { className: "w-5 h-5 text-[#FF0000]" });
+    } else if (combinedStr.includes("tiktok")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaTiktok, { className: "w-5 h-5 text-[#000000]" });
+    } else if (combinedStr.includes("telegram") || combinedStr.includes("t.me")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: "w-5 h-5 text-[#24A1DE]" });
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: smmIcon });
+  }
+  if (tx?.isApiOrder || type === "api" || method === "api_key" || method === "api" || title.includes("developer api") || title.includes("api key") || title.includes("api order") || title.includes("api purchase") || title.includes("api transaction") || title.includes("(api)")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
       {
@@ -104584,7 +104615,10 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
       }
     ) });
   }
-  if (method === "admin_topup" || method.includes("admin") || type === "admin_topup" || tx?.category?.toLowerCase().includes("youuhost") || tx?.category?.toLowerCase().includes("admin") || title.includes("youuhost") || title.includes("admin") || tx?.externalId?.startsWith("ADMIN") || tx?.externalId?.startsWith("INIT")) {
+  if (type === "partner" || type === "purchase") {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
+  }
+  if (method === "admin_topup" || type === "admin_topup" || category.includes("added funds") || title.includes("youuhost team") || tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT"))) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
       {
@@ -104613,12 +104647,6 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
   }
   if (method.includes("cryptomus") || title.includes("cryptomus") || title.includes("usdt")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(CryptomusLogo, { className: "w-5 h-5" }) });
-  }
-  if (type === "smm" || title.includes("smm") || tx?.category?.toLowerCase().includes("smm")) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.smmCategory || "Social", className: "w-5 h-5" }) });
-  }
-  if (type === "partner" || type === "purchase") {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${(tx?.amountCents || 0) > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-purple-50 text-[#5B42F3] border border-purple-100"}`, children: (tx?.amountCents || 0) > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDownLeft, { className: "w-5 h-5" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowUpRight, { className: "w-5 h-5" }) });
 };
@@ -105239,7 +105267,14 @@ function MiniAppShopModern() {
     queryKey: ["/api/mini/user"],
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/user");
-      return res.json();
+      const data = await res.json();
+      if (data && data.id && !data.isGuest) {
+        try {
+          localStorage.setItem("yh_active_user", JSON.stringify(data));
+        } catch {
+        }
+      }
+      return data;
     }
   });
   const { data: products2 = [], isLoading: productsLoading } = useQuery({
@@ -105625,12 +105660,39 @@ Support: https://t.me/youuhost_support
     const idNum = typeof item.id === "number" ? item.id : parseInt(String(item.id || 1).replace(/\D/g, ""), 10) || 1;
     const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
     const isGemini = title.includes("gemini");
-    const baseSold = isGemini ? 3800 + (idNum * 47 + 23) % 180 : 200 + (idNum * 67 + 31) % 401;
-    const reviewsCount = 10 + (idNum * 29 + 17) % 231;
-    const rating = (4.8 + idNum % 2 * 0.1).toFixed(1);
+    const BASE_ANCHOR = 17590176e5;
+    const now2 = Date.now();
+    const elapsedMs = Math.max(0, now2 - BASE_ANCHOR);
+    let dynamicSoldAddition = 0;
+    if (isGemini) {
+      const elapsedHours = elapsedMs / 36e5;
+      const fullHours = Math.floor(elapsedHours);
+      let cumSum = 0;
+      for (let h2 = 0; h2 < fullHours; h2++) {
+        cumSum += 6 + (idNum * 17 + h2 * 13) % 5;
+      }
+      const currentHourRate = 6 + (idNum * 17 + fullHours * 13) % 5;
+      const hourFraction = elapsedMs % 36e5 / 36e5;
+      const intraHourSold = Math.floor(hourFraction * currentHourRate);
+      dynamicSoldAddition = cumSum + intraHourSold;
+    } else {
+      const elapsedDays = elapsedMs / 864e5;
+      const fullDays = Math.floor(elapsedDays);
+      let cumSum = 0;
+      for (let d2 = 0; d2 < fullDays; d2++) {
+        cumSum += 5 + (idNum * 19 + d2 * 11) % 11;
+      }
+      const currentDayRate = 5 + (idNum * 19 + fullDays * 11) % 11;
+      const dayFraction = elapsedMs % 864e5 / 864e5;
+      const intraDaySold = Math.floor(dayFraction * currentDayRate);
+      dynamicSoldAddition = cumSum + intraDaySold;
+    }
+    const baseSold = isGemini ? 3680 + idNum % 7 : title.includes("facebook") ? 285 + idNum % 4 : 210 + (idNum * 53 + 19) % 240;
+    const reviewsCount = isGemini ? 56 + idNum % 5 : 10 + (idNum * 29 + 17) % 231;
+    const rating = isGemini ? "4.8" : (4.8 + idNum % 2 * 0.1).toFixed(1);
     const key = `${type}_${item.id}`;
     const extraSold = purchasedDeltas[key] || 0;
-    const sold = baseSold + extraSold;
+    const sold = baseSold + dynamicSoldAddition + extraSold;
     return { sold, rating, reviewsCount };
   };
   const { data: supportUserSetting } = useQuery({
@@ -105956,10 +106018,10 @@ ${finalDetails}`;
       let rounded = Math.round(rawLkr);
       for (const step of [1e3, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem === step - 1 || rem === step - 2) {
+        if (rem >= step - 6) {
           rounded += step - rem;
           break;
-        } else if (rem === 1 || rem === 2) {
+        } else if (rem <= 6 && rem > 0) {
           rounded -= rem;
           break;
         }
@@ -106323,6 +106385,10 @@ ${finalDetails}`;
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/customer/logout", { method: "POST" });
+      try {
+        localStorage.removeItem("yh_active_user");
+      } catch {
+      }
       toast2({
         title: "Signed Out",
         description: "You have been logged out successfully."
@@ -107383,10 +107449,9 @@ ${finalDetails}`;
                 }
                 return featuredList.map((p2, idx) => {
                   const priceFormatted = formatProductPrice(p2);
-                  favorites.includes(p2.id);
-                  const stats = bestSellersData?.allStats?.[p2.id] || p2;
-                  const totalSold = stats?.totalSoldCount || 3e3;
-                  const badgeLabel = stats?.badge || p2.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
+                  const stats = getItemStats(p2, "product");
+                  const totalSold = stats.sold;
+                  const badgeLabel = p2.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
                   const badgeGradient = idx % 2 === 0 ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
                   const isLightingActive = bestSellersData?.enableLightingBorder !== false;
                   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -108715,10 +108780,7 @@ ${finalDetails}`;
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 pt-4 border-t border-[#F5F4FC] flex items-center justify-between bg-[#F8F7FD] p-3.5 rounded-2xl", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-left", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold uppercase tracking-wider text-[#9490A8] block", children: "Wallet Balance" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-lg font-black text-[#181432]", children: [
-                  "$",
-                  ((user?.balance || 0) / 100).toFixed(2)
-                ] })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-black text-[#181432]", children: formatBalanceInCurrentCurrency(user?.balance || 0) })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Button,
@@ -109269,7 +109331,7 @@ ${finalDetails}`;
                       ] })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: selectedCurrency === "LKR" ? isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr || Math.round(Math.abs((tx.amountCents || 0) / 100) * lkrRate).toLocaleString()}` : isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd || Math.abs((tx.amountCents || 0) / 100).toFixed(2)}` }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: tx.amountFormatted || (tx.currency === "LKR" ? isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr}` : isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd}`) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${isSuccess ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : isRefunded ? "bg-sky-50 text-sky-600" : "bg-red-50 text-red-600"}`, children: tx.status })
                     ] })
                   ]
@@ -109310,7 +109372,7 @@ ${finalDetails}`;
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-white border border-[#ECEEF8] shadow-sm mx-auto mb-2 flex items-center justify-center p-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TransactionBrandIcon, { tx: selectedTxDetail, className: "w-10 h-10" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm sm:text-base font-black text-[#181432] line-clamp-1", children: selectedTxDetail.title }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10.5px] font-bold text-[#7E7998] mt-0.5", children: selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order") }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-2.5 p-3 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`, children: isDeposit ? `+Rs. ${selectedTxDetail.amountLkr || Math.round(selectedTxDetail.amountCents / 100 * lkrRate).toLocaleString()}` : `-Rs. ${selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()}` }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`, children: isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}` }) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-2.5 p-3 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`, children: selectedTxDetail.amountFormatted || (selectedTxDetail.currency === "LKR" ? isDeposit ? `+Rs. ${selectedTxDetail.amountLkr}` : `-Rs. ${selectedTxDetail.amountLkr}` : isDeposit ? `+$${selectedTxDetail.amountUsd}` : `-$${selectedTxDetail.amountUsd}`) }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-3.5 rounded-2xl border border-[#ECEEF8] space-y-2.5 text-[11.5px] shadow-2xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-[#F5F4FC]", children: [

@@ -191,12 +191,25 @@ const compressImageToDataUrl = (file: File, maxWidth = 1000, maxHeight = 1000, q
 // Helper for MiniApp API requests
 const miniApiRequest = async (method: string, path: string, body?: any) => {
   const initData = getTelegramInitData();
+  let headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-telegram-init-data": initData,
+  };
+
+  try {
+    if (typeof window !== "undefined") {
+      const savedUserStr = localStorage.getItem("yh_active_user");
+      if (savedUserStr) {
+        const u = JSON.parse(savedUserStr);
+        if (u?.id) headers["x-customer-user-id"] = String(u.id);
+        if (u?.email) headers["x-customer-email"] = u.email;
+      }
+    }
+  } catch {}
+
   const res = await fetch(path, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-telegram-init-data": initData,
-    },
+    headers,
     credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -489,8 +502,44 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
   const method = (tx?.method || "").toLowerCase();
   const type = (tx?.type || "").toLowerCase();
   const title = (tx?.title || "").toLowerCase();
+  const category = (tx?.category || "").toLowerCase();
+  const smmLink = (tx?.smmLink || "").toLowerCase();
+  const smmCategory = (tx?.smmCategory || "").toLowerCase();
 
-  // API Order / Transaction
+  // 1. SMM Boost Orders (Facebook, Instagram, YouTube, TikTok, Telegram, etc.)
+  if (
+    type === "smm" ||
+    category.includes("smm") ||
+    category.includes("social") ||
+    smmCategory ||
+    smmLink ||
+    title.includes("facebook") ||
+    title.includes("instagram") ||
+    title.includes("youtube") ||
+    title.includes("tiktok") ||
+    title.includes("telegram")
+  ) {
+    const combinedStr = `${title} ${smmLink} ${smmCategory}`.toLowerCase();
+    let smmIcon = <BrandIcon name={combinedStr} type={tx?.smmCategory || "Social"} className="w-5 h-5" />;
+    if (combinedStr.includes("facebook") || combinedStr.includes("fb")) {
+      smmIcon = <FaFacebook className="w-5 h-5 text-[#1877F2]" />;
+    } else if (combinedStr.includes("instagram") || combinedStr.includes("ig")) {
+      smmIcon = <FaInstagram className="w-5 h-5 text-[#E1306C]" />;
+    } else if (combinedStr.includes("youtube") || combinedStr.includes("yt")) {
+      smmIcon = <FaYoutube className="w-5 h-5 text-[#FF0000]" />;
+    } else if (combinedStr.includes("tiktok")) {
+      smmIcon = <FaTiktok className="w-5 h-5 text-[#000000]" />;
+    } else if (combinedStr.includes("telegram") || combinedStr.includes("t.me")) {
+      smmIcon = <FaTelegramPlane className="w-5 h-5 text-[#24A1DE]" />;
+    }
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`}>
+        {smmIcon}
+      </div>
+    );
+  }
+
+  // 2. Developer API Order / Transaction
   if (
     tx?.isApiOrder ||
     type === "api" ||
@@ -500,7 +549,8 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     title.includes("api key") ||
     title.includes("api order") ||
     title.includes("api purchase") ||
-    title.includes("api transaction")
+    title.includes("api transaction") ||
+    title.includes("(api)")
   ) {
     return (
       <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
@@ -513,16 +563,22 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     );
   }
 
+  // 3. Partner & Direct Cloud Purchases (Gemini, AWS, Linode, Azure, DigitalOcean, etc.)
+  if (type === "partner" || type === "purchase") {
+    return (
+      <div className={`${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`}>
+        <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-5 h-5" />
+      </div>
+    );
+  }
+
+  // 4. Admin Added Funds (YouuHost Team)
   if (
     method === "admin_topup" ||
-    method.includes("admin") ||
     type === "admin_topup" ||
-    tx?.category?.toLowerCase().includes("youuhost") ||
-    tx?.category?.toLowerCase().includes("admin") ||
-    title.includes("youuhost") ||
-    title.includes("admin") ||
-    tx?.externalId?.startsWith("ADMIN") ||
-    tx?.externalId?.startsWith("INIT")
+    category.includes("added funds") ||
+    title.includes("youuhost team") ||
+    (tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT")))
   ) {
     return (
       <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
@@ -538,6 +594,7 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     );
   }
 
+  // 5. Card Payment
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return (
@@ -550,6 +607,8 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
       </div>
     );
   }
+
+  // 6. Binance Pay
   if (method.includes("binance") || title.includes("binance")) {
     return (
       <div className={`${className} rounded-2xl bg-[#F3BA2F]/15 border border-[#F3BA2F]/30 flex items-center justify-center shrink-0 shadow-2xs`}>
@@ -557,24 +616,12 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
       </div>
     );
   }
+
+  // 7. Cryptomus
   if (method.includes("cryptomus") || title.includes("cryptomus") || title.includes("usdt")) {
     return (
       <div className={`${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`}>
         <CryptomusLogo className="w-5 h-5" />
-      </div>
-    );
-  }
-  if (type === "smm" || title.includes("smm") || tx?.category?.toLowerCase().includes("smm")) {
-    return (
-      <div className={`${className} rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 shadow-2xs`}>
-        <BrandIcon name={tx?.title} type={tx?.smmCategory || "Social"} className="w-5 h-5" />
-      </div>
-    );
-  }
-  if (type === "partner" || type === "purchase") {
-    return (
-      <div className={`${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs`}>
-        <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-5 h-5" />
       </div>
     );
   }
@@ -1283,7 +1330,11 @@ export default function MiniAppShopModern() {
     queryKey: ["/api/mini/user"],
     queryFn: async () => {
       const res = await miniApiRequest("GET", "/api/mini/user");
-      return res.json();
+      const data = await res.json();
+      if (data && data.id && !data.isGuest) {
+        try { localStorage.setItem("yh_active_user", JSON.stringify(data)); } catch {}
+      }
+      return data;
     },
   });
 
@@ -1763,26 +1814,65 @@ Support: https://t.me/youuhost_support
     });
   };
 
-  // Helper for computing randomized sold amounts (Gemini: 3800+, Others: 200-600) & ratings (10-240) + instant increments
+  // Dynamic realistic sold counts: Gemini increases by 6-10 every hour (minute-by-minute), others by 5-15 every 24 hours
   const getItemStats = (item: any, type: "product" | "sandromania" | "smm") => {
     if (!item) return { sold: 320, rating: "4.9", reviewsCount: 145 };
     const idNum = typeof item.id === "number" ? item.id : (parseInt(String(item.id || 1).replace(/\D/g, ""), 10) || 1);
     const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
     const isGemini = title.includes("gemini");
 
-    // Gemini items: 3,800+ random sold count
-    // Other items: 200 - 600 random sold count
-    const baseSold = isGemini 
-      ? 3800 + ((idNum * 47 + 23) % 180)
-      : 200 + ((idNum * 67 + 31) % 401);
+    // Anchor time: 2026-09-28 00:00:00 UTC
+    const BASE_ANCHOR = 1759017600000;
+    const now = Date.now();
+    const elapsedMs = Math.max(0, now - BASE_ANCHOR);
 
-    // Rating reviews count: 10 - 240
-    const reviewsCount = 10 + ((idNum * 29 + 17) % 231);
-    const rating = (4.8 + ((idNum % 2) * 0.1)).toFixed(1);
+    let dynamicSoldAddition = 0;
+
+    if (isGemini) {
+      // 6 to 10 every hour, spaced minute by minute throughout each hour
+      const elapsedHours = elapsedMs / 3600000;
+      const fullHours = Math.floor(elapsedHours);
+      let cumSum = 0;
+      for (let h = 0; h < fullHours; h++) {
+        cumSum += 6 + ((idNum * 17 + h * 13) % 5); // 6, 7, 8, 9, or 10
+      }
+      const currentHourRate = 6 + ((idNum * 17 + fullHours * 13) % 5);
+      const hourFraction = (elapsedMs % 3600000) / 3600000;
+      const intraHourSold = Math.floor(hourFraction * currentHourRate);
+      dynamicSoldAddition = cumSum + intraHourSold;
+    } else {
+      // 5 to 15 every 24 hours, spaced throughout the day
+      const elapsedDays = elapsedMs / 86400000;
+      const fullDays = Math.floor(elapsedDays);
+      let cumSum = 0;
+      for (let d = 0; d < fullDays; d++) {
+        cumSum += 5 + ((idNum * 19 + d * 11) % 11); // 5 to 15
+      }
+      const currentDayRate = 5 + ((idNum * 19 + fullDays * 11) % 11);
+      const dayFraction = (elapsedMs % 86400000) / 86400000;
+      const intraDaySold = Math.floor(dayFraction * currentDayRate);
+      dynamicSoldAddition = cumSum + intraDaySold;
+    }
+
+    // Base sold anchor:
+    // Gemini: 3680 + dynamic (~238) => ~3,918+
+    // Facebook: 285 + dynamic (~13) => ~298
+    // Others: 210 + modulo offset
+    const baseSold = isGemini 
+      ? 3680 + (idNum % 7)
+      : title.includes("facebook")
+      ? 285 + (idNum % 4)
+      : 210 + ((idNum * 53 + 19) % 240);
+
+    // Reviews count & rating
+    const reviewsCount = isGemini 
+      ? 56 + (idNum % 5)
+      : 10 + ((idNum * 29 + 17) % 231);
+    const rating = isGemini ? "4.8" : (4.8 + ((idNum % 2) * 0.1)).toFixed(1);
 
     const key = `${type}_${item.id}`;
     const extraSold = purchasedDeltas[key] || 0;
-    const sold = baseSold + extraSold;
+    const sold = baseSold + dynamicSoldAddition + extraSold;
 
     return { sold, rating, reviewsCount };
   };
@@ -2162,10 +2252,10 @@ Support: https://t.me/youuhost_support
       let rounded = Math.round(rawLkr);
       for (const step of [1000, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem === step - 1 || rem === step - 2) {
+        if (rem >= step - 6) {
           rounded += (step - rem);
           break;
-        } else if (rem === 1 || rem === 2) {
+        } else if (rem <= 6 && rem > 0) {
           rounded -= rem;
           break;
         }
@@ -2576,6 +2666,7 @@ Support: https://t.me/youuhost_support
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/customer/logout", { method: "POST" });
+      try { localStorage.removeItem("yh_active_user"); } catch {}
       toast({
         title: "Signed Out",
         description: "You have been logged out successfully.",
@@ -3853,10 +3944,9 @@ Support: https://t.me/youuhost_support
 
                     return featuredList.map((p: any, idx: number) => {
                       const priceFormatted = formatProductPrice(p);
-                      const isFav = favorites.includes(p.id);
-                      const stats = bestSellersData?.allStats?.[p.id] || p;
-                      const totalSold = stats?.totalSoldCount || 3000;
-                      const badgeLabel = stats?.badge || p.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
+                      const stats = getItemStats(p, "product");
+                      const totalSold = stats.sold;
+                      const badgeLabel = p.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
                       const badgeGradient = idx % 2 === 0
                         ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white"
                         : "bg-gradient-to-r from-[#8A2387] via-[#E94057] to-[#F27121] text-white";
@@ -5426,7 +5516,9 @@ Support: https://t.me/youuhost_support
                   <div className="mt-4 pt-4 border-t border-[#F5F4FC] flex items-center justify-between bg-[#F8F7FD] p-3.5 rounded-2xl">
                     <div className="text-left">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#9490A8] block">Wallet Balance</span>
-                      <span className="text-lg font-black text-[#181432]">${((user?.balance || 0) / 100).toFixed(2)}</span>
+                      <span className="text-lg font-black text-[#181432]">
+                        {formatBalanceInCurrentCurrency(user?.balance || 0)}
+                      </span>
                     </div>
                     <Button
                       onClick={() => setActiveTab("wallet")}
@@ -5993,9 +6085,9 @@ Support: https://t.me/youuhost_support
 
                                 <div className="text-right shrink-0">
                                   <div className={`text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`}>
-                                    {selectedCurrency === "LKR"
-                                      ? (isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr || Math.round(Math.abs((tx.amountCents || 0) / 100) * lkrRate).toLocaleString()}`)
-                                      : (isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd || Math.abs((tx.amountCents || 0) / 100).toFixed(2)}`)}
+                                    {tx.amountFormatted || (tx.currency === "LKR"
+                                      ? (isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr}`)
+                                      : (isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd}`))}
                                   </div>
                                   <span className={`text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${
                                     isSuccess
@@ -6080,19 +6172,11 @@ Support: https://t.me/youuhost_support
                       ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800"
                       : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"
                   }`}>
-                    {selectedCurrency === "LKR" ? (
-                      <div className={`text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`}>
-                        {isDeposit
-                          ? `+Rs. ${selectedTxDetail.amountLkr || Math.round((selectedTxDetail.amountCents / 100) * lkrRate).toLocaleString()}`
-                          : `-Rs. ${selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()}`}
-                      </div>
-                    ) : (
-                      <div className={`text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`}>
-                        {isDeposit
-                          ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}`
-                          : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}`}
-                      </div>
-                    )}
+                    <div className={`text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`}>
+                      {selectedTxDetail.amountFormatted || (selectedTxDetail.currency === "LKR"
+                        ? (isDeposit ? `+Rs. ${selectedTxDetail.amountLkr}` : `-Rs. ${selectedTxDetail.amountLkr}`)
+                        : (isDeposit ? `+$${selectedTxDetail.amountUsd}` : `-$${selectedTxDetail.amountUsd}`))}
+                    </div>
                   </div>
                 </div>
 

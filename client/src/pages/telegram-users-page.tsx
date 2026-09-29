@@ -162,10 +162,10 @@ export default function TelegramUsersPage() {
     let rounded = Math.round(rawLkr);
     for (const step of [1000, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem === step - 1 || rem === step - 2) {
+      if (rem >= step - 6) {
         rounded += (step - rem);
         break;
-      } else if (rem === 1 || rem === 2) {
+      } else if (rem <= 6 && rem > 0) {
         rounded -= rem;
         break;
       }
