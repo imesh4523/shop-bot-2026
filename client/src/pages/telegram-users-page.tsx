@@ -29,10 +29,17 @@ export default function TelegramUsersPage() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editBalance, setEditBalance] = useState<number>(0);
+  const [editBalanceLkr, setEditBalanceLkr] = useState<number>(0);
   const [search, setSearch] = useState("");
   const [accountTypeFilter, setAccountTypeFilter] = useState<"all" | "telegram" | "email">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "banned">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const { data: ratesData } = useQuery<{ rates?: Record<string, number> }>({
+    queryKey: ["/api/currency/rates"],
+    staleTime: 5 * 60 * 1000,
+  });
+  const lkrRate = ratesData?.rates?.LKR || 305.50;
 
   const { data: usersData, isLoading, isError, refetch } = useQuery<TelegramUser[]>({
     queryKey: ["/api/telegram-users"],
@@ -60,8 +67,8 @@ export default function TelegramUsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
       toast({
-        title: "User Updated",
-        description: "User balance has been updated.",
+        title: "User Balance Updated",
+        description: "User balance has been updated in both USD and LKR successfully.",
       });
       setEditingId(null);
     },
@@ -151,7 +158,29 @@ export default function TelegramUsersPage() {
 
   const handleEdit = (user: TelegramUser) => {
     setEditingId(user.id);
-    setEditBalance((user.balance || 0) / 100);
+    const usd = (user.balance || 0) / 100;
+    setEditBalance(usd);
+    setEditBalanceLkr(Math.round(usd * lkrRate));
+  };
+
+  const handleUsdChange = (val: number) => {
+    setEditBalance(val);
+    setEditBalanceLkr(Math.round(val * lkrRate));
+  };
+
+  const handleLkrChange = (val: number) => {
+    setEditBalanceLkr(val);
+    setEditBalance(Number((val / lkrRate).toFixed(2)));
+  };
+
+  const handleQuickAdd = (type: "usd" | "lkr", amount: number) => {
+    if (type === "usd") {
+      const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
+      handleUsdChange(newUsd);
+    } else {
+      const newLkr = Math.max(0, editBalanceLkr + amount);
+      handleLkrChange(newLkr);
+    }
   };
 
   const handleSave = () => {
@@ -404,9 +433,14 @@ export default function TelegramUsersPage() {
                       )}
                     </div>
 
-                    <p className="text-xs text-purple-300 font-bold">
-                      Wallet Balance: ${(((user.balance || 0)) / 100).toFixed(2)} USD
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                        💵 ${(((user.balance || 0)) / 100).toFixed(2)} USD
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        🇱🇰 Rs. {Math.round((((user.balance || 0)) / 100) * lkrRate).toLocaleString()} LKR
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -477,38 +511,100 @@ export default function TelegramUsersPage() {
         </div>
       )}
 
-      {/* Edit Balance Modal */}
+      {/* Edit Balance Modal (Dual Currency USD & LKR) */}
       <Dialog open={editingId !== null} onOpenChange={(open) => !open && setEditingId(null)}>
-        <DialogContent className="border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md">
+        <DialogContent className="border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white font-bold text-lg">Edit User Balance</DialogTitle>
+            <DialogTitle className="text-white font-bold text-lg flex items-center justify-between">
+              <span>Edit User Balance</span>
+              <span className="text-xs font-semibold text-purple-400 font-mono">1 USD ≈ {lkrRate} LKR</span>
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label className="text-white/70 text-xs font-bold">Balance ($)</Label>
+            {/* USD Input Field */}
+            <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+              <div className="flex items-center justify-between">
+                <Label className="text-purple-300 text-xs font-bold flex items-center gap-1.5">
+                  💵 Balance ($ USD)
+                </Label>
+                <span className="text-[10px] text-white/40">Primary System Currency</span>
+              </div>
               <Input
                 type="number"
                 step="0.01"
                 value={editBalance}
-                onChange={(e) => setEditBalance(parseFloat(e.target.value) || 0)}
-                className="border-white/10 bg-black/40 text-white"
+                onChange={(e) => handleUsdChange(parseFloat(e.target.value) || 0)}
+                className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
               />
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+
+            {/* LKR Input Field */}
+            <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+              <div className="flex items-center justify-between">
+                <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                  🇱🇰 Balance (Rs. LKR)
+                </Label>
+                <span className="text-[10px] text-white/40">Sri Lankan Rupees</span>
+              </div>
+              <Input
+                type="number"
+                step="1"
+                value={editBalanceLkr}
+                onChange={(e) => handleLkrChange(parseFloat(e.target.value) || 0)}
+                className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+              />
+            </div>
+
+            {/* Quick Adjustment Shortcuts */}
+            <div className="space-y-1.5">
+              <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Adjustments</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd("lkr", 500)}
+                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
+                >
+                  +Rs. 500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd("lkr", 1000)}
+                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
+                >
+                  +Rs. 1,000
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd("lkr", 5000)}
+                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
+                >
+                  +Rs. 5,000
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAdd("usd", 5)}
+                  className="px-2 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-[11px] font-bold transition-all"
+                >
+                  +$5.00
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
               <Button
                 variant="outline"
                 onClick={() => setEditingId(null)}
-                className="border-white/10 text-white hover:bg-white/10"
+                className="border-white/10 text-white hover:bg-white/10 rounded-xl"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={mutation.isPending}
-                className="bg-purple-600 text-white hover:bg-purple-700"
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
               >
                 {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
-                Save Changes
+                Save Balance
               </Button>
             </div>
           </div>

@@ -3903,6 +3903,11 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(217 119 87 / var(--tw-bg-opacity, 1));
 }
 
+.bg-\[\#E0F7FA\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(224 247 250 / var(--tw-bg-opacity, 1));
+}
+
 .bg-\[\#E1F5FE\]{
   --tw-bg-opacity: 1;
   background-color: rgb(225 245 254 / var(--tw-bg-opacity, 1));
@@ -3941,6 +3946,11 @@ h1, h2, h3, h4, h5, h6 {
 .bg-\[\#E8F8EE\]{
   --tw-bg-opacity: 1;
   background-color: rgb(232 248 238 / var(--tw-bg-opacity, 1));
+}
+
+.bg-\[\#EBF3FC\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(235 243 252 / var(--tw-bg-opacity, 1));
 }
 
 .bg-\[\#EBF3FF\]{
@@ -4626,6 +4636,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .bg-purple-500\/10{
   background-color: rgb(168 85 247 / 0.1);
+}
+
+.bg-purple-500\/15{
+  background-color: rgb(168 85 247 / 0.15);
 }
 
 .bg-purple-500\/20{
@@ -5563,6 +5577,12 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.from-teal-100\/70{
+  --tw-gradient-from: rgb(204 251 241 / 0.7) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(204 251 241 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .from-transparent{
   --tw-gradient-from: transparent var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(0 0 0 / 0) var(--tw-gradient-to-position);
@@ -6201,6 +6221,10 @@ h1, h2, h3, h4, h5, h6 {
   --tw-gradient-to: #f43f5e var(--tw-gradient-to-position);
 }
 
+.to-sky-100\/40{
+  --tw-gradient-to: rgb(224 242 254 / 0.4) var(--tw-gradient-to-position);
+}
+
 .to-sky-200\/50{
   --tw-gradient-to: rgb(186 230 253 / 0.5) var(--tw-gradient-to-position);
 }
@@ -6769,10 +6793,6 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 13px;
 }
 
-.text-\[14px\]{
-  font-size: 14px;
-}
-
 .text-\[17px\]{
   font-size: 17px;
 }
@@ -6946,6 +6966,11 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(0 84 166 / var(--tw-text-opacity, 1));
 }
 
+.text-\[\#0078D4\]{
+  --tw-text-opacity: 1;
+  color: rgb(0 120 212 / var(--tw-text-opacity, 1));
+}
+
 .text-\[\#0078D7\]{
   --tw-text-opacity: 1;
   color: rgb(0 120 215 / var(--tw-text-opacity, 1));
@@ -6959,6 +6984,11 @@ h1, h2, h3, h4, h5, h6 {
 .text-\[\#0080FF\]{
   --tw-text-opacity: 1;
   color: rgb(0 128 255 / var(--tw-text-opacity, 1));
+}
+
+.text-\[\#00838F\]{
+  --tw-text-opacity: 1;
+  color: rgb(0 131 143 / var(--tw-text-opacity, 1));
 }
 
 .text-\[\#0089D6\]{
@@ -12329,16 +12359,17 @@ body:has(.tg-mini-app) {
     padding: 1.5rem;
   }
 
-  .md\:p-7{
-    padding: 1.75rem;
-  }
-
   .md\:p-8{
     padding: 2rem;
   }
 
   .md\:pb-0{
     padding-bottom: 0px;
+  }
+
+  .md\:text-2xl{
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
 
   .md\:text-3xl{
@@ -12354,10 +12385,6 @@ body:has(.tg-mini-app) {
   .md\:text-5xl{
     font-size: 3rem;
     line-height: 1;
-  }
-
-  .md\:text-\[22px\]{
-    font-size: 22px;
   }
 
   .md\:text-base{

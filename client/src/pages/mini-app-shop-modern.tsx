@@ -76,8 +76,8 @@ import {
   Paperclip
 } from "lucide-react";
 import { format } from "date-fns";
-import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode, FaWhatsapp } from "react-icons/fa";
-import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude, SiVisa, SiMastercard } from "react-icons/si";
+import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode, FaWhatsapp, FaWindows } from "react-icons/fa";
+import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiBinance, SiClaude, SiVisa, SiMastercard, SiCanva } from "react-icons/si";
 import { VscAzure } from "react-icons/vsc";
 import youuHostLogo from "@/assets/youuhost_logo.png";
 import { Button } from "@/components/ui/button";
@@ -595,6 +595,9 @@ const BrandIcon = ({
   if (n.includes("kamatera") || n.includes("kamtera") || n.includes("kamater") || n.includes("kamat")) {
     return <KamateraLogo className={className} />;
   }
+  if (n.includes("windows")) {
+    return <FaWindows className={`${className} text-[#0078D7]`} />;
+  }
 
   // 2. Social & Media Accounts
   if (n.includes("spotify")) {
@@ -616,7 +619,28 @@ const BrandIcon = ({
     return <FaTelegramPlane className={`${className} text-[#24A1DE]`} />;
   }
 
-  // 3. AI & Tools
+  // 3. Email & Productivity
+  if (n.includes("hotmail") || n.includes("outlook") || n.includes("mail")) {
+    return (
+      <img 
+        src="https://img.icons8.com/color/96/microsoft-outlook-2019.png" 
+        alt="Hotmail / Outlook" 
+        className={`${className} object-contain`} 
+      />
+    );
+  }
+  if (n.includes("canva")) {
+    return <SiCanva className={`${className} text-[#00C4CC]`} />;
+  }
+  if (n.includes("adobe") || n.includes("photoshop") || n.includes("illustrator")) {
+    return (
+      <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none">
+        <path d="M14.5 3h7.5v18l-7.5-18zM9.5 3H2v18l7.5-18zm2.5 9.2l3.8 8.8h-3l-1.3-3.4h-3.4l2.4-5.4h1.5z" fill="#FA0F00"/>
+      </svg>
+    );
+  }
+
+  // 4. AI & Tools
   if (n.includes("chatgpt") || n.includes("openai") || n.includes("gpt")) {
     return <SiOpenai className={`${className} text-[#10A37F]`} />;
   }
@@ -696,6 +720,42 @@ const getProviderConfig = (name: string = "", type: string = "") => {
       bgBadge: "bg-[#E8F5E9] text-[#2E7D32]",
       blobColor: "from-emerald-100/70 to-teal-100/40",
       category: "linode",
+    };
+  }
+  if (n.includes("windows")) {
+    return {
+      tag: "Windows OS",
+      accent: "#0078D7",
+      bgBadge: "bg-[#E1F5FE] text-[#0277BD]",
+      blobColor: "from-sky-100/70 to-blue-100/40",
+      category: "windows",
+    };
+  }
+  if (n.includes("hotmail") || n.includes("outlook") || n.includes("mail")) {
+    return {
+      tag: "Hotmail / Outlook",
+      accent: "#0078D4",
+      bgBadge: "bg-[#EBF3FC] text-[#0078D4]",
+      blobColor: "from-blue-100/70 to-sky-100/40",
+      category: "hotmail",
+    };
+  }
+  if (n.includes("canva")) {
+    return {
+      tag: "Canva Pro",
+      accent: "#00C4CC",
+      bgBadge: "bg-[#E0F7FA] text-[#00838F]",
+      blobColor: "from-teal-100/70 to-cyan-100/40",
+      category: "canva",
+    };
+  }
+  if (n.includes("adobe") || n.includes("photoshop")) {
+    return {
+      tag: "Adobe Suite",
+      accent: "#FA0F00",
+      bgBadge: "bg-[#FFEBEE] text-[#C62828]",
+      blobColor: "from-red-100/70 to-orange-100/40",
+      category: "adobe",
     };
   }
   if (n.includes("spotify")) {

@@ -685,84 +685,104 @@ export default function ConnectedStoresTrackerPage() {
             id="printable-statement" 
             className="bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white"
           >
-            {/* Top Logo */}
-            <div className="text-center mb-5">
-              <div className="inline-flex items-center text-2xl font-black tracking-tight select-none">
-                <span className="text-[#FF5C5C]">youu</span>
-                <span className="text-[#5B42F3]">host</span>
+            {/* Top Logo & Header */}
+            <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="YouuHost" className="w-10 h-10 object-contain rounded-xl shadow-xs" />
+                <div className="flex items-baseline text-2xl font-black tracking-tight select-none">
+                  <span className="text-[#FF5C5C]">youu</span>
+                  <span className="text-[#5B42F3]">host</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xl md:text-2xl font-black tracking-wider text-[#111827]">INVOICE</span>
               </div>
             </div>
 
-            {/* Main White Card Container matching buildOrderCredentialsEmailHtml */}
-            <div className="bg-white rounded-[24px] border border-[#f1f5f9] shadow-sm p-6 md:p-7">
-              {/* Header: Order Confirmed with Verified Badge */}
-              <h2 className="text-xl md:text-[22px] font-bold text-[#111827] mb-2 text-center tracking-tight flex items-center justify-center gap-1.5">
-                <span>Order Confirmed</span>
-                <img 
-                  src="https://img.icons8.com/color/96/verified-badge.png" 
-                  alt="Verified" 
-                  className="w-5 h-5 inline-block"
-                />
-              </h2>
-
-              <div className="text-[14px] font-semibold text-[#475569] mb-1.5 text-center">
-                Hello {selectedInvoiceOrder 
-                  ? (selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer")
-                  : (filteredOrders.length > 0 && filteredOrders[0].customerName 
-                    ? filteredOrders[0].customerName 
-                    : "Valued Customer")},
-              </div>
-
-              <p className="text-[13px] leading-relaxed text-[#64748b] mb-5 text-center max-w-[360px] mx-auto">
-                Your purchase has been processed successfully. Below are the order receipt details for Order <strong>#{selectedInvoiceOrder 
-                  ? selectedInvoiceOrder.id 
-                  : (filteredOrders.length > 0 ? (filteredOrders[0] as any).rawId || filteredOrders[0].id : "SUMMARY")}</strong>.
-              </p>
-
-              {/* Order Date & Channel Subtitle */}
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-4 text-[11.5px] text-slate-600 flex items-center justify-between">
-                <div>
-                  <span className="text-slate-400">Date: </span>
+            {/* Clean, Separated & Well-Spaced Info Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-5 text-[12px]">
+              {/* Invoice Details Card */}
+              <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
+                <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Invoice Details</p>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span className="text-slate-400">Invoice No:</span>
+                  <strong className="text-slate-900 font-bold font-mono">
+                    {selectedInvoiceOrder ? `INV-${selectedInvoiceOrder.id}` : `PARTNER-${filteredOrders.length}`}
+                  </strong>
+                </div>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span className="text-slate-400">Date:</span>
                   <span className="font-semibold text-slate-800">
                     {selectedInvoiceOrder && selectedInvoiceOrder.createdAt
                       ? new Date(selectedInvoiceOrder.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
                       : new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </span>
                 </div>
-                <div>
-                  <span className="text-slate-400">Store: </span>
-                  <span className="font-semibold text-purple-700">
-                    {selectedInvoiceOrder ? (selectedInvoiceOrder.storeName || selectedInvoiceOrder.storeSource) : activeStoreName}
+                <div className="flex items-center justify-between pt-0.5">
+                  <span className="text-slate-400">Payment Status:</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    PAID
                   </span>
                 </div>
               </div>
 
-              {/* OFFICIAL INVOICE TABLE (EXACT MATCH TO PHOTO 2 & EMAIL TEMPLATE) */}
-              <table className="w-full text-left text-xs border-collapse my-4">
+              {/* Billed To Card */}
+              <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
+                <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Billed To</p>
+                <p className="font-bold text-slate-900 truncate">
+                  {selectedInvoiceOrder 
+                    ? (selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer")
+                    : (filteredOrders.length > 0 && filteredOrders[0].customerName 
+                      ? filteredOrders[0].customerName 
+                      : "@cheak_imesh")}
+                </p>
+                <p className="text-slate-500 truncate text-[11px]">
+                  {selectedInvoiceOrder?.customerEmail || (filteredOrders.length > 0 ? filteredOrders[0]?.customerEmail : "imeshcheak@gmail.com") || "customer@youuhost.com"}
+                </p>
+                <p className="text-slate-600 text-[10.5px] truncate pt-0.5">
+                  <span className="text-slate-400">Channel:</span> <span className="font-semibold text-purple-700">{activeStoreName}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Main White Card Container */}
+            <div className="bg-white rounded-[24px] border border-[#f1f5f9] shadow-sm p-4 md:p-6">
+              {/* OFFICIAL INVOICE TABLE */}
+              <table className="w-full text-left text-xs border-collapse my-2">
                 <thead>
                   <tr className="border-t border-b border-[#e2e8f0] text-[#111827] text-[12px] font-semibold">
-                    <th className="py-2 px-1 text-left font-semibold">Description</th>
-                    <th className="py-2 px-1 text-right font-semibold">Unit price</th>
-                    <th className="py-2 px-1 text-center font-semibold">Qty</th>
-                    <th className="py-2 px-1 text-right font-semibold">Amount</th>
+                    <th className="py-2.5 px-1.5 text-left font-bold">Description</th>
+                    <th className="py-2.5 px-1.5 text-right font-bold whitespace-nowrap">Unit price</th>
+                    <th className="py-2.5 px-1.5 text-center font-bold">Qty</th>
+                    <th className="py-2.5 px-1.5 text-right font-bold whitespace-nowrap">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#f1f5f9] text-[12.5px]">
+                <tbody className="divide-y divide-[#f1f5f9] text-[12px]">
                   {selectedInvoiceOrder ? (
-                    <tr>
-                      <td className="py-3 px-1 font-normal text-[#475569] leading-snug">
-                        {selectedInvoiceOrder.productName}
-                      </td>
-                      <td className="py-3 px-1 text-right font-normal text-[#475569] whitespace-nowrap">
-                        ${parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)} USD
-                      </td>
-                      <td className="py-3 px-1 text-center font-normal text-[#475569]">
-                        1
-                      </td>
-                      <td className="py-3 px-1 text-right font-semibold text-[#111827] whitespace-nowrap">
-                        ${parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)} USD
-                      </td>
-                    </tr>
+                    (() => {
+                      const qty = selectedInvoiceOrder.quantity || 1;
+                      const unitUsd = selectedInvoiceOrder.unitPriceUsd 
+                        ? parseFloat(selectedInvoiceOrder.unitPriceUsd) 
+                        : (parseFloat(selectedInvoiceOrder.priceUsd) / qty);
+                      const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || (unitUsd * qty);
+                      return (
+                        <tr>
+                          <td className="py-3 px-1.5 font-medium text-[#475569] leading-snug">
+                            <span className="font-semibold text-purple-600 mr-1">+P</span>
+                            <span>{selectedInvoiceOrder.productName}</span>
+                          </td>
+                          <td className="py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap">
+                            ${unitUsd.toFixed(2)} USD
+                          </td>
+                          <td className="py-3 px-1.5 text-center font-bold text-slate-800">
+                            {qty}
+                          </td>
+                          <td className="py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap">
+                            ${totalUsd.toFixed(2)} USD
+                          </td>
+                        </tr>
+                      );
+                    })()
                   ) : filteredOrders.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-5 text-center text-slate-400 text-xs italic">
@@ -770,21 +790,26 @@ export default function ConnectedStoresTrackerPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.slice(0, 10).map((ord, idx) => {
-                      const usd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
+                    filteredOrders.slice(0, 15).map((ord, idx) => {
+                      const qty = ord.quantity || 1;
+                      const unitUsd = ord.unitPriceUsd 
+                        ? parseFloat(ord.unitPriceUsd) 
+                        : ((parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty);
+                      const totalUsd = parseFloat(ord.priceUsd) || (unitUsd * qty);
                       return (
                         <tr key={idx}>
-                          <td className="py-2.5 px-1 font-normal text-[#475569] leading-snug">
-                            {ord.productName}
+                          <td className="py-2.5 px-1.5 font-medium text-[#475569] leading-snug">
+                            <span className="font-semibold text-purple-600 mr-1">+P</span>
+                            <span>{ord.productName}</span>
                           </td>
-                          <td className="py-2.5 px-1 text-right font-normal text-[#475569] whitespace-nowrap">
-                            ${usd.toFixed(2)} USD
+                          <td className="py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap">
+                            ${unitUsd.toFixed(2)} USD
                           </td>
-                          <td className="py-2.5 px-1 text-center font-normal text-[#475569]">
-                            1
+                          <td className="py-2.5 px-1.5 text-center font-bold text-slate-800">
+                            {qty}
                           </td>
-                          <td className="py-2.5 px-1 text-right font-semibold text-[#111827] whitespace-nowrap">
-                            ${usd.toFixed(2)} USD
+                          <td className="py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap">
+                            ${totalUsd.toFixed(2)} USD
                           </td>
                         </tr>
                       );
@@ -794,48 +819,48 @@ export default function ConnectedStoresTrackerPage() {
                   {/* Discounts Row */}
                   <tr className="border-t border-[#f1f5f9]">
                     <td colSpan={2}></td>
-                    <td className="py-2 px-1 text-right text-[11.5px] text-[#64748b]">Discounts</td>
-                    <td className="py-2 px-1 text-right text-[11.5px] text-[#64748b]">$0.00</td>
+                    <td className="py-2 px-1.5 text-right text-[11.5px] text-[#64748b]">Discounts</td>
+                    <td className="py-2 px-1.5 text-right text-[11.5px] text-[#64748b]">$0.00</td>
                   </tr>
 
                   {/* Subtotal Row */}
                   <tr>
                     <td colSpan={2}></td>
-                    <td className="py-1 px-1 text-right text-[11.5px] text-[#64748b]">Subtotal</td>
-                    <td className="py-1 px-1 text-right text-[11.5px] text-[#64748b]">
+                    <td className="py-1 px-1.5 text-right text-[11.5px] text-[#64748b]">Subtotal</td>
+                    <td className="py-1 px-1.5 text-right text-[11.5px] font-semibold text-[#64748b]">
                       ${selectedInvoiceOrder 
                         ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)
-                        : calculatedTotalUsd.toFixed(2)}
+                        : calculatedTotalUsd.toFixed(2)} USD
                     </td>
                   </tr>
 
                   {/* Total Row */}
                   <tr>
                     <td colSpan={2}></td>
-                    <td className="py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]">Total</td>
-                    <td className="py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]">
+                    <td className="py-1.5 px-1.5 text-right text-[12.5px] font-bold text-[#111827]">Total</td>
+                    <td className="py-1.5 px-1.5 text-right text-[12.5px] font-black text-[#111827]">
                       ${selectedInvoiceOrder 
                         ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)
-                        : calculatedTotalUsd.toFixed(2)}
+                        : calculatedTotalUsd.toFixed(2)} USD
                     </td>
                   </tr>
 
                   {/* Payment Row */}
                   <tr>
                     <td colSpan={2}></td>
-                    <td className="py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]">Payment</td>
-                    <td className="py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]">
+                    <td className="py-1.5 px-1.5 text-right text-[12.5px] font-bold text-[#00d166]">Payment</td>
+                    <td className="py-1.5 px-1.5 text-right text-[12.5px] font-black text-[#00d166]">
                       ${selectedInvoiceOrder 
                         ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)
-                        : calculatedTotalUsd.toFixed(2)}
+                        : calculatedTotalUsd.toFixed(2)} USD
                     </td>
                   </tr>
 
-                  {/* Settled Price in LKR (exact configured sellingPriceLkr) */}
+                  {/* Settled Price in LKR */}
                   <tr>
                     <td colSpan={2}></td>
-                    <td className="py-1 px-1 text-right text-[11px] font-semibold text-blue-600">Settled (LKR)</td>
-                    <td className="py-1 px-1 text-right text-[11px] font-bold text-blue-600">
+                    <td className="py-1 px-1.5 text-right text-[11px] font-semibold text-blue-600">Settled (LKR)</td>
+                    <td className="py-1 px-1.5 text-right text-[11px] font-black text-blue-600">
                       Rs. {selectedInvoiceOrder 
                         ? (selectedInvoiceOrder.priceLkr ? Number(selectedInvoiceOrder.priceLkr) : Math.round((parseFloat(selectedInvoiceOrder.priceUsd) || 0) * lkrRate)).toLocaleString()
                         : calculatedTotalLkr.toLocaleString()}
@@ -844,7 +869,7 @@ export default function ConnectedStoresTrackerPage() {
                 </tbody>
               </table>
 
-              {/* Action Button matching Email Template */}
+              {/* Action Button */}
               <div className="mt-5 mb-4 text-center print:hidden">
                 <Button 
                   onClick={handlePrintPdf}
@@ -856,15 +881,15 @@ export default function ConnectedStoresTrackerPage() {
 
               {/* Card Footer */}
               <div className="text-center text-[11px] text-[#64748b] leading-relaxed mt-4 pt-3 border-t border-slate-100">
-                Your official PDF invoice and digital credentials have been recorded.<br />
-                Best Regards, <strong className="text-[#111827]">YouuHost Team</strong>
+                Official verified ledger receipt generated for <strong className="text-[#111827]">{activeStoreName}</strong>.<br />
+                Best Regards, <strong className="text-[#111827]">YouuHost Cloud Systems</strong>
               </div>
             </div>
 
-            {/* Email Outer Footer Note */}
+            {/* Outer Footer Note */}
             <div className="mt-4 text-center text-[10px] text-[#94a3b8] leading-tight">
-              <p className="mb-0.5">https://youuhost.com</p>
-              <p>Automated delivery dispatch. Keep your credentials secure.</p>
+              <p className="mb-0.5 font-medium">https://youuhost.com • Official Store Tracker</p>
+              <p>Automated cloud sync & partner reconciliation.</p>
             </div>
           </div>
         </DialogContent>

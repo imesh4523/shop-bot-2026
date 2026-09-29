@@ -4002,9 +4002,14 @@ export async function registerRoutes(
 
       // Map Sandromania Orders
       const sandromaniaMapped = allSandromaniaOrders.map(sp => {
-        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const qty = sp.sandromania_orders.quantity || 1;
+        const totalCostUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const unitCostUsd = sp.sandromania_orders.costPriceUsd 
+          ? ((sp.sandromania_orders.costPriceUsd / 100)) 
+          : (sp.sandromania_products?.costPriceUsd ? (sp.sandromania_products.costPriceUsd / 100) : (totalCostUsd / (qty || 1)));
+        
         const fixedProdLkr = sp.sandromania_products?.sellingPriceLkr;
-        const priceLkr = fixedProdLkr ? Number(fixedProdLkr) : Math.round(costUsd * lkrRate);
+        const priceLkr = fixedProdLkr ? (Number(fixedProdLkr) * qty) : Math.round(totalCostUsd * lkrRate);
         const user = sp.telegram_users;
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
@@ -4013,9 +4018,18 @@ export async function registerRoutes(
           ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
           : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${sp.sandromania_orders.telegramUserId}`));
 
+        const extId = sp.sandromania_orders.externalOrderId;
+        const titleWithId = extId 
+          ? `${sp.sandromania_orders.productTitle || "Partner Digital Good"} (#${extId})`
+          : (sp.sandromania_orders.productTitle || "Partner Digital Good");
+
         return {
-          id: `YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
+          id: extId ? `YOUUHOST-${extId}` : `YOUUHOST-${2000 + sp.sandromania_orders.id}`,
           rawId: sp.sandromania_orders.id,
+          externalOrderId: extId,
+          quantity: qty,
+          unitPriceUsd: unitCostUsd.toFixed(2),
+          costPriceUsd: unitCostUsd.toFixed(2),
           isApiOrder: true,
           apiKeyId: null,
           apiKey: null,
@@ -4024,7 +4038,8 @@ export async function registerRoutes(
           storeSource: "Sandromania CDK Goods",
           channelId: "sandromania",
           productId: sp.sandromania_orders.sandromaniaProductId || 0,
-          productName: sp.sandromania_orders.productTitle || "Partner Digital Good",
+          productName: titleWithId,
+          rawProductName: sp.sandromania_orders.productTitle || "Partner Digital Good",
           buyer: buyerName,
           customerName: buyerUsername || buyerName,
           customerEmail: buyerEmail,
@@ -4032,7 +4047,7 @@ export async function registerRoutes(
           buyerEmail,
           buyerId: sp.sandromania_orders.telegramUserId,
           priceCents: sp.sandromania_orders.amountPaid || 0,
-          priceUsd: costUsd.toFixed(2),
+          priceUsd: totalCostUsd.toFixed(2),
           priceLkr,
           status: sp.sandromania_orders.status || "approved",
           deliveredContent: sp.sandromania_orders.deliveryText || null,
@@ -4042,9 +4057,13 @@ export async function registerRoutes(
 
       // Map CSxStore Orders
       const cssxMapped = allCssxOrders.map(co => {
-        const costUsd = ((co.cssx_orders.amountPaid || 0) / 100);
+        const qty = (co.cssx_orders as any).quantity || 1;
+        const totalCostUsd = ((co.cssx_orders.amountPaid || 0) / 100);
+        const unitCostUsd = co.cssx_products?.costPriceUsd 
+          ? (co.cssx_products.costPriceUsd / 100) 
+          : (totalCostUsd / (qty || 1));
         const fixedProdLkr = co.cssx_products?.sellingPriceLkr;
-        const priceLkr = fixedProdLkr ? Number(fixedProdLkr) : Math.round(costUsd * lkrRate);
+        const priceLkr = fixedProdLkr ? (Number(fixedProdLkr) * qty) : Math.round(totalCostUsd * lkrRate);
         const user = co.telegram_users;
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
@@ -4053,9 +4072,18 @@ export async function registerRoutes(
           ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
           : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${co.cssx_orders.telegramUserId}`));
 
+        const extId = co.cssx_orders.externalOrderId;
+        const titleWithId = extId 
+          ? `${co.cssx_orders.productTitle || "Partner Digital Good"} (#${extId})`
+          : (co.cssx_orders.productTitle || "Partner Digital Good");
+
         return {
-          id: `YOUUHOST-CSX-${co.cssx_orders.externalOrderId || (3000 + co.cssx_orders.id)}`,
+          id: extId ? `YOUUHOST-CSX-${extId}` : `YOUUHOST-CSX-${3000 + co.cssx_orders.id}`,
           rawId: co.cssx_orders.id,
+          externalOrderId: extId,
+          quantity: qty,
+          unitPriceUsd: unitCostUsd.toFixed(2),
+          costPriceUsd: unitCostUsd.toFixed(2),
           isApiOrder: true,
           apiKeyId: null,
           apiKey: null,
@@ -4064,7 +4092,8 @@ export async function registerRoutes(
           storeSource: "CSxStore CDK Goods",
           channelId: "cssx",
           productId: co.cssx_orders.cssxProductId || co.cssx_orders.serviceId || 0,
-          productName: co.cssx_orders.productTitle || "Partner Digital Good",
+          productName: titleWithId,
+          rawProductName: co.cssx_orders.productTitle || "Partner Digital Good",
           buyer: buyerName,
           customerName: buyerUsername || buyerName,
           customerEmail: buyerEmail,
@@ -4072,7 +4101,7 @@ export async function registerRoutes(
           buyerEmail,
           buyerId: co.cssx_orders.telegramUserId,
           priceCents: co.cssx_orders.amountPaid || 0,
-          priceUsd: costUsd.toFixed(2),
+          priceUsd: totalCostUsd.toFixed(2),
           priceLkr,
           status: co.cssx_orders.status || "completed",
           deliveredContent: co.cssx_orders.deliveryText || null,

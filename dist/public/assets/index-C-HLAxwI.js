@@ -74752,7 +74752,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BbY4hXWp.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-C86yE3VK.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87408,10 +87408,16 @@ function TelegramUsersPage() {
   const { toast: toast2 } = useToast();
   const [editingId, setEditingId] = reactExports.useState(null);
   const [editBalance, setEditBalance] = reactExports.useState(0);
+  const [editBalanceLkr, setEditBalanceLkr] = reactExports.useState(0);
   const [search, setSearch] = reactExports.useState("");
   const [accountTypeFilter, setAccountTypeFilter] = reactExports.useState("all");
   const [statusFilter, setStatusFilter] = reactExports.useState("all");
   const [currentPage, setCurrentPage] = reactExports.useState(1);
+  const { data: ratesData } = useQuery({
+    queryKey: ["/api/currency/rates"],
+    staleTime: 5 * 60 * 1e3
+  });
+  const lkrRate = ratesData?.rates?.LKR || 305.5;
   const { data: usersData, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/telegram-users"],
     retry: 1
@@ -87433,8 +87439,8 @@ function TelegramUsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
       toast2({
-        title: "User Updated",
-        description: "User balance has been updated."
+        title: "User Balance Updated",
+        description: "User balance has been updated in both USD and LKR successfully."
       });
       setEditingId(null);
     }
@@ -87501,7 +87507,26 @@ function TelegramUsersPage() {
   };
   const handleEdit = (user) => {
     setEditingId(user.id);
-    setEditBalance((user.balance || 0) / 100);
+    const usd = (user.balance || 0) / 100;
+    setEditBalance(usd);
+    setEditBalanceLkr(Math.round(usd * lkrRate));
+  };
+  const handleUsdChange = (val) => {
+    setEditBalance(val);
+    setEditBalanceLkr(Math.round(val * lkrRate));
+  };
+  const handleLkrChange = (val) => {
+    setEditBalanceLkr(val);
+    setEditBalance(Number((val / lkrRate).toFixed(2)));
+  };
+  const handleQuickAdd = (type, amount) => {
+    if (type === "usd") {
+      const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
+      handleUsdChange(newUsd);
+    } else {
+      const newLkr = Math.max(0, editBalanceLkr + amount);
+      handleLkrChange(newLkr);
+    }
   };
   const handleSave = () => {
     if (editingId !== null) {
@@ -87726,10 +87751,17 @@ function TelegramUsersPage() {
                   user.telegramId
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-purple-300 font-bold", children: [
-                "Wallet Balance: $",
-                ((user.balance || 0) / 100).toFixed(2),
-                " USD"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2 pt-0.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-black bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1", children: [
+                  "💵 $",
+                  ((user.balance || 0) / 100).toFixed(2),
+                  " USD"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1", children: [
+                  "🇱🇰 Rs. ",
+                  Math.round((user.balance || 0) / 100 * lkrRate).toLocaleString(),
+                  " LKR"
+                ] })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
@@ -87801,29 +87833,96 @@ function TelegramUsersPage() {
         )
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: editingId !== null, onOpenChange: (open2) => !open2 && setEditingId(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTitle, { className: "text-white font-bold text-lg", children: "Edit User Balance" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: editingId !== null, onOpenChange: (open2) => !open2 && setEditingId(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md shadow-2xl", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-white font-bold text-lg flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Edit User Balance" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-semibold text-purple-400 font-mono", children: [
+          "1 USD ≈ ",
+          lkrRate,
+          " LKR"
+        ] })
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-white/70 text-xs font-bold", children: "Balance ($)" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-purple-300 text-xs font-bold flex items-center gap-1.5", children: "💵 Balance ($ USD)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Primary System Currency" })
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Input,
             {
               type: "number",
               step: "0.01",
               value: editBalance,
-              onChange: (e) => setEditBalance(parseFloat(e.target.value) || 0),
-              className: "border-white/10 bg-black/40 text-white"
+              onChange: (e) => handleUsdChange(parseFloat(e.target.value) || 0),
+              className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
             }
           )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-3 pt-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-emerald-300 text-xs font-bold flex items-center gap-1.5", children: "🇱🇰 Balance (Rs. LKR)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Sri Lankan Rupees" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "number",
+              step: "1",
+              value: editBalanceLkr,
+              onChange: (e) => handleLkrChange(parseFloat(e.target.value) || 0),
+              className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-white/50 uppercase tracking-wider", children: "Quick Adjustments" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-4 gap-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => handleQuickAdd("lkr", 500),
+                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
+                children: "+Rs. 500"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => handleQuickAdd("lkr", 1e3),
+                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
+                children: "+Rs. 1,000"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => handleQuickAdd("lkr", 5e3),
+                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
+                children: "+Rs. 5,000"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => handleQuickAdd("usd", 5),
+                className: "px-2 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-[11px] font-bold transition-all",
+                children: "+$5.00"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-3 pt-3 border-t border-white/10", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
             {
               variant: "outline",
               onClick: () => setEditingId(null),
-              className: "border-white/10 text-white hover:bg-white/10",
+              className: "border-white/10 text-white hover:bg-white/10 rounded-xl",
               children: "Cancel"
             }
           ),
@@ -87832,10 +87931,10 @@ function TelegramUsersPage() {
             {
               onClick: handleSave,
               disabled: mutation.isPending,
-              className: "bg-purple-600 text-white hover:bg-purple-700",
+              className: "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg",
               children: [
                 mutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-1.5" }),
-                "Save Changes"
+                "Save Balance"
               ]
             }
           )
@@ -104530,6 +104629,9 @@ const BrandIcon = ({
   if (n2.includes("kamatera") || n2.includes("kamtera") || n2.includes("kamater") || n2.includes("kamat")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(KamateraLogo, { className });
   }
+  if (n2.includes("windows")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(FaWindows, { className: `${className} text-[#0078D7]` });
+  }
   if (n2.includes("spotify")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(FaSpotify, { className: `${className} text-[#1DB954]` });
   }
@@ -104547,6 +104649,22 @@ const BrandIcon = ({
   }
   if (n2.includes("telegram")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: `${className} text-[#24A1DE]` });
+  }
+  if (n2.includes("hotmail") || n2.includes("outlook") || n2.includes("mail")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "https://img.icons8.com/color/96/microsoft-outlook-2019.png",
+        alt: "Hotmail / Outlook",
+        className: `${className} object-contain`
+      }
+    );
+  }
+  if (n2.includes("canva")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(SiCanva, { className: `${className} text-[#00C4CC]` });
+  }
+  if (n2.includes("adobe") || n2.includes("photoshop") || n2.includes("illustrator")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: `${className} shrink-0`, viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 3h7.5v18l-7.5-18zM9.5 3H2v18l7.5-18zm2.5 9.2l3.8 8.8h-3l-1.3-3.4h-3.4l2.4-5.4h1.5z", fill: "#FA0F00" }) });
   }
   if (n2.includes("chatgpt") || n2.includes("openai") || n2.includes("gpt")) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(SiOpenai, { className: `${className} text-[#10A37F]` });
@@ -104619,6 +104737,42 @@ const getProviderConfig = (name = "", type = "") => {
       bgBadge: "bg-[#E8F5E9] text-[#2E7D32]",
       blobColor: "from-emerald-100/70 to-teal-100/40",
       category: "linode"
+    };
+  }
+  if (n2.includes("windows")) {
+    return {
+      tag: "Windows OS",
+      accent: "#0078D7",
+      bgBadge: "bg-[#E1F5FE] text-[#0277BD]",
+      blobColor: "from-sky-100/70 to-blue-100/40",
+      category: "windows"
+    };
+  }
+  if (n2.includes("hotmail") || n2.includes("outlook") || n2.includes("mail")) {
+    return {
+      tag: "Hotmail / Outlook",
+      accent: "#0078D4",
+      bgBadge: "bg-[#EBF3FC] text-[#0078D4]",
+      blobColor: "from-blue-100/70 to-sky-100/40",
+      category: "hotmail"
+    };
+  }
+  if (n2.includes("canva")) {
+    return {
+      tag: "Canva Pro",
+      accent: "#00C4CC",
+      bgBadge: "bg-[#E0F7FA] text-[#00838F]",
+      blobColor: "from-teal-100/70 to-cyan-100/40",
+      category: "canva"
+    };
+  }
+  if (n2.includes("adobe") || n2.includes("photoshop")) {
+    return {
+      tag: "Adobe Suite",
+      accent: "#FA0F00",
+      bgBadge: "bg-[#FFEBEE] text-[#C62828]",
+      blobColor: "from-red-100/70 to-orange-100/40",
+      category: "adobe"
     };
   }
   if (n2.includes("spotify")) {
@@ -119985,116 +120139,131 @@ function ConnectedStoresTrackerPage() {
           id: "printable-statement",
           className: "bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white",
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center mb-5", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "inline-flex items-center text-2xl font-black tracking-tight select-none", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#FF5C5C]", children: "youu" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#5B42F3]", children: "host" })
-            ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[24px] border border-[#f1f5f9] shadow-sm p-6 md:p-7", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl md:text-[22px] font-bold text-[#111827] mb-2 text-center tracking-tight flex items-center justify-center gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Order Confirmed" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "img",
-                  {
-                    src: "https://img.icons8.com/color/96/verified-badge.png",
-                    alt: "Verified",
-                    className: "w-5 h-5 inline-block"
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[14px] font-semibold text-[#475569] mb-1.5 text-center", children: [
-                "Hello ",
-                selectedInvoiceOrder ? selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer" : filteredOrders.length > 0 && filteredOrders[0].customerName ? filteredOrders[0].customerName : "Valued Customer",
-                ","
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[13px] leading-relaxed text-[#64748b] mb-5 text-center max-w-[360px] mx-auto", children: [
-                "Your purchase has been processed successfully. Below are the order receipt details for Order ",
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("strong", { children: [
-                  "#",
-                  selectedInvoiceOrder ? selectedInvoiceOrder.id : filteredOrders.length > 0 ? filteredOrders[0].rawId || filteredOrders[0].id : "SUMMARY"
-                ] }),
-                "."
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-4 text-[11.5px] text-slate-600 flex items-center justify-between", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Date: " }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-800", children: selectedInvoiceOrder && selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Store: " }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-700", children: selectedInvoiceOrder ? selectedInvoiceOrder.storeName || selectedInvoiceOrder.storeSource : activeStoreName })
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-5 border-b border-slate-100 mb-5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/logo.png", alt: "YouuHost", className: "w-10 h-10 object-contain rounded-xl shadow-xs" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-baseline text-2xl font-black tracking-tight select-none", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#FF5C5C]", children: "youu" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#5B42F3]", children: "host" })
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs border-collapse my-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xl md:text-2xl font-black tracking-wider text-[#111827]", children: "INVOICE" }) })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-5 text-[12px]", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] font-black uppercase tracking-wider text-slate-400", children: "Invoice Details" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-slate-600", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Invoice No:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-slate-900 font-bold font-mono", children: selectedInvoiceOrder ? `INV-${selectedInvoiceOrder.id}` : `PARTNER-${filteredOrders.length}` })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-slate-600", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Date:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-800", children: selectedInvoiceOrder && selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-0.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Payment Status:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200", children: "PAID" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] font-black uppercase tracking-wider text-slate-400", children: "Billed To" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-slate-900 truncate", children: selectedInvoiceOrder ? selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer" : filteredOrders.length > 0 && filteredOrders[0].customerName ? filteredOrders[0].customerName : "@cheak_imesh" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-slate-500 truncate text-[11px]", children: selectedInvoiceOrder?.customerEmail || (filteredOrders.length > 0 ? filteredOrders[0]?.customerEmail : "imeshcheak@gmail.com") || "customer@youuhost.com" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-slate-600 text-[10.5px] truncate pt-0.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Channel:" }),
+                  " ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-700", children: activeStoreName })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[24px] border border-[#f1f5f9] shadow-sm p-4 md:p-6", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-xs border-collapse my-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t border-b border-[#e2e8f0] text-[#111827] text-[12px] font-semibold", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-left font-semibold", children: "Description" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-right font-semibold", children: "Unit price" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-center font-semibold", children: "Qty" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2 px-1 text-right font-semibold", children: "Amount" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2.5 px-1.5 text-left font-bold", children: "Description" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2.5 px-1.5 text-right font-bold whitespace-nowrap", children: "Unit price" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2.5 px-1.5 text-center font-bold", children: "Qty" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-2.5 px-1.5 text-right font-bold whitespace-nowrap", children: "Amount" })
                 ] }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("tbody", { className: "divide-y divide-[#f1f5f9] text-[12.5px]", children: [
-                  selectedInvoiceOrder ? /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1 font-normal text-[#475569] leading-snug", children: selectedInvoiceOrder.productName }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1 text-right font-normal text-[#475569] whitespace-nowrap", children: [
-                      "$",
-                      parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2),
-                      " USD"
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1 text-center font-normal text-[#475569]", children: "1" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1 text-right font-semibold text-[#111827] whitespace-nowrap", children: [
-                      "$",
-                      parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2),
-                      " USD"
-                    ] })
-                  ] }) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 10).map((ord, idx) => {
-                    const usd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("tbody", { className: "divide-y divide-[#f1f5f9] text-[12px]", children: [
+                  selectedInvoiceOrder ? (() => {
+                    const qty = selectedInvoiceOrder.quantity || 1;
+                    const unitUsd = selectedInvoiceOrder.unitPriceUsd ? parseFloat(selectedInvoiceOrder.unitPriceUsd) : parseFloat(selectedInvoiceOrder.priceUsd) / qty;
+                    const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || unitUsd * qty;
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1 font-normal text-[#475569] leading-snug", children: ord.productName }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-1", children: "+P" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: selectedInvoiceOrder.productName })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap", children: [
                         "$",
-                        usd.toFixed(2),
+                        unitUsd.toFixed(2),
                         " USD"
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1 text-center font-normal text-[#475569]", children: "1" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1 text-right font-semibold text-[#111827] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 text-center font-bold text-slate-800", children: qty }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap", children: [
                         "$",
-                        usd.toFixed(2),
+                        totalUsd.toFixed(2),
+                        " USD"
+                      ] })
+                    ] });
+                  })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 15).map((ord, idx) => {
+                    const qty = ord.quantity || 1;
+                    const unitUsd = ord.unitPriceUsd ? parseFloat(ord.unitPriceUsd) : (parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty;
+                    const totalUsd = parseFloat(ord.priceUsd) || unitUsd * qty;
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-1", children: "+P" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ord.productName })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                        "$",
+                        unitUsd.toFixed(2),
+                        " USD"
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 text-center font-bold text-slate-800", children: qty }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap", children: [
+                        "$",
+                        totalUsd.toFixed(2),
                         " USD"
                       ] })
                     ] }, idx);
                   }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t border-[#f1f5f9]", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1 text-right text-[11.5px] text-[#64748b]", children: "Discounts" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1 text-right text-[11.5px] text-[#64748b]", children: "$0.00" })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1.5 text-right text-[11.5px] text-[#64748b]", children: "Discounts" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2 px-1.5 text-right text-[11.5px] text-[#64748b]", children: "$0.00" })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1 text-right text-[11.5px] text-[#64748b]", children: "Subtotal" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1 text-right text-[11.5px] text-[#64748b]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1.5 text-right text-[11.5px] text-[#64748b]", children: "Subtotal" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1.5 text-right text-[11.5px] font-semibold text-[#64748b]", children: [
                       "$",
-                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2),
+                      " USD"
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]", children: "Total" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#111827]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1.5 text-right text-[12.5px] font-bold text-[#111827]", children: "Total" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1.5 text-right text-[12.5px] font-black text-[#111827]", children: [
                       "$",
-                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2),
+                      " USD"
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]", children: "Payment" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1 text-right text-[12.5px] font-bold text-[#00d166]", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1.5 text-right text-[12.5px] font-bold text-[#00d166]", children: "Payment" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1.5 text-right text-[12.5px] font-black text-[#00d166]", children: [
                       "$",
-                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2)
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2),
+                      " USD"
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1 text-right text-[11px] font-semibold text-blue-600", children: "Settled (LKR)" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1 text-right text-[11px] font-bold text-blue-600", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1.5 text-right text-[11px] font-semibold text-blue-600", children: "Settled (LKR)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1.5 text-right text-[11px] font-black text-blue-600", children: [
                       "Rs. ",
                       selectedInvoiceOrder ? (selectedInvoiceOrder.priceLkr ? Number(selectedInvoiceOrder.priceLkr) : Math.round((parseFloat(selectedInvoiceOrder.priceUsd) || 0) * lkrRate)).toLocaleString() : calculatedTotalLkr.toLocaleString()
                     ] })
@@ -120110,15 +120279,17 @@ function ConnectedStoresTrackerPage() {
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center text-[11px] text-[#64748b] leading-relaxed mt-4 pt-3 border-t border-slate-100", children: [
-                "Your official PDF invoice and digital credentials have been recorded.",
+                "Official verified ledger receipt generated for ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-[#111827]", children: activeStoreName }),
+                ".",
                 /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
                 "Best Regards, ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-[#111827]", children: "YouuHost Team" })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-[#111827]", children: "YouuHost Cloud Systems" })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 text-center text-[10px] text-[#94a3b8] leading-tight", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-0.5", children: "https://youuhost.com" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Automated delivery dispatch. Keep your credentials secure." })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-0.5 font-medium", children: "https://youuhost.com • Official Store Tracker" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Automated cloud sync & partner reconciliation." })
             ] })
           ]
         }

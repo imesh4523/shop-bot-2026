@@ -28,10 +28,23 @@ export const pool = new Pool({
   }
 });
 
-// Test connection
+// Test connection & ensure session table
 pool.connect()
-  .then(client => {
+  .then(async client => {
     console.log('Successfully connected to database');
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "session" (
+          "sid" varchar NOT NULL COLLATE "default",
+          "sess" json NOT NULL,
+          "expire" timestamp(6) NOT NULL,
+          CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+        ) WITH (OIDS=FALSE);
+        CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+      `);
+    } catch (e) {
+      console.error('Error ensuring session table:', e);
+    }
     client.release();
   })
   .catch(err => {
