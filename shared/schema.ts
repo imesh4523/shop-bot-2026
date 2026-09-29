@@ -540,6 +540,8 @@ export const sandromaniaProducts = pgTable("sandromania_products", {
   costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
   sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
   sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"), // in cents
   category: text("category").default("general"),
   bulkPrices: text("bulk_prices"),
   description: text("description"),
@@ -601,6 +603,8 @@ export const cssxProducts = pgTable("cssx_products", {
   costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
   sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
   sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"), // in cents
   category: text("category").default("general"),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),

@@ -136,3 +136,10 @@ body:has(.tg-mini-app) {
 .dark body:has(.tg-mini-app) {
   background: #121212 !important;
 }
+
+/* Security: Prevent asset dragging and raw code scraping */
+img, a {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+

@@ -100,6 +100,8 @@ export default function SandromaniaPage() {
   const [editSellingPriceLkr, setEditSellingPriceLkr] = useState<string>("");
   const [editCategory, setEditCategory] = useState<string>("general");
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  const [editShowOnTelegram, setEditShowOnTelegram] = useState<boolean>(false);
+  const [editTelegramPriceUsd, setEditTelegramPriceUsd] = useState<string>("");
 
   // Import Modal State
   const [importSearch, setImportSearch] = useState("");
@@ -315,6 +317,8 @@ export default function SandromaniaPage() {
     setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)));
     setEditCategory(prod.category || "general");
     setEditIsActive(prod.isActive !== false);
+    setEditShowOnTelegram(Boolean(prod.showOnTelegram));
+    setEditTelegramPriceUsd(prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
   };
 
   const handleSaveEdit = () => {
@@ -341,6 +345,9 @@ export default function SandromaniaPage() {
       lkrVal = Math.round(usdVal * 305.5);
     }
 
+    let tgUsdVal = parseFloat(editTelegramPriceUsd);
+    const tgPriceCents = (!isNaN(tgUsdVal) && tgUsdVal > 0) ? Math.round(tgUsdVal * 100) : null;
+
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
@@ -349,6 +356,8 @@ export default function SandromaniaPage() {
         sellingPriceLkr: Math.round(lkrVal),
         category: editCategory.trim(),
         isActive: editIsActive,
+        showOnTelegram: editShowOnTelegram,
+        telegramPriceUsd: tgPriceCents,
       },
     });
   };
@@ -594,7 +603,7 @@ export default function SandromaniaPage() {
                         <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20">
                           {prod.category || "General"}
                         </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               prod.stock > 0
@@ -604,7 +613,32 @@ export default function SandromaniaPage() {
                           >
                             Stock: {prod.stock}
                           </span>
+
+                          {/* Quick Toggle: Show in Telegram */}
+                          <div 
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all ${
+                              prod.showOnTelegram 
+                                ? "bg-blue-500/15 border-blue-500/30 text-blue-500 dark:text-blue-400 font-extrabold" 
+                                : "bg-muted/40 border-muted text-muted-foreground font-medium"
+                            }`}
+                            title="Toggle Show on Telegram"
+                          >
+                            <Send className="w-2.5 h-2.5" />
+                            <span className="text-[9px]">TG: {prod.showOnTelegram ? "ON" : "OFF"}</span>
+                            <Switch
+                              className="scale-75"
+                              checked={!!prod.showOnTelegram}
+                              onCheckedChange={(checked) =>
+                                updateProductMutation.mutate({
+                                  id: prod.id,
+                                  updates: { showOnTelegram: checked },
+                                })
+                              }
+                            />
+                          </div>
+
                           <Switch
+                            title="Active in Store"
                             checked={prod.isActive}
                             onCheckedChange={(checked) =>
                               updateProductMutation.mutate({
@@ -636,6 +670,17 @@ export default function SandromaniaPage() {
                           <span className="text-xs font-bold text-emerald-600">+${profitUsd}</span>
                         </div>
                       </div>
+
+                      {prod.showOnTelegram && (
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs mb-3 text-blue-600 dark:text-blue-400 font-bold">
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <Send className="w-3 h-3" /> Telegram Price:
+                          </span>
+                          <span className="font-black text-blue-700 dark:text-blue-300">
+                            ${prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : sellingUsd} USD
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t gap-2">
@@ -1101,10 +1146,44 @@ export default function SandromaniaPage() {
               </div>
             </div>
 
+            {/* Telegram Price & Telegram Show Switch */}
+            <div className="p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Show in Telegram
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Enable product in Telegram Bot catalog & Telegram Mini-App
+                  </span>
+                </div>
+                <Switch checked={editShowOnTelegram} onCheckedChange={setEditShowOnTelegram} />
+              </div>
+
+              {editShowOnTelegram && (
+                <div className="pt-1">
+                  <label className="text-xs font-bold text-blue-600 dark:text-blue-400 block mb-1">
+                    Telegram Price ($ USD - Strictly USD)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 1.20"
+                    value={editTelegramPriceUsd}
+                    onChange={(e) => setEditTelegramPriceUsd(e.target.value)}
+                    className="font-bold text-xs rounded-xl border-blue-500/30 bg-blue-50/20 dark:bg-blue-950/20"
+                  />
+                  <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                    Special price used exclusively when customers browse and purchase via Telegram (USD only).
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border">
               <div>
                 <span className="text-xs font-bold block">Active in Store</span>
-                <span className="text-[10px] text-muted-foreground">Enable customer purchases in Mini App</span>
+                <span className="text-[10px] text-muted-foreground">Enable customer purchases on Web Store</span>
               </div>
               <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
             </div>

@@ -11980,7 +11980,7 @@ const SendHorizontal = createLucideIcon("SendHorizontal", [
   ],
   ["path", { d: "M6 12h16", key: "s4cdu5" }]
 ]);
-const Send = createLucideIcon("Send", [
+const Send$1 = createLucideIcon("Send", [
   [
     "path",
     {
@@ -20366,7 +20366,7 @@ function LayoutShell({ children }) {
     { name: "Referral Program", href: "/imeshadmindashbord/referrals", icon: Users },
     { name: "Spam Protector", href: "/imeshadmindashbord/spam-protector", icon: ShieldAlert },
     { name: "Telegram Inspector", href: "/imeshadmindashbord/telegram-inspector", icon: Smile },
-    { name: "Telegram AI", href: "/imeshadmindashbord/telegram-client", icon: Send },
+    { name: "Telegram AI", href: "/imeshadmindashbord/telegram-client", icon: Send$1 },
     { name: "Auto Forward", href: "/imeshadmindashbord/forward", icon: Share2 },
     { name: "Settings", href: "/imeshadmindashbord/settings", icon: Settings }
   ];
@@ -30863,6 +30863,9 @@ const sandromaniaProducts = pgTable("sandromania_products", {
   sellingPriceUsd: integer("selling_price_usd").notNull().default(0),
   // in cents
   sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"),
+  // in cents
   category: text("category").default("general"),
   bulkPrices: text("bulk_prices"),
   description: text("description"),
@@ -30903,6 +30906,9 @@ const cssxProducts = pgTable("cssx_products", {
   sellingPriceUsd: integer("selling_price_usd").notNull().default(0),
   // in cents
   sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"),
+  // in cents
   category: text("category").default("general"),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),
@@ -74764,7 +74770,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BPHy6bnH.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DmML-0Ga.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -78335,7 +78341,7 @@ function BroadcastPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-5 h-5 text-blue-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-5 h-5 text-blue-400" }),
             "Forward Message"
           ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-4", children: [
@@ -87620,7 +87626,7 @@ function TelegramUsersPage() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-xs font-bold text-purple-300 shadow-sm", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-sky-400" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
             telegramCount,
             " Telegram"
@@ -87664,7 +87670,7 @@ function TelegramUsersPage() {
               onClick: () => handleAccountTypeChange("telegram"),
               className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${accountTypeFilter === "telegram" ? "bg-sky-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-300" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-sky-300" }),
                 "Telegram Users (",
                 telegramCount,
                 ")"
@@ -87800,7 +87806,7 @@ function TelegramUsersPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3 h-3 text-blue-400" }),
                   user.authProvider === "google" || user.telegramId?.startsWith("google:") ? "Google Account" : "Email Account"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3 h-3 text-sky-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3 h-3 text-sky-400" }),
                   " Telegram Bot"
                 ] }),
                 isUserBanned ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1", children: [
@@ -90184,7 +90190,7 @@ function TelegramClientPage() {
                   type: "submit",
                   disabled: !typedMessage.trim() || sendMessageMutation.isPending,
                   className: "bg-purple-600 hover:bg-purple-700 text-white h-11 w-11 p-0 flex items-center justify-center shadow-lg shadow-purple-600/10 shrink-0",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4" })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4" })
                 }
               )
             ]
@@ -90832,7 +90838,7 @@ function ForwardPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-panel border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent shadow-2xl rounded-[2rem] overflow-hidden", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "p-8 pb-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-5 h-5 text-purple-400" }),
             "Forward Configurations"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Configure the forward bot credentials and delivery settings" })
@@ -90936,7 +90942,7 @@ function ForwardPage() {
                 size: "sm",
                 className: "rounded-xl border-white/10 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border-amber-500/20 flex items-center gap-1.5 transition-all text-xs font-black py-4 px-3.5",
                 children: [
-                  testForwardMutation.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
+                  testForwardMutation.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
                   "Test Forward"
                 ]
               }
@@ -91510,7 +91516,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
                 disabled: isReplyingThis || !replyTexts[ticket.id]?.trim() && !replyAttachments[ticket.id] || isCompressingMap[ticket.id],
                 className: "w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-4 sm:px-5 flex items-center justify-center gap-2 h-10 sm:h-12 shrink-0 cursor-pointer text-xs sm:text-sm",
                 children: [
-                  isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
+                  isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
                   "Send Reply"
                 ]
               }
@@ -93315,7 +93321,7 @@ function MiniAppShop$1() {
                   onClick: handleSendChat,
                   disabled: !chatMessage.trim() || isSendingChat,
                   className: "w-10 h-10 rounded-xl bg-primary flex items-center justify-center transition-transform active:scale-90 disabled:opacity-50",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4 text-white" })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4 text-white" })
                 }
               )
             ] })
@@ -105932,7 +105938,7 @@ Support: https://t.me/youuhost_support
     const idNum = typeof item.id === "number" ? item.id : parseInt(String(item.id || 1).replace(/\D/g, ""), 10) || 1;
     const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
     const isGemini = title.includes("gemini");
-    const BASE_ANCHOR = 17590176e5;
+    const BASE_ANCHOR = 17906796e5;
     const now2 = Date.now();
     const elapsedMs = Math.max(0, now2 - BASE_ANCHOR);
     let dynamicSoldAddition = 0;
@@ -105959,7 +105965,7 @@ Support: https://t.me/youuhost_support
       const intraDaySold = Math.floor(dayFraction * currentDayRate);
       dynamicSoldAddition = cumSum + intraDaySold;
     }
-    const baseSold = isGemini ? 3680 + idNum % 7 : title.includes("facebook") ? 285 + idNum % 4 : 210 + (idNum * 53 + 19) % 240;
+    const baseSold = isGemini ? 4002 : 50 + (idNum * 67 + 31) % 351;
     const reviewsCount = isGemini ? 56 + idNum % 5 : 10 + (idNum * 29 + 17) % 231;
     const rating = isGemini ? "4.8" : (4.8 + idNum % 2 * 0.1).toFixed(1);
     const key = `${type}_${item.id}`;
@@ -106182,7 +106188,15 @@ ${finalDetails}`;
       refetchApiKeys();
     }
   });
+  const isTelegram = reactExports.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const initData = getTelegramInitData();
+    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
+    const hasTgObj = Boolean(window.Telegram?.WebApp?.initData);
+    return Boolean(initData || hasTgParam || hasTgObj);
+  }, []);
   const [selectedCurrency, setSelectedCurrency] = reactExports.useState(() => {
+    if (isTelegram) return "USD";
     const saved = localStorage.getItem("app_currency");
     if (saved === "LKR" || saved === "USD") return saved;
     try {
@@ -106226,12 +106240,12 @@ ${finalDetails}`;
       if (currencyData.rates?.LKR) {
         localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
       }
-      if (!localStorage.getItem("app_currency")) {
+      if (!isTelegram && !localStorage.getItem("app_currency")) {
         const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
         setSelectedCurrency(detected);
       }
     }
-  }, [currencyData]);
+  }, [currencyData, isTelegram]);
   const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
   const [binanceAmount, setBinanceAmount] = reactExports.useState(() => {
     return localStorage.getItem("app_currency") === "LKR" ? "1000" : "5";
@@ -106827,6 +106841,7 @@ ${finalDetails}`;
   const filteredSandromaniaProducts = reactExports.useMemo(() => {
     return sandromaniaProductsList.filter((p2) => {
       if (p2.isActive === false) return false;
+      if (isTelegram && !p2.showOnTelegram) return false;
       const title = cleanSandromaniaText(p2.title || "").toLowerCase();
       const cat = cleanSandromaniaText(p2.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -106834,10 +106849,11 @@ ${finalDetails}`;
       const matchesSearch = !searchQuery.trim() || title.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [sandromaniaProductsList, selectedCategory, searchQuery]);
+  }, [sandromaniaProductsList, selectedCategory, searchQuery, isTelegram]);
   const filteredCssxProducts = reactExports.useMemo(() => {
     return cssxProductsList.filter((p2) => {
       if (p2.isActive === false) return false;
+      if (isTelegram && !p2.showOnTelegram) return false;
       const title = (p2.title || "").toLowerCase();
       const cat = (p2.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -106845,7 +106861,7 @@ ${finalDetails}`;
       const matchesSearch = !searchQuery.trim() || title.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [cssxProductsList, selectedCategory, searchQuery]);
+  }, [cssxProductsList, selectedCategory, searchQuery, isTelegram]);
   const unifiedCatalogItems = reactExports.useMemo(() => {
     const list = [];
     filteredSmmServices.forEach((smm) => {
@@ -106891,6 +106907,10 @@ ${finalDetails}`;
   const formatSandromaniaPrice = (sandProdOrPriceCents, qty = 1) => {
     if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
       const prod = sandProdOrPriceCents;
+      if (isTelegram) {
+        const unitUsdCents = prod.telegramPriceUsd && prod.telegramPriceUsd > 0 ? prod.telegramPriceUsd : prod.sellingPriceUsd || 0;
+        return `$${(unitUsdCents * qty / 100).toFixed(2)}`;
+      }
       if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
         return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
       }
@@ -106905,6 +106925,9 @@ ${finalDetails}`;
     const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
+    if (isTelegram) {
+      return `$${usd.toFixed(2)}`;
+    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()}`;
@@ -106914,6 +106937,10 @@ ${finalDetails}`;
   const formatCssxPrice = (cssxProdOrPriceCents, qty = 1) => {
     if (typeof cssxProdOrPriceCents === "object" && cssxProdOrPriceCents !== null) {
       const prod = cssxProdOrPriceCents;
+      if (isTelegram) {
+        const unitUsdCents = prod.telegramPriceUsd && prod.telegramPriceUsd > 0 ? prod.telegramPriceUsd : prod.sellingPriceUsd || 0;
+        return `$${(unitUsdCents * qty / 100).toFixed(2)}`;
+      }
       if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
         return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
       }
@@ -106928,6 +106955,9 @@ ${finalDetails}`;
     const priceCents = typeof cssxProdOrPriceCents === "number" ? cssxProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
+    if (isTelegram) {
+      return `$${usd.toFixed(2)}`;
+    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()}`;
@@ -106945,9 +106975,10 @@ ${finalDetails}`;
       setActiveTab("profile");
       return;
     }
-    const itemLkr = detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round((detailSandromaniaProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+    const effUsdCents = isTelegram && detailSandromaniaProduct.telegramPriceUsd && detailSandromaniaProduct.telegramPriceUsd > 0 ? detailSandromaniaProduct.telegramPriceUsd : detailSandromaniaProduct.sellingPriceUsd || 0;
+    const itemLkr = isTelegram ? Math.round(effUsdCents / 100 * lkrRate) : detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round((detailSandromaniaProduct.sellingPriceUsd || 0) / 100 * lkrRate);
     const totalLkr = itemLkr * sandromaniaOrderQty;
-    const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+    const totalCents = effUsdCents * sandromaniaOrderQty;
     const totalPriceUsd = totalCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
@@ -106995,7 +107026,8 @@ ${finalDetails}`;
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
-        currency: selectedCurrency
+        currency: isTelegram ? "USD" : selectedCurrency,
+        platform: isTelegram ? "telegram" : "web"
       });
       await res.json();
       recordPurchasedDelta(`sandromania_${detailSandromaniaProduct.id}`, sandromaniaOrderQty);
@@ -107033,9 +107065,10 @@ ${finalDetails}`;
       setActiveTab("profile");
       return;
     }
-    const itemLkr = detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round((detailCssxProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+    const effUsdCents = isTelegram && detailCssxProduct.telegramPriceUsd && detailCssxProduct.telegramPriceUsd > 0 ? detailCssxProduct.telegramPriceUsd : detailCssxProduct.sellingPriceUsd || 0;
+    const itemLkr = isTelegram ? Math.round(effUsdCents / 100 * lkrRate) : detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round((detailCssxProduct.sellingPriceUsd || 0) / 100 * lkrRate);
     const totalLkr = itemLkr * cssxOrderQty;
-    const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+    const totalCents = effUsdCents * cssxOrderQty;
     const totalPriceUsd = totalCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
@@ -107083,7 +107116,8 @@ ${finalDetails}`;
       const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
         productId: detailCssxProduct.id,
         quantity: cssxOrderQty,
-        currency: selectedCurrency
+        currency: isTelegram ? "USD" : selectedCurrency,
+        platform: isTelegram ? "telegram" : "web"
       });
       await res.json();
       recordPurchasedDelta(`cssx_${detailCssxProduct.id}`, cssxOrderQty);
@@ -108425,7 +108459,10 @@ ${finalDetails}`;
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/80" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black uppercase tracking-wider text-purple-200/90", children: "Available Balance" })
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner", children: [
+            isTelegram ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 shadow-inner", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-black tracking-wide text-white", children: "USD ($) Only" })
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {
@@ -108448,7 +108485,7 @@ ${finalDetails}`;
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 mb-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-3xl sm:text-4xl font-black tracking-tight text-white flex items-baseline gap-1.5", children: formatBalanceInCurrentCurrency(user?.balance || 0) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-200/75 block mt-0.5", children: selectedCurrency === "USD" ? user?.balanceLkr != null && user.balanceLkr > 0 ? `≈ Rs. ${Number(user.balanceLkr).toLocaleString("en-US")} LKR` : `≈ Rs. ${((user?.balance || 0) / 100 * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD` })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-200/75 block mt-0.5", children: isTelegram ? `Telegram Wallet (USD)` : selectedCurrency === "USD" ? user?.balanceLkr != null && user.balanceLkr > 0 ? `≈ Rs. ${Number(user.balanceLkr).toLocaleString("en-US")} LKR` : `≈ Rs. ${((user?.balance || 0) / 100 * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD` })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2 pt-3 border-t border-white/10 relative z-10 text-[11px]", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-purple-100 font-bold", children: [
@@ -108954,7 +108991,7 @@ ${finalDetails}`;
                   /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
                   " Sending Verification Code..."
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
                   " Send 6-Digit Code"
                 ] })
               }
@@ -110729,7 +110766,7 @@ ${finalDetails}`;
             onClick: handleSendChat,
             disabled: isChatSending || !chatMsg.trim(),
             className: "w-9 h-9 rounded-full bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" })
           }
         )
       ] })
@@ -111473,7 +111510,7 @@ ${finalDetails}`;
               onClick: () => handleSendTicketReply(supportSelectedTicket.id),
               disabled: isReplyingTicket || !ticketReplyMsg.trim() && !replyAttachment,
               className: "w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95 cursor-pointer",
-              children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
+              children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" })
             }
           )
         ] })
@@ -112831,6 +112868,8 @@ function SandromaniaPage() {
   const [editSellingPriceLkr, setEditSellingPriceLkr] = reactExports.useState("");
   const [editCategory, setEditCategory] = reactExports.useState("general");
   const [editIsActive, setEditIsActive] = reactExports.useState(true);
+  const [editShowOnTelegram, setEditShowOnTelegram] = reactExports.useState(false);
+  const [editTelegramPriceUsd, setEditTelegramPriceUsd] = reactExports.useState("");
   const [importSearch, setImportSearch] = reactExports.useState("");
   const [markupPercent, setMarkupPercent] = reactExports.useState(40);
   const [selectedProductsToImport, setSelectedProductsToImport] = reactExports.useState([]);
@@ -113022,6 +113061,8 @@ function SandromaniaPage() {
     setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round((prod.sellingPriceUsd || 0) / 100 * 305.5)));
     setEditCategory(prod.category || "general");
     setEditIsActive(prod.isActive !== false);
+    setEditShowOnTelegram(Boolean(prod.showOnTelegram));
+    setEditTelegramPriceUsd(prod.telegramPriceUsd ? (prod.telegramPriceUsd / 100).toFixed(2) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
   };
   const handleSaveEdit = () => {
     if (!editingProduct) return;
@@ -113043,6 +113084,8 @@ function SandromaniaPage() {
     if (isNaN(lkrVal) || lkrVal <= 0) {
       lkrVal = Math.round(usdVal * 305.5);
     }
+    let tgUsdVal = parseFloat(editTelegramPriceUsd);
+    const tgPriceCents = !isNaN(tgUsdVal) && tgUsdVal > 0 ? Math.round(tgUsdVal * 100) : null;
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
@@ -113050,7 +113093,9 @@ function SandromaniaPage() {
         sellingPriceUsd: Math.round(usdVal * 100),
         sellingPriceLkr: Math.round(lkrVal),
         category: editCategory.trim(),
-        isActive: editIsActive
+        isActive: editIsActive,
+        showOnTelegram: editShowOnTelegram,
+        telegramPriceUsd: tgPriceCents
       }
     });
   };
@@ -113273,7 +113318,7 @@ function SandromaniaPage() {
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20", children: prod.category || "General" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 flex-wrap justify-end", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsxs(
                         "span",
                         {
@@ -113284,9 +113329,35 @@ function SandromaniaPage() {
                           ]
                         }
                       ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: `flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all ${prod.showOnTelegram ? "bg-blue-500/15 border-blue-500/30 text-blue-500 dark:text-blue-400 font-extrabold" : "bg-muted/40 border-muted text-muted-foreground font-medium"}`,
+                          title: "Toggle Show on Telegram",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-2.5 h-2.5" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px]", children: [
+                              "TG: ",
+                              prod.showOnTelegram ? "ON" : "OFF"
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              Switch,
+                              {
+                                className: "scale-75",
+                                checked: !!prod.showOnTelegram,
+                                onCheckedChange: (checked) => updateProductMutation.mutate({
+                                  id: prod.id,
+                                  updates: { showOnTelegram: checked }
+                                })
+                              }
+                            )
+                          ]
+                        }
+                      ),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
                         Switch,
                         {
+                          title: "Active in Store",
                           checked: prod.isActive,
                           onCheckedChange: (checked) => updateProductMutation.mutate({
                             id: prod.id,
@@ -113326,6 +113397,17 @@ function SandromaniaPage() {
                         "+$",
                         profitUsd
                       ] })
+                    ] })
+                  ] }),
+                  prod.showOnTelegram && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs mb-3 text-blue-600 dark:text-blue-400 font-bold", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-[11px]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3 h-3" }),
+                      " Telegram Price:"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-black text-blue-700 dark:text-blue-300", children: [
+                      "$",
+                      prod.telegramPriceUsd ? (prod.telegramPriceUsd / 100).toFixed(2) : sellingUsd,
+                      " USD"
                     ] })
                   ] })
                 ] }),
@@ -113788,10 +113870,37 @@ function SandromaniaPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-600/80 mt-0.5 block font-semibold", children: "Type Rs. to auto-set USD" })
           ] })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
+                " Show in Telegram"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground block", children: "Enable product in Telegram Bot catalog & Telegram Mini-App" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editShowOnTelegram, onCheckedChange: setEditShowOnTelegram })
+          ] }),
+          editShowOnTelegram && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-blue-600 dark:text-blue-400 block mb-1", children: "Telegram Price ($ USD - Strictly USD)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                step: "0.01",
+                placeholder: "e.g. 1.20",
+                value: editTelegramPriceUsd,
+                onChange: (e3) => setEditTelegramPriceUsd(e3.target.value),
+                className: "font-bold text-xs rounded-xl border-blue-500/30 bg-blue-50/20 dark:bg-blue-950/20"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground mt-0.5 block", children: "Special price used exclusively when customers browse and purchase via Telegram (USD only)." })
+          ] })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold block", children: "Active in Store" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "Enable customer purchases in Mini App" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "Enable customer purchases on Web Store" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editIsActive, onCheckedChange: setEditIsActive })
         ] }),
@@ -113855,6 +113964,8 @@ function CssxApiPage() {
   const [editCategory, setEditCategory] = reactExports.useState("General");
   const [editDescription, setEditDescription] = reactExports.useState("");
   const [editIsActive, setEditIsActive] = reactExports.useState(true);
+  const [editShowOnTelegram, setEditShowOnTelegram] = reactExports.useState(false);
+  const [editTelegramPriceUsd, setEditTelegramPriceUsd] = reactExports.useState("");
   const [importSearch, setImportSearch] = reactExports.useState("");
   const [markupPercent, setMarkupPercent] = reactExports.useState(40);
   const [selectedProductsToImport, setSelectedProductsToImport] = reactExports.useState([]);
@@ -114072,6 +114183,8 @@ function CssxApiPage() {
     setEditCategory(prod.category || "General");
     setEditDescription(prod.description || "");
     setEditIsActive(prod.isActive !== false);
+    setEditShowOnTelegram(Boolean(prod.showOnTelegram));
+    setEditTelegramPriceUsd(prod.telegramPriceUsd ? (prod.telegramPriceUsd / 100).toFixed(2) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
   };
   const handleSaveEdit = () => {
     if (!editingProduct) return;
@@ -114088,6 +114201,8 @@ function CssxApiPage() {
       return;
     }
     const priceCents = Math.round(usdVal * 100);
+    let tgUsdVal = parseFloat(editTelegramPriceUsd);
+    const tgPriceCents = !isNaN(tgUsdVal) && tgUsdVal > 0 ? Math.round(tgUsdVal * 100) : null;
     updateProductMutation.mutate({
       id: editingProduct.id,
       updates: {
@@ -114096,7 +114211,9 @@ function CssxApiPage() {
         sellingPriceLkr: Math.round(lkrVal),
         category: editCategory,
         description: editDescription,
-        isActive: editIsActive
+        isActive: editIsActive,
+        showOnTelegram: editShowOnTelegram,
+        telegramPriceUsd: tgPriceCents
       }
     });
   };
@@ -114446,14 +114563,42 @@ function CssxApiPage() {
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2 mb-2", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] font-black", children: p2.category || "General" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 flex-wrap justify-end", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-purple-400/60", children: [
                         "CSX #",
                         p2.serviceId
                       ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: `flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all ${p2.showOnTelegram ? "bg-blue-500/15 border-blue-500/30 text-blue-400 font-extrabold" : "bg-white/5 border-white/10 text-white/40 font-medium"}`,
+                          title: "Toggle Show on Telegram",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-2.5 h-2.5" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px]", children: [
+                              "TG: ",
+                              p2.showOnTelegram ? "ON" : "OFF"
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              Switch,
+                              {
+                                className: "scale-75",
+                                checked: !!p2.showOnTelegram,
+                                onCheckedChange: (checked) => {
+                                  updateProductMutation.mutate({
+                                    id: p2.id,
+                                    updates: { showOnTelegram: checked }
+                                  });
+                                }
+                              }
+                            )
+                          ]
+                        }
+                      ),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
                         Switch,
                         {
+                          title: "Active in Store",
                           checked: p2.isActive !== false,
                           onCheckedChange: (checked) => {
                             updateProductMutation.mutate({
@@ -114494,6 +114639,17 @@ function CssxApiPage() {
                         profitUsd.toFixed(2),
                         " Profit"
                       ] })
+                    ] })
+                  ] }),
+                  p2.showOnTelegram && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 font-bold", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-[11px]", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3 h-3" }),
+                      " Telegram Price:"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-black text-blue-300", children: [
+                      "$",
+                      p2.telegramPriceUsd ? (p2.telegramPriceUsd / 100).toFixed(2) : sellUsd.toFixed(2),
+                      " USD"
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-1", children: [
@@ -114684,7 +114840,7 @@ function CssxApiPage() {
                 disabled: isPlayingLoading,
                 className: "w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2",
                 children: [
-                  isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
+                  isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
                   "Send Live Request"
                 ]
               }
@@ -114871,10 +115027,37 @@ function CssxApiPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-emerald-600/80 mt-0.5 block font-semibold", children: "Type Rs. to auto-set USD" })
           ] })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-blue-400 flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
+                " Show in Telegram"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 block", children: "Enable product in Telegram Bot catalog & Telegram Mini-App" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editShowOnTelegram, onCheckedChange: setEditShowOnTelegram })
+          ] }),
+          editShowOnTelegram && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-blue-400 block mb-1", children: "Telegram Price ($ USD - Strictly USD)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                step: "0.01",
+                placeholder: "e.g. 1.20",
+                value: editTelegramPriceUsd,
+                onChange: (e3) => setEditTelegramPriceUsd(e3.target.value),
+                className: "font-bold text-xs rounded-xl border-blue-500/30 bg-blue-950/20 text-white"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 mt-0.5 block", children: "Special price used exclusively when customers browse and purchase via Telegram (USD only)." })
+          ] })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold block", children: "Active in Store" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground", children: "Enable customer purchases in Mini App" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold block text-white", children: "Active in Store" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60", children: "Enable customer purchases on Web Store" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(Switch, { checked: editIsActive, onCheckedChange: setEditIsActive })
         ] }),
@@ -116758,7 +116941,7 @@ function DomainAutomationPage() {
               onClick: () => setTestEmailModal(true),
               className: "bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 mr-1" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 mr-1" }),
                 " Send Test Email"
               ]
             }
@@ -117163,7 +117346,7 @@ function DomainAutomationPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-purple-400" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Default Sender / From Address" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -117377,7 +117560,7 @@ function DomainAutomationPage() {
               disabled: isSendingTest,
               className: "bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-2",
               children: [
-                isSendingTest ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
+                isSendingTest ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
                 "Send Test Email"
               ]
             }
@@ -119324,7 +119507,7 @@ function EmailHubPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Total Dispatched" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-white", children: counts.total })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-5 w-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-5 w-5" }) })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
@@ -119351,7 +119534,7 @@ function EmailHubPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, className: "space-y-6", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-card/60 border border-white/10 p-1 rounded-xl", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "compose", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4" }),
           " Compose & Dispatch"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "logs", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
@@ -119740,7 +119923,7 @@ function EmailHubPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-4 w-4 mr-2 animate-spin" }),
                   "Dispatching Email..."
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4 mr-2" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4 mr-2" }),
                   recipientMode === "broadcast" ? `Broadcast to All ${userCount} Users` : "Send Verified Email Now"
                 ] })
               }

@@ -1864,8 +1864,8 @@ Support: https://t.me/youuhost_support
     const title = String(item.name || item.title || item.type || item.category || "").toLowerCase();
     const isGemini = title.includes("gemini");
 
-    // Anchor time: 2026-09-28 00:00:00 UTC
-    const BASE_ANCHOR = 1759017600000;
+    // Anchor time: 2026-09-29 11:00:00 UTC (Anchor matching current epoch)
+    const BASE_ANCHOR = 1790679600000;
     const now = Date.now();
     const elapsedMs = Math.max(0, now - BASE_ANCHOR);
 
@@ -1898,14 +1898,10 @@ Support: https://t.me/youuhost_support
     }
 
     // Base sold anchor:
-    // Gemini: 3680 + dynamic (~238) => ~3,918+
-    // Facebook: 285 + dynamic (~13) => ~298
-    // Others: 210 + modulo offset
+    // Gemini: 4002. All other products: random between 50 and 400
     const baseSold = isGemini 
-      ? 3680 + (idNum % 7)
-      : title.includes("facebook")
-      ? 285 + (idNum % 4)
-      : 210 + ((idNum * 53 + 19) % 240);
+      ? 4002
+      : 50 + ((idNum * 67 + 31) % 351);
 
     // Reviews count & rating
     const reviewsCount = isGemini 
@@ -2162,8 +2158,18 @@ Support: https://t.me/youuhost_support
     }
   });
 
-  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit
+  // Telegram detection: Telegram Mini-App or WebApp environment
+  const isTelegram = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const initData = getTelegramInitData();
+    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
+    const hasTgObj = Boolean((window as any).Telegram?.WebApp?.initData);
+    return Boolean(initData || hasTgParam || hasTgObj);
+  }, []);
+
+  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit. Telegram is strictly locked to USD.
   const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
+    if (isTelegram) return "USD";
     const saved = localStorage.getItem("app_currency");
     if (saved === "LKR" || saved === "USD") return saved;
     try {
@@ -2202,18 +2208,18 @@ Support: https://t.me/youuhost_support
     staleTime: 5 * 60 * 1000,
   });
 
-  // Auto-apply detected currency on first visit if user hasn't toggled yet
+  // Auto-apply detected currency on first visit if user hasn't toggled yet (skipped in Telegram)
   useEffect(() => {
     if (currencyData) {
       if (currencyData.rates?.LKR) {
         localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
       }
-      if (!localStorage.getItem("app_currency")) {
+      if (!isTelegram && !localStorage.getItem("app_currency")) {
         const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
         setSelectedCurrency(detected);
       }
     }
-  }, [currencyData]);
+  }, [currencyData, isTelegram]);
 
   const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
 
@@ -2919,6 +2925,8 @@ Support: https://t.me/youuhost_support
   const filteredSandromaniaProducts = useMemo(() => {
     return sandromaniaProductsList.filter((p: any) => {
       if (p.isActive === false) return false;
+      // In Telegram mode, only show if showOnTelegram toggle is turned ON
+      if (isTelegram && !p.showOnTelegram) return false;
       const title = cleanSandromaniaText(p.title || "").toLowerCase();
       const cat = cleanSandromaniaText(p.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -2936,12 +2944,14 @@ Support: https://t.me/youuhost_support
 
       return matchesCategory && matchesSearch;
     });
-  }, [sandromaniaProductsList, selectedCategory, searchQuery]);
+  }, [sandromaniaProductsList, selectedCategory, searchQuery, isTelegram]);
 
   // Filtered CSxStore Partner Products
   const filteredCssxProducts = useMemo(() => {
     return cssxProductsList.filter((p: any) => {
       if (p.isActive === false) return false;
+      // In Telegram mode, only show if showOnTelegram toggle is turned ON
+      if (isTelegram && !p.showOnTelegram) return false;
       const title = (p.title || "").toLowerCase();
       const cat = (p.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -2959,7 +2969,7 @@ Support: https://t.me/youuhost_support
 
       return matchesCategory && matchesSearch;
     });
-  }, [cssxProductsList, selectedCategory, searchQuery]);
+  }, [cssxProductsList, selectedCategory, searchQuery, isTelegram]);
 
   // Unified Catalog Items with In-Stock prioritized at the TOP and Out-of-Stock sorted to the BOTTOM
   const unifiedCatalogItems = useMemo(() => {
@@ -3025,6 +3035,10 @@ Support: https://t.me/youuhost_support
   const formatSandromaniaPrice = (sandProdOrPriceCents: any, qty: number = 1) => {
     if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
       const prod = sandProdOrPriceCents;
+      if (isTelegram) {
+        const unitUsdCents = (prod.telegramPriceUsd && prod.telegramPriceUsd > 0) ? prod.telegramPriceUsd : (prod.sellingPriceUsd || 0);
+        return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
+      }
       if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
         return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
       }
@@ -3039,6 +3053,9 @@ Support: https://t.me/youuhost_support
     const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
+    if (isTelegram) {
+      return `$${usd.toFixed(2)}`;
+    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()}`;
@@ -3050,6 +3067,10 @@ Support: https://t.me/youuhost_support
   const formatCssxPrice = (cssxProdOrPriceCents: any, qty: number = 1) => {
     if (typeof cssxProdOrPriceCents === "object" && cssxProdOrPriceCents !== null) {
       const prod = cssxProdOrPriceCents;
+      if (isTelegram) {
+        const unitUsdCents = (prod.telegramPriceUsd && prod.telegramPriceUsd > 0) ? prod.telegramPriceUsd : (prod.sellingPriceUsd || 0);
+        return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
+      }
       if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
         return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
       }
@@ -3064,6 +3085,9 @@ Support: https://t.me/youuhost_support
     const priceCents = typeof cssxProdOrPriceCents === "number" ? cssxProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
+    if (isTelegram) {
+      return `$${usd.toFixed(2)}`;
+    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()}`;
@@ -3085,11 +3109,17 @@ Support: https://t.me/youuhost_support
       return;
     }
 
-    const itemLkr = detailSandromaniaProduct.sellingPriceLkr
-      ? Number(detailSandromaniaProduct.sellingPriceLkr)
-      : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+    const effUsdCents = (isTelegram && detailSandromaniaProduct.telegramPriceUsd && detailSandromaniaProduct.telegramPriceUsd > 0)
+      ? detailSandromaniaProduct.telegramPriceUsd
+      : (detailSandromaniaProduct.sellingPriceUsd || 0);
+
+    const itemLkr = isTelegram
+      ? Math.round((effUsdCents / 100) * lkrRate)
+      : (detailSandromaniaProduct.sellingPriceLkr
+        ? Number(detailSandromaniaProduct.sellingPriceLkr)
+        : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate));
     const totalLkr = itemLkr * sandromaniaOrderQty;
-    const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+    const totalCents = effUsdCents * sandromaniaOrderQty;
     const totalPriceUsd = totalCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
@@ -3149,7 +3179,8 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
-        currency: selectedCurrency,
+        currency: isTelegram ? "USD" : selectedCurrency,
+        platform: isTelegram ? "telegram" : "web",
       });
       await res.json();
       recordPurchasedDelta(`sandromania_${detailSandromaniaProduct.id}`, sandromaniaOrderQty);
@@ -3191,11 +3222,17 @@ Support: https://t.me/youuhost_support
       return;
     }
 
-    const itemLkr = detailCssxProduct.sellingPriceLkr
-      ? Number(detailCssxProduct.sellingPriceLkr)
-      : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+    const effUsdCents = (isTelegram && detailCssxProduct.telegramPriceUsd && detailCssxProduct.telegramPriceUsd > 0)
+      ? detailCssxProduct.telegramPriceUsd
+      : (detailCssxProduct.sellingPriceUsd || 0);
+
+    const itemLkr = isTelegram
+      ? Math.round((effUsdCents / 100) * lkrRate)
+      : (detailCssxProduct.sellingPriceLkr
+        ? Number(detailCssxProduct.sellingPriceLkr)
+        : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate));
     const totalLkr = itemLkr * cssxOrderQty;
-    const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+    const totalCents = effUsdCents * cssxOrderQty;
     const totalPriceUsd = totalCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
@@ -3255,7 +3292,8 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
         productId: detailCssxProduct.id,
         quantity: cssxOrderQty,
-        currency: selectedCurrency,
+        currency: isTelegram ? "USD" : selectedCurrency,
+        platform: isTelegram ? "telegram" : "web",
       });
       await res.json();
       recordPurchasedDelta(`cssx_${detailCssxProduct.id}`, cssxOrderQty);
@@ -4845,30 +4883,37 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 {/* Currency Switcher Pill */}
-                <div className="flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => handleCurrencyChange("USD")}
-                    className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
-                      selectedCurrency === "USD"
-                        ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-md shadow-[#D92078]/40 scale-105"
-                        : "text-white/60 hover:text-white"
-                    }`}
-                  >
-                    USD ($)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCurrencyChange("LKR")}
-                    className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
-                      selectedCurrency === "LKR"
-                        ? "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/40 scale-105"
-                        : "text-white/60 hover:text-white"
-                    }`}
-                  >
-                    LKR (Rs)
-                  </button>
-                </div>
+                {isTelegram ? (
+                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 shadow-inner">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-black tracking-wide text-white">USD ($) Only</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => handleCurrencyChange("USD")}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                        selectedCurrency === "USD"
+                          ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-md shadow-[#D92078]/40 scale-105"
+                          : "text-white/60 hover:text-white"
+                      }`}
+                    >
+                      USD ($)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCurrencyChange("LKR")}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                        selectedCurrency === "LKR"
+                          ? "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/40 scale-105"
+                          : "text-white/60 hover:text-white"
+                      }`}
+                    >
+                      LKR (Rs)
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Big Balance Amount */}
@@ -4877,7 +4922,9 @@ Support: https://t.me/youuhost_support
                   {formatBalanceInCurrentCurrency(user?.balance || 0)}
                 </h2>
                 <span className="text-xs font-bold text-purple-200/75 block mt-0.5">
-                  {selectedCurrency === "USD"
+                  {isTelegram
+                    ? `Telegram Wallet (USD)`
+                    : selectedCurrency === "USD"
                     ? ((user as any)?.balanceLkr != null && (user as any).balanceLkr > 0
                         ? `≈ Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")} LKR`
                         : `≈ Rs. ${(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`)

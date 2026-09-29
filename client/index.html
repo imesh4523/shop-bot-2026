@@ -305,6 +305,136 @@
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Enterprise Anti-Inspect, Anti-DevTools & Source Protection -->
+    <script>
+      (function() {
+        const isAdmin = () => {
+          try {
+            const h = window.location.hostname.toLowerCase();
+            const p = window.location.pathname.toLowerCase();
+            return h === "imeshmain2.youuhost.com" || p.startsWith("/imeshadmindashbord");
+          } catch (e) {
+            return false;
+          }
+        };
+
+        // 1. Disable Right-Click Context Menu completely
+        document.addEventListener('contextmenu', function(e) {
+          if (isAdmin()) return;
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }, { capture: true });
+
+        // 2. Disable DevTools and Source-Viewing Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+          if (isAdmin()) return;
+
+          const key = e.key ? e.key.toLowerCase() : '';
+          const code = e.keyCode || e.which;
+
+          // F12
+          if (code === 123 || key === 'f12') {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+Shift+K
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+            if (['i', 'j', 'c', 'k', 's'].includes(key)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }
+
+          // Ctrl+U (View Source)
+          if ((e.ctrlKey || e.metaKey) && (key === 'u' || code === 85)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          // Ctrl+S (Save Page)
+          if ((e.ctrlKey || e.metaKey) && (key === 's' || code === 83)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          // Mac Option+Command+I / J / C / U
+          if (e.altKey && (e.ctrlKey || e.metaKey)) {
+            if (['i', 'j', 'c', 'u'].includes(key)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }
+        }, { capture: true });
+
+        // 3. DevTools Open Detector (Window Dimension Delta & Console Protection)
+        let isDevToolsOpen = false;
+        let warningOverlay = null;
+
+        function showBlockedOverlay() {
+          if (isAdmin()) return;
+          if (warningOverlay) return;
+
+          warningOverlay = document.createElement('div');
+          warningOverlay.id = 'yh-devtools-protection-overlay';
+          warningOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0B0B14;z-index:99999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px;text-align:center;';
+          warningOverlay.innerHTML = `
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:36px 32px;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;backdrop-filter:blur(20px);">
+              <div style="width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#FF3366,#6C5CE7);display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 10px 30px rgba(255,51,102,0.3);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h2 style="font-size:20px;font-weight:900;letter-spacing:-0.02em;margin:0 0 10px 0;color:#fff;">Protected Website</h2>
+              <p style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.6);margin:0 0 24px 0;">Developer tools and code inspection are strictly disabled on YouuHost for security. Please close Developer Tools to continue using the store.</p>
+              <button onclick="window.location.reload()" style="background:linear-gradient(135deg,#6C5CE7,#8B5CF6);color:#fff;border:none;padding:12px 28px;border-radius:14px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 8px 24px rgba(108,92,231,0.4);transition:transform 0.2s;">Reload Store</button>
+            </div>
+          `;
+          document.body.appendChild(warningOverlay);
+        }
+
+        function removeBlockedOverlay() {
+          if (warningOverlay && warningOverlay.parentNode) {
+            warningOverlay.parentNode.removeChild(warningOverlay);
+            warningOverlay = null;
+          }
+        }
+
+        function checkDevTools() {
+          if (isAdmin()) return;
+
+          // Exclude mobile phones / touch screens under 800px width
+          const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+          if (isTouch && window.innerWidth <= 800) {
+            return;
+          }
+
+          const threshold = 160;
+          const widthDelta = window.outerWidth - window.innerWidth > threshold;
+          const heightDelta = window.outerHeight - window.innerHeight > threshold;
+
+          if (widthDelta || heightDelta) {
+            if (!isDevToolsOpen) {
+              isDevToolsOpen = true;
+              showBlockedOverlay();
+            }
+          } else {
+            if (isDevToolsOpen) {
+              isDevToolsOpen = false;
+              removeBlockedOverlay();
+            }
+          }
+        }
+
+        window.addEventListener('resize', checkDevTools);
+        setInterval(checkDevTools, 800);
+      })();
+    </script>
   </head>
   <body>
     <div id="root">

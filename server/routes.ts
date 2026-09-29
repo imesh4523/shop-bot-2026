@@ -6225,16 +6225,20 @@ app.get("/api/admin/sandromania/products", isAuth, async (req, res) => {
   }
 });
 
-// 6. Update Product (Selling Price / Active Status / Category)
+// 6. Update Product (Selling Price / Active Status / Category / Telegram visibility & price)
 app.put("/api/admin/sandromania/products/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description } = req.body;
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
     if (sellingPriceLkr !== undefined) updates.sellingPriceLkr = parseInt(sellingPriceLkr);
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (showOnTelegram !== undefined) updates.showOnTelegram = Boolean(showOnTelegram);
+    if (telegramPriceUsd !== undefined) {
+      updates.telegramPriceUsd = telegramPriceUsd === null || telegramPriceUsd === "" ? null : Math.round(Number(telegramPriceUsd));
+    }
     if (title !== undefined) updates.title = title;
     if (category !== undefined) updates.category = category;
     if (description !== undefined) updates.description = description;
@@ -6546,16 +6550,20 @@ app.get("/api/admin/cssx/products", isAuth, async (req, res) => {
   }
 });
 
-// 6. Update Managed Product (Selling Price / Active Status / Category)
+// 6. Update Managed Product (Selling Price / Active Status / Category / Telegram visibility & price)
 app.put("/api/admin/cssx/products/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description } = req.body;
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
     if (sellingPriceLkr !== undefined) updates.sellingPriceLkr = parseInt(sellingPriceLkr);
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (showOnTelegram !== undefined) updates.showOnTelegram = Boolean(showOnTelegram);
+    if (telegramPriceUsd !== undefined) {
+      updates.telegramPriceUsd = telegramPriceUsd === null || telegramPriceUsd === "" ? null : Math.round(Number(telegramPriceUsd));
+    }
     if (title !== undefined) updates.title = title;
     if (category !== undefined) updates.category = category;
     if (description !== undefined) updates.description = description;
@@ -6713,10 +6721,17 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       return res.status(400).json({ message: "Product is currently not available." });
     }
 
+    const isTelegramOrder = req.body.platform === 'telegram' || req.body.currency === 'USD' || Boolean(req.headers['x-telegram-init-data']);
+    const effectiveUsdCents = (isTelegramOrder && product.telegramPriceUsd && product.telegramPriceUsd > 0)
+      ? product.telegramPriceUsd
+      : product.sellingPriceUsd;
+
     const rates = await fetchLiveExchangeRates();
     const lkrRate = rates.LKR || 305.50;
-    const totalCents = product.sellingPriceUsd * qty;
-    const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((product.sellingPriceUsd / 100) * lkrRate);
+    const totalCents = effectiveUsdCents * qty;
+    const unitLkr = isTelegramOrder
+      ? Math.round((effectiveUsdCents / 100) * lkrRate)
+      : (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((product.sellingPriceUsd / 100) * lkrRate));
     const totalLkr = unitLkr * qty;
 
     const result = await db.transaction(async (tx) => {
@@ -7045,7 +7060,12 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       return res.status(400).json({ message: "This product is currently out of stock." });
     }
 
-    const totalCents = (product.sellingPriceUsd || 0) * qty;
+    const isTelegramOrder = req.body.platform === 'telegram' || req.body.currency === 'USD' || Boolean(req.headers['x-telegram-init-data']);
+    const effectiveUsdCents = (isTelegramOrder && product.telegramPriceUsd && product.telegramPriceUsd > 0)
+      ? product.telegramPriceUsd
+      : (product.sellingPriceUsd || 0);
+
+    const totalCents = effectiveUsdCents * qty;
 
     const result = await db.transaction(async (tx) => {
       let user = (

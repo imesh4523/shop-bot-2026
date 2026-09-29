@@ -97,6 +97,8 @@ export default function CssxApiPage() {
   const [editCategory, setEditCategory] = useState<string>("General");
   const [editDescription, setEditDescription] = useState<string>("");
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  const [editShowOnTelegram, setEditShowOnTelegram] = useState<boolean>(false);
+  const [editTelegramPriceUsd, setEditTelegramPriceUsd] = useState<string>("");
 
   // Import Modal State
   const [importSearch, setImportSearch] = useState("");
@@ -340,6 +342,8 @@ export default function CssxApiPage() {
     setEditCategory(prod.category || "General");
     setEditDescription(prod.description || "");
     setEditIsActive(prod.isActive !== false);
+    setEditShowOnTelegram(Boolean(prod.showOnTelegram));
+    setEditTelegramPriceUsd(prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
   };
 
   const handleSaveEdit = () => {
@@ -360,6 +364,8 @@ export default function CssxApiPage() {
     }
 
     const priceCents = Math.round(usdVal * 100);
+    let tgUsdVal = parseFloat(editTelegramPriceUsd);
+    const tgPriceCents = (!isNaN(tgUsdVal) && tgUsdVal > 0) ? Math.round(tgUsdVal * 100) : null;
 
     updateProductMutation.mutate({
       id: editingProduct.id,
@@ -370,6 +376,8 @@ export default function CssxApiPage() {
         category: editCategory,
         description: editDescription,
         isActive: editIsActive,
+        showOnTelegram: editShowOnTelegram,
+        telegramPriceUsd: tgPriceCents,
       },
     });
   };
@@ -730,9 +738,34 @@ export default function CssxApiPage() {
                         <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] font-black">
                           {p.category || "General"}
                         </Badge>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
                           <span className="text-[10px] font-mono text-purple-400/60">CSX #{p.serviceId}</span>
+
+                          {/* Quick Toggle: Show in Telegram */}
+                          <div 
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all ${
+                              p.showOnTelegram 
+                                ? "bg-blue-500/15 border-blue-500/30 text-blue-400 font-extrabold" 
+                                : "bg-white/5 border-white/10 text-white/40 font-medium"
+                            }`}
+                            title="Toggle Show on Telegram"
+                          >
+                            <Send className="w-2.5 h-2.5" />
+                            <span className="text-[9px]">TG: {p.showOnTelegram ? "ON" : "OFF"}</span>
+                            <Switch
+                              className="scale-75"
+                              checked={!!p.showOnTelegram}
+                              onCheckedChange={(checked) => {
+                                updateProductMutation.mutate({
+                                  id: p.id,
+                                  updates: { showOnTelegram: checked },
+                                });
+                              }}
+                            />
+                          </div>
+
                           <Switch
+                            title="Active in Store"
                             checked={p.isActive !== false}
                             onCheckedChange={(checked) => {
                               updateProductMutation.mutate({
@@ -777,6 +810,17 @@ export default function CssxApiPage() {
                           </div>
                         </div>
                       </div>
+
+                      {p.showOnTelegram && (
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 font-bold">
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <Send className="w-3 h-3" /> Telegram Price:
+                          </span>
+                          <span className="font-black text-blue-300">
+                            ${p.telegramPriceUsd ? ((p.telegramPriceUsd / 100).toFixed(2)) : sellUsd.toFixed(2)} USD
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-1.5 text-xs">
@@ -1193,11 +1237,45 @@ export default function CssxApiPage() {
                 </div>
               </div>
 
+              {/* Telegram Price & Telegram Show Switch */}
+              <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-black text-blue-400 flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5" /> Show in Telegram
+                    </span>
+                    <span className="text-[10px] text-purple-200/60 block">
+                      Enable product in Telegram Bot catalog & Telegram Mini-App
+                    </span>
+                  </div>
+                  <Switch checked={editShowOnTelegram} onCheckedChange={setEditShowOnTelegram} />
+                </div>
+
+                {editShowOnTelegram && (
+                  <div className="pt-1">
+                    <label className="text-xs font-bold text-blue-400 block mb-1">
+                      Telegram Price ($ USD - Strictly USD)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 1.20"
+                      value={editTelegramPriceUsd}
+                      onChange={(e) => setEditTelegramPriceUsd(e.target.value)}
+                      className="font-bold text-xs rounded-xl border-blue-500/30 bg-blue-950/20 text-white"
+                    />
+                    <span className="text-[10px] text-purple-200/60 mt-0.5 block">
+                      Special price used exclusively when customers browse and purchase via Telegram (USD only).
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {/* Active Switch */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border">
                 <div>
-                  <span className="text-xs font-bold block">Active in Store</span>
-                  <span className="text-[10px] text-muted-foreground">Enable customer purchases in Mini App</span>
+                  <span className="text-xs font-bold block text-white">Active in Store</span>
+                  <span className="text-[10px] text-purple-200/60">Enable customer purchases on Web Store</span>
                 </div>
                 <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
               </div>
