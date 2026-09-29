@@ -30544,6 +30544,7 @@ const telegramUsers = pgTable("telegram_users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   balance: integer("balance").notNull().default(0),
+  balanceLkr: integer("balance_lkr"),
   isBanned: boolean("is_banned").notNull().default(false),
   bannedUntil: timestamp("banned_until"),
   spamViolations: integer("spam_violations").notNull().default(0),
@@ -31083,7 +31084,7 @@ const api = {
       }
     },
     update: {
-      input: z$2.object({ balance: z$2.number().optional(), isBanned: z$2.boolean().optional(), purchased: z$2.number().optional() }),
+      input: z$2.object({ balance: z$2.number().optional(), balanceLkr: z$2.number().optional(), isBanned: z$2.boolean().optional(), purchased: z$2.number().optional() }),
       responses: {
         200: z$2.custom()
       }
@@ -74741,7 +74742,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CVGaJq3N.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BmmRNP8-.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87418,10 +87419,12 @@ function TelegramUsersPage() {
   const telegramCount = reactExports.useMemo(() => users2.filter(isTelegramUser).length, [users2]);
   const bannedCount = reactExports.useMemo(() => users2.filter((u2) => Boolean(u2?.isBanned)).length, [users2]);
   const activeCount = reactExports.useMemo(() => users2.length - bannedCount, [users2, bannedCount]);
+  const [lastEditedField, setLastEditedField] = reactExports.useState("lkr");
   const mutation = useMutation({
-    mutationFn: async ({ id: id2, balance }) => {
+    mutationFn: async ({ id: id2, balance, balanceLkr }) => {
       const res = await apiRequest("PATCH", `/api/telegram-users/${id2}`, {
-        balance: Math.round(balance * 100)
+        balance: Math.round(balance * 100),
+        balanceLkr: balanceLkr !== void 0 ? Math.round(balanceLkr) : void 0
       });
       return res.json();
     },
@@ -87498,12 +87501,12 @@ function TelegramUsersPage() {
     const usd = (cents || 0) / 100;
     const rawLkr = usd * lkrRate;
     let rounded = Math.round(rawLkr);
-    for (const step of [1e3, 500, 100, 50, 10]) {
+    for (const step of [1e4, 5e3, 2e3, 1e3, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem >= step - 6) {
+      if (rem >= step - 25) {
         rounded += step - rem;
         break;
-      } else if (rem <= 6 && rem > 0) {
+      } else if (rem <= 25 && rem > 0) {
         rounded -= rem;
         break;
       }
@@ -87514,28 +87517,41 @@ function TelegramUsersPage() {
     setEditingId(user.id);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
+    if (user.balanceLkr != null && user.balanceLkr > 0) {
+      setEditBalanceLkr(Number(user.balanceLkr));
+    } else {
+      setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
+    }
+    setLastEditedField("lkr");
   };
   const handleUsdChange = (val) => {
+    setLastEditedField("usd");
     setEditBalance(val);
     setEditBalanceLkr(Math.round(val * lkrRate));
   };
   const handleLkrChange = (val) => {
+    setLastEditedField("lkr");
     setEditBalanceLkr(val);
     setEditBalance(Number((val / lkrRate).toFixed(4)));
   };
   const handleQuickAdd = (type, amount) => {
     if (type === "usd") {
+      setLastEditedField("usd");
       const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
       handleUsdChange(newUsd);
     } else {
+      setLastEditedField("lkr");
       const newLkr = Math.max(0, editBalanceLkr + amount);
       handleLkrChange(newLkr);
     }
   };
   const handleSave = () => {
     if (editingId !== null) {
-      mutation.mutate({ id: editingId, balance: editBalance });
+      mutation.mutate({
+        id: editingId,
+        balance: editBalance,
+        balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate)
+      });
     }
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
@@ -87764,7 +87780,7 @@ function TelegramUsersPage() {
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1", children: [
                   "🇱🇰 Rs. ",
-                  formatUserLkr(user.balance || 0),
+                  user.balanceLkr != null && user.balanceLkr > 0 ? Number(user.balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0),
                   " LKR"
                 ] })
               ] })
@@ -104602,6 +104618,8 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
       smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaTiktok, { className: "w-5 h-5 text-[#000000]" });
     } else if (combinedStr.includes("telegram") || combinedStr.includes("t.me")) {
       smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaTelegramPlane, { className: "w-5 h-5 text-[#24A1DE]" });
+    } else if (combinedStr.includes("spotify")) {
+      smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(FaSpotify, { className: "w-5 h-5 text-[#1DB954]" });
     }
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: smmIcon });
   }
@@ -104616,6 +104634,19 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
     ) });
   }
   if (type === "partner" || type === "purchase") {
+    if (tx?.imageUrl) {
+      return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "img",
+        {
+          src: tx.imageUrl,
+          alt: tx?.title || "Product",
+          className: "w-full h-full object-contain rounded-xl",
+          onError: (e3) => {
+            e3.currentTarget.style.display = "none";
+          }
+        }
+      ) });
+    }
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
   }
   if (method === "admin_topup" || type === "admin_topup" || category.includes("added funds") || title.includes("youuhost team") || tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT"))) {
@@ -106014,14 +106045,17 @@ ${finalDetails}`;
   const formatBalanceInCurrentCurrency = (balanceCents) => {
     const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
+      if (user?.balanceLkr != null && user.balanceLkr > 0) {
+        return `Rs. ${Number(user.balanceLkr).toLocaleString("en-US")}`;
+      }
       const rawLkr = usd * lkrRate;
       let rounded = Math.round(rawLkr);
-      for (const step of [1e3, 500, 100, 50, 10]) {
+      for (const step of [1e4, 5e3, 2e3, 1e3, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem >= step - 6) {
+        if (rem >= step - 25) {
           rounded += step - rem;
           break;
-        } else if (rem <= 6 && rem > 0) {
+        } else if (rem <= 25 && rem > 0) {
           rounded -= rem;
           break;
         }
@@ -106899,7 +106933,7 @@ ${finalDetails}`;
       } else {
         neededLkr = Math.round(finalPriceCents / 100 * lkrRate);
       }
-      const userBalanceLkr = Math.floor(userBalanceCents / 100 * lkrRate);
+      const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr > 0 ? Number(user.balanceLkr) : Math.floor(userBalanceCents / 100 * lkrRate);
       const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
@@ -108154,7 +108188,7 @@ ${finalDetails}`;
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative z-10 mb-2", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-3xl sm:text-4xl font-black tracking-tight text-white flex items-baseline gap-1.5", children: formatBalanceInCurrentCurrency(user?.balance || 0) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-200/75 block mt-0.5", children: selectedCurrency === "USD" ? `≈ Rs. ${((user?.balance || 0) / 100 * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD` })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-purple-200/75 block mt-0.5", children: selectedCurrency === "USD" ? user?.balanceLkr != null && user.balanceLkr > 0 ? `≈ Rs. ${Number(user.balanceLkr).toLocaleString("en-US")} LKR` : `≈ Rs. ${((user?.balance || 0) / 100 * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD` })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-2 pt-3 border-t border-white/10 relative z-10 text-[11px]", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-purple-100 font-bold", children: [

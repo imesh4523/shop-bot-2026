@@ -57,10 +57,13 @@ export default function TelegramUsersPage() {
   const bannedCount = useMemo(() => users.filter(u => Boolean(u?.isBanned)).length, [users]);
   const activeCount = useMemo(() => users.length - bannedCount, [users, bannedCount]);
 
+  const [lastEditedField, setLastEditedField] = useState<"usd" | "lkr">("lkr");
+
   const mutation = useMutation({
-    mutationFn: async ({ id, balance }: { id: number; balance: number }) => {
+    mutationFn: async ({ id, balance, balanceLkr }: { id: number; balance: number; balanceLkr?: number }) => {
       const res = await apiRequest("PATCH", `/api/telegram-users/${id}`, {
         balance: Math.round(balance * 100),
+        balanceLkr: balanceLkr !== undefined ? Math.round(balanceLkr) : undefined,
       });
       return res.json();
     },
@@ -160,12 +163,12 @@ export default function TelegramUsersPage() {
     const usd = (cents || 0) / 100;
     const rawLkr = usd * lkrRate;
     let rounded = Math.round(rawLkr);
-    for (const step of [1000, 500, 100, 50, 10]) {
+    for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem >= step - 6) {
+      if (rem >= step - 25) {
         rounded += (step - rem);
         break;
-      } else if (rem <= 6 && rem > 0) {
+      } else if (rem <= 25 && rem > 0) {
         rounded -= rem;
         break;
       }
@@ -177,24 +180,33 @@ export default function TelegramUsersPage() {
     setEditingId(user.id);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
+    if ((user as any).balanceLkr != null && (user as any).balanceLkr > 0) {
+      setEditBalanceLkr(Number((user as any).balanceLkr));
+    } else {
+      setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
+    }
+    setLastEditedField("lkr");
   };
 
   const handleUsdChange = (val: number) => {
+    setLastEditedField("usd");
     setEditBalance(val);
     setEditBalanceLkr(Math.round(val * lkrRate));
   };
 
   const handleLkrChange = (val: number) => {
+    setLastEditedField("lkr");
     setEditBalanceLkr(val);
     setEditBalance(Number((val / lkrRate).toFixed(4)));
   };
 
   const handleQuickAdd = (type: "usd" | "lkr", amount: number) => {
     if (type === "usd") {
+      setLastEditedField("usd");
       const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
       handleUsdChange(newUsd);
     } else {
+      setLastEditedField("lkr");
       const newLkr = Math.max(0, editBalanceLkr + amount);
       handleLkrChange(newLkr);
     }
@@ -202,7 +214,11 @@ export default function TelegramUsersPage() {
 
   const handleSave = () => {
     if (editingId !== null) {
-      mutation.mutate({ id: editingId, balance: editBalance });
+      mutation.mutate({
+        id: editingId,
+        balance: editBalance,
+        balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate)
+      });
     }
   };
 
@@ -455,7 +471,7 @@ export default function TelegramUsersPage() {
                         💵 ${(((user.balance || 0)) / 100).toFixed(2)} USD
                       </span>
                       <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                        🇱🇰 Rs. {formatUserLkr(user.balance || 0)} LKR
+                        🇱🇰 Rs. {(user as any).balanceLkr != null && (user as any).balanceLkr > 0 ? Number((user as any).balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0)} LKR
                       </span>
                     </div>
                   </div>

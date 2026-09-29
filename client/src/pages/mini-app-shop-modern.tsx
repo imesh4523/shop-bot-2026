@@ -531,6 +531,8 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
       smmIcon = <FaTiktok className="w-5 h-5 text-[#000000]" />;
     } else if (combinedStr.includes("telegram") || combinedStr.includes("t.me")) {
       smmIcon = <FaTelegramPlane className="w-5 h-5 text-[#24A1DE]" />;
+    } else if (combinedStr.includes("spotify")) {
+      smmIcon = <FaSpotify className="w-5 h-5 text-[#1DB954]" />;
     }
     return (
       <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`}>
@@ -563,8 +565,22 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     );
   }
 
-  // 3. Partner & Direct Cloud Purchases (Gemini, AWS, Linode, Azure, DigitalOcean, etc.)
+  // 3. Partner & Direct Cloud Purchases (Spotify, Gemini, AWS, Linode, Azure, DigitalOcean, etc.)
   if (type === "partner" || type === "purchase") {
+    if (tx?.imageUrl) {
+      return (
+        <div className={`${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1`}>
+          <img
+            src={tx.imageUrl}
+            alt={tx?.title || "Product"}
+            className="w-full h-full object-contain rounded-xl"
+            onError={(e) => {
+              (e.currentTarget as any).style.display = "none";
+            }}
+          />
+        </div>
+      );
+    }
     return (
       <div className={`${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`}>
         <BrandIcon name={tx?.title} type={tx?.productType || tx?.category || "Cloud"} className="w-5 h-5" />
@@ -2248,14 +2264,17 @@ Support: https://t.me/youuhost_support
   const formatBalanceInCurrentCurrency = (balanceCents: number) => {
     const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
+      if ((user as any)?.balanceLkr != null && (user as any).balanceLkr > 0) {
+        return `Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")}`;
+      }
       const rawLkr = usd * lkrRate;
       let rounded = Math.round(rawLkr);
-      for (const step of [1000, 500, 100, 50, 10]) {
+      for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem >= step - 6) {
+        if (rem >= step - 25) {
           rounded += (step - rem);
           break;
-        } else if (rem <= 6 && rem > 0) {
+        } else if (rem <= 25 && rem > 0) {
           rounded -= rem;
           break;
         }
@@ -3307,7 +3326,9 @@ Support: https://t.me/youuhost_support
       } else {
         neededLkr = Math.round((finalPriceCents / 100) * lkrRate);
       }
-      const userBalanceLkr = Math.floor((userBalanceCents / 100) * lkrRate);
+      const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr > 0
+        ? Number((user as any).balanceLkr)
+        : Math.floor((userBalanceCents / 100) * lkrRate);
       const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
 
       // 3. Card payment rounded up to next multiple of 50 (e.g. shortfall 220 -> 250)
@@ -4792,7 +4813,9 @@ Support: https://t.me/youuhost_support
                 </h2>
                 <span className="text-xs font-bold text-purple-200/75 block mt-0.5">
                   {selectedCurrency === "USD"
-                    ? `≈ Rs. ${(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`
+                    ? ((user as any)?.balanceLkr != null && (user as any).balanceLkr > 0
+                        ? `≈ Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")} LKR`
+                        : `≈ Rs. ${(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`)
                     : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD`}
                 </span>
               </div>

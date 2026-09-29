@@ -2651,6 +2651,7 @@ export async function registerRoutes(
           category: isApiOrder ? "Developer API Order" : "Cloud Account Purchase",
           title: o.products?.name ? `${o.products.name}${isApiOrder ? " (API)" : ""}` : "Digital Cloud Product",
           productType: o.products?.type || "Standard",
+          imageUrl: o.products?.imageUrl || null,
           amountCents: isFailed ? 0 : -(o.products?.price || 0),
           amountUsd: isFailed ? "0.00" : costUsd.toFixed(2),
           amountLkr: isFailed ? "0" : costLkr.toLocaleString(),
@@ -2726,6 +2727,7 @@ export async function registerRoutes(
           type: "partner" as const,
           category: "Digital License Delivery",
           title: sp.sandromania_orders.productTitle || "Partner Digital Goods",
+          imageUrl: sp.sandromania_products?.imageUrl || null,
           amountCents: -(sp.sandromania_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
@@ -2759,6 +2761,7 @@ export async function registerRoutes(
           type: "partner" as const,
           category: "Digital License Delivery",
           title: cx.cssx_orders.productTitle || "Partner Digital Goods",
+          imageUrl: cx.cssx_products?.imageUrl || null,
           amountCents: -(cx.cssx_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
@@ -5215,20 +5218,38 @@ app.get(api.telegramUsers.list.path, isAuth, async (req, res) => {
 app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const existingUser = await storage.getTelegramUser(id.toString());
+    const existingUser = await storage.getTelegramUserById(id);
     const input = api.telegramUsers.update.input.parse(req.body);
+
+    const rates = await fetchLiveExchangeRates();
+    const lkrRate = rates.LKR || 305.50;
+
+    let isLkrTopup = false;
+    let addedLkr = 0;
+    let addedCents = 0;
+
+    if (input.balanceLkr !== undefined) {
+      isLkrTopup = true;
+      input.balance = Math.round((input.balanceLkr / lkrRate) * 100);
+      const prevLkr = existingUser?.balanceLkr != null 
+        ? existingUser.balanceLkr 
+        : Math.round(((existingUser?.balance || 0) / 100) * lkrRate);
+      if (input.balanceLkr > prevLkr) {
+        addedLkr = input.balanceLkr - prevLkr;
+      }
+    } else if (input.balance !== undefined && existingUser && input.balance > (existingUser.balance || 0)) {
+      addedCents = input.balance - (existingUser.balance || 0);
+    }
+
     const user = await storage.updateTelegramUser(id, input);
 
-    if (input.balance !== undefined && existingUser && input.balance > (existingUser.balance || 0)) {
-      const addedCents = input.balance - (existingUser.balance || 0);
-      const addedAmountUSD = addedCents / 100;
-
+    if (addedLkr > 0 || addedCents > 0) {
       // Log transaction record for the user profile & transaction history
       try {
         await storage.createPayment({
           telegramUserId: user.id,
-          amount: addedCents,
-          currency: "USD",
+          amount: isLkrTopup ? addedLkr * 100 : addedCents,
+          currency: isLkrTopup ? "LKR" : "USD",
           paymentMethod: "admin_topup",
           status: "completed",
           externalId: `ADMIN_TOPUP_${Date.now()}`,
@@ -5240,7 +5261,8 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
 
       const activeBot = await getBroadcastBot();
       if (activeBot && user.telegramId) {
-        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, "Admin Web Top-up").catch(console.error);
+        const addedAmountUSD = isLkrTopup ? (addedLkr / lkrRate) : (addedCents / 100);
+        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, isLkrTopup ? `Admin Added Rs. ${addedLkr.toLocaleString()}` : "Admin Web Top-up").catch(console.error);
       }
     }
 

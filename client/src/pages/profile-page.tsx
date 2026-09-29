@@ -262,7 +262,9 @@ export default function ProfilePage() {
 
   const activeKey = apiKeysData?.activeKey;
   const userBalanceUsd = ((currentUser?.balance || 0) / 100).toFixed(2);
-  const userBalanceLkr = Math.round(((currentUser?.balance || 0) / 100) * 305.5).toLocaleString();
+  const userBalanceLkr = (currentUser as any)?.balanceLkr != null && (currentUser as any).balanceLkr > 0
+    ? Number((currentUser as any).balanceLkr).toLocaleString()
+    : Math.round(((currentUser?.balance || 0) / 100) * 330.68).toLocaleString();
 
   // Filter transactions
   const filteredTransactions = transactions.filter((tx) => {

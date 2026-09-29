@@ -47,6 +47,7 @@ export const telegramUsers = pgTable("telegram_users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   balance: integer("balance").notNull().default(0),
+  balanceLkr: integer("balance_lkr"),
   isBanned: boolean("is_banned").notNull().default(false),
   bannedUntil: timestamp("banned_until"),
   spamViolations: integer("spam_violations").notNull().default(0),
