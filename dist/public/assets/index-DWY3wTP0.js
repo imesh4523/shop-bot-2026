@@ -74760,7 +74760,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-JboETE-6.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-D2YttYGL.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87530,15 +87530,17 @@ function TelegramUsersPage() {
     setCurrentPage(1);
   };
   const formatUserLkr = (cents) => {
-    const usd = (cents || 0) / 100;
+    if (!cents || cents <= 0) return "0";
+    const usd = cents / 100;
     const rawLkr = usd * lkrRate;
     let rounded = Math.round(rawLkr);
+    if (rounded <= 0) return "0";
     for (const step of [1e4, 5e3, 2e3, 1e3, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem >= step - 25) {
+      if (rem >= step - 25 && step <= rounded) {
         rounded += step - rem;
         break;
-      } else if (rem <= 25 && rem > 0) {
+      } else if (rem <= 25 && rem > 0 && rounded > step) {
         rounded -= rem;
         break;
       }
@@ -87546,7 +87548,7 @@ function TelegramUsersPage() {
     return rounded.toLocaleString("en-US");
   };
   const editingUser = reactExports.useMemo(() => users2.find((u2) => u2.id === editingId), [users2, editingId]);
-  const currentBalLkr = editingUser ? editingUser.balanceLkr != null && editingUser.balanceLkr > 0 ? Number(editingUser.balanceLkr) : Math.round((editingUser.balance || 0) / 100 * lkrRate) : 0;
+  const currentBalLkr = editingUser ? editingUser.balanceLkr != null && editingUser.balanceLkr >= 0 ? Number(editingUser.balanceLkr) : Math.round((editingUser.balance || 0) / 100 * lkrRate) : 0;
   const currentBalUsd = editingUser ? (editingUser.balance || 0) / 100 : 0;
   const previewAddLkr = currentBalLkr + (adjustAmountLkr || 0);
   const previewReduceLkr = Math.max(0, currentBalLkr - (adjustAmountLkr || 0));
@@ -87556,7 +87558,7 @@ function TelegramUsersPage() {
     setAdjustAmountLkr(1e3);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    if (user.balanceLkr != null && user.balanceLkr > 0) {
+    if (user.balanceLkr != null && user.balanceLkr >= 0) {
       setEditBalanceLkr(Number(user.balanceLkr));
     } else {
       setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
@@ -87832,7 +87834,7 @@ function TelegramUsersPage() {
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1", children: [
                   "🇱🇰 Rs. ",
-                  user.balanceLkr != null && user.balanceLkr > 0 ? Number(user.balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0),
+                  user.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0),
                   " LKR"
                 ] })
               ] })
@@ -104827,6 +104829,19 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
   const category = (tx?.category || "").toLowerCase();
   const smmLink = (tx?.smmLink || "").toLowerCase();
   const smmCategory = (tx?.smmCategory || "").toLowerCase();
+  if (method === "admin_topup" || method === "admin_deduction" || tx?.subType === "admin_deduction" || tx?.subType === "admin_topup" || category.includes("youuhost team") || title.includes("youuhost team") || tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT"))) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "/assets/youuhost_official_logo.png?v=4",
+        alt: "YouuHost Team",
+        className: "w-full h-full object-contain",
+        onError: (e3) => {
+          e3.currentTarget.src = "/logo.png";
+        }
+      }
+    ) });
+  }
   if (type === "smm" || category.includes("smm") || category.includes("social") || smmCategory || smmLink || title.includes("facebook") || title.includes("instagram") || title.includes("youtube") || title.includes("tiktok") || title.includes("telegram")) {
     const combinedStr = `${title} ${smmLink} ${smmCategory}`.toLowerCase();
     let smmIcon = /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: combinedStr, type: tx?.smmCategory || "Social", className: "w-5 h-5" });
@@ -104870,22 +104885,6 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
       ) });
     }
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
-  }
-  if (method === "admin_deduction" || tx?.subType === "admin_deduction" || category.includes("deduction") || title.includes("deducted") || tx?.externalId && tx.externalId.startsWith("ADMIN_DEDUCT")) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full h-full rounded-xl bg-rose-500/10 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDownLeft, { className: "w-5 h-5 text-rose-600" }) }) });
-  }
-  if (method === "admin_topup" || type === "admin_topup" || category.includes("added funds") || title.includes("youuhost team") || tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT"))) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "img",
-      {
-        src: "/assets/youuhost_official_logo.png?v=4",
-        alt: "YouuHost Team",
-        className: "w-full h-full object-contain",
-        onError: (e3) => {
-          e3.currentTarget.src = "/logo.png";
-        }
-      }
-    ) });
   }
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
@@ -106277,25 +106276,30 @@ ${finalDetails}`;
     return `$${coupon.discountUsd || "0.00"} USD saved`;
   };
   const formatBalanceInCurrentCurrency = (balanceCents) => {
-    const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
-      if (user?.balanceLkr != null && user.balanceLkr > 0) {
+      if (user?.balanceLkr != null && user.balanceLkr >= 0) {
         return `Rs. ${Number(user.balanceLkr).toLocaleString("en-US")}`;
       }
-      const rawLkr = usd * lkrRate;
+      if (!balanceCents || balanceCents <= 0) {
+        return "Rs. 0";
+      }
+      const usd2 = balanceCents / 100;
+      const rawLkr = usd2 * lkrRate;
       let rounded = Math.round(rawLkr);
+      if (rounded <= 0) return "Rs. 0";
       for (const step of [1e4, 5e3, 2e3, 1e3, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem >= step - 25) {
+        if (rem >= step - 25 && step <= rounded) {
           rounded += step - rem;
           break;
-        } else if (rem <= 25 && rem > 0) {
+        } else if (rem <= 25 && rem > 0 && rounded > step) {
           rounded -= rem;
           break;
         }
       }
       return `Rs. ${rounded.toLocaleString("en-US")}`;
     }
+    const usd = (balanceCents || 0) / 100;
     return `$${usd.toFixed(2)}`;
   };
   const binanceCalculatedUsd = reactExports.useMemo(() => {
@@ -106933,12 +106937,17 @@ ${finalDetails}`;
       setActiveTab("profile");
       return;
     }
+    const itemLkr = detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round((detailSandromaniaProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+    const totalLkr = itemLkr * sandromaniaOrderQty;
     const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
-      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+    const userBalCents = user?.balance || 0;
+    const userBalanceUsd = userBalCents / 100;
+    const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
+    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       if (selectedCurrency === "LKR") {
         setPayhereAmount(cardSuggestedLkr.toString());
@@ -106950,11 +106959,11 @@ ${finalDetails}`;
         setCryptomusAmount(shortfallUsd.toString());
       }
       setShortfallContext({
-        productName: detailSandromaniaProduct.name,
+        productName: detailSandromaniaProduct.title || detailSandromaniaProduct.name,
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededLkr: totalLkr,
         neededUsd: totalPriceUsd
       });
       const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
@@ -107016,12 +107025,17 @@ ${finalDetails}`;
       setActiveTab("profile");
       return;
     }
+    const itemLkr = detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round((detailCssxProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+    const totalLkr = itemLkr * cssxOrderQty;
     const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
-      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+    const userBalCents = user?.balance || 0;
+    const userBalanceUsd = userBalCents / 100;
+    const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
+    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       if (selectedCurrency === "LKR") {
         setPayhereAmount(cardSuggestedLkr.toString());
@@ -107037,7 +107051,7 @@ ${finalDetails}`;
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededLkr: totalLkr,
         neededUsd: totalPriceUsd
       });
       const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
@@ -107156,18 +107170,19 @@ ${finalDetails}`;
     const originalPriceCents = detailProduct.price * quantity;
     const finalPriceCents = appliedCoupon ? appliedCoupon.finalPriceCents : originalPriceCents;
     const finalPriceUsd = finalPriceCents / 100;
-    if (userBalanceCents < finalPriceCents) {
+    let neededLkr = 0;
+    if (detailProduct.priceLkr && detailProduct.priceLkr > 0) {
+      const prodLkrTotal = detailProduct.priceLkr * quantity;
+      const discountLkr = appliedCoupon?.discountLkr || 0;
+      neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+    } else {
+      neededLkr = Math.round(finalPriceCents / 100 * lkrRate);
+    }
+    const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.floor(userBalanceCents / 100 * lkrRate);
+    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= neededLkr || userBalanceCents >= finalPriceCents : userBalanceCents >= finalPriceCents || userBalanceLkr >= neededLkr;
+    if (!hasEnough) {
       const shortfallCents = Math.max(0, finalPriceCents - userBalanceCents);
       const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
-      let neededLkr = 0;
-      if (detailProduct.priceLkr && detailProduct.priceLkr > 0) {
-        const prodLkrTotal = detailProduct.priceLkr * quantity;
-        const discountLkr = appliedCoupon?.discountLkr || 0;
-        neededLkr = Math.max(0, prodLkrTotal - discountLkr);
-      } else {
-        neededLkr = Math.round(finalPriceCents / 100 * lkrRate);
-      }
-      const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr > 0 ? Number(user.balanceLkr) : Math.floor(userBalanceCents / 100 * lkrRate);
       const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
@@ -107265,12 +107280,15 @@ ${finalDetails}`;
       return;
     }
     const totalCents = Math.round(detailSmmService.customRate / 1e3 * smmOrderQty);
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallCents = totalCents - (user?.balance || 0);
-      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
-      const shortfallLkr = Math.round(shortfallCents / 100 * lkrRate);
+    const totalLkr = Math.round(totalCents / 100 * lkrRate);
+    const userBalanceCents = user?.balance || 0;
+    const userBalanceUsd = userBalanceCents / 100;
+    const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalanceCents / 100 * lkrRate);
+    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= totalLkr || userBalanceCents >= totalCents : userBalanceCents >= totalCents || userBalanceLkr >= totalLkr;
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalanceLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       if (selectedCurrency === "LKR") {
         setPayhereAmount(cardSuggestedLkr.toString());
@@ -110221,8 +110239,12 @@ ${finalDetails}`;
           const cleanTitle = cleanSandromaniaText(detailSandromaniaProduct.title);
           const cleanCat = cleanSandromaniaText(detailSandromaniaProduct.category);
           const availableStock = detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 99;
+          const itemLkr = detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round((detailSandromaniaProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+          const totalLkr = itemLkr * sandromaniaOrderQty;
           const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
           const userBalCents = user?.balance || 0;
+          const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
+          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
           const isFav = favorites.includes(detailSandromaniaProduct.id);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
@@ -110339,7 +110361,7 @@ ${finalDetails}`;
                 " tab with 1-click copy."
               ] })
             ] }),
-            userBalCents < totalCents && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
+            !hasEnough && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold block", children: "⚠️ Insufficient Wallet Balance" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-amber-800", children: [
@@ -110395,8 +110417,12 @@ ${finalDetails}`;
           const cleanTitle = detailCssxProduct.title || "Digital Product";
           const cleanCat = detailCssxProduct.category || "General";
           const availableStock = detailCssxProduct.stock ?? 99;
+          const itemLkr = detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round((detailCssxProduct.sellingPriceUsd || 0) / 100 * lkrRate);
+          const totalLkr = itemLkr * cssxOrderQty;
           const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
           const userBalCents = user?.balance || 0;
+          const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
+          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
           const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
@@ -110513,7 +110539,7 @@ ${finalDetails}`;
                 " tab with 1-click copy."
               ] })
             ] }),
-            userBalCents < totalCents && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
+            !hasEnough && isCustomerLoggedIn && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold block", children: "⚠️ Insufficient Wallet Balance" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-amber-800", children: [

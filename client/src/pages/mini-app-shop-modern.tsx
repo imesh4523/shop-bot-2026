@@ -506,7 +506,31 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
   const smmLink = (tx?.smmLink || "").toLowerCase();
   const smmCategory = (tx?.smmCategory || "").toLowerCase();
 
-  // 1. SMM Boost Orders (Facebook, Instagram, YouTube, TikTok, Telegram, etc.)
+  // 1a. Admin Added or Deducted Funds (YouuHost Team) - Official YouuHost Logo
+  if (
+    method === "admin_topup" ||
+    method === "admin_deduction" ||
+    tx?.subType === "admin_deduction" ||
+    tx?.subType === "admin_topup" ||
+    category.includes("youuhost team") ||
+    title.includes("youuhost team") ||
+    (tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT")))
+  ) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src="/assets/youuhost_official_logo.png?v=4"
+          alt="YouuHost Team"
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            (e.currentTarget as any).src = "/logo.png";
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 1b. SMM Boost Orders (Facebook, Instagram, YouTube, TikTok, Telegram, etc.)
   if (
     type === "smm" ||
     category.includes("smm") ||
@@ -588,44 +612,7 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     );
   }
 
-  // 4a. Admin Deducted Funds (YouuHost Team Reduction) - Distinct RED styling
-  if (
-    method === "admin_deduction" ||
-    tx?.subType === "admin_deduction" ||
-    category.includes("deduction") ||
-    title.includes("deducted") ||
-    (tx?.externalId && tx.externalId.startsWith("ADMIN_DEDUCT"))
-  ) {
-    return (
-      <div className={`${className} rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
-        <div className="w-full h-full rounded-xl bg-rose-500/10 flex items-center justify-center">
-          <ArrowDownLeft className="w-5 h-5 text-rose-600" />
-        </div>
-      </div>
-    );
-  }
 
-  // 4b. Admin Added Funds (YouuHost Team)
-  if (
-    method === "admin_topup" ||
-    type === "admin_topup" ||
-    category.includes("added funds") ||
-    title.includes("youuhost team") ||
-    (tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT")))
-  ) {
-    return (
-      <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
-        <img
-          src="/assets/youuhost_official_logo.png?v=4"
-          alt="YouuHost Team"
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            (e.currentTarget as any).src = "/logo.png";
-          }}
-        />
-      </div>
-    );
-  }
 
   // 5. Card Payment
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
@@ -2294,25 +2281,30 @@ Support: https://t.me/youuhost_support
   };
 
   const formatBalanceInCurrentCurrency = (balanceCents: number) => {
-    const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
-      if ((user as any)?.balanceLkr != null && (user as any).balanceLkr > 0) {
+      if ((user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0) {
         return `Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")}`;
       }
+      if (!balanceCents || balanceCents <= 0) {
+        return "Rs. 0";
+      }
+      const usd = balanceCents / 100;
       const rawLkr = usd * lkrRate;
       let rounded = Math.round(rawLkr);
+      if (rounded <= 0) return "Rs. 0";
       for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
         const rem = rounded % step;
-        if (rem >= step - 25) {
+        if (rem >= step - 25 && step <= rounded) {
           rounded += (step - rem);
           break;
-        } else if (rem <= 25 && rem > 0) {
+        } else if (rem <= 25 && rem > 0 && rounded > step) {
           rounded -= rem;
           break;
         }
       }
       return `Rs. ${rounded.toLocaleString("en-US")}`;
     }
+    const usd = (balanceCents || 0) / 100;
     return `$${usd.toFixed(2)}`;
   };
 
@@ -3085,13 +3077,25 @@ Support: https://t.me/youuhost_support
       return;
     }
 
+    const itemLkr = detailSandromaniaProduct.sellingPriceLkr
+      ? Number(detailSandromaniaProduct.sellingPriceLkr)
+      : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+    const totalLkr = itemLkr * sandromaniaOrderQty;
     const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
+    const userBalCents = user?.balance || 0;
+    const userBalanceUsd = userBalCents / 100;
+    const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+      ? Number((user as any).balanceLkr)
+      : Math.round((userBalCents / 100) * lkrRate);
 
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
-      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+    const hasEnough = selectedCurrency === "LKR"
+      ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
+      : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
       if (selectedCurrency === "LKR") {
@@ -3105,11 +3109,11 @@ Support: https://t.me/youuhost_support
       }
 
       setShortfallContext({
-        productName: detailSandromaniaProduct.name,
+        productName: detailSandromaniaProduct.title || detailSandromaniaProduct.name,
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededLkr: totalLkr,
         neededUsd: totalPriceUsd,
       });
 
@@ -3179,13 +3183,25 @@ Support: https://t.me/youuhost_support
       return;
     }
 
+    const itemLkr = detailCssxProduct.sellingPriceLkr
+      ? Number(detailCssxProduct.sellingPriceLkr)
+      : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+    const totalLkr = itemLkr * cssxOrderQty;
     const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
+    const userBalCents = user?.balance || 0;
+    const userBalanceUsd = userBalCents / 100;
+    const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+      ? Number((user as any).balanceLkr)
+      : Math.round((userBalCents / 100) * lkrRate);
 
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallUsd = parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2));
-      const shortfallLkr = Math.round(shortfallUsd * lkrRate);
+    const hasEnough = selectedCurrency === "LKR"
+      ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
+      : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
       if (selectedCurrency === "LKR") {
@@ -3203,7 +3219,7 @@ Support: https://t.me/youuhost_support
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: Math.round(totalPriceUsd * lkrRate),
+        neededLkr: totalLkr,
         neededUsd: totalPriceUsd,
       });
 
@@ -3344,26 +3360,27 @@ Support: https://t.me/youuhost_support
       : originalPriceCents;
     const finalPriceUsd = finalPriceCents / 100;
 
-    if (userBalanceCents < finalPriceCents) {
+    let neededLkr = 0;
+    if ((detailProduct as any).priceLkr && (detailProduct as any).priceLkr > 0) {
+      const prodLkrTotal = (detailProduct as any).priceLkr * quantity;
+      const discountLkr = appliedCoupon?.discountLkr || 0;
+      neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+    } else {
+      neededLkr = Math.round((finalPriceCents / 100) * lkrRate);
+    }
+    const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+      ? Number((user as any).balanceLkr)
+      : Math.floor((userBalanceCents / 100) * lkrRate);
+
+    const hasEnough = selectedCurrency === "LKR"
+      ? (userBalanceLkr >= neededLkr || userBalanceCents >= finalPriceCents)
+      : (userBalanceCents >= finalPriceCents || userBalanceLkr >= neededLkr);
+
+    if (!hasEnough) {
       // 1. Calculate shortfall in USD
       const shortfallCents = Math.max(0, finalPriceCents - userBalanceCents);
       const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
-
-      // 2. Calculate shortfall in LKR
-      let neededLkr = 0;
-      if ((detailProduct as any).priceLkr && (detailProduct as any).priceLkr > 0) {
-        const prodLkrTotal = (detailProduct as any).priceLkr * quantity;
-        const discountLkr = appliedCoupon?.discountLkr || 0;
-        neededLkr = Math.max(0, prodLkrTotal - discountLkr);
-      } else {
-        neededLkr = Math.round((finalPriceCents / 100) * lkrRate);
-      }
-      const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr > 0
-        ? Number((user as any).balanceLkr)
-        : Math.floor((userBalanceCents / 100) * lkrRate);
       const shortfallLkr = Math.max(0, neededLkr - userBalanceLkr);
-
-      // 3. Card payment rounded up to next multiple of 50 (e.g. shortfall 220 -> 250)
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
       const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
 
@@ -3478,13 +3495,21 @@ Support: https://t.me/youuhost_support
     }
 
     const totalCents = Math.round((detailSmmService.customRate / 1000) * smmOrderQty);
-    const userBalanceUsd = (user?.balance || 0) / 100;
     const totalPriceUsd = totalCents / 100;
+    const totalLkr = Math.round((totalCents / 100) * lkrRate);
+    const userBalanceCents = user?.balance || 0;
+    const userBalanceUsd = userBalanceCents / 100;
+    const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+      ? Number((user as any).balanceLkr)
+      : Math.round((userBalanceCents / 100) * lkrRate);
 
-    if (userBalanceUsd < totalPriceUsd) {
-      const shortfallCents = totalCents - (user?.balance || 0);
-      const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
-      const shortfallLkr = Math.round((shortfallCents / 100) * lkrRate);
+    const hasEnough = selectedCurrency === "LKR"
+      ? (userBalanceLkr >= totalLkr || userBalanceCents >= totalCents)
+      : (userBalanceCents >= totalCents || userBalanceLkr >= totalLkr);
+
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, totalLkr - userBalanceLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
       if (selectedCurrency === "LKR") {
@@ -6923,8 +6948,16 @@ Support: https://t.me/youuhost_support
             const cleanTitle = cleanSandromaniaText(detailSandromaniaProduct.title);
             const cleanCat = cleanSandromaniaText(detailSandromaniaProduct.category);
             const availableStock = detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 99;
+            const itemLkr = detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+            const totalLkr = itemLkr * sandromaniaOrderQty;
             const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
             const userBalCents = user?.balance || 0;
+            const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+              ? Number((user as any).balanceLkr)
+              : Math.round((userBalCents / 100) * lkrRate);
+            const hasEnough = selectedCurrency === "LKR"
+              ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
+              : (userBalCents >= totalCents || userBalLkr >= totalLkr);
             const isFav = favorites.includes(detailSandromaniaProduct.id);
 
             return (
@@ -7051,7 +7084,7 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 {/* Balance Check Notice */}
-                {userBalCents < totalCents && isCustomerLoggedIn && (
+                {!hasEnough && isCustomerLoggedIn && (
                   <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between">
                     <div>
                       <span className="font-bold block">⚠️ Insufficient Wallet Balance</span>
@@ -7113,8 +7146,16 @@ Support: https://t.me/youuhost_support
             const cleanTitle = detailCssxProduct.title || "Digital Product";
             const cleanCat = detailCssxProduct.category || "General";
             const availableStock = detailCssxProduct.stock ?? 99;
+            const itemLkr = detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+            const totalLkr = itemLkr * cssxOrderQty;
             const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
             const userBalCents = user?.balance || 0;
+            const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+              ? Number((user as any).balanceLkr)
+              : Math.round((userBalCents / 100) * lkrRate);
+            const hasEnough = selectedCurrency === "LKR"
+              ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
+              : (userBalCents >= totalCents || userBalLkr >= totalLkr);
             const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
 
             return (
@@ -7241,7 +7282,7 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 {/* Balance Check Notice */}
-                {userBalCents < totalCents && isCustomerLoggedIn && (
+                {!hasEnough && isCustomerLoggedIn && (
                   <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between">
                     <div>
                       <span className="font-bold block">⚠️ Insufficient Wallet Balance</span>

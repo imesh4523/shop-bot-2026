@@ -187,15 +187,17 @@ export default function TelegramUsersPage() {
   };
 
   const formatUserLkr = (cents: number) => {
-    const usd = (cents || 0) / 100;
+    if (!cents || cents <= 0) return "0";
+    const usd = cents / 100;
     const rawLkr = usd * lkrRate;
     let rounded = Math.round(rawLkr);
+    if (rounded <= 0) return "0";
     for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
       const rem = rounded % step;
-      if (rem >= step - 25) {
+      if (rem >= step - 25 && step <= rounded) {
         rounded += (step - rem);
         break;
-      } else if (rem <= 25 && rem > 0) {
+      } else if (rem <= 25 && rem > 0 && rounded > step) {
         rounded -= rem;
         break;
       }
@@ -205,7 +207,7 @@ export default function TelegramUsersPage() {
 
   const editingUser = useMemo(() => users.find((u) => u.id === editingId), [users, editingId]);
   const currentBalLkr = editingUser
-    ? (editingUser as any).balanceLkr != null && (editingUser as any).balanceLkr > 0
+    ? (editingUser as any).balanceLkr != null && (editingUser as any).balanceLkr >= 0
       ? Number((editingUser as any).balanceLkr)
       : Math.round(((editingUser.balance || 0) / 100) * lkrRate)
     : 0;
@@ -219,7 +221,7 @@ export default function TelegramUsersPage() {
     setAdjustAmountLkr(1000);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    if ((user as any).balanceLkr != null && (user as any).balanceLkr > 0) {
+    if ((user as any).balanceLkr != null && (user as any).balanceLkr >= 0) {
       setEditBalanceLkr(Number((user as any).balanceLkr));
     } else {
       setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
@@ -534,7 +536,7 @@ export default function TelegramUsersPage() {
                         💵 ${(((user.balance || 0)) / 100).toFixed(2)} USD
                       </span>
                       <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                        🇱🇰 Rs. {(user as any).balanceLkr != null && (user as any).balanceLkr > 0 ? Number((user as any).balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0)} LKR
+                        🇱🇰 Rs. {(user as any).balanceLkr != null && (user as any).balanceLkr >= 0 ? Number((user as any).balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0)} LKR
                       </span>
                     </div>
                   </div>

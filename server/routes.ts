@@ -5246,7 +5246,7 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
     let reducedLkr = 0;
     let reducedCents = 0;
 
-    const currentLkr = existingUser?.balanceLkr != null 
+    const currentLkr = existingUser?.balanceLkr != null && existingUser.balanceLkr >= 0
       ? existingUser.balanceLkr 
       : Math.round(((existingUser?.balance || 0) / 100) * lkrRate);
     const currentCents = existingUser?.balance || 0;
@@ -5270,25 +5270,25 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
         reducedLkr = Math.round(input.amountLkr);
         const newLkr = Math.max(0, currentLkr - reducedLkr);
         input.balanceLkr = newLkr;
-        input.balance = Math.round((newLkr / lkrRate) * 100);
+        input.balance = newLkr === 0 ? 0 : Math.round((newLkr / lkrRate) * 100);
       } else if (input.amountUsd && input.amountUsd > 0) {
         reducedCents = Math.round(input.amountUsd * 100);
         const newCents = Math.max(0, currentCents - reducedCents);
         input.balance = newCents;
-        input.balanceLkr = Math.round((newCents / 100) * lkrRate);
+        input.balanceLkr = newCents === 0 ? 0 : Math.round((newCents / 100) * lkrRate);
       }
     } else {
       // Default direct set mode
       if (input.balanceLkr !== undefined) {
         isLkr = true;
-        input.balance = Math.round((input.balanceLkr / lkrRate) * 100);
+        input.balance = input.balanceLkr === 0 ? 0 : Math.round((input.balanceLkr / lkrRate) * 100);
         if (input.balanceLkr > currentLkr) {
           addedLkr = input.balanceLkr - currentLkr;
         } else if (input.balanceLkr < currentLkr) {
           reducedLkr = currentLkr - input.balanceLkr;
         }
       } else if (input.balance !== undefined && existingUser) {
-        input.balanceLkr = Math.round((input.balance / 100) * lkrRate);
+        input.balanceLkr = input.balance === 0 ? 0 : Math.round((input.balance / 100) * lkrRate);
         if (input.balance > currentCents) {
           addedCents = input.balance - currentCents;
         } else if (input.balance < currentCents) {
@@ -6712,10 +6712,10 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       });
 
       if (!user) throw new Error("User account not found.");
-      const hasEnough = user.balance >= totalCents || (user.balanceLkr != null && user.balanceLkr >= totalLkr);
+      const hasEnough = (user.balanceLkr != null && user.balanceLkr >= totalLkr) || user.balance >= totalCents;
       if (!hasEnough) {
         throw new Error(
-          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(user.balanceLkr || Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(user.balanceLkr ?? Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
@@ -7036,10 +7036,10 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       const lkrRate = rates.LKR || 305.50;
       const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
 
-      const hasEnough = user.balance >= totalCents || (user.balanceLkr != null && user.balanceLkr >= totalLkr);
+      const hasEnough = (user.balanceLkr != null && user.balanceLkr >= totalLkr) || user.balance >= totalCents;
       if (!hasEnough) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${(user.balanceLkr || Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}).`
+          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${(user.balanceLkr ?? Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}).`
         );
       }
 
