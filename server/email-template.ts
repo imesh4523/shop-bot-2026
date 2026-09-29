@@ -246,7 +246,28 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
   doc.setTextColor(0, 209, 102);
   doc.text("PAID", left + 26, y);
 
-  y += 16;
+  // Payment Method in PDF matching official receipt
+  let pdfMethodLabel = "Credit / Debit Card";
+  const mLower = (props.paymentMethod || "").toLowerCase();
+  if (mLower.includes("frimi")) pdfMethodLabel = "FriMi";
+  else if (mLower.includes("ipay")) pdfMethodLabel = "iPay";
+  else if (mLower.includes("qplus") || mLower.includes("q+")) pdfMethodLabel = "Q+ Payment";
+  else if (mLower.includes("google") || mLower.includes("gpay")) pdfMethodLabel = "Google Pay";
+  else if (mLower.includes("master")) pdfMethodLabel = props.paymentMethodDetails || "Mastercard";
+  else if (mLower.includes("visa")) pdfMethodLabel = props.paymentMethodDetails || "Visa";
+  else if (mLower.includes("binance")) pdfMethodLabel = "Binance Pay";
+  else if (mLower.includes("cryptomus") || mLower.includes("crypto")) pdfMethodLabel = "Cryptomus (USDT)";
+  else if (props.paymentMethodDetails) pdfMethodLabel = props.paymentMethodDetails;
+
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 116, 139);
+  doc.text("Payment Method: ", left, y);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(17, 24, 39);
+  doc.text(pdfMethodLabel, left + 28, y);
+
+  y += 11;
 
   // Table Header matching Image 2: Description, Unit price, Qty, Amount
   doc.setDrawColor(226, 232, 240);
@@ -333,29 +354,82 @@ export function generateInvoicePdf(props: TransactionEmailProps): Buffer {
 }
 
 /**
- * Payment Method Icon Resolver using AgentBunny icons8 standards
+ * Payment Method Icon Resolver using official logos & AgentBunny icons8 standards
  */
 function getPaymentMethodDetails(method: string, details?: string): { iconUrl: string; title: string; subtitle: string; isBrandIcon: boolean } {
   const m = (method || "").toLowerCase();
 
+  // 1. FriMi
+  if (m.includes("frimi")) {
+    return {
+      iconUrl: "https://youuhost.com/frimi.png",
+      title: "Payment Method",
+      subtitle: details || "Paid via FriMi",
+      isBrandIcon: true,
+    };
+  }
+
+  // 2. iPay
+  if (m.includes("ipay")) {
+    return {
+      iconUrl: "https://youuhost.com/ipay.png",
+      title: "Payment Method",
+      subtitle: details || "Paid via iPay",
+      isBrandIcon: true,
+    };
+  }
+
+  // 3. Q+ Payment
+  if (m.includes("qplus") || m.includes("q+")) {
+    return {
+      iconUrl: "https://youuhost.com/qplus.png",
+      title: "Payment Method",
+      subtitle: details || "Paid via Q+ Payment",
+      isBrandIcon: true,
+    };
+  }
+
+  // 4. Google Pay
+  if (m.includes("google") || m.includes("gpay")) {
+    return {
+      iconUrl: "https://img.icons8.com/color/96/google-pay.png",
+      title: "Payment Method",
+      subtitle: details || "Paid via Google Pay",
+      isBrandIcon: true,
+    };
+  }
+
+  // 5. Mastercard
   if (m.includes("master")) {
     return {
       iconUrl: "https://img.icons8.com/color/96/mastercard.png",
       title: "Payment Method",
-      subtitle: details || "Mastercard ending in •••• 9876",
+      subtitle: details || "Mastercard",
       isBrandIcon: true,
     };
   }
 
-  if (m.includes("visa") || m.includes("card") || m.includes("payhere")) {
+  // 6. Visa
+  if (m.includes("visa")) {
     return {
       iconUrl: "https://img.icons8.com/color/96/visa.png",
       title: "Payment Method",
-      subtitle: details || "Visa ending in •••• 4122",
+      subtitle: details || "Visa Card",
       isBrandIcon: true,
     };
   }
 
+  // 7. Generic Card / PayHere
+  if (m.includes("card") || m.includes("payhere")) {
+    return {
+      iconUrl: "https://img.icons8.com/color/96/bank-cards.png",
+      title: "Payment Method",
+      subtitle: details || "Credit / Debit Card",
+      isBrandIcon: true,
+    };
+  }
+
+  // 8. Binance Pay
   if (m.includes("binance")) {
     return {
       iconUrl: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
@@ -365,6 +439,7 @@ function getPaymentMethodDetails(method: string, details?: string): { iconUrl: s
     };
   }
 
+  // 9. Cryptomus / Crypto
   if (m.includes("cryptomus") || m.includes("crypto") || m.includes("usdt")) {
     return {
       iconUrl: "https://img.icons8.com/color/96/tether.png",

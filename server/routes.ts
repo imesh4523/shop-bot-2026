@@ -2528,11 +2528,18 @@ export async function registerRoutes(
       // 1. Deposits (Payments)
       const userPayments = await storage.getPaymentsForUser(userId);
       const deposits = userPayments.map(p => {
-        const isCard = p.paymentMethod === "payhere" || p.paymentMethod === "card";
-        const isBinance = p.paymentMethod === "binance_pay" || p.paymentMethod === "binance";
-        const isCrypto = p.paymentMethod === "cryptomus" || p.paymentMethod === "crypto";
-        const isAdminDeduct = p.paymentMethod === "admin_deduction" || p.externalId?.startsWith("ADMIN_DEDUCT") || p.amount < 0;
-        const isAdmin = !isAdminDeduct && (p.paymentMethod === "admin_topup" || p.externalId?.startsWith("ADMIN"));
+        const pMethodLower = (p.paymentMethod || "").toLowerCase();
+        const isFriMi = pMethodLower === "frimi" || pMethodLower.includes("frimi");
+        const isIpay = pMethodLower === "ipay" || pMethodLower.includes("ipay");
+        const isQplus = pMethodLower === "qplus" || pMethodLower.includes("q+");
+        const isGPay = pMethodLower === "google_pay" || pMethodLower.includes("google") || pMethodLower.includes("gpay");
+        const isMaster = pMethodLower === "mastercard" || pMethodLower.includes("master");
+        const isVisa = pMethodLower === "visa" || pMethodLower.includes("visa");
+        const isBinance = pMethodLower === "binance_pay" || pMethodLower === "binance";
+        const isCrypto = pMethodLower === "cryptomus" || pMethodLower === "crypto";
+        const isAdminDeduct = pMethodLower === "admin_deduction" || p.externalId?.startsWith("ADMIN_DEDUCT") || p.amount < 0;
+        const isAdmin = !isAdminDeduct && (pMethodLower === "admin_topup" || p.externalId?.startsWith("ADMIN"));
+        const isCard = !isFriMi && !isIpay && !isQplus && !isGPay && !isMaster && !isVisa && (pMethodLower === "payhere" || pMethodLower === "card");
 
         let title = "Wallet Deposit";
         let category = "Wallet Deposit";
@@ -2549,16 +2556,51 @@ export async function registerRoutes(
           category = "YouuHost Team Added Funds";
           cleanMethod = "admin_topup";
           cleanRef = `#ADM-${p.id}`;
+        } else if (isFriMi) {
+          title = "FriMi Deposit";
+          category = "FriMi Top-Up";
+          cleanMethod = "frimi";
+          cleanRef = `#FRIMI-${p.id}`;
+        } else if (isIpay) {
+          title = "iPay Deposit";
+          category = "iPay Top-Up";
+          cleanMethod = "ipay";
+          cleanRef = `#IPAY-${p.id}`;
+        } else if (isQplus) {
+          title = "Q+ Payment Deposit";
+          category = "Q+ Payment Top-Up";
+          cleanMethod = "qplus";
+          cleanRef = `#QPLUS-${p.id}`;
+        } else if (isGPay) {
+          title = "Google Pay Deposit";
+          category = "Google Pay Top-Up";
+          cleanMethod = "google_pay";
+          cleanRef = `#GPAY-${p.id}`;
+        } else if (isMaster) {
+          const last4 = p.txid && p.txid.length >= 4 ? p.txid.slice(-4) : "";
+          title = last4 ? `Mastercard •••• ${last4}` : "Mastercard Deposit";
+          category = "Mastercard Top-Up";
+          cleanMethod = "mastercard";
+          cleanRef = `#MC-${p.id}`;
+        } else if (isVisa) {
+          const last4 = p.txid && p.txid.length >= 4 ? p.txid.slice(-4) : "";
+          title = last4 ? `Visa •••• ${last4}` : "Visa Deposit";
+          category = "Visa Top-Up";
+          cleanMethod = "visa";
+          cleanRef = `#VISA-${p.id}`;
         } else if (isCard) {
           title = "Card Payment";
+          category = "Card Deposit";
           cleanMethod = "card_payment";
           cleanRef = `#CARD-${p.id}`;
         } else if (isBinance) {
           title = "Binance Pay";
+          category = "Binance Pay Top-Up";
           cleanMethod = "binance_pay";
           cleanRef = p.txid ? `#BN-${p.txid.substring(0, 8)}` : `#BN-${p.id}`;
         } else if (isCrypto) {
           title = "Cryptomus Deposit";
+          category = "Cryptomus USDT Top-Up";
           cleanMethod = "cryptomus";
           cleanRef = `#CRYPTO-${p.id}`;
         }
@@ -2600,6 +2642,18 @@ export async function registerRoutes(
             ? "Balance deducted from wallet by YouuHost Team"
             : isAdmin
             ? "Money added directly to your wallet by YouuHost Team"
+            : isFriMi
+            ? "Instant deposit via FriMi"
+            : isIpay
+            ? "Instant deposit via iPay"
+            : isQplus
+            ? "Instant deposit via Q+ Payment"
+            : isGPay
+            ? "Instant deposit via Google Pay"
+            : isMaster
+            ? (p.txid ? `Mastercard ending in ${p.txid.slice(-4)}` : "Deposit via Mastercard")
+            : isVisa
+            ? (p.txid ? `Visa ending in ${p.txid.slice(-4)}` : "Deposit via Visa")
             : isCard
             ? "Paid via Online Card Payment Gateway"
             : isBinance
@@ -3684,7 +3738,7 @@ export async function registerRoutes(
   // Internal Webhook from PayHere Proxy Gateway (imhost-main) when payment succeeds
   app.post("/api/internal/payment-success", async (req, res) => {
     try {
-      const { paymentId, secret } = req.body;
+      const { paymentId, secret, method, cardNo, cardHolderName } = req.body;
       if (secret !== "youuhost_internal_secret_2026") {
         return res.status(403).json({ message: "Invalid internal secret" });
       }
@@ -3696,6 +3750,53 @@ export async function registerRoutes(
 
       const user = await storage.getTelegramUserById(payment.telegramUserId);
       if (!user) return res.status(404).json({ message: "User not found" });
+
+      // Determine detected payment method
+      const rawMethod = (method || payment.paymentMethod || "card").toLowerCase();
+      let effectiveMethod = "card";
+      let methodTitle = "Card Payment";
+      let methodDetails = "";
+
+      if (rawMethod.includes("frimi")) {
+        effectiveMethod = "frimi";
+        methodTitle = "FriMi";
+        methodDetails = "Paid via FriMi";
+      } else if (rawMethod.includes("ipay")) {
+        effectiveMethod = "ipay";
+        methodTitle = "iPay";
+        methodDetails = "Paid via iPay";
+      } else if (rawMethod.includes("qplus") || rawMethod.includes("q+")) {
+        effectiveMethod = "qplus";
+        methodTitle = "Q+ Payment";
+        methodDetails = "Paid via Q+ Payment";
+      } else if (rawMethod.includes("google") || rawMethod.includes("gpay")) {
+        effectiveMethod = "google_pay";
+        methodTitle = "Google Pay";
+        methodDetails = "Paid via Google Pay";
+      } else if (rawMethod.includes("master")) {
+        effectiveMethod = "mastercard";
+        const last4 = (cardNo || payment.txid || "").slice(-4);
+        methodTitle = "Mastercard";
+        methodDetails = last4 ? `Mastercard ending in •••• ${last4}` : "Mastercard";
+      } else if (rawMethod.includes("visa")) {
+        effectiveMethod = "visa";
+        const last4 = (cardNo || payment.txid || "").slice(-4);
+        methodTitle = "Visa";
+        methodDetails = last4 ? `Visa ending in •••• ${last4}` : "Visa Card";
+      } else {
+        const last4 = (cardNo || payment.txid || "").slice(-4);
+        methodTitle = "Card Payment";
+        methodDetails = last4 ? `Card ending in •••• ${last4}` : "Credit / Debit Card";
+      }
+
+      // Update payment record with detected method and card number
+      if (method || cardNo) {
+        await db.update(payments).set({
+          paymentMethod: effectiveMethod,
+          txid: cardNo || payment.txid || null,
+          updatedAt: new Date()
+        }).where(eq(payments.id, payment.id));
+      }
 
       const isLkr = (payment.currency || "").toUpperCase() === "LKR";
       const rates = await fetchLiveExchangeRates();
@@ -3721,7 +3822,7 @@ export async function registerRoutes(
         }).where(eq(telegramUsers.id, user.id));
       }
 
-      // Dispatch luxury payment confirmation receipt email with PDF invoice (Issue 2)
+      // Dispatch luxury payment confirmation receipt email with PDF invoice
       if (user.email && user.email.includes("@")) {
         const checkEmailLogs = await db.select().from(emailLogs).where(
           and(
@@ -3732,7 +3833,7 @@ export async function registerRoutes(
 
         const alreadySent = checkEmailLogs.some(log => {
           const meta = log.metadata as any;
-          return meta && (meta.referenceId === `CARD-${payment.id}` || meta.referenceId === `PAYHERE-${payment.id}` || meta.paymentId === payment.id);
+          return meta && (meta.referenceId === `${methodTitle.toUpperCase().replace(/\s+/g, '')}-${payment.id}` || meta.referenceId === `CARD-${payment.id}` || meta.referenceId === `PAYHERE-${payment.id}` || meta.paymentId === payment.id);
         });
 
         if (!alreadySent) {
@@ -3741,11 +3842,12 @@ export async function registerRoutes(
             recipientName: user.firstName || user.username || "Customer",
             amount: isLkr ? `Rs. ${creditLkr.toLocaleString()} LKR` : `$${(creditCents / 100).toFixed(2)} USD`,
             secondaryAmount: isLkr ? `$${(creditCents / 100).toFixed(2)} USD` : `Rs. ${creditLkr.toLocaleString()} LKR`,
-            referenceId: `CARD-${payment.id}`,
-            paymentMethod: "card",
+            referenceId: `${methodTitle.toUpperCase().replace(/\s+/g, '')}-${payment.id}`,
+            paymentMethod: effectiveMethod,
+            paymentMethodDetails: methodDetails,
             planTitle: "Wallet Balance Deposit",
             billingCycle: "Instant Credit",
-            notes: `PayHere Card Top-Up #${payment.id}`
+            notes: `${methodTitle} Top-Up #${payment.id}`
           }).catch(err => console.error("[Payment Receipt Email Error]:", err.message));
         }
       }
@@ -3755,8 +3857,8 @@ export async function registerRoutes(
       io.emit("user_balance_updated", { userId: user.id, balanceLkr: user.balanceLkr, balance: user.balance });
       const displayUser = user.username ? `@${user.username}` : `User #${user.id}`;
       sendAdminPushNotification({
-        title: `💳 Card Payment Confirmed (${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`})`,
-        body: `${displayUser} deposited ${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`} via Card`
+        title: `💳 ${methodTitle} Confirmed (${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`})`,
+        body: `${displayUser} deposited ${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`} via ${methodTitle}`
       }).catch(() => {});
 
       return res.json({ success: true, message: "Payment confirmed, balance synced, and receipt dispatched." });

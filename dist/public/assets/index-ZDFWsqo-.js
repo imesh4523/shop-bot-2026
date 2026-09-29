@@ -74778,7 +74778,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Bz_VfjD4.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-wpvnKtkA.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -104968,7 +104968,55 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
     }
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
   }
-  if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
+  if (method.includes("frimi") || title.includes("frimi")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-purple-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "/frimi.png",
+        alt: "FriMi",
+        className: "w-full h-full object-contain rounded-full shadow-2xs"
+      }
+    ) });
+  }
+  if (method.includes("ipay") || title.includes("ipay")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-red-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "/ipay.png",
+        alt: "iPay",
+        className: "w-full h-full object-contain rounded-full shadow-2xs"
+      }
+    ) });
+  }
+  if (method.includes("qplus") || method.includes("q+") || title.includes("q+")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "/qplus.png",
+        alt: "Q+ Payment",
+        className: "w-full h-full object-contain rounded-full shadow-2xs"
+      }
+    ) });
+  }
+  if (method.includes("google") || method.includes("gpay") || title.includes("google")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "w-full h-full shrink-0", viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z", fill: "#4285F4" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z", fill: "#34A853" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M5.28 14.27a7.18 7.18 0 0 1 0-4.54V6.58H1.25a11.97 11.97 0 0 0 0 10.84l4.03-3.15Z", fill: "#FBBC05" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z", fill: "#EA4335" })
+    ] }) });
+  }
+  if (method.includes("master") || title.includes("master")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#EB001B]/20 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "w-full h-full shrink-0", viewBox: "0 0 28 18", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
+    ] }) });
+  }
+  if (method.includes("visa") || title.includes("visa")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#1A1F71]/20 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "w-full h-full shrink-0", viewBox: "0 0 52 17", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }) });
+  }
+  if (method.includes("card") || method.includes("payhere") || title.includes("card")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
@@ -105813,7 +105861,7 @@ function MiniAppShopModern() {
         refetchSmmOrders()
       ]).finally(() => {
         const elapsed = Date.now() - timerStart;
-        const delay2 = Math.max(0, 600 - elapsed);
+        const delay2 = Math.max(0, 950 - elapsed);
         setTimeout(() => setIsOrdersTabLoading(false), delay2);
       });
     } else if (activeTab === "profile") {
@@ -105824,7 +105872,7 @@ function MiniAppShopModern() {
         queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] })
       ]).finally(() => {
         const elapsed = Date.now() - timerStart;
-        const delay2 = Math.max(0, 600 - elapsed);
+        const delay2 = Math.max(0, 900 - elapsed);
         setTimeout(() => setIsProfileTabLoading(false), delay2);
       });
     }
@@ -108451,26 +108499,17 @@ ${finalDetails}`;
             )
           ] })
         ] }),
-        isOrdersTabLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        (isOrdersTabLoading || isSyncingOrders) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
           motion.div,
           {
-            initial: { opacity: 0, scaleY: 0.6 },
-            animate: { opacity: 1, scaleY: 1 },
-            exit: { opacity: 0 },
-            className: "w-full my-1.5",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative w-full h-1.5 bg-gradient-to-r from-purple-100 via-pink-100 to-indigo-100 rounded-full overflow-hidden shadow-inner", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-              motion.div,
-              {
-                className: "absolute top-0 bottom-0 bg-gradient-to-r from-[#5B42F3] via-[#D92078] to-[#00F5C4] rounded-full shadow-[0_0_12px_rgba(91,66,243,0.6)]",
-                initial: { left: "-45%", width: "45%" },
-                animate: { left: "105%", width: "45%" },
-                transition: {
-                  repeat: Infinity,
-                  duration: 1.15,
-                  ease: "easeInOut"
-                }
-              }
-            ) })
+            initial: { opacity: 0, scale: 0.94 },
+            animate: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0.94 },
+            className: "w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 105 }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight", children: "Syncing latest orders & credentials..." })
+            ]
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -109169,10 +109208,19 @@ ${finalDetails}`;
         ] })
       ] }),
       activeTab === "profile" && /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.div, { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, className: "space-y-4", children: [
-        isProfileTabLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin text-[#5B42F3]" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Refreshing profile & wallet balance..." })
-        ] }),
+        isProfileTabLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          motion.div,
+          {
+            initial: { opacity: 0, scale: 0.94 },
+            animate: { opacity: 1, scale: 1 },
+            exit: { opacity: 0, scale: 0.94 },
+            className: "w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LottiePayment, { size: 105 }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight", children: "Syncing profile & wallet balance..." })
+            ]
+          }
+        ),
         !isCustomerLoggedIn ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#6C5CE7]/15 to-[#FF5E62]/15 blur-3xl rounded-full -translate-y-12 translate-x-12 pointer-events-none" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center mb-6 relative z-10", children: [
@@ -109955,7 +110003,29 @@ ${finalDetails}`;
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-[#F5F4FC]", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#9490A8] font-bold", children: "Payment Method:" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-[#181432] flex items-center gap-1.5", children: selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" || selectedTxDetail.method === "card" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-blue-600 flex items-center gap-1.5 font-bold", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-[#181432] flex items-center gap-1.5", children: selectedTxDetail.method === "frimi" || (selectedTxDetail.title || "").toLowerCase().includes("frimi") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#582C83] flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/frimi.png", alt: "FriMi", className: "w-4 h-4 object-contain rounded-full shadow-2xs" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "FriMi" })
+            ] }) : selectedTxDetail.method === "ipay" || (selectedTxDetail.title || "").toLowerCase().includes("ipay") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#E31B23] flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/ipay.png", alt: "iPay", className: "w-4 h-4 object-contain rounded-full shadow-2xs" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "iPay" })
+            ] }) : selectedTxDetail.method === "qplus" || (selectedTxDetail.title || "").toLowerCase().includes("q+") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#0054A6] flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/qplus.png", alt: "Q+ Payment", className: "w-4 h-4 object-contain rounded-full shadow-2xs" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Q+ Payment" })
+            ] }) : selectedTxDetail.method === "google_pay" || (selectedTxDetail.title || "").toLowerCase().includes("google") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-slate-700 flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(GoogleIcon, { className: "w-4 h-4 shrink-0" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Google Pay" })
+            ] }) : selectedTxDetail.method === "mastercard" || (selectedTxDetail.title || "").toLowerCase().includes("master") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#181432] flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "h-3.5 w-auto shrink-0", viewBox: "0 0 28 18", fill: "none", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "9", cy: "9", r: "9", fill: "#EB001B" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "19", cy: "9", r: "9", fill: "#F79E1B" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z", fill: "#FF5F00" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Mastercard" })
+            ] }) : selectedTxDetail.method === "visa" || (selectedTxDetail.title || "").toLowerCase().includes("visa") ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#1A1F71] flex items-center gap-1.5 font-bold", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { className: "h-3 w-auto shrink-0", viewBox: "0 0 52 17", fill: "none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z", fill: "#1A1F71" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Visa" })
+            ] }) : selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" || selectedTxDetail.method === "card" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-blue-600 flex items-center gap-1.5 font-bold", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(DualCardIcon, {}),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Card Payment" })
             ] }) : selectedTxDetail.method === "binance_pay" || selectedTxDetail.method === "binance" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-amber-600 flex items-center gap-1.5 font-bold", children: [

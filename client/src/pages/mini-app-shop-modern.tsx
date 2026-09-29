@@ -614,8 +614,85 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
 
 
 
-  // 5. Card Payment
-  if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
+  // 5a. FriMi Payment
+  if (method.includes("frimi") || title.includes("frimi")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-purple-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src="/frimi.png"
+          alt="FriMi"
+          className="w-full h-full object-contain rounded-full shadow-2xs"
+        />
+      </div>
+    );
+  }
+
+  // 5b. iPay Payment
+  if (method.includes("ipay") || title.includes("ipay")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-red-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src="/ipay.png"
+          alt="iPay"
+          className="w-full h-full object-contain rounded-full shadow-2xs"
+        />
+      </div>
+    );
+  }
+
+  // 5c. Q+ Payment
+  if (method.includes("qplus") || method.includes("q+") || title.includes("q+")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <img
+          src="/qplus.png"
+          alt="Q+ Payment"
+          className="w-full h-full object-contain rounded-full shadow-2xs"
+        />
+      </div>
+    );
+  }
+
+  // 5d. Google Pay
+  if (method.includes("google") || method.includes("gpay") || title.includes("google")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`}>
+        <svg className="w-full h-full shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" fill="#4285F4"/>
+          <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z" fill="#34A853"/>
+          <path d="M5.28 14.27a7.18 7.18 0 0 1 0-4.54V6.58H1.25a11.97 11.97 0 0 0 0 10.84l4.03-3.15Z" fill="#FBBC05"/>
+          <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z" fill="#EA4335"/>
+        </svg>
+      </div>
+    );
+  }
+
+  // 5e. Mastercard
+  if (method.includes("master") || title.includes("master")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-[#EB001B]/20 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`}>
+        <svg className="w-full h-full shrink-0" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+          <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+          <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+        </svg>
+      </div>
+    );
+  }
+
+  // 5f. Visa
+  if (method.includes("visa") || title.includes("visa")) {
+    return (
+      <div className={`${className} rounded-2xl bg-white border border-[#1A1F71]/20 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-2`}>
+        <svg className="w-full h-full shrink-0" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+        </svg>
+      </div>
+    );
+  }
+
+  // 5g. Generic Card Payment
+  if (method.includes("card") || method.includes("payhere") || title.includes("card")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return (
       <div className={`${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
@@ -1582,7 +1659,7 @@ export default function MiniAppShopModern() {
         refetchSmmOrders(),
       ]).finally(() => {
         const elapsed = Date.now() - timerStart;
-        const delay = Math.max(0, 600 - elapsed);
+        const delay = Math.max(0, 950 - elapsed);
         setTimeout(() => setIsOrdersTabLoading(false), delay);
       });
     } else if (activeTab === "profile") {
@@ -1593,7 +1670,7 @@ export default function MiniAppShopModern() {
         queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] }),
       ]).finally(() => {
         const elapsed = Date.now() - timerStart;
-        const delay = Math.max(0, 600 - elapsed);
+        const delay = Math.max(0, 900 - elapsed);
         setTimeout(() => setIsProfileTabLoading(false), delay);
       });
     }
@@ -4808,26 +4885,16 @@ Support: https://t.me/youuhost_support
               </div>
             </div>
 
-            {/* Professional Smooth Live Sync Indicator (Issue 4 - Clean, sleek animated loading line) */}
-            {isOrdersTabLoading && (
+            {/* Signature Lottie Loading Animation like Home Page */}
+            {(isOrdersTabLoading || isSyncingOrders) && (
               <motion.div
-                initial={{ opacity: 0, scaleY: 0.6 }}
-                animate={{ opacity: 1, scaleY: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-full my-1.5"
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                className="w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs"
               >
-                <div className="relative w-full h-1.5 bg-gradient-to-r from-purple-100 via-pink-100 to-indigo-100 rounded-full overflow-hidden shadow-inner">
-                  <motion.div
-                    className="absolute top-0 bottom-0 bg-gradient-to-r from-[#5B42F3] via-[#D92078] to-[#00F5C4] rounded-full shadow-[0_0_12px_rgba(91,66,243,0.6)]"
-                    initial={{ left: "-45%", width: "45%" }}
-                    animate={{ left: "105%", width: "45%" }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1.15,
-                      ease: "easeInOut",
-                    }}
-                  />
-                </div>
+                <LottiePayment size={105} />
+                <span className="text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight">Syncing latest orders & credentials...</span>
               </motion.div>
             )}
 
@@ -5635,12 +5702,17 @@ Support: https://t.me/youuhost_support
         {/* PROFILE TAB */}
         {activeTab === "profile" && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            {/* Real Inline Profile Syncing Animation Bar (Issue 6 - Smooth non-popup sync) */}
+            {/* Signature Lottie Loading Animation like Home Page */}
             {isProfileTabLoading && (
-              <div className="bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#5B42F3]" />
-                <span>Refreshing profile & wallet balance...</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                className="w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs"
+              >
+                <LottiePayment size={105} />
+                <span className="text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight">Syncing profile & wallet balance...</span>
+              </motion.div>
             )}
             {!isCustomerLoggedIn ? (
               <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
@@ -6535,7 +6607,43 @@ Support: https://t.me/youuhost_support
                   <div className="flex items-center justify-between pb-2 border-b border-[#F5F4FC]">
                     <span className="text-[#9490A8] font-bold">Payment Method:</span>
                     <span className="font-bold text-[#181432] flex items-center gap-1.5">
-                      {selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" || selectedTxDetail.method === "card" ? (
+                      {selectedTxDetail.method === "frimi" || (selectedTxDetail.title || "").toLowerCase().includes("frimi") ? (
+                        <span className="text-[#582C83] flex items-center gap-1.5 font-bold">
+                          <img src="/frimi.png" alt="FriMi" className="w-4 h-4 object-contain rounded-full shadow-2xs" />
+                          <span>FriMi</span>
+                        </span>
+                      ) : selectedTxDetail.method === "ipay" || (selectedTxDetail.title || "").toLowerCase().includes("ipay") ? (
+                        <span className="text-[#E31B23] flex items-center gap-1.5 font-bold">
+                          <img src="/ipay.png" alt="iPay" className="w-4 h-4 object-contain rounded-full shadow-2xs" />
+                          <span>iPay</span>
+                        </span>
+                      ) : selectedTxDetail.method === "qplus" || (selectedTxDetail.title || "").toLowerCase().includes("q+") ? (
+                        <span className="text-[#0054A6] flex items-center gap-1.5 font-bold">
+                          <img src="/qplus.png" alt="Q+ Payment" className="w-4 h-4 object-contain rounded-full shadow-2xs" />
+                          <span>Q+ Payment</span>
+                        </span>
+                      ) : selectedTxDetail.method === "google_pay" || (selectedTxDetail.title || "").toLowerCase().includes("google") ? (
+                        <span className="text-slate-700 flex items-center gap-1.5 font-bold">
+                          <GoogleIcon className="w-4 h-4 shrink-0" />
+                          <span>Google Pay</span>
+                        </span>
+                      ) : selectedTxDetail.method === "mastercard" || (selectedTxDetail.title || "").toLowerCase().includes("master") ? (
+                        <span className="text-[#181432] flex items-center gap-1.5 font-bold">
+                          <svg className="h-3.5 w-auto shrink-0" viewBox="0 0 28 18" fill="none">
+                            <circle cx="9" cy="9" r="9" fill="#EB001B"/>
+                            <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
+                            <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
+                          </svg>
+                          <span>Mastercard</span>
+                        </span>
+                      ) : selectedTxDetail.method === "visa" || (selectedTxDetail.title || "").toLowerCase().includes("visa") ? (
+                        <span className="text-[#1A1F71] flex items-center gap-1.5 font-bold">
+                          <svg className="h-3 w-auto shrink-0" viewBox="0 0 52 17" fill="none">
+                            <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
+                          </svg>
+                          <span>Visa</span>
+                        </span>
+                      ) : selectedTxDetail.method === "card_payment" || selectedTxDetail.method === "payhere" || selectedTxDetail.method === "card" ? (
                         <span className="text-blue-600 flex items-center gap-1.5 font-bold">
                           <DualCardIcon />
                           <span>Card Payment</span>
