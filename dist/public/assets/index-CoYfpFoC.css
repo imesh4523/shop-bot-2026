@@ -1166,6 +1166,10 @@ h1, h2, h3, h4, h5, h6 {
   margin-right: 0px;
 }
 
+.mr-0\.5{
+  margin-right: 0.125rem;
+}
+
 .mr-1{
   margin-right: 0.25rem;
 }
@@ -6725,6 +6729,10 @@ h1, h2, h3, h4, h5, h6 {
   text-align: right;
 }
 
+.align-top{
+  vertical-align: top;
+}
+
 .align-middle{
   vertical-align: middle;
 }
@@ -7285,11 +7293,6 @@ h1, h2, h3, h4, h5, h6 {
 .text-\[\#FF0000\]{
   --tw-text-opacity: 1;
   color: rgb(255 0 0 / var(--tw-text-opacity, 1));
-}
-
-.text-\[\#FF5C5C\]{
-  --tw-text-opacity: 1;
-  color: rgb(255 92 92 / var(--tw-text-opacity, 1));
 }
 
 .text-\[\#FF5E62\]{
@@ -12287,6 +12290,10 @@ body:has(.tg-mini-app) {
 
   .md\:flex{
     display: flex;
+  }
+
+  .md\:h-10{
+    height: 2.5rem;
   }
 
   .md\:w-64{

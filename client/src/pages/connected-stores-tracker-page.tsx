@@ -685,14 +685,18 @@ export default function ConnectedStoresTrackerPage() {
             id="printable-statement" 
             className="bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white"
           >
-            {/* Top Logo & Header */}
+            {/* Top Logo & Header (Official Logo Image from Photo 4) */}
             <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-5">
-              <div className="flex items-center gap-2.5">
-                <img src="/logo.png" alt="YouuHost" className="w-10 h-10 object-contain rounded-xl shadow-xs" />
-                <div className="flex items-baseline text-2xl font-black tracking-tight select-none">
-                  <span className="text-[#FF5C5C]">youu</span>
-                  <span className="text-[#5B42F3]">host</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/assets/youuhost_official_logo.png" 
+                  alt="YouuHost" 
+                  className="h-8 md:h-10 w-auto object-contain"
+                  onError={(e) => {
+                    // Fallback to /logo.png if asset path fails
+                    (e.currentTarget as any).src = "/logo.png";
+                  }}
+                />
               </div>
               <div className="text-right">
                 <span className="text-xl md:text-2xl font-black tracking-wider text-[#111827]">INVOICE</span>
@@ -726,21 +730,17 @@ export default function ConnectedStoresTrackerPage() {
                 </div>
               </div>
 
-              {/* Billed To Card */}
+              {/* Billed To Card (support@youuhost.com) */}
               <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
                 <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Billed To</p>
                 <p className="font-bold text-slate-900 truncate">
-                  {selectedInvoiceOrder 
-                    ? (selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer")
-                    : (filteredOrders.length > 0 && filteredOrders[0].customerName 
-                      ? filteredOrders[0].customerName 
-                      : "@cheak_imesh")}
+                  YouuHost Support
                 </p>
-                <p className="text-slate-500 truncate text-[11px]">
-                  {selectedInvoiceOrder?.customerEmail || (filteredOrders.length > 0 ? filteredOrders[0]?.customerEmail : "imeshcheak@gmail.com") || "customer@youuhost.com"}
+                <p className="text-purple-600 font-semibold truncate text-[11.5px]">
+                  support@youuhost.com
                 </p>
                 <p className="text-slate-600 text-[10.5px] truncate pt-0.5">
-                  <span className="text-slate-400">Channel:</span> <span className="font-semibold text-purple-700">{activeStoreName}</span>
+                  <span className="text-slate-400">Channel:</span> <span className="font-semibold text-slate-800">{activeStoreName}</span>
                 </p>
               </div>
             </div>
@@ -765,19 +765,30 @@ export default function ConnectedStoresTrackerPage() {
                         ? parseFloat(selectedInvoiceOrder.unitPriceUsd) 
                         : (parseFloat(selectedInvoiceOrder.priceUsd) / qty);
                       const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || (unitUsd * qty);
+                      const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : new Date();
                       return (
                         <tr>
                           <td className="py-3 px-1.5 font-medium text-[#475569] leading-snug">
-                            <span className="font-semibold text-purple-600 mr-1">+P</span>
-                            <span>{selectedInvoiceOrder.productName}</span>
+                            <div className="flex items-start gap-1">
+                              <span className="font-semibold text-purple-600 mr-0.5 shrink-0">+P</span>
+                              <div>
+                                <span className="font-semibold text-slate-900">{selectedInvoiceOrder.productName}</span>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                  <span>
+                                    {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} • {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                          <td className="py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap">
+                          <td className="py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top">
                             ${unitUsd.toFixed(2)} USD
                           </td>
-                          <td className="py-3 px-1.5 text-center font-bold text-slate-800">
+                          <td className="py-3 px-1.5 text-center font-bold text-slate-800 align-top">
                             {qty}
                           </td>
-                          <td className="py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap">
+                          <td className="py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top">
                             ${totalUsd.toFixed(2)} USD
                           </td>
                         </tr>
@@ -790,25 +801,36 @@ export default function ConnectedStoresTrackerPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.slice(0, 15).map((ord, idx) => {
+                    filteredOrders.slice(0, 25).map((ord, idx) => {
                       const qty = ord.quantity || 1;
                       const unitUsd = ord.unitPriceUsd 
                         ? parseFloat(ord.unitPriceUsd) 
                         : ((parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty);
                       const totalUsd = parseFloat(ord.priceUsd) || (unitUsd * qty);
+                      const orderDate = ord.createdAt ? new Date(ord.createdAt) : new Date();
                       return (
                         <tr key={idx}>
                           <td className="py-2.5 px-1.5 font-medium text-[#475569] leading-snug">
-                            <span className="font-semibold text-purple-600 mr-1">+P</span>
-                            <span>{ord.productName}</span>
+                            <div className="flex items-start gap-1">
+                              <span className="font-semibold text-purple-600 mr-0.5 shrink-0">+P</span>
+                              <div>
+                                <span className="font-semibold text-slate-900">{ord.productName}</span>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                  <span>
+                                    {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} • {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                          <td className="py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap">
+                          <td className="py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top">
                             ${unitUsd.toFixed(2)} USD
                           </td>
-                          <td className="py-2.5 px-1.5 text-center font-bold text-slate-800">
+                          <td className="py-2.5 px-1.5 text-center font-bold text-slate-800 align-top">
                             {qty}
                           </td>
-                          <td className="py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap">
+                          <td className="py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top">
                             ${totalUsd.toFixed(2)} USD
                           </td>
                         </tr>

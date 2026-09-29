@@ -4000,23 +4000,19 @@ export async function registerRoutes(
         };
       });
 
-      // Map Sandromania Orders
+      // Map Sandromania Orders (Store Tracker Buying Costs)
       const sandromaniaMapped = allSandromaniaOrders.map(sp => {
         const qty = sp.sandromania_orders.quantity || 1;
-        const totalCostUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
-        const unitCostUsd = sp.sandromania_orders.costPriceUsd 
-          ? ((sp.sandromania_orders.costPriceUsd / 100)) 
-          : (sp.sandromania_products?.costPriceUsd ? (sp.sandromania_products.costPriceUsd / 100) : (totalCostUsd / (qty || 1)));
+        // Real unit buying cost in cents (from sandromania_orders or sandromania_products)
+        const unitCostCents = sp.sandromania_orders.costPriceUsd 
+          ? (sp.sandromania_orders.costPriceUsd > 100 && qty > 1 
+              ? Math.round(sp.sandromania_orders.costPriceUsd / qty) 
+              : sp.sandromania_orders.costPriceUsd)
+          : (sp.sandromania_products?.costPriceUsd || 44);
         
-        const fixedProdLkr = sp.sandromania_products?.sellingPriceLkr;
-        const priceLkr = fixedProdLkr ? (Number(fixedProdLkr) * qty) : Math.round(totalCostUsd * lkrRate);
-        const user = sp.telegram_users;
-        const buyerUsername = user?.username ? `@${user.username}` : null;
-        const buyerEmail = user?.email || null;
-        const buyerTgId = user?.telegramId || null;
-        const buyerName = buyerEmail 
-          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
-          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${sp.sandromania_orders.telegramUserId}`));
+        const unitCostUsd = (unitCostCents / 100).toFixed(2);
+        const totalCostUsd = ((unitCostCents * qty) / 100).toFixed(2);
+        const totalCostLkr = Math.round(parseFloat(totalCostUsd) * lkrRate);
 
         const extId = sp.sandromania_orders.externalOrderId;
         const titleWithId = extId 
@@ -4028,8 +4024,8 @@ export async function registerRoutes(
           rawId: sp.sandromania_orders.id,
           externalOrderId: extId,
           quantity: qty,
-          unitPriceUsd: unitCostUsd.toFixed(2),
-          costPriceUsd: unitCostUsd.toFixed(2),
+          unitPriceUsd: unitCostUsd,
+          costPriceUsd: unitCostUsd,
           isApiOrder: true,
           apiKeyId: null,
           apiKey: null,
@@ -4040,15 +4036,15 @@ export async function registerRoutes(
           productId: sp.sandromania_orders.sandromaniaProductId || 0,
           productName: titleWithId,
           rawProductName: sp.sandromania_orders.productTitle || "Partner Digital Good",
-          buyer: buyerName,
-          customerName: buyerUsername || buyerName,
-          customerEmail: buyerEmail,
-          buyerUsername,
-          buyerEmail,
+          buyer: "support@youuhost.com",
+          customerName: "YouuHost Support",
+          customerEmail: "support@youuhost.com",
+          buyerUsername: "youuhost",
+          buyerEmail: "support@youuhost.com",
           buyerId: sp.sandromania_orders.telegramUserId,
-          priceCents: sp.sandromania_orders.amountPaid || 0,
-          priceUsd: totalCostUsd.toFixed(2),
-          priceLkr,
+          priceCents: unitCostCents * qty,
+          priceUsd: totalCostUsd,
+          priceLkr: totalCostLkr,
           status: sp.sandromania_orders.status || "approved",
           deliveredContent: sp.sandromania_orders.deliveryText || null,
           createdAt: sp.sandromania_orders.createdAt || new Date()
@@ -4058,19 +4054,10 @@ export async function registerRoutes(
       // Map CSxStore Orders
       const cssxMapped = allCssxOrders.map(co => {
         const qty = (co.cssx_orders as any).quantity || 1;
-        const totalCostUsd = ((co.cssx_orders.amountPaid || 0) / 100);
-        const unitCostUsd = co.cssx_products?.costPriceUsd 
-          ? (co.cssx_products.costPriceUsd / 100) 
-          : (totalCostUsd / (qty || 1));
-        const fixedProdLkr = co.cssx_products?.sellingPriceLkr;
-        const priceLkr = fixedProdLkr ? (Number(fixedProdLkr) * qty) : Math.round(totalCostUsd * lkrRate);
-        const user = co.telegram_users;
-        const buyerUsername = user?.username ? `@${user.username}` : null;
-        const buyerEmail = user?.email || null;
-        const buyerTgId = user?.telegramId || null;
-        const buyerName = buyerEmail 
-          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
-          : (buyerUsername || (buyerTgId ? `TG:${buyerTgId}` : `User #${co.cssx_orders.telegramUserId}`));
+        const unitCostCents = co.cssx_products?.costPriceUsd || 50;
+        const unitCostUsd = (unitCostCents / 100).toFixed(2);
+        const totalCostUsd = ((unitCostCents * qty) / 100).toFixed(2);
+        const totalCostLkr = Math.round(parseFloat(totalCostUsd) * lkrRate);
 
         const extId = co.cssx_orders.externalOrderId;
         const titleWithId = extId 
@@ -4082,8 +4069,8 @@ export async function registerRoutes(
           rawId: co.cssx_orders.id,
           externalOrderId: extId,
           quantity: qty,
-          unitPriceUsd: unitCostUsd.toFixed(2),
-          costPriceUsd: unitCostUsd.toFixed(2),
+          unitPriceUsd: unitCostUsd,
+          costPriceUsd: unitCostUsd,
           isApiOrder: true,
           apiKeyId: null,
           apiKey: null,
@@ -4094,15 +4081,15 @@ export async function registerRoutes(
           productId: co.cssx_orders.cssxProductId || co.cssx_orders.serviceId || 0,
           productName: titleWithId,
           rawProductName: co.cssx_orders.productTitle || "Partner Digital Good",
-          buyer: buyerName,
-          customerName: buyerUsername || buyerName,
-          customerEmail: buyerEmail,
-          buyerUsername,
-          buyerEmail,
+          buyer: "support@youuhost.com",
+          customerName: "YouuHost Support",
+          customerEmail: "support@youuhost.com",
+          buyerUsername: "youuhost",
+          buyerEmail: "support@youuhost.com",
           buyerId: co.cssx_orders.telegramUserId,
-          priceCents: co.cssx_orders.amountPaid || 0,
-          priceUsd: totalCostUsd.toFixed(2),
-          priceLkr,
+          priceCents: unitCostCents * qty,
+          priceUsd: totalCostUsd,
+          priceLkr: totalCostLkr,
           status: co.cssx_orders.status || "completed",
           deliveredContent: co.cssx_orders.deliveryText || null,
           createdAt: co.cssx_orders.createdAt || new Date()

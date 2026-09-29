@@ -74752,7 +74752,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-C86yE3VK.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BI_tYxD5.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -120140,13 +120140,17 @@ function ConnectedStoresTrackerPage() {
           className: "bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white",
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-5 border-b border-slate-100 mb-5", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/logo.png", alt: "YouuHost", className: "w-10 h-10 object-contain rounded-xl shadow-xs" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-baseline text-2xl font-black tracking-tight select-none", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#FF5C5C]", children: "youu" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[#5B42F3]", children: "host" })
-                ] })
-              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "img",
+                {
+                  src: "/assets/youuhost_official_logo.png",
+                  alt: "YouuHost",
+                  className: "h-8 md:h-10 w-auto object-contain",
+                  onError: (e) => {
+                    e.currentTarget.src = "/logo.png";
+                  }
+                }
+              ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-right", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xl md:text-2xl font-black tracking-wider text-[#111827]", children: "INVOICE" }) })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-5 text-[12px]", children: [
@@ -120167,12 +120171,12 @@ function ConnectedStoresTrackerPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] font-black uppercase tracking-wider text-slate-400", children: "Billed To" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-slate-900 truncate", children: selectedInvoiceOrder ? selectedInvoiceOrder.customerName || selectedInvoiceOrder.buyer || "Valued Customer" : filteredOrders.length > 0 && filteredOrders[0].customerName ? filteredOrders[0].customerName : "@cheak_imesh" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-slate-500 truncate text-[11px]", children: selectedInvoiceOrder?.customerEmail || (filteredOrders.length > 0 ? filteredOrders[0]?.customerEmail : "imeshcheak@gmail.com") || "customer@youuhost.com" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-slate-900 truncate", children: "YouuHost Support" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-purple-600 font-semibold truncate text-[11.5px]", children: "support@youuhost.com" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-slate-600 text-[10.5px] truncate pt-0.5", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Channel:" }),
                   " ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-700", children: activeStoreName })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-800", children: activeStoreName })
                 ] })
               ] })
             ] }),
@@ -120189,39 +120193,61 @@ function ConnectedStoresTrackerPage() {
                     const qty = selectedInvoiceOrder.quantity || 1;
                     const unitUsd = selectedInvoiceOrder.unitPriceUsd ? parseFloat(selectedInvoiceOrder.unitPriceUsd) : parseFloat(selectedInvoiceOrder.priceUsd) / qty;
                     const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || unitUsd * qty;
+                    const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-1", children: "+P" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: selectedInvoiceOrder.productName })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-0.5 shrink-0", children: "+P" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: selectedInvoiceOrder.productName }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                              orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+                              " • ",
+                              orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                            ] })
+                          ] })
+                        ] })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top", children: [
                         "$",
                         unitUsd.toFixed(2),
                         " USD"
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 text-center font-bold text-slate-800", children: qty }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 text-center font-bold text-slate-800 align-top", children: qty }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top", children: [
                         "$",
                         totalUsd.toFixed(2),
                         " USD"
                       ] })
                     ] });
-                  })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 15).map((ord, idx) => {
+                  })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 25).map((ord, idx) => {
                     const qty = ord.quantity || 1;
                     const unitUsd = ord.unitPriceUsd ? parseFloat(ord.unitPriceUsd) : (parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty;
                     const totalUsd = parseFloat(ord.priceUsd) || unitUsd * qty;
+                    const orderDate = ord.createdAt ? new Date(ord.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-1", children: "+P" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ord.productName })
-                      ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-0.5 shrink-0", children: "+P" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: ord.productName }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1", children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                              orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+                              " • ",
+                              orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                            ] })
+                          ] })
+                        ] })
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top", children: [
                         "$",
                         unitUsd.toFixed(2),
                         " USD"
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 text-center font-bold text-slate-800", children: qty }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 text-center font-bold text-slate-800 align-top", children: qty }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top", children: [
                         "$",
                         totalUsd.toFixed(2),
                         " USD"
