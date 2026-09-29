@@ -11894,17 +11894,6 @@ const Plus = createLucideIcon("Plus", [
   ["path", { d: "M5 12h14", key: "1ays0h" }],
   ["path", { d: "M12 5v14", key: "s699le" }]
 ]);
-const Printer = createLucideIcon("Printer", [
-  [
-    "path",
-    {
-      d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2",
-      key: "143wyd"
-    }
-  ],
-  ["path", { d: "M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6", key: "1itne7" }],
-  ["rect", { x: "6", y: "14", width: "12", height: "8", rx: "1", key: "1ue0tg" }]
-]);
 const Puzzle = createLucideIcon("Puzzle", [
   [
     "path",
@@ -74752,7 +74741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-BI_tYxD5.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i.canvg ? Promise.resolve(i.canvg) : __vitePreload(() => import("./index.es-UjAz5HOv.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -120127,8 +120116,8 @@ function ConnectedStoresTrackerPage() {
             onClick: handlePrintPdf,
             className: "bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 px-3.5 py-1.5 h-8",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Printer, { className: "w-3.5 h-3.5" }),
-              "Print / Save PDF"
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { className: "w-3.5 h-3.5" }),
+              "Download PDF"
             ]
           }
         ) })
@@ -120172,7 +120161,7 @@ function ConnectedStoresTrackerPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10.5px] font-black uppercase tracking-wider text-slate-400", children: "Billed To" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-slate-900 truncate", children: "YouuHost Support" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-purple-600 font-semibold truncate text-[11.5px]", children: "support@youuhost.com" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-emerald-600 font-bold truncate text-[11.5px]", children: "support@youuhost.com" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-slate-600 text-[10.5px] truncate pt-0.5", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-slate-400", children: "Channel:" }),
                   " ",
@@ -120195,18 +120184,13 @@ function ConnectedStoresTrackerPage() {
                     const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || unitUsd * qty;
                     const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-1", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-0.5 shrink-0", children: "+P" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: selectedInvoiceOrder.productName }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0" }),
-                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                              orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-                              " • ",
-                              orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                            ] })
-                          ] })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: selectedInvoiceOrder.productName }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "whitespace-nowrap", children: orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "whitespace-nowrap", children: orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) })
                         ] })
                       ] }) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top", children: [
@@ -120227,18 +120211,13 @@ function ConnectedStoresTrackerPage() {
                     const totalUsd = parseFloat(ord.priceUsd) || unitUsd * qty;
                     const orderDate = ord.createdAt ? new Date(ord.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-1", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-purple-600 mr-0.5 shrink-0", children: "+P" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: ord.productName }),
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1", children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0" }),
-                            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                              orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-                              " • ",
-                              orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                            ] })
-                          ] })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-semibold text-slate-900", children: ord.productName }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "whitespace-nowrap", children: orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "•" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "whitespace-nowrap", children: orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) })
                         ] })
                       ] }) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top", children: [
@@ -120286,22 +120265,26 @@ function ConnectedStoresTrackerPage() {
                       " USD"
                     ] })
                   ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-t border-slate-100", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 2 }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1 px-1.5 text-right text-[11px] font-semibold text-blue-600", children: "Settled (LKR)" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1 px-1.5 text-right text-[11px] font-black text-blue-600", children: [
-                      "Rs. ",
-                      selectedInvoiceOrder ? (selectedInvoiceOrder.priceLkr ? Number(selectedInvoiceOrder.priceLkr) : Math.round((parseFloat(selectedInvoiceOrder.priceUsd) || 0) * lkrRate)).toLocaleString() : calculatedTotalLkr.toLocaleString()
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-1.5 px-1.5 text-right text-[12px] font-bold text-emerald-600", children: "Settled (USD)" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { className: "py-1.5 px-1.5 text-right text-[12px] font-black text-emerald-600", children: [
+                      "$",
+                      selectedInvoiceOrder ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2) : calculatedTotalUsd.toFixed(2),
+                      " USD"
                     ] })
                   ] })
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-5 mb-4 text-center print:hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-5 mb-4 text-center print:hidden flex items-center justify-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 Button,
                 {
                   onClick: handlePrintPdf,
-                  className: "w-full max-w-[280px] bg-[#00d166] hover:bg-[#00b859] text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/20",
-                  children: "Download / Print Invoice"
+                  className: "w-full max-w-[280px] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { className: "w-4 h-4" }),
+                    "Download PDF"
+                  ]
                 }
               ) }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center text-[11px] text-[#64748b] leading-relaxed mt-4 pt-3 border-t border-slate-100", children: [

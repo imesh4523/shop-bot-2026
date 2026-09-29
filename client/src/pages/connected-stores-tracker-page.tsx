@@ -674,8 +674,8 @@ export default function ConnectedStoresTrackerPage() {
                 onClick={handlePrintPdf}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 px-3.5 py-1.5 h-8"
               >
-                <Printer className="w-3.5 h-3.5" />
-                Print / Save PDF
+                <Download className="w-3.5 h-3.5" />
+                Download PDF
               </Button>
             </div>
           </div>
@@ -685,7 +685,7 @@ export default function ConnectedStoresTrackerPage() {
             id="printable-statement" 
             className="bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white"
           >
-            {/* Top Logo & Header (Official Logo Image from Photo 4) */}
+            {/* Top Logo & Header (Official Logo Image with Transparent Background) */}
             <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-5">
               <div className="flex items-center gap-2">
                 <img 
@@ -693,7 +693,6 @@ export default function ConnectedStoresTrackerPage() {
                   alt="YouuHost" 
                   className="h-8 md:h-10 w-auto object-contain"
                   onError={(e) => {
-                    // Fallback to /logo.png if asset path fails
                     (e.currentTarget as any).src = "/logo.png";
                   }}
                 />
@@ -730,13 +729,13 @@ export default function ConnectedStoresTrackerPage() {
                 </div>
               </div>
 
-              {/* Billed To Card (support@youuhost.com) */}
+              {/* Billed To Card (support@youuhost.com in green) */}
               <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
                 <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Billed To</p>
                 <p className="font-bold text-slate-900 truncate">
                   YouuHost Support
                 </p>
-                <p className="text-purple-600 font-semibold truncate text-[11.5px]">
+                <p className="text-emerald-600 font-bold truncate text-[11.5px]">
                   support@youuhost.com
                 </p>
                 <p className="text-slate-600 text-[10.5px] truncate pt-0.5">
@@ -769,16 +768,17 @@ export default function ConnectedStoresTrackerPage() {
                       return (
                         <tr>
                           <td className="py-3 px-1.5 font-medium text-[#475569] leading-snug">
-                            <div className="flex items-start gap-1">
-                              <span className="font-semibold text-purple-600 mr-0.5 shrink-0">+P</span>
-                              <div>
-                                <span className="font-semibold text-slate-900">{selectedInvoiceOrder.productName}</span>
-                                <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                  <span>
-                                    {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} • {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                  </span>
-                                </div>
+                            <div>
+                              <span className="font-semibold text-slate-900">{selectedInvoiceOrder.productName}</span>
+                              <div className="text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" />
+                                <span className="whitespace-nowrap">
+                                  {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                                </span>
+                                <span>•</span>
+                                <span className="whitespace-nowrap">
+                                  {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -811,16 +811,17 @@ export default function ConnectedStoresTrackerPage() {
                       return (
                         <tr key={idx}>
                           <td className="py-2.5 px-1.5 font-medium text-[#475569] leading-snug">
-                            <div className="flex items-start gap-1">
-                              <span className="font-semibold text-purple-600 mr-0.5 shrink-0">+P</span>
-                              <div>
-                                <span className="font-semibold text-slate-900">{ord.productName}</span>
-                                <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                  <span>
-                                    {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} • {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                  </span>
-                                </div>
+                            <div>
+                              <span className="font-semibold text-slate-900">{ord.productName}</span>
+                              <div className="text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" />
+                                <span className="whitespace-nowrap">
+                                  {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                                </span>
+                                <span>•</span>
+                                <span className="whitespace-nowrap">
+                                  {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -878,26 +879,27 @@ export default function ConnectedStoresTrackerPage() {
                     </td>
                   </tr>
 
-                  {/* Settled Price in LKR */}
-                  <tr>
+                  {/* Settled Price in USD */}
+                  <tr className="border-t border-slate-100">
                     <td colSpan={2}></td>
-                    <td className="py-1 px-1.5 text-right text-[11px] font-semibold text-blue-600">Settled (LKR)</td>
-                    <td className="py-1 px-1.5 text-right text-[11px] font-black text-blue-600">
-                      Rs. {selectedInvoiceOrder 
-                        ? (selectedInvoiceOrder.priceLkr ? Number(selectedInvoiceOrder.priceLkr) : Math.round((parseFloat(selectedInvoiceOrder.priceUsd) || 0) * lkrRate)).toLocaleString()
-                        : calculatedTotalLkr.toLocaleString()}
+                    <td className="py-1.5 px-1.5 text-right text-[12px] font-bold text-emerald-600">Settled (USD)</td>
+                    <td className="py-1.5 px-1.5 text-right text-[12px] font-black text-emerald-600">
+                      ${selectedInvoiceOrder 
+                        ? parseFloat(selectedInvoiceOrder.priceUsd).toFixed(2)
+                        : calculatedTotalUsd.toFixed(2)} USD
                     </td>
                   </tr>
                 </tbody>
               </table>
 
               {/* Action Button */}
-              <div className="mt-5 mb-4 text-center print:hidden">
+              <div className="mt-5 mb-4 text-center print:hidden flex items-center justify-center gap-2">
                 <Button 
                   onClick={handlePrintPdf}
-                  className="w-full max-w-[280px] bg-[#00d166] hover:bg-[#00b859] text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/20"
+                  className="w-full max-w-[280px] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
                 >
-                  Download / Print Invoice
+                  <Download className="w-4 h-4" />
+                  Download PDF
                 </Button>
               </div>
 

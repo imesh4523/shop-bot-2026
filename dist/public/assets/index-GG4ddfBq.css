@@ -1166,10 +1166,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-right: 0px;
 }
 
-.mr-0\.5{
-  margin-right: 0.125rem;
-}
-
 .mr-1{
   margin-right: 0.25rem;
 }
@@ -3726,11 +3722,6 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(0 169 92 / var(--tw-bg-opacity, 1));
 }
 
-.bg-\[\#00d166\]{
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 209 102 / var(--tw-bg-opacity, 1));
-}
-
 .bg-\[\#05030a\]\/90{
   background-color: rgb(5 3 10 / 0.9);
 }
@@ -6099,6 +6090,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .to-green-100\/40{
   --tw-gradient-to: rgb(220 252 231 / 0.4) var(--tw-gradient-to-position);
+}
+
+.to-green-600{
+  --tw-gradient-to: #16a34a var(--tw-gradient-to-position);
 }
 
 .to-indigo-100\/40{
@@ -9609,11 +9604,6 @@ body:has(.tg-mini-app) {
   border-color: rgb(234 179 8 / 0.4);
 }
 
-.hover\:bg-\[\#00b859\]:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 184 89 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-\[\#1E293B\]:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(30 41 59 / var(--tw-bg-opacity, 1));
@@ -10112,6 +10102,10 @@ body:has(.tg-mini-app) {
 
 .hover\:to-blue-700:hover{
   --tw-gradient-to: #1d4ed8 var(--tw-gradient-to-position);
+}
+
+.hover\:to-green-700:hover{
+  --tw-gradient-to: #15803d var(--tw-gradient-to-position);
 }
 
 .hover\:to-indigo-500:hover{

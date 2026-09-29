@@ -4003,15 +4003,26 @@ export async function registerRoutes(
       // Map Sandromania Orders (Store Tracker Buying Costs)
       const sandromaniaMapped = allSandromaniaOrders.map(sp => {
         const qty = sp.sandromania_orders.quantity || 1;
-        // Real unit buying cost in cents (from sandromania_orders or sandromania_products)
-        const unitCostCents = sp.sandromania_orders.costPriceUsd 
-          ? (sp.sandromania_orders.costPriceUsd > 100 && qty > 1 
-              ? Math.round(sp.sandromania_orders.costPriceUsd / qty) 
-              : sp.sandromania_orders.costPriceUsd)
-          : (sp.sandromania_products?.costPriceUsd || 44);
+        // Exact real purchase cost stored per order (in cents or derived)
+        const rawCost = sp.sandromania_orders.costPriceUsd;
+        let unitCostCents = 44;
+        let totalCostCents = 44 * qty;
         
+        if (rawCost && rawCost > 0) {
+          if (rawCost < 100) {
+            unitCostCents = rawCost;
+            totalCostCents = rawCost * qty;
+          } else {
+            totalCostCents = rawCost;
+            unitCostCents = Math.round(rawCost / qty);
+          }
+        } else if (sp.sandromania_products?.costPriceUsd) {
+          unitCostCents = sp.sandromania_products.costPriceUsd;
+          totalCostCents = unitCostCents * qty;
+        }
+
         const unitCostUsd = (unitCostCents / 100).toFixed(2);
-        const totalCostUsd = ((unitCostCents * qty) / 100).toFixed(2);
+        const totalCostUsd = (totalCostCents / 100).toFixed(2);
         const totalCostLkr = Math.round(parseFloat(totalCostUsd) * lkrRate);
 
         const extId = sp.sandromania_orders.externalOrderId;
@@ -4042,7 +4053,7 @@ export async function registerRoutes(
           buyerUsername: "youuhost",
           buyerEmail: "support@youuhost.com",
           buyerId: sp.sandromania_orders.telegramUserId,
-          priceCents: unitCostCents * qty,
+          priceCents: totalCostCents,
           priceUsd: totalCostUsd,
           priceLkr: totalCostLkr,
           status: sp.sandromania_orders.status || "approved",
