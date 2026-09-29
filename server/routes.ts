@@ -3438,7 +3438,7 @@ export async function registerRoutes(
 
       const user = await storage.getTelegramUser(userId.toString());
       if (user) {
-        const rates = await getExchangeRates();
+        const rates = await fetchLiveExchangeRates();
         const lkrRate = rates.LKR || 305.50;
         const creditLkr = Math.round((amountInCents / 100) * lkrRate);
 
@@ -3698,7 +3698,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const isLkr = (payment.currency || "").toUpperCase() === "LKR";
-      const rates = await getExchangeRates();
+      const rates = await fetchLiveExchangeRates();
       const lkrRate = rates.LKR || 305.50;
 
       let creditLkr = Math.round(payment.amount / 100);
@@ -16991,7 +16991,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             return { success: false, error: "User not found" };
           }
 
-          const rates = await getExchangeRates();
+          const rates = await fetchLiveExchangeRates();
           const lkrRate = rates.LKR || 305.50;
           const creditLkr = Math.round((payment.amount / 100) * lkrRate);
 
