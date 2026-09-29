@@ -2735,8 +2735,12 @@ export async function registerRoutes(
         const qty = sp.sandromania_orders.quantity || 1;
         const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
         const fixedLkr = sp.sandromania_products?.sellingPriceLkr;
-        const costLkr = fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate);
-        const isLkr = Boolean(fixedLkr && Number(fixedLkr) > 0);
+        const costLkr = sp.sandromania_orders.amountPaidLkr 
+          ? Number(sp.sandromania_orders.amountPaidLkr)
+          : (sp.sandromania_orders.unitPriceLkr 
+            ? Number(sp.sandromania_orders.unitPriceLkr) * qty 
+            : (fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate)));
+        const isLkr = Boolean((sp.sandromania_orders.amountPaidLkr && Number(sp.sandromania_orders.amountPaidLkr) > 0) || (fixedLkr && Number(fixedLkr) > 0));
 
         return {
           id: `YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
@@ -2772,8 +2776,12 @@ export async function registerRoutes(
         const qty = cx.cssx_orders.quantity || 1;
         const costUsd = ((cx.cssx_orders.amountPaid || 0) / 100);
         const fixedLkr = cx.cssx_products?.sellingPriceLkr;
-        const costLkr = fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate);
-        const isLkr = Boolean(fixedLkr && Number(fixedLkr) > 0);
+        const costLkr = cx.cssx_orders.amountPaidLkr 
+          ? Number(cx.cssx_orders.amountPaidLkr)
+          : (cx.cssx_orders.unitPriceLkr 
+            ? Number(cx.cssx_orders.unitPriceLkr) * qty 
+            : (fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate)));
+        const isLkr = Boolean((cx.cssx_orders.amountPaidLkr && Number(cx.cssx_orders.amountPaidLkr) > 0) || (fixedLkr && Number(fixedLkr) > 0));
 
         return {
           id: `YOUUHOST-${cx.cssx_orders.externalOrderId || (3000 + cx.cssx_orders.id)}`,
@@ -6769,13 +6777,16 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       const orderStatus = orderData.status || "approved";
 
       // Dynamically calculate exact charged partner cost (if returned by API) or use current product cost
+      const apiOrderObj = orderData.order || orderData;
       let exactPartnerCostCents = (product.costPriceUsd || 44) * qty;
-      if (orderData.cost_price_usd) {
-        exactPartnerCostCents = Math.round(Number(orderData.cost_price_usd) * 100);
-      } else if (orderData.amount_usd) {
-        exactPartnerCostCents = Math.round(Number(orderData.amount_usd) * 100);
-      } else if (orderData.price) {
-        const pNum = Number(orderData.price);
+      if (apiOrderObj.total_usd) {
+        exactPartnerCostCents = Math.round(Number(apiOrderObj.total_usd) * 100);
+      } else if (apiOrderObj.cost_price_usd) {
+        exactPartnerCostCents = Math.round(Number(apiOrderObj.cost_price_usd) * 100);
+      } else if (apiOrderObj.amount_usd) {
+        exactPartnerCostCents = Math.round(Number(apiOrderObj.amount_usd) * 100);
+      } else if (apiOrderObj.price) {
+        const pNum = Number(apiOrderObj.price);
         if (pNum > 0 && pNum < 100) {
           exactPartnerCostCents = pNum < 2 ? Math.round(pNum * 100 * qty) : Math.round(pNum * 100);
         }
@@ -6793,6 +6804,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           quantity: qty,
           costPriceUsd: exactPartnerCostCents,
           amountPaid: totalCents,
+          amountPaidLkr: totalLkr,
+          unitPriceLkr: unitLkr,
           status: orderStatus,
           deliveryText: deliveryText || "Delivered successfully",
           idempotencyKey,
@@ -6923,6 +6936,8 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
         productTitle: sandromaniaOrders.productTitle,
         quantity: sandromaniaOrders.quantity,
         amountPaid: sandromaniaOrders.amountPaid,
+        amountPaidLkr: sandromaniaOrders.amountPaidLkr,
+        unitPriceLkr: sandromaniaOrders.unitPriceLkr,
         status: sandromaniaOrders.status,
         deliveryText: sandromaniaOrders.deliveryText,
         createdAt: sandromaniaOrders.createdAt,
@@ -7083,6 +7098,7 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       const externalId = String(orderData.id || orderData.order_id || "");
       const deliveryText = orderData.delivery_data || orderData.keys || orderData.license || orderData.credentials || (Array.isArray(orderData.items) ? JSON.stringify(orderData.items) : "Provisioned successfully.");
 
+      const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round(((totalCents / qty) / 100) * lkrRate);
       const [newOrder] = await tx
         .insert(cssxOrders)
         .values({
@@ -7094,6 +7110,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
           quantity: qty,
           costPriceUsd: product.costPriceUsd * qty,
           amountPaid: totalCents,
+          amountPaidLkr: totalLkr,
+          unitPriceLkr: unitLkr,
           status: "completed",
           deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
         })
@@ -7146,6 +7164,8 @@ app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
         productTitle: cssxOrders.productTitle,
         quantity: cssxOrders.quantity,
         amountPaid: cssxOrders.amountPaid,
+        amountPaidLkr: cssxOrders.amountPaidLkr,
+        unitPriceLkr: cssxOrders.unitPriceLkr,
         status: cssxOrders.status,
         deliveryText: cssxOrders.deliveryText,
         createdAt: cssxOrders.createdAt,

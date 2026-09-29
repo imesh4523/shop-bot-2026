@@ -168,7 +168,7 @@ export default function ConnectedStoresTrackerPage() {
       offscreenWrapper.style.position = "absolute";
       offscreenWrapper.style.left = "-99999px";
       offscreenWrapper.style.top = "0";
-      offscreenWrapper.style.width = "650px";
+      offscreenWrapper.style.width = "700px";
       offscreenWrapper.style.backgroundColor = "#f8fafc";
       offscreenWrapper.style.padding = "20px";
       offscreenWrapper.style.boxSizing = "border-box";
@@ -176,9 +176,9 @@ export default function ConnectedStoresTrackerPage() {
       offscreenWrapper.appendChild(clone);
       document.body.appendChild(offscreenWrapper);
 
-      // 2. High DPI canvas capture of full offscreen DOM
+      // 2. High DPI canvas capture of full offscreen DOM (scale 1.5 provides crystal clear print resolution while keeping memory lean)
       const canvas = await html2canvas(offscreenWrapper, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#f8fafc",
@@ -192,6 +192,7 @@ export default function ConnectedStoresTrackerPage() {
         orientation: "portrait",
         unit: "mm",
         format: "a4",
+        compress: true,
       });
 
       const pageWidthMm = 210;
@@ -224,14 +225,15 @@ export default function ConnectedStoresTrackerPage() {
           );
         }
 
-        const pageImgData = pageCanvas.toDataURL("image/png");
+        // Use JPEG with 0.88 quality instead of raw PNG (drops PDF size from 13MB to ~250KB!)
+        const pageImgData = pageCanvas.toDataURL("image/jpeg", 0.88);
         const renderedHeightMm = sourceHeight * pxToMm;
 
         if (pageIdx > 0) {
           pdf.addPage();
         }
 
-        pdf.addImage(pageImgData, "PNG", marginMm, marginMm, printWidthMm, renderedHeightMm);
+        pdf.addImage(pageImgData, "JPEG", marginMm, marginMm, printWidthMm, renderedHeightMm, undefined, "FAST");
       }
 
       const filename = selectedInvoiceOrder 
@@ -883,17 +885,21 @@ export default function ConnectedStoresTrackerPage() {
               </div>
 
               {/* Billed To Card (support@youuhost.com in green) */}
-              <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5 shadow-xs">
-                <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400">Billed To</p>
-                <p className="font-bold text-slate-900 truncate">
-                  YouuHost Support
-                </p>
-                <p className="text-emerald-600 font-bold truncate text-[11.5px]">
-                  support@youuhost.com
-                </p>
-                <p className="text-slate-600 text-[10.5px] truncate pt-0.5">
-                  <span className="text-slate-400">Channel:</span> <span className="font-semibold text-slate-800">{activeStoreName}</span>
-                </p>
+              <div className="bg-[#f8fafc] border border-slate-200/80 rounded-2xl p-3.5 space-y-1 shadow-xs flex flex-col justify-between">
+                <div>
+                  <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-400 mb-1">Billed To</p>
+                  <p className="font-bold text-slate-900 text-[12.5px] leading-snug">
+                    YouuHost Support
+                  </p>
+                  <p className="text-emerald-600 font-bold text-[11.5px] leading-snug mt-0.5">
+                    support@youuhost.com
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-200/60 mt-1">
+                  <p className="text-slate-600 text-[10.5px] leading-normal break-words">
+                    <span className="text-slate-400">Channel:</span> <span className="font-semibold text-slate-800">{activeStoreName}</span>
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -903,10 +909,10 @@ export default function ConnectedStoresTrackerPage() {
               <table className="w-full text-left text-xs border-collapse my-2">
                 <thead>
                   <tr className="border-t border-b border-[#e2e8f0] text-[#111827] text-[12px] font-semibold">
-                    <th className="py-2.5 px-1.5 text-left font-bold">Description</th>
-                    <th className="py-2.5 px-1.5 text-right font-bold whitespace-nowrap">Unit price</th>
-                    <th className="py-2.5 px-1.5 text-center font-bold">Qty</th>
-                    <th className="py-2.5 px-1.5 text-right font-bold whitespace-nowrap">Amount</th>
+                    <th className="py-2.5 px-2 text-left font-bold">Description</th>
+                    <th className="py-2.5 px-2 text-center font-bold whitespace-nowrap">Date</th>
+                    <th className="py-2.5 px-2 text-center font-bold">Qty</th>
+                    <th className="py-2.5 px-2 text-right font-bold whitespace-nowrap">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1f5f9] text-[12px]">
@@ -914,34 +920,28 @@ export default function ConnectedStoresTrackerPage() {
                     (() => {
                       const qty = selectedInvoiceOrder.quantity || 1;
                       const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || 0;
-                      const unitUsd = selectedInvoiceOrder.unitPriceUsd 
-                        ? parseFloat(selectedInvoiceOrder.unitPriceUsd) 
-                        : (qty > 0 ? totalUsd / qty : totalUsd);
                       const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : new Date();
                       return (
                         <tr>
-                          <td className="py-3 px-1.5 font-medium text-[#475569] leading-snug">
+                          <td className="py-3 px-2 font-medium text-[#475569] leading-snug">
                             <div>
                               <span className="font-semibold text-slate-900">{selectedInvoiceOrder.productName}</span>
-                              <div className="text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1">
-                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" />
-                                <span className="whitespace-nowrap">
-                                  {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                                </span>
-                                <span>•</span>
-                                <span className="whitespace-nowrap">
-                                  {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                </span>
-                              </div>
                             </div>
                           </td>
-                          <td className="py-3 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top">
-                            ${unitUsd.toFixed(2)} USD
+                          <td className="py-3 px-2 text-center font-medium text-slate-600 whitespace-nowrap align-middle">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="font-semibold text-slate-800 text-[11px]">
+                                {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                              </span>
+                              <span className="text-[9.5px] text-slate-400 font-mono">
+                                {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              </span>
+                            </div>
                           </td>
-                          <td className="py-3 px-1.5 text-center font-bold text-slate-800 align-top">
+                          <td className="py-3 px-2 text-center font-bold text-slate-800 align-middle">
                             {qty}
                           </td>
-                          <td className="py-3 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top">
+                          <td className="py-3 px-2 text-right font-bold text-[#111827] whitespace-nowrap align-middle">
                             ${totalUsd.toFixed(2)} USD
                           </td>
                         </tr>
@@ -957,34 +957,28 @@ export default function ConnectedStoresTrackerPage() {
                     filteredOrders.slice(0, 100).map((ord, idx) => {
                       const qty = ord.quantity || 1;
                       const totalUsd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
-                      const unitUsd = ord.unitPriceUsd 
-                        ? parseFloat(ord.unitPriceUsd) 
-                        : (qty > 0 ? totalUsd / qty : totalUsd);
                       const orderDate = ord.createdAt ? new Date(ord.createdAt) : new Date();
                       return (
                         <tr key={idx}>
-                          <td className="py-2.5 px-1.5 font-medium text-[#475569] leading-snug">
+                          <td className="py-2.5 px-2 font-medium text-[#475569] leading-snug">
                             <div>
                               <span className="font-semibold text-slate-900">{ord.productName}</span>
-                              <div className="text-[10px] text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-1">
-                                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0 inline-block" />
-                                <span className="whitespace-nowrap">
-                                  {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                                </span>
-                                <span>•</span>
-                                <span className="whitespace-nowrap">
-                                  {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                                </span>
-                              </div>
                             </div>
                           </td>
-                          <td className="py-2.5 px-1.5 text-right font-normal text-[#475569] whitespace-nowrap align-top">
-                            ${unitUsd.toFixed(2)} USD
+                          <td className="py-2.5 px-2 text-center font-medium text-slate-600 whitespace-nowrap align-middle">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="font-semibold text-slate-800 text-[11px]">
+                                {orderDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                              </span>
+                              <span className="text-[9.5px] text-slate-400 font-mono">
+                                {orderDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              </span>
+                            </div>
                           </td>
-                          <td className="py-2.5 px-1.5 text-center font-bold text-slate-800 align-top">
+                          <td className="py-2.5 px-2 text-center font-bold text-slate-800 align-middle">
                             {qty}
                           </td>
-                          <td className="py-2.5 px-1.5 text-right font-bold text-[#111827] whitespace-nowrap align-top">
+                          <td className="py-2.5 px-2 text-right font-bold text-[#111827] whitespace-nowrap align-middle">
                             ${totalUsd.toFixed(2)} USD
                           </td>
                         </tr>

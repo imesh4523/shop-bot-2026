@@ -1661,6 +1661,10 @@ export default function MiniAppShopModern() {
         (p.title && sandroOrd.productTitle && p.title.trim().toLowerCase() === sandroOrd.productTitle.trim().toLowerCase())
       );
       const fixedLkr = sandroOrd.sellingPriceLkr || sandroOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
+      const actualPaidLkr = sandroOrd.amountPaidLkr 
+        ? Number(sandroOrd.amountPaidLkr) 
+        : (sandroOrd.unitPriceLkr ? Number(sandroOrd.unitPriceLkr) * (sandroOrd.quantity || 1) : null);
+      const displayPriceLkr = actualPaidLkr ?? (fixedLkr ? Number(fixedLkr) * (sandroOrd.quantity || 1) : null);
 
       list.push({
         id: `sandro-${sandroOrd.id}`,
@@ -1673,7 +1677,7 @@ export default function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) * (sandroOrd.quantity || 1) : null,
+        priceLkr: displayPriceLkr,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
@@ -1726,6 +1730,10 @@ export default function MiniAppShopModern() {
         (p.name && cssxOrd.productTitle && p.name.trim().toLowerCase() === cssxOrd.productTitle.trim().toLowerCase())
       );
       const fixedLkr = cssxOrd.sellingPriceLkr || cssxOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
+      const actualPaidLkr = cssxOrd.amountPaidLkr 
+        ? Number(cssxOrd.amountPaidLkr) 
+        : (cssxOrd.unitPriceLkr ? Number(cssxOrd.unitPriceLkr) * (cssxOrd.quantity || 1) : null);
+      const displayPriceLkr = actualPaidLkr ?? (fixedLkr ? Number(fixedLkr) * (cssxOrd.quantity || 1) : null);
 
       list.push({
         id: `cssx-${cssxOrd.id}`,
@@ -1738,7 +1746,7 @@ export default function MiniAppShopModern() {
         status: cssxOrd.status || "Completed",
         statusBadge,
         priceCents: cssxOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) * (cssxOrd.quantity || 1) : null,
+        priceLkr: displayPriceLkr,
         quantity: cssxOrd.quantity || 1,
         date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,

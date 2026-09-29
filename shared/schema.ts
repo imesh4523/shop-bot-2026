@@ -559,6 +559,8 @@ export const sandromaniaOrders = pgTable("sandromania_orders", {
   quantity: integer("quantity").notNull().default(1),
   costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
   amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
   status: text("status").notNull().default("approved"),
   deliveryText: text("delivery_text"),
   idempotencyKey: text("idempotency_key").notNull(),
@@ -617,6 +619,8 @@ export const cssxOrders = pgTable("cssx_orders", {
   quantity: integer("quantity").notNull().default(1),
   costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
   amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
   status: text("status").notNull().default("completed"),
   deliveryText: text("delivery_text"),
   createdAt: timestamp("created_at").defaultNow(),

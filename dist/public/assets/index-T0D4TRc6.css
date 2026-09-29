@@ -6740,10 +6740,6 @@ h1, h2, h3, h4, h5, h6 {
   text-align: right;
 }
 
-.align-top{
-  vertical-align: top;
-}
-
 .align-middle{
   vertical-align: middle;
 }
@@ -6908,6 +6904,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .leading-none{
   line-height: 1;
+}
+
+.leading-normal{
+  line-height: 1.5;
 }
 
 .leading-relaxed{
