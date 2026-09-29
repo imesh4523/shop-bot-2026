@@ -4886,19 +4886,13 @@ Support: https://t.me/youuhost_support
             </div>
 
             {/* Signature Lottie Loading Animation like Home Page */}
-            {(isOrdersTabLoading || isSyncingOrders) && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.94 }}
-                className="w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs"
-              >
-                <LottiePayment size={105} />
-                <span className="text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight">Syncing latest orders & credentials...</span>
-              </motion.div>
-            )}
-
-            {/* CATEGORY FILTER TABS (Clean Scrollable Tabs without underline) */}
+            {(isOrdersTabLoading || isSyncingOrders) ? (
+              <div className="flex flex-col items-center justify-center py-20 min-h-[320px]">
+                <LottiePayment size={140} />
+              </div>
+            ) : (
+              <>
+                {/* CATEGORY FILTER TABS (Clean Scrollable Tabs without underline) */}
             <div 
               className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 pt-0.5 [&::-webkit-scrollbar]:hidden"
               style={{
@@ -5106,6 +5100,8 @@ Support: https://t.me/youuhost_support
                   );
                 })}
               </div>
+            )}
+              </>
             )}
           </motion.div>
         )}
@@ -5703,18 +5699,13 @@ Support: https://t.me/youuhost_support
         {activeTab === "profile" && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             {/* Signature Lottie Loading Animation like Home Page */}
-            {isProfileTabLoading && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.94 }}
-                className="w-full my-2.5 py-4 flex flex-col items-center justify-center bg-white rounded-3xl border border-[#ECEEF8] shadow-xs"
-              >
-                <LottiePayment size={105} />
-                <span className="text-[11.5px] font-black text-[#5B42F3] mt-1 tracking-tight">Syncing profile & wallet balance...</span>
-              </motion.div>
-            )}
-            {!isCustomerLoggedIn ? (
+            {isProfileTabLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 min-h-[360px]">
+                <LottiePayment size={140} />
+              </div>
+            ) : (
+              <>
+                {!isCustomerLoggedIn ? (
               <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 {/* Decorative ambient glow */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#6C5CE7]/15 to-[#FF5E62]/15 blur-3xl rounded-full -translate-y-12 translate-x-12 pointer-events-none" />
@@ -6504,6 +6495,8 @@ Support: https://t.me/youuhost_support
                   </div>
                 )}
               </div>
+            )}
+              </>
             )}
           </motion.div>
         )}

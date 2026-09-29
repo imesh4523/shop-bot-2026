@@ -1050,11 +1050,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0.5rem;
 }
 
-.my-2\.5{
-  margin-top: 0.625rem;
-  margin-bottom: 0.625rem;
-}
-
 .my-3{
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
@@ -1661,6 +1656,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .min-h-\[300px\]{
   min-height: 300px;
+}
+
+.min-h-\[320px\]{
+  min-height: 320px;
+}
+
+.min-h-\[360px\]{
+  min-height: 360px;
 }
 
 .min-h-\[400px\]{
