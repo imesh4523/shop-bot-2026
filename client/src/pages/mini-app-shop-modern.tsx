@@ -588,7 +588,24 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }: { tx: any; classN
     );
   }
 
-  // 4. Admin Added Funds (YouuHost Team)
+  // 4a. Admin Deducted Funds (YouuHost Team Reduction) - Distinct RED styling
+  if (
+    method === "admin_deduction" ||
+    tx?.subType === "admin_deduction" ||
+    category.includes("deduction") ||
+    title.includes("deducted") ||
+    (tx?.externalId && tx.externalId.startsWith("ADMIN_DEDUCT"))
+  ) {
+    return (
+      <div className={`${className} rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`}>
+        <div className="w-full h-full rounded-xl bg-rose-500/10 flex items-center justify-center">
+          <ArrowDownLeft className="w-5 h-5 text-rose-600" />
+        </div>
+      </div>
+    );
+  }
+
+  // 4b. Admin Added Funds (YouuHost Team)
   if (
     method === "admin_topup" ||
     type === "admin_topup" ||
@@ -1651,6 +1668,13 @@ export default function MiniAppShopModern() {
 
       const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || (2000 + sandroOrd.id)}`;
 
+      const matchedProd = sandromaniaProductsList.find((p: any) => 
+        p.id === sandroOrd.sandromaniaProductId || 
+        p.externalProductId === sandroOrd.externalProductId ||
+        (p.title && sandroOrd.productTitle && p.title.trim().toLowerCase() === sandroOrd.productTitle.trim().toLowerCase())
+      );
+      const fixedLkr = sandroOrd.sellingPriceLkr || sandroOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
+
       list.push({
         id: `sandro-${sandroOrd.id}`,
         rawId: sandroOrd.id,
@@ -1662,7 +1686,7 @@ export default function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
-        priceLkr: sandroOrd.product?.sellingPriceLkr || (sandromaniaProductsList.find((p: any) => p.id === sandroOrd.sandromaniaProductId || p.externalProductId === sandroOrd.externalProductId)?.sellingPriceLkr),
+        priceLkr: fixedLkr ? Number(fixedLkr) : null,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
@@ -1709,6 +1733,13 @@ export default function MiniAppShopModern() {
 
       const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || (3000 + cssxOrd.id)}`;
 
+      const matchedProd = cssxProductsList.find((p: any) => 
+        p.id === cssxOrd.cssxProductId || 
+        p.serviceId === cssxOrd.serviceId ||
+        (p.name && cssxOrd.productTitle && p.name.trim().toLowerCase() === cssxOrd.productTitle.trim().toLowerCase())
+      );
+      const fixedLkr = cssxOrd.sellingPriceLkr || cssxOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
+
       list.push({
         id: `cssx-${cssxOrd.id}`,
         rawId: cssxOrd.id,
@@ -1720,6 +1751,7 @@ export default function MiniAppShopModern() {
         status: cssxOrd.status || "Completed",
         statusBadge,
         priceCents: cssxOrd.amountPaid || 0,
+        priceLkr: fixedLkr ? Number(fixedLkr) : null,
         quantity: cssxOrd.quantity || 1,
         date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
@@ -6070,6 +6102,7 @@ Support: https://t.me/youuhost_support
                           })
                           .map((tx) => {
                             const isDeposit = tx.type === "deposit";
+                            const isDeduction = tx.method === "admin_deduction" || tx.subType === "admin_deduction" || (tx.status || "").toLowerCase() === "deducted";
                             const statusLower = (tx.status || "").toLowerCase();
                             const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
                             const isPending = statusLower === "pending" || statusLower === "processing";
@@ -6107,13 +6140,15 @@ Support: https://t.me/youuhost_support
                                 </div>
 
                                 <div className="text-right shrink-0">
-                                  <div className={`text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`}>
+                                  <div className={`text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : isDeduction ? "text-rose-600" : "text-[#181432]"}`}>
                                     {tx.amountFormatted || (tx.currency === "LKR"
                                       ? (isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr}`)
                                       : (isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd}`))}
                                   </div>
                                   <span className={`text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${
-                                    isSuccess
+                                    isDeduction
+                                      ? "bg-rose-50 text-rose-600 border border-rose-200"
+                                      : isSuccess
                                       ? "bg-emerald-50 text-emerald-600"
                                       : isPending
                                       ? "bg-amber-50 text-amber-600"
@@ -6121,7 +6156,7 @@ Support: https://t.me/youuhost_support
                                       ? "bg-sky-50 text-sky-600"
                                       : "bg-red-50 text-red-600"
                                   }`}>
-                                    {tx.status}
+                                    {isDeduction ? "Deducted" : tx.status}
                                   </span>
                                 </div>
                               </div>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Save, Loader2, Edit2, Search, Ban, ShieldCheck, ChevronLeft, ChevronRight, Mail, Send, Globe, Key } from "lucide-react";
+import { Users, Save, Loader2, Edit2, Search, Ban, ShieldCheck, ChevronLeft, ChevronRight, Mail, Send, Globe, Key, PlusCircle, MinusCircle, Sliders, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface TelegramUser {
@@ -28,6 +28,8 @@ const PAGE_SIZE = 20;
 export default function TelegramUsersPage() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [modalMode, setModalMode] = useState<"add" | "reduce" | "set">("add");
+  const [adjustAmountLkr, setAdjustAmountLkr] = useState<number>(1000);
   const [editBalance, setEditBalance] = useState<number>(0);
   const [editBalanceLkr, setEditBalanceLkr] = useState<number>(0);
   const [search, setSearch] = useState("");
@@ -60,20 +62,45 @@ export default function TelegramUsersPage() {
   const [lastEditedField, setLastEditedField] = useState<"usd" | "lkr">("lkr");
 
   const mutation = useMutation({
-    mutationFn: async ({ id, balance, balanceLkr }: { id: number; balance: number; balanceLkr?: number }) => {
-      const res = await apiRequest("PATCH", `/api/telegram-users/${id}`, {
-        balance: Math.round(balance * 100),
-        balanceLkr: balanceLkr !== undefined ? Math.round(balanceLkr) : undefined,
+    mutationFn: async (payload: {
+      id: number;
+      action?: "add" | "reduce" | "set";
+      amountLkr?: number;
+      amountUsd?: number;
+      balance?: number;
+      balanceLkr?: number;
+      reason?: string;
+    }) => {
+      const res = await apiRequest("PATCH", `/api/telegram-users/${payload.id}`, {
+        action: payload.action,
+        amountLkr: payload.amountLkr,
+        amountUsd: payload.amountUsd,
+        balance: payload.balance !== undefined ? Math.round(payload.balance * 100) : undefined,
+        balanceLkr: payload.balanceLkr !== undefined ? Math.round(payload.balanceLkr) : undefined,
+        reason: payload.reason,
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
+      const actionText =
+        variables.action === "add"
+          ? `Successfully added Rs. ${variables.amountLkr?.toLocaleString()} to user wallet!`
+          : variables.action === "reduce"
+          ? `Successfully deducted Rs. ${variables.amountLkr?.toLocaleString()} from user wallet!`
+          : "User balance has been updated successfully.";
       toast({
-        title: "User Balance Updated",
-        description: "User balance has been updated in both USD and LKR successfully.",
+        title: "Wallet Updated",
+        description: actionText,
       });
       setEditingId(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Update Failed",
+        description: err.message || "Failed to update user balance",
+        variant: "destructive",
+      });
     },
   });
 
@@ -176,8 +203,20 @@ export default function TelegramUsersPage() {
     return rounded.toLocaleString("en-US");
   };
 
+  const editingUser = useMemo(() => users.find((u) => u.id === editingId), [users, editingId]);
+  const currentBalLkr = editingUser
+    ? (editingUser as any).balanceLkr != null && (editingUser as any).balanceLkr > 0
+      ? Number((editingUser as any).balanceLkr)
+      : Math.round(((editingUser.balance || 0) / 100) * lkrRate)
+    : 0;
+  const currentBalUsd = editingUser ? (editingUser.balance || 0) / 100 : 0;
+  const previewAddLkr = currentBalLkr + (adjustAmountLkr || 0);
+  const previewReduceLkr = Math.max(0, currentBalLkr - (adjustAmountLkr || 0));
+
   const handleEdit = (user: TelegramUser) => {
     setEditingId(user.id);
+    setModalMode("add");
+    setAdjustAmountLkr(1000);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
     if ((user as any).balanceLkr != null && (user as any).balanceLkr > 0) {
@@ -213,11 +252,35 @@ export default function TelegramUsersPage() {
   };
 
   const handleSave = () => {
-    if (editingId !== null) {
+    if (editingId === null) return;
+    if (modalMode === "add") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast({ title: "Invalid Amount", description: "Please enter an amount to add.", variant: "destructive" });
+        return;
+      }
       mutation.mutate({
         id: editingId,
+        action: "add",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2)),
+      });
+    } else if (modalMode === "reduce") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast({ title: "Invalid Amount", description: "Please enter an amount to deduct.", variant: "destructive" });
+        return;
+      }
+      mutation.mutate({
+        id: editingId,
+        action: "reduce",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2)),
+      });
+    } else {
+      mutation.mutate({
+        id: editingId,
+        action: "set",
         balance: editBalance,
-        balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate)
+        balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate),
       });
     }
   };
@@ -544,84 +607,266 @@ export default function TelegramUsersPage() {
         </div>
       )}
 
-      {/* Edit Balance Modal (Dual Currency USD & LKR) */}
+      {/* Edit Balance Modal (Dual Currency USD & LKR + Add / Deduct Options) */}
       <Dialog open={editingId !== null} onOpenChange={(open) => !open && setEditingId(null)}>
-        <DialogContent className="border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md shadow-2xl">
+        <DialogContent className="border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-lg shadow-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-white font-bold text-lg flex items-center justify-between">
-              <span>Edit User Balance</span>
-              <span className="text-xs font-semibold text-purple-400 font-mono">1 USD ≈ {lkrRate} LKR</span>
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-purple-400" />
+                <span>Manage User Wallet</span>
+              </div>
+              <span className="text-xs font-semibold text-purple-300 font-mono bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                1 USD ≈ {lkrRate} LKR
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {/* USD Input Field */}
-            <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
-              <div className="flex items-center justify-between">
-                <Label className="text-purple-300 text-xs font-bold flex items-center gap-1.5">
-                  💵 Balance ($ USD)
-                </Label>
-                <span className="text-[10px] text-white/40">Primary System Currency</span>
-              </div>
-              <Input
-                type="number"
-                step="0.01"
-                value={editBalance}
-                onChange={(e) => handleUsdChange(parseFloat(e.target.value) || 0)}
-                className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
-              />
-            </div>
 
-            {/* LKR Input Field */}
-            <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
-              <div className="flex items-center justify-between">
-                <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                  🇱🇰 Balance (Rs. LKR)
-                </Label>
-                <span className="text-[10px] text-white/40">Sri Lankan Rupees</span>
-              </div>
-              <Input
-                type="number"
-                step="1"
-                value={editBalanceLkr}
-                onChange={(e) => handleLkrChange(parseFloat(e.target.value) || 0)}
-                className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
-              />
+          {/* Current User Overview Card */}
+          <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/60">Target User:</span>
+              <span className="font-bold text-white">
+                {editingUser?.email || editingUser?.username || editingUser?.firstName || `User #${editingId}`}
+              </span>
             </div>
+            <div className="flex items-center justify-between pt-1 border-t border-white/5">
+              <span className="text-xs text-white/50">Current Balance:</span>
+              <div className="flex items-center gap-2 font-mono">
+                <span className="text-emerald-400 font-bold text-sm">
+                  Rs. {currentBalLkr.toLocaleString("en-US")}
+                </span>
+                <span className="text-white/40 text-xs">(${currentBalUsd.toFixed(2)})</span>
+              </div>
+            </div>
+          </div>
 
-            {/* Quick Adjustment Shortcuts */}
-            <div className="space-y-1.5">
-              <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Adjustments</span>
-              <div className="grid grid-cols-4 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd("lkr", 500)}
-                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
-                >
-                  +Rs. 500
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd("lkr", 1000)}
-                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
-                >
-                  +Rs. 1,000
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd("lkr", 5000)}
-                  className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all"
-                >
-                  +Rs. 5,000
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd("usd", 5)}
-                  className="px-2 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-[11px] font-bold transition-all"
-                >
-                  +$5.00
-                </button>
+          {/* Mode Selector Tabs: Add Money / Reduce Money / Exact Balance */}
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => setModalMode("add")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "add"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Add Money</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalMode("reduce")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "reduce"
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <MinusCircle className="w-3.5 h-3.5 text-rose-300" />
+              <span>Reduce Money</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalMode("set")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "set"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 text-purple-300" />
+              <span>Set Balance</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 pt-1">
+            {modalMode === "add" && (
+              <div className="space-y-3.5">
+                <div className="space-y-1.5 bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-500/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      <PlusCircle className="w-3.5 h-3.5" /> Amount to Add (Rs. LKR)
+                    </Label>
+                    <span className="text-[11px] text-emerald-400 font-mono">
+                      ≈ ${((adjustAmountLkr || 0) / lkrRate).toFixed(2)} USD
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={adjustAmountLkr || ""}
+                    onChange={(e) => setAdjustAmountLkr(Math.max(0, parseInt(e.target.value) || 0))}
+                    placeholder="Enter amount to add..."
+                    className="border-emerald-500/30 bg-black/60 text-white font-mono text-lg font-bold"
+                  />
+                </div>
+
+                {/* Quick Add Buttons */}
+                <div className="space-y-1.5">
+                  <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Top-Up Amounts</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[500, 1000, 2000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-emerald-500 text-black border-emerald-400"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"
+                        }`}
+                      >
+                        +Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {[10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-emerald-500 text-black border-emerald-400"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"
+                        }`}
+                      >
+                        +Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview Calculation */}
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-white/60 block text-[10px]">New Wallet Balance Preview</span>
+                    <span className="text-emerald-300 font-bold text-sm font-mono">
+                      Rs. {previewAddLkr.toLocaleString("en-US")} LKR
+                    </span>
+                  </div>
+                  <span className="text-emerald-400 font-semibold text-xs bg-emerald-500/20 px-2 py-1 rounded">
+                    +Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {modalMode === "reduce" && (
+              <div className="space-y-3.5">
+                <div className="space-y-1.5 bg-rose-950/20 p-3.5 rounded-xl border border-rose-500/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                      <MinusCircle className="w-3.5 h-3.5" /> Amount to Deduct (Rs. LKR)
+                    </Label>
+                    <span className="text-[11px] text-rose-400 font-mono">
+                      ≈ ${((adjustAmountLkr || 0) / lkrRate).toFixed(2)} USD
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={adjustAmountLkr || ""}
+                    onChange={(e) => setAdjustAmountLkr(Math.max(0, parseInt(e.target.value) || 0))}
+                    placeholder="Enter amount to deduct..."
+                    className="border-rose-500/30 bg-black/60 text-white font-mono text-lg font-bold"
+                  />
+                </div>
+
+                {/* Quick Deduct Buttons */}
+                <div className="space-y-1.5">
+                  <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Deduct Amounts</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[100, 500, 699, 1000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-rose-500 text-white border-rose-400"
+                            : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        -Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {[2000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-rose-500 text-white border-rose-400"
+                            : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        -Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview Calculation */}
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-white/60 block text-[10px]">New Wallet Balance Preview</span>
+                    <span className="text-rose-300 font-bold text-sm font-mono">
+                      Rs. {previewReduceLkr.toLocaleString("en-US")} LKR
+                    </span>
+                  </div>
+                  <span className="text-rose-400 font-semibold text-xs bg-rose-500/20 px-2 py-1 rounded">
+                    -Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {modalMode === "set" && (
+              <div className="space-y-3.5">
+                {/* USD Input Field */}
+                <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-purple-300 text-xs font-bold flex items-center gap-1.5">
+                      💵 Direct Balance ($ USD)
+                    </Label>
+                    <span className="text-[10px] text-white/40">Primary System Currency</span>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editBalance}
+                    onChange={(e) => handleUsdChange(parseFloat(e.target.value) || 0)}
+                    className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+                  />
+                </div>
+
+                {/* LKR Input Field */}
+                <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      🇱🇰 Direct Balance (Rs. LKR)
+                    </Label>
+                    <span className="text-[10px] text-white/40">Sri Lankan Rupees</span>
+                  </div>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={editBalanceLkr}
+                    onChange={(e) => handleLkrChange(parseFloat(e.target.value) || 0)}
+                    className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
               <Button
@@ -634,10 +879,32 @@ export default function TelegramUsersPage() {
               <Button
                 onClick={handleSave}
                 disabled={mutation.isPending}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                className={
+                  modalMode === "add"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                    : modalMode === "reduce"
+                    ? "bg-gradient-to-r from-rose-600 to-red-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                    : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                }
               >
-                {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
-                Save Balance
+                {mutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : modalMode === "add" ? (
+                  <>
+                    <PlusCircle className="w-4 h-4 mr-1.5" />
+                    Add Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </>
+                ) : modalMode === "reduce" ? (
+                  <>
+                    <MinusCircle className="w-4 h-4 mr-1.5" />
+                    Deduct Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1.5" />
+                    Set Exact Balance
+                  </>
+                )}
               </Button>
             </div>
           </div>

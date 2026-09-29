@@ -3559,8 +3559,18 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgb(127 29 29 / var(--tw-border-opacity, 1));
 }
 
+.border-rose-200{
+  --tw-border-opacity: 1;
+  border-color: rgb(254 205 211 / var(--tw-border-opacity, 1));
+}
+
 .border-rose-200\/80{
   border-color: rgb(254 205 211 / 0.8);
+}
+
+.border-rose-400{
+  --tw-border-opacity: 1;
+  border-color: rgb(251 113 133 / var(--tw-border-opacity, 1));
 }
 
 .border-rose-500\/20{
@@ -5527,6 +5537,12 @@ h1, h2, h3, h4, h5, h6 {
 .from-red-950\/40{
   --tw-gradient-from: rgb(69 10 10 / 0.4) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(69 10 10 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.from-rose-600{
+  --tw-gradient-from: #e11d48 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(225 29 72 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
@@ -7870,6 +7886,11 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(244 63 94 / var(--tw-text-opacity, 1));
 }
 
+.text-rose-600{
+  --tw-text-opacity: 1;
+  color: rgb(225 29 72 / var(--tw-text-opacity, 1));
+}
+
 .text-rose-700{
   --tw-text-opacity: 1;
   color: rgb(190 18 60 / var(--tw-text-opacity, 1));
@@ -8435,6 +8456,11 @@ h1, h2, h3, h4, h5, h6 {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-emerald-900\/30{
+  --tw-shadow-color: rgb(6 78 59 / 0.3);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .shadow-emerald-950\/40{
   --tw-shadow-color: rgb(2 44 34 / 0.4);
   --tw-shadow: var(--tw-shadow-colored);
@@ -8540,6 +8566,11 @@ h1, h2, h3, h4, h5, h6 {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-purple-900\/30{
+  --tw-shadow-color: rgb(88 28 135 / 0.3);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .shadow-purple-950\/20{
   --tw-shadow-color: rgb(59 7 100 / 0.2);
   --tw-shadow: var(--tw-shadow-colored);
@@ -8562,6 +8593,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .shadow-rose-900\/20{
   --tw-shadow-color: rgb(136 19 55 / 0.2);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-rose-900\/30{
+  --tw-shadow-color: rgb(136 19 55 / 0.3);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
@@ -12020,6 +12056,10 @@ body:has(.tg-mini-app) {
 
   .sm\:max-w-\[600px\]{
     max-width: 600px;
+  }
+
+  .sm\:max-w-lg{
+    max-width: 32rem;
   }
 
   .sm\:max-w-md{

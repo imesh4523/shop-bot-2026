@@ -2533,14 +2533,20 @@ export async function registerRoutes(
         const isCard = p.paymentMethod === "payhere" || p.paymentMethod === "card";
         const isBinance = p.paymentMethod === "binance_pay" || p.paymentMethod === "binance";
         const isCrypto = p.paymentMethod === "cryptomus" || p.paymentMethod === "crypto";
-        const isAdmin = p.paymentMethod === "admin_topup" || p.externalId?.startsWith("ADMIN");
+        const isAdminDeduct = p.paymentMethod === "admin_deduction" || p.externalId?.startsWith("ADMIN_DEDUCT") || p.amount < 0;
+        const isAdmin = !isAdminDeduct && (p.paymentMethod === "admin_topup" || p.externalId?.startsWith("ADMIN"));
 
         let title = "Wallet Deposit";
         let category = "Wallet Deposit";
         let cleanRef = `#TX-${p.id}`;
         let cleanMethod = p.paymentMethod;
 
-        if (isAdmin) {
+        if (isAdminDeduct) {
+          title = "YouuHost Team Balance Deducted";
+          category = "YouuHost Team Deduction";
+          cleanMethod = "admin_deduction";
+          cleanRef = `#DED-${p.id}`;
+        } else if (isAdmin) {
           title = "YouuHost Team Money Added";
           category = "YouuHost Team Added Funds";
           cleanMethod = "admin_topup";
@@ -2560,37 +2566,47 @@ export async function registerRoutes(
         }
 
         const isLkr = (p.currency || "").toUpperCase() === "LKR";
+        const absAmount = Math.abs(p.amount);
         let usdVal = 0;
         let lkrVal = 0;
         let amountFormatted = "";
 
         if (isLkr) {
-          lkrVal = p.amount >= 1000 ? Math.round(p.amount / 100) : Math.round((p.amount / 100) * lkrRate);
+          lkrVal = absAmount >= 1000 ? Math.round(absAmount / 100) : Math.round((absAmount / 100) * lkrRate);
           usdVal = lkrVal / lkrRate;
-          amountFormatted = `+Rs. ${lkrVal.toLocaleString()}`;
+          amountFormatted = isAdminDeduct ? `-Rs. ${lkrVal.toLocaleString()}` : `+Rs. ${lkrVal.toLocaleString()}`;
         } else {
-          usdVal = (p.amount / 100);
+          usdVal = (absAmount / 100);
           lkrVal = Math.round(usdVal * lkrRate);
-          amountFormatted = `+$${usdVal.toFixed(2)}`;
+          amountFormatted = isAdminDeduct ? `-$${usdVal.toFixed(2)}` : `+$${usdVal.toFixed(2)}`;
         }
 
         return {
-          id: `DEP-${p.id}`,
+          id: isAdminDeduct ? `DED-${p.id}` : `DEP-${p.id}`,
           rawId: p.id,
-          type: "deposit" as const,
+          type: isAdminDeduct ? ("purchase" as const) : ("deposit" as const),
+          subType: isAdminDeduct ? "admin_deduction" : "deposit",
           category,
           title,
-          amountCents: p.amount,
+          amountCents: isAdminDeduct ? -absAmount : absAmount,
           amountUsd: usdVal.toFixed(2),
           amountLkr: lkrVal.toLocaleString(),
           amountFormatted,
           currency: isLkr ? "LKR" : "USD",
           method: cleanMethod,
-          status: p.status, // "completed", "pending", "failed", "cancelled"
+          status: isAdminDeduct ? "deducted" : p.status, // "completed", "pending", "failed", "cancelled", "deducted"
           reference: cleanRef,
           externalId: p.externalId || null,
           txid: p.txid || null,
-          details: isAdmin ? "Money added directly to your wallet by YouuHost Team" : isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
+          details: isAdminDeduct
+            ? "Balance deducted from wallet by YouuHost Team"
+            : isAdmin
+            ? "Money added directly to your wallet by YouuHost Team"
+            : isCard
+            ? "Paid via Online Card Payment Gateway"
+            : isBinance
+            ? `Binance Pay TxID: ${p.txid || "N/A"}`
+            : "Crypto payment invoice",
           createdAt: p.createdAt || new Date(),
           updatedAt: p.updatedAt || p.createdAt || new Date()
         };
@@ -5224,32 +5240,79 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
     const rates = await fetchLiveExchangeRates();
     const lkrRate = rates.LKR || 305.50;
 
-    let isLkrTopup = false;
+    let isLkr = false;
     let addedLkr = 0;
     let addedCents = 0;
+    let reducedLkr = 0;
+    let reducedCents = 0;
 
-    if (input.balanceLkr !== undefined) {
-      isLkrTopup = true;
-      input.balance = Math.round((input.balanceLkr / lkrRate) * 100);
-      const prevLkr = existingUser?.balanceLkr != null 
-        ? existingUser.balanceLkr 
-        : Math.round(((existingUser?.balance || 0) / 100) * lkrRate);
-      if (input.balanceLkr > prevLkr) {
-        addedLkr = input.balanceLkr - prevLkr;
+    const currentLkr = existingUser?.balanceLkr != null 
+      ? existingUser.balanceLkr 
+      : Math.round(((existingUser?.balance || 0) / 100) * lkrRate);
+    const currentCents = existingUser?.balance || 0;
+
+    if (input.action === "add") {
+      if (input.amountLkr && input.amountLkr > 0) {
+        isLkr = true;
+        addedLkr = Math.round(input.amountLkr);
+        const newLkr = currentLkr + addedLkr;
+        input.balanceLkr = newLkr;
+        input.balance = Math.round((newLkr / lkrRate) * 100);
+      } else if (input.amountUsd && input.amountUsd > 0) {
+        addedCents = Math.round(input.amountUsd * 100);
+        const newCents = currentCents + addedCents;
+        input.balance = newCents;
+        input.balanceLkr = Math.round((newCents / 100) * lkrRate);
       }
-    } else if (input.balance !== undefined && existingUser && input.balance > (existingUser.balance || 0)) {
-      addedCents = input.balance - (existingUser.balance || 0);
+    } else if (input.action === "reduce") {
+      if (input.amountLkr && input.amountLkr > 0) {
+        isLkr = true;
+        reducedLkr = Math.round(input.amountLkr);
+        const newLkr = Math.max(0, currentLkr - reducedLkr);
+        input.balanceLkr = newLkr;
+        input.balance = Math.round((newLkr / lkrRate) * 100);
+      } else if (input.amountUsd && input.amountUsd > 0) {
+        reducedCents = Math.round(input.amountUsd * 100);
+        const newCents = Math.max(0, currentCents - reducedCents);
+        input.balance = newCents;
+        input.balanceLkr = Math.round((newCents / 100) * lkrRate);
+      }
+    } else {
+      // Default direct set mode
+      if (input.balanceLkr !== undefined) {
+        isLkr = true;
+        input.balance = Math.round((input.balanceLkr / lkrRate) * 100);
+        if (input.balanceLkr > currentLkr) {
+          addedLkr = input.balanceLkr - currentLkr;
+        } else if (input.balanceLkr < currentLkr) {
+          reducedLkr = currentLkr - input.balanceLkr;
+        }
+      } else if (input.balance !== undefined && existingUser) {
+        input.balanceLkr = Math.round((input.balance / 100) * lkrRate);
+        if (input.balance > currentCents) {
+          addedCents = input.balance - currentCents;
+        } else if (input.balance < currentCents) {
+          reducedCents = currentCents - input.balance;
+        }
+      }
     }
 
-    const user = await storage.updateTelegramUser(id, input);
+    // Clean up transient fields before persisting
+    const dataToSave: any = { ...input };
+    delete dataToSave.action;
+    delete dataToSave.amountLkr;
+    delete dataToSave.amountUsd;
+    delete dataToSave.reason;
+
+    const user = await storage.updateTelegramUser(id, dataToSave);
 
     if (addedLkr > 0 || addedCents > 0) {
-      // Log transaction record for the user profile & transaction history
+      // Log top-up record for the user profile & transaction history
       try {
         await storage.createPayment({
           telegramUserId: user.id,
-          amount: isLkrTopup ? addedLkr * 100 : addedCents,
-          currency: isLkrTopup ? "LKR" : "USD",
+          amount: isLkr ? addedLkr * 100 : addedCents,
+          currency: isLkr ? "LKR" : "USD",
           paymentMethod: "admin_topup",
           status: "completed",
           externalId: `ADMIN_TOPUP_${Date.now()}`,
@@ -5261,8 +5324,23 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
 
       const activeBot = await getBroadcastBot();
       if (activeBot && user.telegramId) {
-        const addedAmountUSD = isLkrTopup ? (addedLkr / lkrRate) : (addedCents / 100);
-        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, isLkrTopup ? `Admin Added Rs. ${addedLkr.toLocaleString()}` : "Admin Web Top-up").catch(console.error);
+        const addedAmountUSD = isLkr ? (addedLkr / lkrRate) : (addedCents / 100);
+        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, isLkr ? `Admin Added Rs. ${addedLkr.toLocaleString()}` : "Admin Web Top-up").catch(console.error);
+      }
+    } else if (reducedLkr > 0 || reducedCents > 0) {
+      // Log deduction record for the user profile & transaction history in RED
+      try {
+        await storage.createPayment({
+          telegramUserId: user.id,
+          amount: -(isLkr ? reducedLkr * 100 : reducedCents),
+          currency: isLkr ? "LKR" : "USD",
+          paymentMethod: "admin_deduction",
+          status: "completed",
+          externalId: `ADMIN_DEDUCT_${Date.now()}`,
+          txid: `ADMIN_DED_${Date.now()}`
+        });
+      } catch (logErr) {
+        console.warn("[Admin Deduction Record Error]:", logErr);
       }
     }
 
@@ -6622,7 +6700,10 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       return res.status(400).json({ message: "Product is currently not available." });
     }
 
+    const rates = await fetchLiveExchangeRates();
+    const lkrRate = rates.LKR || 305.50;
     const totalCents = product.sellingPriceUsd * qty;
+    const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
 
     const result = await db.transaction(async (tx) => {
       // 1. Check user balance
@@ -6631,16 +6712,20 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       });
 
       if (!user) throw new Error("User account not found.");
-      if (user.balance < totalCents) {
+      const hasEnough = user.balance >= totalCents || (user.balanceLkr != null && user.balanceLkr >= totalLkr);
+      if (!hasEnough) {
         throw new Error(
-          `Insufficient balance. You need $${(totalCents / 100).toFixed(2)}, but your balance is $${((user.balance || 0) / 100).toFixed(2)}. Please top up your wallet.`
+          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(user.balanceLkr || Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
-      // 2. Deduct user balance
+      // 2. Deduct user balance in BOTH USD cents and LKR
       await tx
         .update(telegramUsers)
-        .set({ balance: sql`${telegramUsers.balance} - ${totalCents}` })
+        .set({
+          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${totalCents})`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${totalLkr}) ELSE NULL END`
+        })
         .where(eq(telegramUsers.id, user.id));
 
       // 3. Decrement local stock immediately
@@ -6820,15 +6905,27 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
     const ordersList = await db
       .select({
         id: sandromaniaOrders.id,
+        sandromaniaProductId: sandromaniaOrders.sandromaniaProductId,
         externalOrderId: sandromaniaOrders.externalOrderId,
+        externalProductId: sandromaniaOrders.externalProductId,
         productTitle: sandromaniaOrders.productTitle,
         quantity: sandromaniaOrders.quantity,
         amountPaid: sandromaniaOrders.amountPaid,
         status: sandromaniaOrders.status,
         deliveryText: sandromaniaOrders.deliveryText,
         createdAt: sandromaniaOrders.createdAt,
+        sellingPriceLkr: sandromaniaProducts.sellingPriceLkr,
+        product: {
+          id: sandromaniaProducts.id,
+          title: sandromaniaProducts.title,
+          sellingPriceLkr: sandromaniaProducts.sellingPriceLkr,
+          sellingPriceUsd: sandromaniaProducts.sellingPriceUsd,
+          imageUrl: sandromaniaProducts.imageUrl,
+          category: sandromaniaProducts.category,
+        }
       })
       .from(sandromaniaOrders)
+      .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
       .where(eq(sandromaniaOrders.telegramUserId, user.id))
       .orderBy(desc(sandromaniaOrders.id));
 
@@ -6935,16 +7032,24 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         throw new Error("User account not found. Please log in first.");
       }
 
-      if (user.balance < totalCents) {
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+      const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
+
+      const hasEnough = user.balance >= totalCents || (user.balanceLkr != null && user.balanceLkr >= totalLkr);
+      if (!hasEnough) {
         throw new Error(
-          `Insufficient wallet balance. Total required: $${(totalCents / 100).toFixed(2)}, Available: $${((user.balance || 0) / 100).toFixed(2)}.`
+          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${(user.balanceLkr || Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}).`
         );
       }
 
-      // Deduct balance
+      // Deduct balance in BOTH USD and LKR
       await tx
         .update(telegramUsers)
-        .set({ balance: user.balance - totalCents })
+        .set({
+          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${totalCents})`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${totalLkr}) ELSE NULL END`
+        })
         .where(eq(telegramUsers.id, user.id));
 
       // Place order via CSxStore API
@@ -7032,6 +7137,7 @@ app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
     const ordersList = await db
       .select({
         id: cssxOrders.id,
+        cssxProductId: cssxOrders.cssxProductId,
         externalOrderId: cssxOrders.externalOrderId,
         serviceId: cssxOrders.serviceId,
         productTitle: cssxOrders.productTitle,
@@ -7040,8 +7146,18 @@ app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
         status: cssxOrders.status,
         deliveryText: cssxOrders.deliveryText,
         createdAt: cssxOrders.createdAt,
+        sellingPriceLkr: cssxProducts.sellingPriceLkr,
+        product: {
+          id: cssxProducts.id,
+          name: cssxProducts.name,
+          sellingPriceLkr: cssxProducts.sellingPriceLkr,
+          sellingPriceUsd: cssxProducts.sellingPriceUsd,
+          imageUrl: cssxProducts.imageUrl,
+          category: cssxProducts.category,
+        }
       })
       .from(cssxOrders)
+      .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
       .where(eq(cssxOrders.telegramUserId, user.id))
       .orderBy(desc(cssxOrders.id));
 

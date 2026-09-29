@@ -11524,6 +11524,15 @@ const CircleHelp = createLucideIcon("CircleHelp", [
   ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
   ["path", { d: "M12 17h.01", key: "p32p05" }]
 ]);
+const CircleMinus = createLucideIcon("CircleMinus", [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M8 12h8", key: "1wcyev" }]
+]);
+const CirclePlus = createLucideIcon("CirclePlus", [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M8 12h8", key: "1wcyev" }],
+  ["path", { d: "M12 8v8", key: "napkw2" }]
+]);
 const CircleX = createLucideIcon("CircleX", [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
@@ -31084,7 +31093,16 @@ const api = {
       }
     },
     update: {
-      input: z$2.object({ balance: z$2.number().optional(), balanceLkr: z$2.number().optional(), isBanned: z$2.boolean().optional(), purchased: z$2.number().optional() }),
+      input: z$2.object({
+        balance: z$2.number().optional(),
+        balanceLkr: z$2.number().optional(),
+        isBanned: z$2.boolean().optional(),
+        purchased: z$2.number().optional(),
+        action: z$2.enum(["add", "reduce", "set"]).optional(),
+        amountLkr: z$2.number().optional(),
+        amountUsd: z$2.number().optional(),
+        reason: z$2.string().optional()
+      }),
       responses: {
         200: z$2.custom()
       }
@@ -74742,7 +74760,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BmmRNP8-.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-JboETE-6.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87397,6 +87415,8 @@ const PAGE_SIZE = 20;
 function TelegramUsersPage() {
   const { toast: toast2 } = useToast();
   const [editingId, setEditingId] = reactExports.useState(null);
+  const [modalMode, setModalMode] = reactExports.useState("add");
+  const [adjustAmountLkr, setAdjustAmountLkr] = reactExports.useState(1e3);
   const [editBalance, setEditBalance] = reactExports.useState(0);
   const [editBalanceLkr, setEditBalanceLkr] = reactExports.useState(0);
   const [search, setSearch] = reactExports.useState("");
@@ -87421,20 +87441,32 @@ function TelegramUsersPage() {
   const activeCount = reactExports.useMemo(() => users2.length - bannedCount, [users2, bannedCount]);
   const [lastEditedField, setLastEditedField] = reactExports.useState("lkr");
   const mutation = useMutation({
-    mutationFn: async ({ id: id2, balance, balanceLkr }) => {
-      const res = await apiRequest("PATCH", `/api/telegram-users/${id2}`, {
-        balance: Math.round(balance * 100),
-        balanceLkr: balanceLkr !== void 0 ? Math.round(balanceLkr) : void 0
+    mutationFn: async (payload) => {
+      const res = await apiRequest("PATCH", `/api/telegram-users/${payload.id}`, {
+        action: payload.action,
+        amountLkr: payload.amountLkr,
+        amountUsd: payload.amountUsd,
+        balance: payload.balance !== void 0 ? Math.round(payload.balance * 100) : void 0,
+        balanceLkr: payload.balanceLkr !== void 0 ? Math.round(payload.balanceLkr) : void 0,
+        reason: payload.reason
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_2, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
+      const actionText = variables.action === "add" ? `Successfully added Rs. ${variables.amountLkr?.toLocaleString()} to user wallet!` : variables.action === "reduce" ? `Successfully deducted Rs. ${variables.amountLkr?.toLocaleString()} from user wallet!` : "User balance has been updated successfully.";
       toast2({
-        title: "User Balance Updated",
-        description: "User balance has been updated in both USD and LKR successfully."
+        title: "Wallet Updated",
+        description: actionText
       });
       setEditingId(null);
+    },
+    onError: (err) => {
+      toast2({
+        title: "Update Failed",
+        description: err.message || "Failed to update user balance",
+        variant: "destructive"
+      });
     }
   });
   const banMutation = useMutation({
@@ -87513,8 +87545,15 @@ function TelegramUsersPage() {
     }
     return rounded.toLocaleString("en-US");
   };
+  const editingUser = reactExports.useMemo(() => users2.find((u2) => u2.id === editingId), [users2, editingId]);
+  const currentBalLkr = editingUser ? editingUser.balanceLkr != null && editingUser.balanceLkr > 0 ? Number(editingUser.balanceLkr) : Math.round((editingUser.balance || 0) / 100 * lkrRate) : 0;
+  const currentBalUsd = editingUser ? (editingUser.balance || 0) / 100 : 0;
+  const previewAddLkr = currentBalLkr + (adjustAmountLkr || 0);
+  const previewReduceLkr = Math.max(0, currentBalLkr - (adjustAmountLkr || 0));
   const handleEdit = (user) => {
     setEditingId(user.id);
+    setModalMode("add");
+    setAdjustAmountLkr(1e3);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
     if (user.balanceLkr != null && user.balanceLkr > 0) {
@@ -87534,21 +87573,34 @@ function TelegramUsersPage() {
     setEditBalanceLkr(val);
     setEditBalance(Number((val / lkrRate).toFixed(4)));
   };
-  const handleQuickAdd = (type, amount) => {
-    if (type === "usd") {
-      setLastEditedField("usd");
-      const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
-      handleUsdChange(newUsd);
-    } else {
-      setLastEditedField("lkr");
-      const newLkr = Math.max(0, editBalanceLkr + amount);
-      handleLkrChange(newLkr);
-    }
-  };
   const handleSave = () => {
-    if (editingId !== null) {
+    if (editingId === null) return;
+    if (modalMode === "add") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast2({ title: "Invalid Amount", description: "Please enter an amount to add.", variant: "destructive" });
+        return;
+      }
       mutation.mutate({
         id: editingId,
+        action: "add",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2))
+      });
+    } else if (modalMode === "reduce") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast2({ title: "Invalid Amount", description: "Please enter an amount to deduct.", variant: "destructive" });
+        return;
+      }
+      mutation.mutate({
+        id: editingId,
+        action: "reduce",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2))
+      });
+    } else {
+      mutation.mutate({
+        id: editingId,
+        action: "set",
         balance: editBalance,
         balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate)
       });
@@ -87854,85 +87906,247 @@ function TelegramUsersPage() {
         )
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: editingId !== null, onOpenChange: (open2) => !open2 && setEditingId(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-md shadow-2xl", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: editingId !== null, onOpenChange: (open2) => !open2 && setEditingId(null), children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-lg shadow-2xl p-6", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "text-white font-bold text-lg flex items-center justify-between", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Edit User Balance" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-semibold text-purple-400 font-mono", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-5 h-5 text-purple-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Manage User Wallet" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-semibold text-purple-300 font-mono bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20", children: [
           "1 USD ≈ ",
           lkrRate,
           " LKR"
         ] })
       ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-purple-300 text-xs font-bold flex items-center gap-1.5", children: "💵 Balance ($ USD)" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Primary System Currency" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              type: "number",
-              step: "0.01",
-              value: editBalance,
-              onChange: (e3) => handleUsdChange(parseFloat(e3.target.value) || 0),
-              className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
-            }
-          )
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/60", children: "Target User:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white", children: editingUser?.email || editingUser?.username || editingUser?.firstName || `User #${editingId}` })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-emerald-300 text-xs font-bold flex items-center gap-1.5", children: "🇱🇰 Balance (Rs. LKR)" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Sri Lankan Rupees" })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pt-1 border-t border-white/5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/50", children: "Current Balance:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 font-mono", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-400 font-bold text-sm", children: [
+              "Rs. ",
+              currentBalLkr.toLocaleString("en-US")
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white/40 text-xs", children: [
+              "($",
+              currentBalUsd.toFixed(2),
+              ")"
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => setModalMode("add"),
+            className: `py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${modalMode === "add" ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/30" : "text-white/60 hover:text-white hover:bg-white/5"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CirclePlus, { className: "w-3.5 h-3.5 text-emerald-300" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Add Money" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => setModalMode("reduce"),
+            className: `py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${modalMode === "reduce" ? "bg-rose-600 text-white shadow-md shadow-rose-900/30" : "text-white/60 hover:text-white hover:bg-white/5"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleMinus, { className: "w-3.5 h-3.5 text-rose-300" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Reduce Money" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => setModalMode("set"),
+            className: `py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${modalMode === "set" ? "bg-purple-600 text-white shadow-md shadow-purple-900/30" : "text-white/60 hover:text-white hover:bg-white/5"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(SlidersVertical, { className: "w-3.5 h-3.5 text-purple-300" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Set Balance" })
+            ]
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4 pt-1", children: [
+        modalMode === "add" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-500/20", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-emerald-300 text-xs font-bold flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(CirclePlus, { className: "w-3.5 h-3.5" }),
+                " Amount to Add (Rs. LKR)"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-emerald-400 font-mono", children: [
+                "≈ $",
+                ((adjustAmountLkr || 0) / lkrRate).toFixed(2),
+                " USD"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                min: "1",
+                step: "1",
+                value: adjustAmountLkr || "",
+                onChange: (e3) => setAdjustAmountLkr(Math.max(0, parseInt(e3.target.value) || 0)),
+                placeholder: "Enter amount to add...",
+                className: "border-emerald-500/30 bg-black/60 text-white font-mono text-lg font-bold"
+              }
+            )
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              type: "number",
-              step: "1",
-              value: editBalanceLkr,
-              onChange: (e3) => handleLkrChange(parseFloat(e3.target.value) || 0),
-              className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
-            }
-          )
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-white/50 uppercase tracking-wider", children: "Quick Top-Up Amounts" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-4 gap-1.5", children: [500, 1e3, 2e3, 5e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setAdjustAmountLkr(amt),
+                className: `px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${adjustAmountLkr === amt ? "bg-emerald-500 text-black border-emerald-400" : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"}`,
+                children: [
+                  "+Rs. ",
+                  amt.toLocaleString()
+                ]
+              },
+              amt
+            )) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-1.5 pt-1", children: [1e4, 25e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setAdjustAmountLkr(amt),
+                className: `px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${adjustAmountLkr === amt ? "bg-emerald-500 text-black border-emerald-400" : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"}`,
+                children: [
+                  "+Rs. ",
+                  amt.toLocaleString()
+                ]
+              },
+              amt
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/60 block text-[10px]", children: "New Wallet Balance Preview" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-300 font-bold text-sm font-mono", children: [
+                "Rs. ",
+                previewAddLkr.toLocaleString("en-US"),
+                " LKR"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-emerald-400 font-semibold text-xs bg-emerald-500/20 px-2 py-1 rounded", children: [
+              "+Rs. ",
+              (adjustAmountLkr || 0).toLocaleString()
+            ] })
+          ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-white/50 uppercase tracking-wider", children: "Quick Adjustments" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-4 gap-1.5", children: [
+        modalMode === "reduce" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-rose-950/20 p-3.5 rounded-xl border border-rose-500/20", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-rose-300 text-xs font-bold flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleMinus, { className: "w-3.5 h-3.5" }),
+                " Amount to Deduct (Rs. LKR)"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-rose-400 font-mono", children: [
+                "≈ $",
+                ((adjustAmountLkr || 0) / lkrRate).toFixed(2),
+                " USD"
+              ] })
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
+              Input,
               {
-                type: "button",
-                onClick: () => handleQuickAdd("lkr", 500),
-                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
-                children: "+Rs. 500"
+                type: "number",
+                min: "1",
+                step: "1",
+                value: adjustAmountLkr || "",
+                onChange: (e3) => setAdjustAmountLkr(Math.max(0, parseInt(e3.target.value) || 0)),
+                placeholder: "Enter amount to deduct...",
+                className: "border-rose-500/30 bg-black/60 text-white font-mono text-lg font-bold"
               }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10.5px] font-bold text-white/50 uppercase tracking-wider", children: "Quick Deduct Amounts" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-4 gap-1.5", children: [100, 500, 699, 1e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
                 type: "button",
-                onClick: () => handleQuickAdd("lkr", 1e3),
-                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
-                children: "+Rs. 1,000"
+                onClick: () => setAdjustAmountLkr(amt),
+                className: `px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${adjustAmountLkr === amt ? "bg-rose-500 text-white border-rose-400" : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"}`,
+                children: [
+                  "-Rs. ",
+                  amt.toLocaleString()
+                ]
+              },
+              amt
+            )) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 gap-1.5 pt-1", children: [2e3, 5e3].map((amt) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setAdjustAmountLkr(amt),
+                className: `px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${adjustAmountLkr === amt ? "bg-rose-500 text-white border-rose-400" : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"}`,
+                children: [
+                  "-Rs. ",
+                  amt.toLocaleString()
+                ]
+              },
+              amt
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between text-xs", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/60 block text-[10px]", children: "New Wallet Balance Preview" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-rose-300 font-bold text-sm font-mono", children: [
+                "Rs. ",
+                previewReduceLkr.toLocaleString("en-US"),
+                " LKR"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-rose-400 font-semibold text-xs bg-rose-500/20 px-2 py-1 rounded", children: [
+              "-Rs. ",
+              (adjustAmountLkr || 0).toLocaleString()
+            ] })
+          ] })
+        ] }),
+        modalMode === "set" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-purple-300 text-xs font-bold flex items-center gap-1.5", children: "💵 Direct Balance ($ USD)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Primary System Currency" })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: "number",
+                step: "0.01",
+                value: editBalance,
+                onChange: (e3) => handleUsdChange(parseFloat(e3.target.value) || 0),
+                className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
               }
-            ),
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-emerald-300 text-xs font-bold flex items-center gap-1.5", children: "🇱🇰 Direct Balance (Rs. LKR)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40", children: "Sri Lankan Rupees" })
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
+              Input,
               {
-                type: "button",
-                onClick: () => handleQuickAdd("lkr", 5e3),
-                className: "px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold transition-all",
-                children: "+Rs. 5,000"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                onClick: () => handleQuickAdd("usd", 5),
-                className: "px-2 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-[11px] font-bold transition-all",
-                children: "+$5.00"
+                type: "number",
+                step: "1",
+                value: editBalanceLkr,
+                onChange: (e3) => handleLkrChange(parseFloat(e3.target.value) || 0),
+                className: "border-white/10 bg-black/60 text-white font-mono text-base font-bold"
               }
             )
           ] })
@@ -87947,16 +88161,24 @@ function TelegramUsersPage() {
               children: "Cancel"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
             {
               onClick: handleSave,
               disabled: mutation.isPending,
-              className: "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg",
-              children: [
-                mutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-1.5" }),
-                "Save Balance"
-              ]
+              className: modalMode === "add" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg" : modalMode === "reduce" ? "bg-gradient-to-r from-rose-600 to-red-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg" : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg",
+              children: mutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : modalMode === "add" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(CirclePlus, { className: "w-4 h-4 mr-1.5" }),
+                "Add Rs. ",
+                (adjustAmountLkr || 0).toLocaleString()
+              ] }) : modalMode === "reduce" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(CircleMinus, { className: "w-4 h-4 mr-1.5" }),
+                "Deduct Rs. ",
+                (adjustAmountLkr || 0).toLocaleString()
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-4 h-4 mr-1.5" }),
+                "Set Exact Balance"
+              ] })
             }
           )
         ] })
@@ -104649,6 +104871,9 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
     }
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrandIcon, { name: tx?.title, type: tx?.productType || tx?.category || "Cloud", className: "w-5 h-5" }) });
   }
+  if (method === "admin_deduction" || tx?.subType === "admin_deduction" || category.includes("deduction") || title.includes("deducted") || tx?.externalId && tx.externalId.startsWith("ADMIN_DEDUCT")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full h-full rounded-xl bg-rose-500/10 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDownLeft, { className: "w-5 h-5 text-rose-600" }) }) });
+  }
   if (method === "admin_topup" || type === "admin_topup" || category.includes("added funds") || title.includes("youuhost team") || tx?.externalId && (tx.externalId.startsWith("ADMIN") || tx.externalId.startsWith("INIT"))) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
@@ -105532,6 +105757,10 @@ function MiniAppShopModern() {
       }
       const prodTitle = sandroOrd.productTitle || sandroOrd.product?.title || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.title || "Digital Product";
       const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || 2e3 + sandroOrd.id}`;
+      const matchedProd = sandromaniaProductsList.find(
+        (p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId || p2.title && sandroOrd.productTitle && p2.title.trim().toLowerCase() === sandroOrd.productTitle.trim().toLowerCase()
+      );
+      const fixedLkr = sandroOrd.sellingPriceLkr || sandroOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
       list.push({
         id: `sandro-${sandroOrd.id}`,
         rawId: sandroOrd.id,
@@ -105543,7 +105772,7 @@ function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
-        priceLkr: sandroOrd.product?.sellingPriceLkr || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.sellingPriceLkr,
+        priceLkr: fixedLkr ? Number(fixedLkr) : null,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : /* @__PURE__ */ new Date(0),
         licenseKey: deliveredData
@@ -105566,6 +105795,10 @@ function MiniAppShopModern() {
       }
       const prodTitle = cssxOrd.productTitle || cssxOrd.product?.title || cssxProductsList.find((p2) => p2.id === cssxOrd.cssxProductId || p2.serviceId === cssxOrd.serviceId)?.title || "Digital Product";
       const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || 3e3 + cssxOrd.id}`;
+      const matchedProd = cssxProductsList.find(
+        (p2) => p2.id === cssxOrd.cssxProductId || p2.serviceId === cssxOrd.serviceId || p2.name && cssxOrd.productTitle && p2.name.trim().toLowerCase() === cssxOrd.productTitle.trim().toLowerCase()
+      );
+      const fixedLkr = cssxOrd.sellingPriceLkr || cssxOrd.product?.sellingPriceLkr || matchedProd?.sellingPriceLkr;
       list.push({
         id: `cssx-${cssxOrd.id}`,
         rawId: cssxOrd.id,
@@ -105577,6 +105810,7 @@ function MiniAppShopModern() {
         status: cssxOrd.status || "Completed",
         statusBadge,
         priceCents: cssxOrd.amountPaid || 0,
+        priceLkr: fixedLkr ? Number(fixedLkr) : null,
         quantity: cssxOrd.quantity || 1,
         date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : /* @__PURE__ */ new Date(0),
         licenseKey: deliveredData
@@ -109333,6 +109567,7 @@ ${finalDetails}`;
               return true;
             }).map((tx) => {
               const isDeposit = tx.type === "deposit";
+              const isDeduction = tx.method === "admin_deduction" || tx.subType === "admin_deduction" || (tx.status || "").toLowerCase() === "deducted";
               const statusLower = (tx.status || "").toLowerCase();
               const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
               const isPending = statusLower === "pending" || statusLower === "processing";
@@ -109365,8 +109600,8 @@ ${finalDetails}`;
                       ] })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: tx.amountFormatted || (tx.currency === "LKR" ? isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr}` : isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd}`) }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${isSuccess ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : isRefunded ? "bg-sky-50 text-sky-600" : "bg-red-50 text-red-600"}`, children: tx.status })
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : isDeduction ? "text-rose-600" : "text-[#181432]"}`, children: tx.amountFormatted || (tx.currency === "LKR" ? isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr}` : isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd}`) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${isDeduction ? "bg-rose-50 text-rose-600 border border-rose-200" : isSuccess ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : isRefunded ? "bg-sky-50 text-sky-600" : "bg-red-50 text-red-600"}`, children: isDeduction ? "Deducted" : tx.status })
                     ] })
                   ]
                 },

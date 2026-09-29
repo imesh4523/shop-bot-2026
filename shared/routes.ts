@@ -144,7 +144,16 @@ export const api = {
     update: {
       method: 'PATCH' as const,
       path: '/api/telegram-users/:id',
-      input: z.object({ balance: z.number().optional(), balanceLkr: z.number().optional(), isBanned: z.boolean().optional(), purchased: z.number().optional() }),
+      input: z.object({
+        balance: z.number().optional(),
+        balanceLkr: z.number().optional(),
+        isBanned: z.boolean().optional(),
+        purchased: z.number().optional(),
+        action: z.enum(["add", "reduce", "set"]).optional(),
+        amountLkr: z.number().optional(),
+        amountUsd: z.number().optional(),
+        reason: z.string().optional()
+      }),
       responses: {
         200: z.custom<typeof telegramUsers.$inferSelect>(),
       },
