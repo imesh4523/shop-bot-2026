@@ -74778,7 +74778,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DX81L1V7.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Bz_VfjD4.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -108451,10 +108451,28 @@ ${finalDetails}`;
             )
           ] })
         ] }),
-        isOrdersTabLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin text-[#5B42F3]" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Syncing latest orders & credentials..." })
-        ] }),
+        isOrdersTabLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          motion.div,
+          {
+            initial: { opacity: 0, scaleY: 0.6 },
+            animate: { opacity: 1, scaleY: 1 },
+            exit: { opacity: 0 },
+            className: "w-full my-1.5",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "relative w-full h-1.5 bg-gradient-to-r from-purple-100 via-pink-100 to-indigo-100 rounded-full overflow-hidden shadow-inner", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              motion.div,
+              {
+                className: "absolute top-0 bottom-0 bg-gradient-to-r from-[#5B42F3] via-[#D92078] to-[#00F5C4] rounded-full shadow-[0_0_12px_rgba(91,66,243,0.6)]",
+                initial: { left: "-45%", width: "45%" },
+                animate: { left: "105%", width: "45%" },
+                transition: {
+                  repeat: Infinity,
+                  duration: 1.15,
+                  ease: "easeInOut"
+                }
+              }
+            ) })
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "div",
           {

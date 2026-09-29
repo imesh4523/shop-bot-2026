@@ -750,27 +750,25 @@ export async function sendLuxuryEmail({
         
         // If failed because from address wasn't onboarding@resend.dev in sandbox testing mode
         if (!res.ok && data.message && data.message.includes("verify a domain") && activeFrom !== "YouuHost <onboarding@resend.dev>") {
-          console.warn("[Email Hub] Resend custom domain unverified. Attempting fallback...");
-          if (cleanToEmail.toLowerCase() === "rochanaimeah@gmail.com") {
-            res = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${resendApiKey.trim()}`,
-              },
-              body: JSON.stringify({
-                from: "YouuHost <onboarding@resend.dev>",
-                to: [cleanToEmail],
-                reply_to: "support@youuhost.com",
-                subject,
-                html,
-                text: plainText,
-                headers: antiSpamHeaders,
-                attachments: resendAttachments,
-              }),
-            });
-            data = await res.json().catch(() => ({}));
-          }
+          console.warn("[Email Hub] Resend custom domain unverified. Attempting fallback with onboarding@resend.dev...");
+          res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendApiKey.trim()}`,
+            },
+            body: JSON.stringify({
+              from: "YouuHost <onboarding@resend.dev>",
+              to: [cleanToEmail],
+              reply_to: "support@youuhost.com",
+              subject,
+              html,
+              text: plainText,
+              headers: antiSpamHeaders,
+              attachments: resendAttachments,
+            }),
+          });
+          data = await res.json().catch(() => ({}));
         }
 
         if (res.ok) {
@@ -3440,9 +3438,29 @@ export async function registerRoutes(
 
       const user = await storage.getTelegramUser(userId.toString());
       if (user) {
-        await storage.updateTelegramUser(user.id, {
-          balance: (user.balance || 0) + amountInCents
-        });
+        const rates = await getExchangeRates();
+        const lkrRate = rates.LKR || 305.50;
+        const creditLkr = Math.round((amountInCents / 100) * lkrRate);
+
+        await db.update(telegramUsers).set({
+          balance: sql`balance + ${amountInCents}`,
+          balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
+        }).where(eq(telegramUsers.id, user.id));
+
+        // Dispatch Payment Confirmation Receipt Email with PDF invoice
+        if (user.email && user.email.includes("@")) {
+          sendLuxuryReceiptEmail({
+            toEmail: user.email,
+            recipientName: user.firstName || user.username || "Customer",
+            amount: `$${creditAmount.toFixed(2)} USD`,
+            secondaryAmount: `Rs. ${creditLkr.toLocaleString()} LKR`,
+            referenceId: `BN-${newPayment.id}`,
+            paymentMethod: "binance_pay",
+            planTitle: "Wallet Balance Top-Up",
+            billingCycle: "Instant Credit",
+            notes: `Binance Order ID / TxID: ${cleanTx}`
+          }).catch((e) => console.error("[Binance Pay] Confirmation email error:", e.message));
+        }
       }
 
       const displayUser = tgUser?.username ? `@${tgUser.username}` : `User ${tgUser?.telegramId || userId}`;
@@ -3563,7 +3581,7 @@ export async function registerRoutes(
 
       const gatewayUrl = (await storage.getSetting('PAYHERE_GATEWAY_URL'))?.value;
       const payhereEnabled = (await storage.getSetting('PAYHERE_ENABLED'))?.value === "true";
-      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "imeshcheak@gmail.com";
+      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "support@imhosteepay.online";
       const billingName = (await storage.getSetting('PAYHERE_BILLING_NAME'))?.value || "Direct Client";
       const billingPhone = (await storage.getSetting('PAYHERE_BILLING_PHONE'))?.value || "0770000000";
 
@@ -3634,7 +3652,7 @@ export async function registerRoutes(
       const payment = await storage.getPayment(paymentId);
       if (!payment) return res.status(404).json({ message: "Payment session not found" });
 
-      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "imeshcheak@gmail.com";
+      const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "support@imhosteepay.online";
       const billingName = (await storage.getSetting('PAYHERE_BILLING_NAME'))?.value || "Direct Client";
       const billingPhone = (await storage.getSetting('PAYHERE_BILLING_PHONE'))?.value || "0770000000";
 
@@ -3662,6 +3680,91 @@ export async function registerRoutes(
   app.get("/api/payhere/payment/:id", handleGetPaymentForGateway);
   app.get("/api/payment/:id", handleGetPaymentForGateway);
   app.get("/api/payments/:id", handleGetPaymentForGateway);
+
+  // Internal Webhook from PayHere Proxy Gateway (imhost-main) when payment succeeds
+  app.post("/api/internal/payment-success", async (req, res) => {
+    try {
+      const { paymentId, secret } = req.body;
+      if (secret !== "youuhost_internal_secret_2026") {
+        return res.status(403).json({ message: "Invalid internal secret" });
+      }
+      const numId = parseInt(paymentId, 10);
+      if (isNaN(numId)) return res.status(400).json({ message: "Invalid paymentId" });
+
+      const payment = await storage.getPayment(numId);
+      if (!payment) return res.status(404).json({ message: "Payment not found" });
+
+      const user = await storage.getTelegramUserById(payment.telegramUserId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const isLkr = (payment.currency || "").toUpperCase() === "LKR";
+      const rates = await getExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+
+      let creditLkr = Math.round(payment.amount / 100);
+      let creditCents = payment.amount;
+
+      if (isLkr) {
+        creditLkr = Math.round(payment.amount / 100);
+        creditCents = Math.round((creditLkr / lkrRate) * 100);
+      } else {
+        creditCents = payment.amount;
+        creditLkr = Math.round((creditCents / 100) * lkrRate);
+      }
+
+      // Check if already completed and balance updated
+      if (payment.status !== "completed") {
+        await storage.updatePaymentStatus(payment.id, "completed");
+        await db.update(telegramUsers).set({
+          balance: sql`balance + ${creditCents}`,
+          balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
+        }).where(eq(telegramUsers.id, user.id));
+      }
+
+      // Dispatch luxury payment confirmation receipt email with PDF invoice (Issue 2)
+      if (user.email && user.email.includes("@")) {
+        const checkEmailLogs = await db.select().from(emailLogs).where(
+          and(
+            eq(emailLogs.toEmail, user.email),
+            eq(emailLogs.templateType, "payment_success")
+          )
+        ).orderBy(desc(emailLogs.id)).limit(10);
+
+        const alreadySent = checkEmailLogs.some(log => {
+          const meta = log.metadata as any;
+          return meta && (meta.referenceId === `CARD-${payment.id}` || meta.referenceId === `PAYHERE-${payment.id}` || meta.paymentId === payment.id);
+        });
+
+        if (!alreadySent) {
+          sendLuxuryReceiptEmail({
+            toEmail: user.email,
+            recipientName: user.firstName || user.username || "Customer",
+            amount: isLkr ? `Rs. ${creditLkr.toLocaleString()} LKR` : `$${(creditCents / 100).toFixed(2)} USD`,
+            secondaryAmount: isLkr ? `$${(creditCents / 100).toFixed(2)} USD` : `Rs. ${creditLkr.toLocaleString()} LKR`,
+            referenceId: `CARD-${payment.id}`,
+            paymentMethod: "card",
+            planTitle: "Wallet Balance Deposit",
+            billingCycle: "Instant Credit",
+            notes: `PayHere Card Top-Up #${payment.id}`
+          }).catch(err => console.error("[Payment Receipt Email Error]:", err.message));
+        }
+      }
+
+      // Notify Socket.io & Admin Push
+      io.emit("payment_completed", { paymentId: payment.id, userId: user.id });
+      io.emit("user_balance_updated", { userId: user.id, balanceLkr: user.balanceLkr, balance: user.balance });
+      const displayUser = user.username ? `@${user.username}` : `User #${user.id}`;
+      sendAdminPushNotification({
+        title: `💳 Card Payment Confirmed (${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`})`,
+        body: `${displayUser} deposited ${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`} via Card`
+      }).catch(() => {});
+
+      return res.json({ success: true, message: "Payment confirmed, balance synced, and receipt dispatched." });
+    } catch (err: any) {
+      console.error("[Internal Payment Success Error]:", err);
+      return res.status(500).json({ message: err.message });
+    }
+  });
 
   // Admin: PayHere Host Gateway Pairing Handshake
   app.post("/api/payhere/pair", isAuth, async (req, res) => {
@@ -16888,13 +16991,18 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             return { success: false, error: "User not found" };
           }
 
+          const rates = await getExchangeRates();
+          const lkrRate = rates.LKR || 305.50;
+          const creditLkr = Math.round((payment.amount / 100) * lkrRate);
+
           await tx.update(telegramUsers).set({
-            balance: user.balance + payment.amount
+            balance: user.balance + payment.amount,
+            balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
           }).where(eq(telegramUsers.id, user.id));
 
           await tx.update(payments).set({ status: 'completed', updatedAt: new Date() }).where(eq(payments.id, payment.id));
 
-          return { success: true, payment, user };
+          return { success: true, payment, user, creditLkr };
         });
 
         if (!result.success) {
@@ -16908,6 +17016,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
         const payment = result.payment!;
         const user = result.user!;
+        const creditLkr = result.creditLkr || Math.round((payment.amount / 100) * 305.50);
         const chatId = user.telegramId;
 
         // Trigger referral commission if deposit >= $1.00 (100 cents)
@@ -16920,6 +17029,21 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           } catch (botErr) {
             console.error("[Cryptomus Webhook] Failed to send Telegram message to user:", botErr);
           }
+        }
+
+        // Dispatch Payment Confirmation Receipt Email with PDF invoice (Issue 2)
+        if (user.email && user.email.includes("@")) {
+          sendLuxuryReceiptEmail({
+            toEmail: user.email,
+            recipientName: user.firstName || user.username || "Customer",
+            amount: `$${(payment.amount / 100).toFixed(2)} USD`,
+            secondaryAmount: `Rs. ${creditLkr.toLocaleString()} LKR`,
+            referenceId: `CRYPTO-${payment.id}`,
+            paymentMethod: "cryptomus",
+            planTitle: "Wallet Balance Top-Up",
+            billingCycle: "Instant Credit",
+            notes: payment.cryptomusUuid ? `UUID: ${payment.cryptomusUuid}` : undefined
+          }).catch((e) => console.error("[Cryptomus] Confirmation email error:", e.message));
         }
 
         const userDisplayName = user.firstName || user.username || "User";

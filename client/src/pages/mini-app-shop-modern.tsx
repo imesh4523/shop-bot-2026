@@ -4808,12 +4808,27 @@ Support: https://t.me/youuhost_support
               </div>
             </div>
 
-            {/* Real Inline Live Sync Bar (Issue 6 - Smooth non-popup animation when entering Orders) */}
+            {/* Professional Smooth Live Sync Indicator (Issue 4 - Clean, sleek animated loading line) */}
             {isOrdersTabLoading && (
-              <div className="bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#5B42F3]" />
-                <span>Syncing latest orders & credentials...</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scaleY: 0.6 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full my-1.5"
+              >
+                <div className="relative w-full h-1.5 bg-gradient-to-r from-purple-100 via-pink-100 to-indigo-100 rounded-full overflow-hidden shadow-inner">
+                  <motion.div
+                    className="absolute top-0 bottom-0 bg-gradient-to-r from-[#5B42F3] via-[#D92078] to-[#00F5C4] rounded-full shadow-[0_0_12px_rgba(91,66,243,0.6)]"
+                    initial={{ left: "-45%", width: "45%" }}
+                    animate={{ left: "105%", width: "45%" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.15,
+                      ease: "easeInOut",
+                    }}
+                  />
+                </div>
+              </motion.div>
             )}
 
             {/* CATEGORY FILTER TABS (Clean Scrollable Tabs without underline) */}
