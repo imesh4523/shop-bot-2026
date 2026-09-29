@@ -2732,9 +2732,10 @@ export async function registerRoutes(
         .orderBy(desc(sandromaniaOrders.createdAt));
 
       const partnerTransactions = userSandromaniaOrders.map(sp => {
+        const qty = sp.sandromania_orders.quantity || 1;
         const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
         const fixedLkr = sp.sandromania_products?.sellingPriceLkr;
-        const costLkr = fixedLkr ? Number(fixedLkr) : Math.round(costUsd * lkrRate);
+        const costLkr = fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate);
         const isLkr = Boolean(fixedLkr && Number(fixedLkr) > 0);
 
         return {
@@ -2742,18 +2743,19 @@ export async function registerRoutes(
           rawId: sp.sandromania_orders.id,
           type: "partner" as const,
           category: "Digital License Delivery",
-          title: sp.sandromania_orders.productTitle || "Partner Digital Goods",
-          imageUrl: sp.sandromania_products?.imageUrl || null,
+          title: (sp.sandromania_orders.productTitle || "Partner Digital Goods") + (qty > 1 ? ` (×${qty})` : ""),
+          imageUrl: null,
           amountCents: -(sp.sandromania_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
           amountFormatted: isLkr ? `-Rs. ${costLkr.toLocaleString()}` : `-$${costUsd.toFixed(2)}`,
           currency: isLkr ? "LKR" : "USD",
+          quantity: qty,
           method: "wallet_balance",
           status: sp.sandromania_orders.status === "approved" ? "completed" : sp.sandromania_orders.status,
           reference: `#YOUUHOST-${sp.sandromania_orders.externalOrderId || (2000 + sp.sandromania_orders.id)}`,
           deliveredContent: sp.sandromania_orders.deliveryText || null,
-          details: `Order for ${sp.sandromania_orders.productTitle}. Instant digital credentials delivered.`,
+          details: `Order for ${sp.sandromania_orders.productTitle} (Qty: ${qty}). Instant digital credentials delivered.`,
           createdAt: sp.sandromania_orders.createdAt || new Date(),
           updatedAt: sp.sandromania_orders.createdAt || new Date()
         };
@@ -2767,27 +2769,30 @@ export async function registerRoutes(
         .orderBy(desc(cssxOrders.createdAt));
 
       const cssxTransactions = userCssxOrders.map(cx => {
+        const qty = cx.cssx_orders.quantity || 1;
         const costUsd = ((cx.cssx_orders.amountPaid || 0) / 100);
         const fixedLkr = cx.cssx_products?.sellingPriceLkr;
-        const costLkr = fixedLkr ? Number(fixedLkr) : Math.round(costUsd * lkrRate);
+        const costLkr = fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate);
+        const isLkr = Boolean(fixedLkr && Number(fixedLkr) > 0);
 
         return {
           id: `YOUUHOST-${cx.cssx_orders.externalOrderId || (3000 + cx.cssx_orders.id)}`,
           rawId: cx.cssx_orders.id,
           type: "partner" as const,
           category: "Digital License Delivery",
-          title: cx.cssx_orders.productTitle || "Partner Digital Goods",
-          imageUrl: cx.cssx_products?.imageUrl || null,
+          title: (cx.cssx_orders.productTitle || "Partner Digital Goods") + (qty > 1 ? ` (×${qty})` : ""),
+          imageUrl: null,
           amountCents: -(cx.cssx_orders.amountPaid || 0),
           amountUsd: costUsd.toFixed(2),
           amountLkr: costLkr.toLocaleString(),
-          amountFormatted: `-$${costUsd.toFixed(2)}`,
-          currency: "USD",
+          amountFormatted: isLkr ? `-Rs. ${costLkr.toLocaleString()}` : `-$${costUsd.toFixed(2)}`,
+          currency: isLkr ? "LKR" : "USD",
+          quantity: qty,
           method: "wallet_balance",
           status: cx.cssx_orders.status === "approved" || cx.cssx_orders.status === "completed" ? "completed" : cx.cssx_orders.status,
           reference: `#YOUUHOST-${cx.cssx_orders.externalOrderId || (3000 + cx.cssx_orders.id)}`,
           deliveredContent: cx.cssx_orders.deliveryText || null,
-          details: `Order for ${cx.cssx_orders.productTitle}. Instant digital credentials delivered.`,
+          details: `Order for ${cx.cssx_orders.productTitle} (Qty: ${qty}). Instant digital credentials delivered.`,
           createdAt: cx.cssx_orders.createdAt || new Date(),
           updatedAt: cx.cssx_orders.createdAt || new Date()
         };
@@ -6813,12 +6818,13 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           const lkrRate = rates.LKR || 305.5;
 
           const orderNo = `YOUUHOST-${result.order.externalOrderId || (2000 + result.order.id)}`;
-          const totalLkr = Math.round((totalCents / 100) * lkrRate);
-          const unitLkr = Math.round((product.sellingPriceUsd / 100) * lkrRate);
+          const fixedLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : null;
+          const unitLkr = fixedLkr ? fixedLkr : Math.round((product.sellingPriceUsd / 100) * lkrRate);
+          const totalLkr = unitLkr * qty;
 
-          const orderTotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()}` : `$${(totalCents / 100).toFixed(2)} USD`;
-          const unitPriceFormatted = isLkr ? `Rs. ${unitLkr.toLocaleString()}` : `$${(product.sellingPriceUsd / 100).toFixed(2)} USD`;
-          const subtotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()}` : `$${(totalCents / 100).toFixed(2)} USD`;
+          const orderTotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()} LKR` : `$${(totalCents / 100).toFixed(2)} USD`;
+          const unitPriceFormatted = isLkr ? `Rs. ${unitLkr.toLocaleString()} LKR` : `$${(product.sellingPriceUsd / 100).toFixed(2)} USD`;
+          const subtotalFormatted = isLkr ? `Rs. ${totalLkr.toLocaleString()} LKR` : `$${(totalCents / 100).toFixed(2)} USD`;
           const credsArray = result.deliveryText ? result.deliveryText.split(/\r?\n/).filter(Boolean) : ["Delivery completed."];
 
           const emailHtml = buildOrderCredentialsEmailHtml({
@@ -6899,7 +6905,13 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
   }
 
   try {
-    const user = await storage.getTelegramUser(tgUser.id.toString());
+    let user = tgUser.dbUser;
+    if (!user && tgUser.id) {
+      user = await storage.getTelegramUser(tgUser.id.toString());
+    }
+    if (!user && tgUser.id && !isNaN(Number(tgUser.id))) {
+      user = await storage.getTelegramUserById(Number(tgUser.id));
+    }
     if (!user) return res.json([]);
 
     const ordersList = await db
@@ -6920,7 +6932,6 @@ app.get("/api/mini/sandromania/orders", verifyMiniAppAuth, async (req, res) => {
           title: sandromaniaProducts.title,
           sellingPriceLkr: sandromaniaProducts.sellingPriceLkr,
           sellingPriceUsd: sandromaniaProducts.sellingPriceUsd,
-          imageUrl: sandromaniaProducts.imageUrl,
           category: sandromaniaProducts.category,
         }
       })
@@ -7112,24 +7123,16 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
 app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
   try {
     const tgUser = (req as any).tgUser;
-    if (!tgUser || !tgUser.id) {
+    if (!tgUser || tgUser.isGuest || !tgUser.id || tgUser.id === 0 || tgUser.id === "0") {
       return res.json([]);
     }
 
-    let user = (
-      await db
-        .select()
-        .from(telegramUsers)
-        .where(eq(telegramUsers.telegramId, tgUser.id.toString()))
-    )[0];
-
-    if (!user) {
-      user = (
-        await db
-          .select()
-          .from(telegramUsers)
-          .where(eq(telegramUsers.id, tgUser.dbUser?.id || 0))
-      )[0];
+    let user = tgUser.dbUser;
+    if (!user && tgUser.id) {
+      user = await storage.getTelegramUser(tgUser.id.toString());
+    }
+    if (!user && tgUser.id && !isNaN(Number(tgUser.id))) {
+      user = await storage.getTelegramUserById(Number(tgUser.id));
     }
 
     if (!user) return res.json([]);
@@ -7149,10 +7152,9 @@ app.get("/api/mini/cssx/orders", verifyMiniAppAuth, async (req, res) => {
         sellingPriceLkr: cssxProducts.sellingPriceLkr,
         product: {
           id: cssxProducts.id,
-          name: cssxProducts.name,
+          title: cssxProducts.title,
           sellingPriceLkr: cssxProducts.sellingPriceLkr,
           sellingPriceUsd: cssxProducts.sellingPriceUsd,
-          imageUrl: cssxProducts.imageUrl,
           category: cssxProducts.category,
         }
       })

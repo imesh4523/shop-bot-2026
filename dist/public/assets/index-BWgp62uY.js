@@ -74760,7 +74760,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-D2YttYGL.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CRJQaygZ.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105771,7 +105771,7 @@ function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) : null,
+        priceLkr: fixedLkr ? Number(fixedLkr) * (sandroOrd.quantity || 1) : null,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : /* @__PURE__ */ new Date(0),
         licenseKey: deliveredData
@@ -105809,7 +105809,7 @@ function MiniAppShopModern() {
         status: cssxOrd.status || "Completed",
         statusBadge,
         priceCents: cssxOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) : null,
+        priceLkr: fixedLkr ? Number(fixedLkr) * (cssxOrd.quantity || 1) : null,
         quantity: cssxOrd.quantity || 1,
         date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : /* @__PURE__ */ new Date(0),
         licenseKey: deliveredData
@@ -108266,7 +108266,7 @@ ${finalDetails}`;
                   ]
                 }
               ),
-              sandromaniaOrdersList.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              unifiedOrdersList.some((s2) => s2.orderType === "license") && /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "button",
                 {
                   onClick: () => setOrdersFilter("license"),
@@ -108274,7 +108274,7 @@ ${finalDetails}`;
                   children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3 h-3" }),
                     " Digital Licenses (",
-                    sandromaniaOrdersList.filter((s2) => !(s2.status || "").toLowerCase().includes("fail") && !(s2.status || "").toLowerCase().includes("cancel")).length,
+                    unifiedOrdersList.filter((s2) => s2.orderType === "license").length,
                     ")"
                   ]
                 }

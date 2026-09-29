@@ -1673,7 +1673,7 @@ export default function MiniAppShopModern() {
         status: sandroOrd.status || "Completed",
         statusBadge,
         priceCents: sandroOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) : null,
+        priceLkr: fixedLkr ? Number(fixedLkr) * (sandroOrd.quantity || 1) : null,
         quantity: sandroOrd.quantity || 1,
         date: sandroOrd.createdAt ? new Date(sandroOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
@@ -1738,7 +1738,7 @@ export default function MiniAppShopModern() {
         status: cssxOrd.status || "Completed",
         statusBadge,
         priceCents: cssxOrd.amountPaid || 0,
-        priceLkr: fixedLkr ? Number(fixedLkr) : null,
+        priceLkr: fixedLkr ? Number(fixedLkr) * (cssxOrd.quantity || 1) : null,
         quantity: cssxOrd.quantity || 1,
         date: cssxOrd.createdAt ? new Date(cssxOrd.createdAt) : new Date(0),
         licenseKey: deliveredData,
@@ -4649,7 +4649,7 @@ Support: https://t.me/youuhost_support
                 <ShopBagIcon className="w-3 h-3" /> Social Boost ({smmOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
               </button>
 
-              {sandromaniaOrdersList.length > 0 && (
+              {unifiedOrdersList.some((s: any) => s.orderType === "license") && (
                 <button
                   onClick={() => setOrdersFilter("license")}
                   className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap shrink-0 flex items-center gap-1 ${
@@ -4658,7 +4658,7 @@ Support: https://t.me/youuhost_support
                       : "bg-white text-[#7E7998] border border-[#ECEEF8] hover:bg-[#F8F7FD]"
                   }`}
                 >
-                  <ShieldCheck className="w-3 h-3" /> Digital Licenses ({sandromaniaOrdersList.filter((s: any) => !(s.status || '').toLowerCase().includes('fail') && !(s.status || '').toLowerCase().includes('cancel')).length})
+                  <ShieldCheck className="w-3 h-3" /> Digital Licenses ({unifiedOrdersList.filter((s: any) => s.orderType === "license").length})
                 </button>
               )}
             </div>

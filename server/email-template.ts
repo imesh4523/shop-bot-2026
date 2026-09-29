@@ -531,6 +531,8 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
   const isLkr = amount.toUpperCase().includes("LKR") || amount.toUpperCase().includes("RS");
   // Numeric string without currency symbols for breakdown rows (e.g. "$50.00" or "Rs. 1,815.00")
   const tableNumericAmount = amount.replace(/\s*(USD|LKR)/gi, "").trim();
+  // Strip "Rs." / "LKR" / "$" from Total row as user requested ("thva podi deyj e email eke total kiyn eline eke rs kiyana text eka nethuva danna ethakota lssmai eka")
+  const totalWithoutRsDisplay = tableNumericAmount.replace(/^(Rs\.?|LKR|\$)\s*/i, "").trim();
 
   // Discount breakdown handling
   let discountLabel = "Discounts";
@@ -615,7 +617,7 @@ export function buildOrderCredentialsEmailHtml(props: OrderCredentialsEmailProps
                   <tr>
                     <td colspan="2"></td>
                     <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">Total</td>
-                    <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">${tableNumericAmount}</td>
+                    <td align="right" style="padding: 6px 4px; font-size: 13px; font-weight: 700; color: #111827;">${totalWithoutRsDisplay}</td>
                   </tr>
                   <tr>
                     <td colspan="2"></td>
