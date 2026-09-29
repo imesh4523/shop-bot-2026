@@ -74778,7 +74778,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CcJH2Apt.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DX81L1V7.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -105415,6 +105415,65 @@ function MiniAppShopModern() {
       return [];
     }
   });
+  const isTelegram = reactExports.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const initData = getTelegramInitData();
+    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
+    const hasTgObj = Boolean(window.Telegram?.WebApp?.initData);
+    return Boolean(initData || hasTgParam || hasTgObj);
+  }, []);
+  const [selectedCurrency, setSelectedCurrency] = reactExports.useState(() => {
+    if (isTelegram) return "USD";
+    const saved = localStorage.getItem("app_currency");
+    if (saved === "LKR" || saved === "USD") return saved;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
+        return "LKR";
+      }
+    } catch {
+    }
+    return "USD";
+  });
+  const { data: currencyData } = useQuery({
+    queryKey: ["/api/currency/rates"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/currency/rates");
+        const data = await res.json();
+        if (data?.rates?.LKR) {
+          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
+        }
+        return data;
+      } catch {
+        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
+        return { rates: { USD: 1, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
+      }
+    },
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem("cached_lkr_rate");
+        if (cached) {
+          return { rates: { USD: 1, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
+        }
+      } catch {
+      }
+      return void 0;
+    },
+    staleTime: 5 * 60 * 1e3
+  });
+  reactExports.useEffect(() => {
+    if (currencyData) {
+      if (currencyData.rates?.LKR) {
+        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
+      }
+      if (!isTelegram && !localStorage.getItem("app_currency")) {
+        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
+        setSelectedCurrency(detected);
+      }
+    }
+  }, [currencyData, isTelegram]);
+  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
   const [detailProduct, setDetailProduct] = reactExports.useState(null);
   const [quantity, setQuantity] = reactExports.useState(1);
   const [isPurchasing, setIsPurchasing] = reactExports.useState(false);
@@ -105935,7 +105994,7 @@ function MiniAppShopModern() {
     });
     list.sort((a2, b2) => b2.date.getTime() - a2.date.getTime());
     return list;
-  }, [orders2, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList]);
+  }, [orders2, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList, lkrRate]);
   const filteredOrders = reactExports.useMemo(() => {
     if (ordersFilter === "all") return unifiedOrdersList;
     return unifiedOrdersList.filter((item) => item.orderType === ordersFilter);
@@ -106292,65 +106351,6 @@ ${finalDetails}`;
       refetchApiKeys();
     }
   });
-  const isTelegram = reactExports.useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const initData = getTelegramInitData();
-    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
-    const hasTgObj = Boolean(window.Telegram?.WebApp?.initData);
-    return Boolean(initData || hasTgParam || hasTgObj);
-  }, []);
-  const [selectedCurrency, setSelectedCurrency] = reactExports.useState(() => {
-    if (isTelegram) return "USD";
-    const saved = localStorage.getItem("app_currency");
-    if (saved === "LKR" || saved === "USD") return saved;
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
-        return "LKR";
-      }
-    } catch {
-    }
-    return "USD";
-  });
-  const { data: currencyData } = useQuery({
-    queryKey: ["/api/currency/rates"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/currency/rates");
-        const data = await res.json();
-        if (data?.rates?.LKR) {
-          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
-        }
-        return data;
-      } catch {
-        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
-        return { rates: { USD: 1, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
-      }
-    },
-    initialData: () => {
-      try {
-        const cached = localStorage.getItem("cached_lkr_rate");
-        if (cached) {
-          return { rates: { USD: 1, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
-        }
-      } catch {
-      }
-      return void 0;
-    },
-    staleTime: 5 * 60 * 1e3
-  });
-  reactExports.useEffect(() => {
-    if (currencyData) {
-      if (currencyData.rates?.LKR) {
-        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
-      }
-      if (!isTelegram && !localStorage.getItem("app_currency")) {
-        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
-        setSelectedCurrency(detected);
-      }
-    }
-  }, [currencyData, isTelegram]);
-  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
   const [binanceAmount, setBinanceAmount] = reactExports.useState(() => {
     return localStorage.getItem("app_currency") === "LKR" ? "1000" : "5";
   });

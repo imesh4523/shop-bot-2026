@@ -1107,6 +1107,71 @@ export default function MiniAppShopModern() {
     }
   });
 
+  // Telegram detection: Telegram Mini-App or WebApp environment
+  const isTelegram = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const initData = getTelegramInitData();
+    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
+    const hasTgObj = Boolean((window as any).Telegram?.WebApp?.initData);
+    return Boolean(initData || hasTgParam || hasTgObj);
+  }, []);
+
+  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit. Telegram is strictly locked to USD.
+  const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
+    if (isTelegram) return "USD";
+    const saved = localStorage.getItem("app_currency");
+    if (saved === "LKR" || saved === "USD") return saved;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
+        return "LKR";
+      }
+    } catch {}
+    return "USD";
+  });
+
+  const { data: currencyData } = useQuery<{ rates: Record<string, number>; defaultCurrency?: string; isSriLanka?: boolean }>({
+    queryKey: ["/api/currency/rates"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/currency/rates");
+        const data = await res.json();
+        if (data?.rates?.LKR) {
+          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
+        }
+        return data;
+      } catch {
+        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
+        return { rates: { USD: 1.0, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
+      }
+    },
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem("cached_lkr_rate");
+        if (cached) {
+          return { rates: { USD: 1.0, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
+        }
+      } catch {}
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Auto-apply detected currency on first visit if user hasn't toggled yet (skipped in Telegram)
+  useEffect(() => {
+    if (currencyData) {
+      if (currencyData.rates?.LKR) {
+        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
+      }
+      if (!isTelegram && !localStorage.getItem("app_currency")) {
+        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
+        setSelectedCurrency(detected);
+      }
+    }
+  }, [currencyData, isTelegram]);
+
+  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
+
   // Selected Product Detail Modal
   const [detailProduct, setDetailProduct] = useState<(Product & { stockCount?: number }) | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -1796,7 +1861,7 @@ export default function MiniAppShopModern() {
     list.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return list;
-  }, [orders, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList]);
+  }, [orders, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList, lkrRate]);
 
   const filteredOrders = useMemo(() => {
     if (ordersFilter === "all") return unifiedOrdersList;
@@ -2196,71 +2261,6 @@ Support: https://t.me/youuhost_support
       refetchApiKeys();
     }
   });
-
-  // Telegram detection: Telegram Mini-App or WebApp environment
-  const isTelegram = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const initData = getTelegramInitData();
-    const hasTgParam = window.location.search.includes("tgWebAppPlatform") || window.location.search.includes("tg_webapp") || window.location.hash.includes("tgWebAppData");
-    const hasTgObj = Boolean((window as any).Telegram?.WebApp?.initData);
-    return Boolean(initData || hasTgParam || hasTgObj);
-  }, []);
-
-  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit. Telegram is strictly locked to USD.
-  const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
-    if (isTelegram) return "USD";
-    const saved = localStorage.getItem("app_currency");
-    if (saved === "LKR" || saved === "USD") return saved;
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
-        return "LKR";
-      }
-    } catch {}
-    return "USD";
-  });
-
-  const { data: currencyData } = useQuery<{ rates: Record<string, number>; defaultCurrency?: string; isSriLanka?: boolean }>({
-    queryKey: ["/api/currency/rates"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/currency/rates");
-        const data = await res.json();
-        if (data?.rates?.LKR) {
-          localStorage.setItem("cached_lkr_rate", String(data.rates.LKR));
-        }
-        return data;
-      } catch {
-        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
-        return { rates: { USD: 1.0, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
-      }
-    },
-    initialData: () => {
-      try {
-        const cached = localStorage.getItem("cached_lkr_rate");
-        if (cached) {
-          return { rates: { USD: 1.0, LKR: parseFloat(cached) }, defaultCurrency: "LKR", isSriLanka: true };
-        }
-      } catch {}
-      return undefined;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Auto-apply detected currency on first visit if user hasn't toggled yet (skipped in Telegram)
-  useEffect(() => {
-    if (currencyData) {
-      if (currencyData.rates?.LKR) {
-        localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
-      }
-      if (!isTelegram && !localStorage.getItem("app_currency")) {
-        const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
-        setSelectedCurrency(detected);
-      }
-    }
-  }, [currencyData, isTelegram]);
-
-  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
 
   // Binance Pay Interactive State
   const [binanceAmount, setBinanceAmount] = useState<string>(() => {
