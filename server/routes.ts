@@ -6716,13 +6716,23 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
     const rates = await fetchLiveExchangeRates();
     const lkrRate = rates.LKR || 305.50;
     const totalCents = product.sellingPriceUsd * qty;
-    const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
+    const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((product.sellingPriceUsd / 100) * lkrRate);
+    const totalLkr = unitLkr * qty;
 
     const result = await db.transaction(async (tx) => {
-      // 1. Check user balance
-      const user = await tx.query.telegramUsers.findFirst({
+      let user = await tx.query.telegramUsers.findFirst({
         where: eq(telegramUsers.telegramId, tgUser.id.toString()),
       });
+      if (!user && tgUser.dbUser?.id) {
+        user = await tx.query.telegramUsers.findFirst({
+          where: eq(telegramUsers.id, tgUser.dbUser.id),
+        });
+      }
+      if (!user && tgUser.id && !isNaN(Number(tgUser.id))) {
+        user = await tx.query.telegramUsers.findFirst({
+          where: eq(telegramUsers.id, Number(tgUser.id)),
+        });
+      }
 
       if (!user) throw new Error("User account not found.");
       const hasEnough = (user.balanceLkr != null && user.balanceLkr >= totalLkr) || user.balance >= totalCents;
