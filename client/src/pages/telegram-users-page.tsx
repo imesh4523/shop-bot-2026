@@ -156,11 +156,28 @@ export default function TelegramUsersPage() {
     setCurrentPage(1);
   };
 
+  const formatUserLkr = (cents: number) => {
+    const usd = (cents || 0) / 100;
+    const rawLkr = usd * lkrRate;
+    let rounded = Math.round(rawLkr);
+    for (const step of [1000, 500, 100, 50, 10]) {
+      const rem = rounded % step;
+      if (rem === step - 1 || rem === step - 2) {
+        rounded += (step - rem);
+        break;
+      } else if (rem === 1 || rem === 2) {
+        rounded -= rem;
+        break;
+      }
+    }
+    return rounded.toLocaleString("en-US");
+  };
+
   const handleEdit = (user: TelegramUser) => {
     setEditingId(user.id);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    setEditBalanceLkr(Math.round(usd * lkrRate));
+    setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
   };
 
   const handleUsdChange = (val: number) => {
@@ -170,7 +187,7 @@ export default function TelegramUsersPage() {
 
   const handleLkrChange = (val: number) => {
     setEditBalanceLkr(val);
-    setEditBalance(Number((val / lkrRate).toFixed(2)));
+    setEditBalance(Number((val / lkrRate).toFixed(4)));
   };
 
   const handleQuickAdd = (type: "usd" | "lkr", amount: number) => {
@@ -438,7 +455,7 @@ export default function TelegramUsersPage() {
                         💵 ${(((user.balance || 0)) / 100).toFixed(2)} USD
                       </span>
                       <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                        🇱🇰 Rs. {Math.round((((user.balance || 0)) / 100) * lkrRate).toLocaleString()} LKR
+                        🇱🇰 Rs. {formatUserLkr(user.balance || 0)} LKR
                       </span>
                     </div>
                   </div>

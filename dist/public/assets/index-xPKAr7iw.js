@@ -74741,7 +74741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Cc55KgR9.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-C0vwFyiR.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -87494,11 +87494,27 @@ function TelegramUsersPage() {
     setStatusFilter(status);
     setCurrentPage(1);
   };
+  const formatUserLkr = (cents) => {
+    const usd = (cents || 0) / 100;
+    const rawLkr = usd * lkrRate;
+    let rounded = Math.round(rawLkr);
+    for (const step of [1e3, 500, 100, 50, 10]) {
+      const rem = rounded % step;
+      if (rem === step - 1 || rem === step - 2) {
+        rounded += step - rem;
+        break;
+      } else if (rem === 1 || rem === 2) {
+        rounded -= rem;
+        break;
+      }
+    }
+    return rounded.toLocaleString("en-US");
+  };
   const handleEdit = (user) => {
     setEditingId(user.id);
     const usd = (user.balance || 0) / 100;
     setEditBalance(usd);
-    setEditBalanceLkr(Math.round(usd * lkrRate));
+    setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
   };
   const handleUsdChange = (val) => {
     setEditBalance(val);
@@ -87506,7 +87522,7 @@ function TelegramUsersPage() {
   };
   const handleLkrChange = (val) => {
     setEditBalanceLkr(val);
-    setEditBalance(Number((val / lkrRate).toFixed(2)));
+    setEditBalance(Number((val / lkrRate).toFixed(4)));
   };
   const handleQuickAdd = (type, amount) => {
     if (type === "usd") {
@@ -87748,7 +87764,7 @@ function TelegramUsersPage() {
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1", children: [
                   "🇱🇰 Rs. ",
-                  Math.round((user.balance || 0) / 100 * lkrRate).toLocaleString(),
+                  formatUserLkr(user.balance || 0),
                   " LKR"
                 ] })
               ] })
@@ -104568,6 +104584,19 @@ const TransactionBrandIcon = ({ tx, className = "w-10 h-10" }) => {
       }
     ) });
   }
+  if (method === "admin_topup" || method.includes("admin") || type === "admin_topup" || tx?.category?.toLowerCase().includes("youuhost") || tx?.category?.toLowerCase().includes("admin") || title.includes("youuhost") || title.includes("admin") || tx?.externalId?.startsWith("ADMIN") || tx?.externalId?.startsWith("INIT")) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: "/assets/youuhost_official_logo.png?v=4",
+        alt: "YouuHost Team",
+        className: "w-full h-full object-contain",
+        onError: (e3) => {
+          e3.currentTarget.src = "/logo.png";
+        }
+      }
+    ) });
+  }
   if (method.includes("card") || method.includes("payhere") || title.includes("card") || title.includes("visa") || title.includes("master")) {
     const isLarge = className.includes("w-16") || className.includes("w-12");
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `${className} rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-1.5`, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -105923,8 +105952,19 @@ ${finalDetails}`;
   const formatBalanceInCurrentCurrency = (balanceCents) => {
     const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
-      const lkr = Math.round(usd * lkrRate);
-      return `Rs. ${lkr.toLocaleString("en-US")}`;
+      const rawLkr = usd * lkrRate;
+      let rounded = Math.round(rawLkr);
+      for (const step of [1e3, 500, 100, 50, 10]) {
+        const rem = rounded % step;
+        if (rem === step - 1 || rem === step - 2) {
+          rounded += step - rem;
+          break;
+        } else if (rem === 1 || rem === 2) {
+          rounded -= rem;
+          break;
+        }
+      }
+      return `Rs. ${rounded.toLocaleString("en-US")}`;
     }
     return `$${usd.toFixed(2)}`;
   };
@@ -109229,7 +109269,7 @@ ${finalDetails}`;
                       ] })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right shrink-0", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: tx.amountFormatted }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xs font-black font-mono ${isDeposit ? "text-emerald-600" : "text-[#181432]"}`, children: selectedCurrency === "LKR" ? isDeposit ? `+Rs. ${tx.amountLkr}` : `-Rs. ${tx.amountLkr || Math.round(Math.abs((tx.amountCents || 0) / 100) * lkrRate).toLocaleString()}` : isDeposit ? `+$${tx.amountUsd}` : `-$${tx.amountUsd || Math.abs((tx.amountCents || 0) / 100).toFixed(2)}` }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `text-[9.5px] font-black uppercase px-1.5 py-0.2 rounded-full inline-block mt-0.5 ${isSuccess ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : isRefunded ? "bg-sky-50 text-sky-600" : "bg-red-50 text-red-600"}`, children: tx.status })
                     ] })
                   ]
@@ -109243,7 +109283,6 @@ ${finalDetails}`;
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedTxDetail, onOpenChange: (open2) => !open2 && setSelectedTxDetail(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "max-w-[360px] sm:max-w-md w-[92vw] bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] p-4 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto overscroll-contain pb-6", children: selectedTxDetail && (() => {
       const isDeposit = selectedTxDetail.type === "deposit";
-      const isLkrCurrency = (selectedTxDetail.currency || "").toUpperCase() === "LKR";
       const statusLower = (selectedTxDetail.status || "").toLowerCase();
       const isSuccess = statusLower === "completed" || statusLower === "success" || statusLower === "approved";
       const isPending = statusLower === "pending" || statusLower === "processing";
@@ -109271,25 +109310,7 @@ ${finalDetails}`;
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-14 h-14 rounded-2xl bg-white border border-[#ECEEF8] shadow-sm mx-auto mb-2 flex items-center justify-center p-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TransactionBrandIcon, { tx: selectedTxDetail, className: "w-10 h-10" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm sm:text-base font-black text-[#181432] line-clamp-1", children: selectedTxDetail.title }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10.5px] font-bold text-[#7E7998] mt-0.5", children: selectedTxDetail.category || (isDeposit ? "Wallet Deposit" : "Purchase Order") }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-2.5 p-3 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: isLkrCurrency ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xl sm:text-2xl font-black font-mono text-emerald-700", children: [
-              "+Rs. ",
-              selectedTxDetail.amountLkr || (selectedTxDetail.amountCents / 100).toLocaleString(),
-              " LKR"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] font-bold text-[#7E7998] font-mono mt-0.5", children: [
-              "≈ $",
-              selectedTxDetail.amountUsd || (selectedTxDetail.amountCents / 100 / lkrRate).toFixed(2),
-              " USD"
-            ] })
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xl sm:text-2xl font-black font-mono", children: isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)} USD` }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] font-bold text-[#7E7998] font-mono mt-0.5", children: [
-              "≈ Rs. ",
-              selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString(),
-              " LKR"
-            ] })
-          ] }) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `mt-2.5 p-3 rounded-2xl border text-center ${isDeposit ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-800" : "bg-[#F8F7FD] border-[#ECEEF8] text-[#181432]"}`, children: selectedCurrency === "LKR" ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`, children: isDeposit ? `+Rs. ${selectedTxDetail.amountLkr || Math.round(selectedTxDetail.amountCents / 100 * lkrRate).toLocaleString()}` : `-Rs. ${selectedTxDetail.amountLkr || Math.round(Math.abs((selectedTxDetail.amountCents || 0) / 100) * lkrRate).toLocaleString()}` }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `text-xl sm:text-2xl font-black font-mono ${isDeposit ? "text-emerald-700" : "text-[#181432]"}`, children: isDeposit ? `+$${selectedTxDetail.amountUsd || ((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}` : `-$${selectedTxDetail.amountUsd || Math.abs((selectedTxDetail.amountCents || 0) / 100).toFixed(2)}` }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-3.5 rounded-2xl border border-[#ECEEF8] space-y-2.5 text-[11.5px] shadow-2xs", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between pb-2 border-b border-[#F5F4FC]", children: [

@@ -2523,11 +2523,13 @@ export async function registerRoutes(
         const isAdmin = p.paymentMethod === "admin_topup" || p.externalId?.startsWith("ADMIN");
 
         let title = "Wallet Deposit";
+        let category = "Wallet Deposit";
         let cleanRef = `#TX-${p.id}`;
         let cleanMethod = p.paymentMethod;
 
         if (isAdmin) {
-          title = "Admin Top-up Credit";
+          title = "YouuHost Team Money Added";
+          category = "YouuHost Team Added Funds";
           cleanMethod = "admin_topup";
           cleanRef = `#ADM-${p.id}`;
         } else if (isCard) {
@@ -2563,7 +2565,7 @@ export async function registerRoutes(
           id: `DEP-${p.id}`,
           rawId: p.id,
           type: "deposit" as const,
-          category: "Wallet Deposit",
+          category,
           title,
           amountCents: p.amount,
           amountUsd: usdVal.toFixed(2),
@@ -2575,11 +2577,37 @@ export async function registerRoutes(
           reference: cleanRef,
           externalId: p.externalId || null,
           txid: p.txid || null,
-          details: isAdmin ? "Direct wallet balance adjustment credited by Admin" : isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
+          details: isAdmin ? "Money added directly to your wallet by YouuHost Team" : isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
           createdAt: p.createdAt || new Date(),
           updatedAt: p.updatedAt || p.createdAt || new Date()
         };
       });
+
+      // Fallback: If user has positive balance but no deposit rows yet, add initial credit event
+      if (deposits.length === 0 && (dbUser.balance || 0) > 0) {
+        const balUsd = (dbUser.balance || 0) / 100;
+        const balLkr = Math.round(balUsd * lkrRate);
+        deposits.push({
+          id: `DEP-INIT-${dbUser.id}`,
+          rawId: dbUser.id,
+          type: "deposit" as const,
+          category: "YouuHost Team Added Funds",
+          title: "YouuHost Team Money Added",
+          amountCents: dbUser.balance,
+          amountUsd: balUsd.toFixed(2),
+          amountLkr: balLkr.toLocaleString(),
+          amountFormatted: `+Rs. ${balLkr.toLocaleString()}`,
+          currency: "LKR",
+          method: "admin_topup",
+          status: "completed",
+          reference: `#YOUUHOST-TOPUP-${dbUser.id}`,
+          externalId: `INIT_${dbUser.id}`,
+          txid: `TOPUP_${dbUser.id}`,
+          details: "Money added directly to your wallet by YouuHost Team",
+          createdAt: dbUser.createdAt || new Date(),
+          updatedAt: dbUser.createdAt || new Date()
+        });
+      }
 
       // Get all user's API Key IDs
       const userKeys = await storage.getUserApiKeys(userId);
