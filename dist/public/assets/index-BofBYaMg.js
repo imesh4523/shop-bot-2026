@@ -74741,7 +74741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Dt7ESe_I.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DmXzVvIw.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -127501,7 +127501,8 @@ function ConnectedStoresTrackerPage() {
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#f8fafc",
-        logging: false
+        logging: false,
+        windowWidth: 800
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new E$1({
@@ -127509,16 +127510,27 @@ function ConnectedStoresTrackerPage() {
         unit: "mm",
         format: "a4"
       });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageWidth = 210;
+      const pageHeight = 297;
       const margin = 10;
-      const contentWidth = pdfWidth - margin * 2;
-      const contentHeight = canvas.height * contentWidth / canvas.width;
-      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, contentHeight);
+      const printWidth = pageWidth - margin * 2;
+      const printHeight = canvas.height * printWidth / canvas.width;
+      const pageContentHeight = pageHeight - margin * 2;
+      let heightLeft = printHeight;
+      let position2 = margin;
+      pdf.addImage(imgData, "PNG", margin, position2, printWidth, printHeight);
+      heightLeft -= pageContentHeight;
+      while (heightLeft > 0) {
+        position2 = margin - (printHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", margin, position2, printWidth, printHeight);
+        heightLeft -= pageContentHeight;
+      }
       const filename = selectedInvoiceOrder ? `Invoice-YOUUHOST-${selectedInvoiceOrder.externalOrderId || selectedInvoiceOrder.id}.pdf` : `Invoice-Statement-YOUUHOST-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.pdf`;
       pdf.save(filename);
       toast2({
-        title: "PDF Downloaded",
-        description: `${filename} has been saved to your downloads.`
+        title: "Invoice PDF Downloaded",
+        description: `Saved ${filename} successfully.`
       });
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -127996,8 +128008,8 @@ function ConnectedStoresTrackerPage() {
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("tbody", { className: "divide-y divide-[#f1f5f9] text-[12px]", children: [
                   selectedInvoiceOrder ? (() => {
                     const qty = selectedInvoiceOrder.quantity || 1;
-                    const unitUsd = selectedInvoiceOrder.unitPriceUsd ? parseFloat(selectedInvoiceOrder.unitPriceUsd) : parseFloat(selectedInvoiceOrder.priceUsd) / qty;
-                    const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || unitUsd * qty;
+                    const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || 0;
+                    const unitUsd = selectedInvoiceOrder.unitPriceUsd ? parseFloat(selectedInvoiceOrder.unitPriceUsd) : qty > 0 ? totalUsd / qty : totalUsd;
                     const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -128023,8 +128035,8 @@ function ConnectedStoresTrackerPage() {
                     ] });
                   })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 25).map((ord, idx) => {
                     const qty = ord.quantity || 1;
-                    const unitUsd = ord.unitPriceUsd ? parseFloat(ord.unitPriceUsd) : (parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty;
-                    const totalUsd = parseFloat(ord.priceUsd) || unitUsd * qty;
+                    const totalUsd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
+                    const unitUsd = ord.unitPriceUsd ? parseFloat(ord.unitPriceUsd) : qty > 0 ? totalUsd / qty : totalUsd;
                     const orderDate = ord.createdAt ? new Date(ord.createdAt) : /* @__PURE__ */ new Date();
                     return /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-2.5 px-1.5 font-medium text-[#475569] leading-snug", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [

@@ -156,12 +156,14 @@ export default function ConnectedStoresTrackerPage() {
     
     setIsGeneratingPdf(true);
     try {
+      // High DPI canvas capture with desktop reference width to prevent narrow squishing
       const canvas = await html2canvas(element, {
         scale: 2.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#f8fafc",
         logging: false,
+        windowWidth: 800,
       });
 
       const imgData = canvas.toDataURL("image/png");
@@ -171,12 +173,27 @@ export default function ConnectedStoresTrackerPage() {
         format: "a4",
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageWidth = 210;
+      const pageHeight = 297;
       const margin = 10;
-      const contentWidth = pdfWidth - (margin * 2);
-      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+      const printWidth = pageWidth - (margin * 2); // 190mm
+      const printHeight = (canvas.height * printWidth) / canvas.width;
+      const pageContentHeight = pageHeight - (margin * 2); // 277mm
 
-      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, contentHeight);
+      let heightLeft = printHeight;
+      let position = margin;
+
+      // First Page
+      pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
+      heightLeft -= pageContentHeight;
+
+      // Successive Pages if invoice content exceeds 1 A4 page
+      while (heightLeft > 0) {
+        position = margin - (printHeight - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
+        heightLeft -= pageContentHeight;
+      }
 
       const filename = selectedInvoiceOrder 
         ? `Invoice-YOUUHOST-${selectedInvoiceOrder.externalOrderId || selectedInvoiceOrder.id}.pdf`
@@ -185,8 +202,8 @@ export default function ConnectedStoresTrackerPage() {
       pdf.save(filename);
 
       toast({
-        title: "PDF Downloaded",
-        description: `${filename} has been saved to your downloads.`,
+        title: "Invoice PDF Downloaded",
+        description: `Saved ${filename} successfully.`,
       });
     } catch (err: any) {
       console.error("PDF generation error:", err);
@@ -818,10 +835,10 @@ export default function ConnectedStoresTrackerPage() {
                   {selectedInvoiceOrder ? (
                     (() => {
                       const qty = selectedInvoiceOrder.quantity || 1;
+                      const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || 0;
                       const unitUsd = selectedInvoiceOrder.unitPriceUsd 
                         ? parseFloat(selectedInvoiceOrder.unitPriceUsd) 
-                        : (parseFloat(selectedInvoiceOrder.priceUsd) / qty);
-                      const totalUsd = parseFloat(selectedInvoiceOrder.priceUsd) || (unitUsd * qty);
+                        : (qty > 0 ? totalUsd / qty : totalUsd);
                       const orderDate = selectedInvoiceOrder.createdAt ? new Date(selectedInvoiceOrder.createdAt) : new Date();
                       return (
                         <tr>
@@ -861,10 +878,10 @@ export default function ConnectedStoresTrackerPage() {
                   ) : (
                     filteredOrders.slice(0, 25).map((ord, idx) => {
                       const qty = ord.quantity || 1;
+                      const totalUsd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
                       const unitUsd = ord.unitPriceUsd 
                         ? parseFloat(ord.unitPriceUsd) 
-                        : ((parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0)) / qty);
-                      const totalUsd = parseFloat(ord.priceUsd) || (unitUsd * qty);
+                        : (qty > 0 ? totalUsd / qty : totalUsd);
                       const orderDate = ord.createdAt ? new Date(ord.createdAt) : new Date();
                       return (
                         <tr key={idx}>

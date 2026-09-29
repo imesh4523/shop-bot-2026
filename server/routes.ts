@@ -4003,24 +4003,17 @@ export async function registerRoutes(
       // Map Sandromania Orders (Store Tracker Buying Costs)
       const sandromaniaMapped = allSandromaniaOrders.map(sp => {
         const qty = sp.sandromania_orders.quantity || 1;
-        // Exact real purchase cost stored per order (in cents or derived)
+        // costPriceUsd in DB is stored as the exact TOTAL charged cents for this order
         const rawCost = sp.sandromania_orders.costPriceUsd;
-        let unitCostCents = 44;
         let totalCostCents = 44 * qty;
         
         if (rawCost && rawCost > 0) {
-          if (rawCost < 100) {
-            unitCostCents = rawCost;
-            totalCostCents = rawCost * qty;
-          } else {
-            totalCostCents = rawCost;
-            unitCostCents = Math.round(rawCost / qty);
-          }
+          totalCostCents = rawCost;
         } else if (sp.sandromania_products?.costPriceUsd) {
-          unitCostCents = sp.sandromania_products.costPriceUsd;
-          totalCostCents = unitCostCents * qty;
+          totalCostCents = sp.sandromania_products.costPriceUsd * qty;
         }
 
+        const unitCostCents = qty > 0 ? (totalCostCents / qty) : totalCostCents;
         const unitCostUsd = (unitCostCents / 100).toFixed(2);
         const totalCostUsd = (totalCostCents / 100).toFixed(2);
         const totalCostLkr = Math.round(parseFloat(totalCostUsd) * lkrRate);
