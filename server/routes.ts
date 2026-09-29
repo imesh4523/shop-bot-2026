@@ -2520,12 +2520,17 @@ export async function registerRoutes(
         const isCard = p.paymentMethod === "payhere" || p.paymentMethod === "card";
         const isBinance = p.paymentMethod === "binance_pay" || p.paymentMethod === "binance";
         const isCrypto = p.paymentMethod === "cryptomus" || p.paymentMethod === "crypto";
+        const isAdmin = p.paymentMethod === "admin_topup" || p.externalId?.startsWith("ADMIN");
 
         let title = "Wallet Deposit";
         let cleanRef = `#TX-${p.id}`;
         let cleanMethod = p.paymentMethod;
 
-        if (isCard) {
+        if (isAdmin) {
+          title = "Admin Top-up Credit";
+          cleanMethod = "admin_topup";
+          cleanRef = `#ADM-${p.id}`;
+        } else if (isCard) {
           title = "Card Payment";
           cleanMethod = "card_payment";
           cleanRef = `#CARD-${p.id}`;
@@ -2570,7 +2575,7 @@ export async function registerRoutes(
           reference: cleanRef,
           externalId: p.externalId || null,
           txid: p.txid || null,
-          details: isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
+          details: isAdmin ? "Direct wallet balance adjustment credited by Admin" : isCard ? "Paid via Online Card Payment Gateway" : isBinance ? `Binance Pay TxID: ${p.txid || "N/A"}` : "Crypto payment invoice",
           createdAt: p.createdAt || new Date(),
           updatedAt: p.updatedAt || p.createdAt || new Date()
         };
@@ -2694,8 +2699,41 @@ export async function registerRoutes(
         };
       });
 
+      // 5. CSxStore Partner Orders
+      const userCssxOrders = await db.select()
+        .from(cssxOrders)
+        .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
+        .where(eq(cssxOrders.telegramUserId, userId))
+        .orderBy(desc(cssxOrders.createdAt));
+
+      const cssxTransactions = userCssxOrders.map(cx => {
+        const costUsd = ((cx.cssx_orders.amountPaid || 0) / 100);
+        const fixedLkr = cx.cssx_products?.sellingPriceLkr;
+        const costLkr = fixedLkr ? Number(fixedLkr) : Math.round(costUsd * lkrRate);
+
+        return {
+          id: `YOUUHOST-${cx.cssx_orders.externalOrderId || (3000 + cx.cssx_orders.id)}`,
+          rawId: cx.cssx_orders.id,
+          type: "partner" as const,
+          category: "Digital License Delivery",
+          title: cx.cssx_orders.productTitle || "Partner Digital Goods",
+          amountCents: -(cx.cssx_orders.amountPaid || 0),
+          amountUsd: costUsd.toFixed(2),
+          amountLkr: costLkr.toLocaleString(),
+          amountFormatted: `-$${costUsd.toFixed(2)}`,
+          currency: "USD",
+          method: "wallet_balance",
+          status: cx.cssx_orders.status === "approved" || cx.cssx_orders.status === "completed" ? "completed" : cx.cssx_orders.status,
+          reference: `#YOUUHOST-${cx.cssx_orders.externalOrderId || (3000 + cx.cssx_orders.id)}`,
+          deliveredContent: cx.cssx_orders.deliveryText || null,
+          details: `Order for ${cx.cssx_orders.productTitle}. Instant digital credentials delivered.`,
+          createdAt: cx.cssx_orders.createdAt || new Date(),
+          updatedAt: cx.cssx_orders.createdAt || new Date()
+        };
+      });
+
       // Combine and sort by createdAt descending, with secondary tie-breaker by rawId descending
-      const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions].sort((a, b) => {
+      const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions, ...cssxTransactions].sort((a, b) => {
         const timeA = new Date(a.createdAt).getTime();
         const timeB = new Date(b.createdAt).getTime();
         if (Math.abs(timeB - timeA) > 1000) {
@@ -5140,7 +5178,24 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
     const user = await storage.updateTelegramUser(id, input);
 
     if (input.balance !== undefined && existingUser && input.balance > (existingUser.balance || 0)) {
-      const addedAmountUSD = (input.balance - (existingUser.balance || 0)) / 100;
+      const addedCents = input.balance - (existingUser.balance || 0);
+      const addedAmountUSD = addedCents / 100;
+
+      // Log transaction record for the user profile & transaction history
+      try {
+        await storage.createPayment({
+          telegramUserId: user.id,
+          amount: addedCents,
+          currency: "USD",
+          paymentMethod: "admin_topup",
+          status: "completed",
+          externalId: `ADMIN_TOPUP_${Date.now()}`,
+          txid: `ADMIN_${Date.now()}`
+        });
+      } catch (logErr) {
+        console.warn("[Admin Top-up Transaction Record Error]:", logErr);
+      }
+
       const activeBot = await getBroadcastBot();
       if (activeBot && user.telegramId) {
         await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, "Admin Web Top-up").catch(console.error);
@@ -6543,7 +6598,15 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           idempotencyKey
         );
       } catch (apiErr: any) {
-        throw new Error(`Partner Fulfillment Error: ${apiErr.message}`);
+        console.error("[Partner Fulfillment Error]:", apiErr);
+        const errMsg = String(apiErr?.message || "").toLowerCase();
+        if (errMsg.includes("409") || errMsg.includes("stock") || errMsg.includes("restock") || errMsg.includes("unavailable")) {
+          throw new Error("This digital item is currently restocking or temporarily out of stock. Please try again shortly.");
+        }
+        if (errMsg.includes("balance") || errMsg.includes("funds")) {
+          throw new Error("Temporary delivery node maintenance. Please try again in a few moments.");
+        }
+        throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
       }
 
       const orderData = partnerOrderRes?.order || {};
@@ -6828,7 +6891,12 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
           quantity: qty,
         });
       } catch (apiErr: any) {
-        throw new Error(`CSxStore Fulfillment Error: ${apiErr.message}`);
+        console.error("[CSxStore Fulfillment Error]:", apiErr);
+        const errMsg = String(apiErr?.message || "").toLowerCase();
+        if (errMsg.includes("stock") || errMsg.includes("out of stock") || errMsg.includes("unavailable") || errMsg.includes("409")) {
+          throw new Error("This digital item is currently restocking or temporarily out of stock. Please try again shortly.");
+        }
+        throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
       }
 
       const orderData = orderRes?.order || orderRes?.data || orderRes || {};

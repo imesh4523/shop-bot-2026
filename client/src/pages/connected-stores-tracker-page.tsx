@@ -156,54 +156,132 @@ export default function ConnectedStoresTrackerPage() {
     
     setIsGeneratingPdf(true);
     try {
-      // High DPI canvas capture with desktop reference width to prevent narrow squishing
-      const canvas = await html2canvas(element, {
-        scale: 2.5,
+      // 1. Clone element into an unconstrained offscreen container to guarantee full-height capture on all devices (mobile & desktop)
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Hide print-only buttons or interactive controls in the clone
+      clone.querySelectorAll(".print\\:hidden, button").forEach(btn => {
+        (btn as HTMLElement).style.display = "none";
+      });
+
+      const offscreenWrapper = document.createElement("div");
+      offscreenWrapper.style.position = "absolute";
+      offscreenWrapper.style.left = "-99999px";
+      offscreenWrapper.style.top = "0";
+      offscreenWrapper.style.width = "650px";
+      offscreenWrapper.style.backgroundColor = "#f8fafc";
+      offscreenWrapper.style.padding = "20px";
+      offscreenWrapper.style.boxSizing = "border-box";
+      offscreenWrapper.style.zIndex = "-9999";
+      offscreenWrapper.appendChild(clone);
+      document.body.appendChild(offscreenWrapper);
+
+      // 2. High DPI canvas capture of full offscreen DOM
+      const canvas = await html2canvas(offscreenWrapper, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#f8fafc",
         logging: false,
-        windowWidth: 800,
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      // Remove offscreen clone immediately
+      document.body.removeChild(offscreenWrapper);
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 10;
-      const printWidth = pageWidth - (margin * 2); // 190mm
-      const printHeight = (canvas.height * printWidth) / canvas.width;
-      const pageContentHeight = pageHeight - (margin * 2); // 277mm
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const marginMm = 8;
+      const printWidthMm = pageWidthMm - (marginMm * 2); // 194mm
+      const pageContentHeightMm = pageHeightMm - (marginMm * 2); // 281mm
 
-      let heightLeft = printHeight;
-      let position = margin;
+      const pxToMm = printWidthMm / canvas.width;
+      const pageCanvasHeightPx = Math.floor(pageContentHeightMm / pxToMm);
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeightPx);
 
-      // First Page
-      pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
-      heightLeft -= pageContentHeight;
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        const sourceY = pageIdx * pageCanvasHeightPx;
+        const sourceHeight = Math.min(pageCanvasHeightPx, canvas.height - sourceY);
 
-      // Successive Pages if invoice content exceeds 1 A4 page
-      while (heightLeft > 0) {
-        position = margin - (printHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
-        heightLeft -= pageContentHeight;
+        // Create canvas slice for this specific page
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const ctx = pageCanvas.getContext("2d");
+
+        if (ctx) {
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, sourceHeight,
+            0, 0, canvas.width, sourceHeight
+          );
+        }
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const renderedHeightMm = sourceHeight * pxToMm;
+
+        if (pageIdx > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(pageImgData, "PNG", marginMm, marginMm, printWidthMm, renderedHeightMm);
       }
 
       const filename = selectedInvoiceOrder 
         ? `Invoice-YOUUHOST-${selectedInvoiceOrder.externalOrderId || selectedInvoiceOrder.id}.pdf`
         : `Invoice-Statement-YOUUHOST-${new Date().toISOString().slice(0, 10)}.pdf`;
 
-      pdf.save(filename);
+      const blob = pdf.output("blob");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+      // On iOS Safari, use Web Share API to prevent WebKitBlobResource errors
+      let sharedSuccessfully = false;
+      if (isIOS && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: "application/pdf" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: filename,
+            });
+            sharedSuccessfully = true;
+          }
+        } catch (shareErr: any) {
+          if (shareErr.name === "AbortError") {
+            sharedSuccessfully = true; // User cancelled the share dialog
+          }
+        }
+      }
+
+      if (!sharedSuccessfully) {
+        try {
+          pdf.save(filename);
+        } catch (saveErr) {
+          // Final fallback for mobile webviews: open blob url in new tab or trigger a download link
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = filename;
+          link.target = "_blank";
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+          }, 3000);
+        }
+      }
 
       toast({
-        title: "Invoice PDF Downloaded",
-        description: `Saved ${filename} successfully.`,
+        title: "Invoice PDF Generated",
+        description: `Successfully generated ${totalPages} page(s) PDF.`,
       });
     } catch (err: any) {
       console.error("PDF generation error:", err);
@@ -876,7 +954,7 @@ export default function ConnectedStoresTrackerPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.slice(0, 25).map((ord, idx) => {
+                    filteredOrders.slice(0, 100).map((ord, idx) => {
                       const qty = ord.quantity || 1;
                       const totalUsd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
                       const unitUsd = ord.unitPriceUsd 

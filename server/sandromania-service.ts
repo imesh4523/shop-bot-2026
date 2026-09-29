@@ -74,8 +74,20 @@ export class SandromaniaService {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const errDetail = data?.message || data?.error || JSON.stringify(data);
-      throw new Error(`Sandromania API Error (${res.status}): ${errDetail}`);
+      let errDetail = "";
+      if (typeof data === "string") {
+        errDetail = data;
+      } else if (data && typeof data === "object") {
+        errDetail = data.message || data.error || (data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : "");
+      }
+      if (!errDetail || errDetail === "{}" || errDetail === "[object Object]") {
+        if (res.status === 409 || res.status === 400 || res.status === 404) {
+          errDetail = "Item is temporarily out of stock or restocking.";
+        } else {
+          errDetail = `Status code ${res.status}`;
+        }
+      }
+      throw new Error(`Partner Error (${res.status}): ${errDetail}`);
     }
 
     return data;

@@ -74741,7 +74741,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DmXzVvIw.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Cc55KgR9.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -91949,10 +91949,11 @@ const miniApiRequest$1 = async (method, path, body) => {
       "Content-Type": "application/json",
       "x-telegram-init-data": initData
     },
+    credentials: "include",
     body: body ? JSON.stringify(body) : void 0
   });
   if (!res.ok) {
-    const error = await res.json();
+    const error = await res.json().catch(() => ({}));
     throw new Error(error.message || "Request failed");
   }
   return res;
@@ -104310,6 +104311,7 @@ const miniApiRequest = async (method, path, body) => {
       "Content-Type": "application/json",
       "x-telegram-init-data": initData
     },
+    credentials: "include",
     body: body ? JSON.stringify(body) : void 0
   });
   if (!res.ok) {
@@ -105921,8 +105923,8 @@ ${finalDetails}`;
   const formatBalanceInCurrentCurrency = (balanceCents) => {
     const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
-      const lkr = usd * lkrRate;
-      return `Rs. ${lkr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString("en-US")}`;
     }
     return `$${usd.toFixed(2)}`;
   };
@@ -127496,41 +127498,111 @@ function ConnectedStoresTrackerPage() {
     if (!element) return;
     setIsGeneratingPdf(true);
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2.5,
+      const clone2 = element.cloneNode(true);
+      clone2.querySelectorAll(".print\\:hidden, button").forEach((btn) => {
+        btn.style.display = "none";
+      });
+      const offscreenWrapper = document.createElement("div");
+      offscreenWrapper.style.position = "absolute";
+      offscreenWrapper.style.left = "-99999px";
+      offscreenWrapper.style.top = "0";
+      offscreenWrapper.style.width = "650px";
+      offscreenWrapper.style.backgroundColor = "#f8fafc";
+      offscreenWrapper.style.padding = "20px";
+      offscreenWrapper.style.boxSizing = "border-box";
+      offscreenWrapper.style.zIndex = "-9999";
+      offscreenWrapper.appendChild(clone2);
+      document.body.appendChild(offscreenWrapper);
+      const canvas = await html2canvas(offscreenWrapper, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#f8fafc",
-        logging: false,
-        windowWidth: 800
+        logging: false
       });
-      const imgData = canvas.toDataURL("image/png");
+      document.body.removeChild(offscreenWrapper);
       const pdf = new E$1({
         orientation: "portrait",
         unit: "mm",
         format: "a4"
       });
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 10;
-      const printWidth = pageWidth - margin * 2;
-      const printHeight = canvas.height * printWidth / canvas.width;
-      const pageContentHeight = pageHeight - margin * 2;
-      let heightLeft = printHeight;
-      let position2 = margin;
-      pdf.addImage(imgData, "PNG", margin, position2, printWidth, printHeight);
-      heightLeft -= pageContentHeight;
-      while (heightLeft > 0) {
-        position2 = margin - (printHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position2, printWidth, printHeight);
-        heightLeft -= pageContentHeight;
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const marginMm = 8;
+      const printWidthMm = pageWidthMm - marginMm * 2;
+      const pageContentHeightMm = pageHeightMm - marginMm * 2;
+      const pxToMm = printWidthMm / canvas.width;
+      const pageCanvasHeightPx = Math.floor(pageContentHeightMm / pxToMm);
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeightPx);
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        const sourceY = pageIdx * pageCanvasHeightPx;
+        const sourceHeight = Math.min(pageCanvasHeightPx, canvas.height - sourceY);
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const ctx = pageCanvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(
+            canvas,
+            0,
+            sourceY,
+            canvas.width,
+            sourceHeight,
+            0,
+            0,
+            canvas.width,
+            sourceHeight
+          );
+        }
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const renderedHeightMm = sourceHeight * pxToMm;
+        if (pageIdx > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(pageImgData, "PNG", marginMm, marginMm, printWidthMm, renderedHeightMm);
       }
       const filename = selectedInvoiceOrder ? `Invoice-YOUUHOST-${selectedInvoiceOrder.externalOrderId || selectedInvoiceOrder.id}.pdf` : `Invoice-Statement-YOUUHOST-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.pdf`;
-      pdf.save(filename);
+      const blob = pdf.output("blob");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      let sharedSuccessfully = false;
+      if (isIOS && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: "application/pdf" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: filename
+            });
+            sharedSuccessfully = true;
+          }
+        } catch (shareErr) {
+          if (shareErr.name === "AbortError") {
+            sharedSuccessfully = true;
+          }
+        }
+      }
+      if (!sharedSuccessfully) {
+        try {
+          pdf.save(filename);
+        } catch (saveErr) {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = filename;
+          link.target = "_blank";
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+          }, 3e3);
+        }
+      }
       toast2({
-        title: "Invoice PDF Downloaded",
-        description: `Saved ${filename} successfully.`
+        title: "Invoice PDF Generated",
+        description: `Successfully generated ${totalPages} page(s) PDF.`
       });
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -128033,7 +128105,7 @@ function ConnectedStoresTrackerPage() {
                         " USD"
                       ] })
                     ] });
-                  })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 25).map((ord, idx) => {
+                  })() : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: /* @__PURE__ */ jsxRuntimeExports.jsx("td", { colSpan: 4, className: "py-5 text-center text-slate-400 text-xs italic", children: "No orders recorded for this store in selected duration." }) }) : filteredOrders.slice(0, 100).map((ord, idx) => {
                     const qty = ord.quantity || 1;
                     const totalUsd = parseFloat(ord.priceUsd) || (ord.priceCents ? ord.priceCents / 100 : 0);
                     const unitUsd = ord.unitPriceUsd ? parseFloat(ord.unitPriceUsd) : qty > 0 ? totalUsd / qty : totalUsd;

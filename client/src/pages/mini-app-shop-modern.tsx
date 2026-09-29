@@ -197,6 +197,7 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
       "Content-Type": "application/json",
       "x-telegram-init-data": initData,
     },
+    credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -2132,8 +2133,8 @@ Support: https://t.me/youuhost_support
   const formatBalanceInCurrentCurrency = (balanceCents: number) => {
     const usd = (balanceCents || 0) / 100;
     if (selectedCurrency === "LKR") {
-      const lkr = usd * lkrRate;
-      return `Rs. ${lkr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString("en-US")}`;
     }
     return `$${usd.toFixed(2)}`;
   };

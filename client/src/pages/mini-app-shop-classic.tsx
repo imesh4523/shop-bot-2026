@@ -58,10 +58,11 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
       'Content-Type': 'application/json',
       'x-telegram-init-data': initData
     },
+    credentials: 'include',
     body: body ? JSON.stringify(body) : undefined
   });
   if (!res.ok) {
-    const error = await res.json();
+    const error = await res.json().catch(() => ({}));
     throw new Error(error.message || "Request failed");
   }
   return res;
