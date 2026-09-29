@@ -6558,6 +6558,19 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
       const orderStatus = orderData.status || "approved";
 
+      // Dynamically calculate exact charged partner cost (if returned by API) or use current product cost
+      let exactPartnerCostCents = (product.costPriceUsd || 44) * qty;
+      if (orderData.cost_price_usd) {
+        exactPartnerCostCents = Math.round(Number(orderData.cost_price_usd) * 100);
+      } else if (orderData.amount_usd) {
+        exactPartnerCostCents = Math.round(Number(orderData.amount_usd) * 100);
+      } else if (orderData.price) {
+        const pNum = Number(orderData.price);
+        if (pNum > 0 && pNum < 100) {
+          exactPartnerCostCents = pNum < 2 ? Math.round(pNum * 100 * qty) : Math.round(pNum * 100);
+        }
+      }
+
       // 5. Save order in our database
       const [newOrder] = await tx
         .insert(sandromaniaOrders)
@@ -6568,7 +6581,7 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           externalProductId: product.externalProductId,
           productTitle: product.title,
           quantity: qty,
-          costPriceUsd: product.costPriceUsd * qty,
+          costPriceUsd: exactPartnerCostCents,
           amountPaid: totalCents,
           status: orderStatus,
           deliveryText: deliveryText || "Delivered successfully",

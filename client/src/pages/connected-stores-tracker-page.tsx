@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { 
   Network, 
   Search, 
@@ -27,6 +29,7 @@ import {
   Download,
   Building2,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,10 +44,13 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface ConnectedStoreOrder {
   id: number | string;
+  externalOrderId?: number | string | null;
   productId: number;
   productName: string;
   priceCents: number;
   priceUsd: string;
+  unitPriceUsd?: string;
+  quantity?: number;
   priceLkr: number;
   status: string;
   storeSource: string;
@@ -94,6 +100,7 @@ export default function ConnectedStoresTrackerPage() {
   const [viewingOrder, setViewingOrder] = useState<ConnectedStoreOrder | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<ConnectedStoreOrder | null>(null);
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Fetch Analytics & Orders
   const { data, isLoading, refetch, isFetching } = useQuery<AnalyticsResponse>({
@@ -143,8 +150,54 @@ export default function ConnectedStoresTrackerPage() {
   const lkrRate = data?.summary?.usdToLkrRate || 305.50;
   const calculatedTotalLkr = Math.round(calculatedTotalUsd * lkrRate);
 
-  const handlePrintPdf = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById("printable-statement");
+    if (!element) return;
+    
+    setIsGeneratingPdf(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#f8fafc",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, contentHeight);
+
+      const filename = selectedInvoiceOrder 
+        ? `Invoice-YOUUHOST-${selectedInvoiceOrder.externalOrderId || selectedInvoiceOrder.id}.pdf`
+        : `Invoice-Statement-YOUUHOST-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      pdf.save(filename);
+
+      toast({
+        title: "PDF Downloaded",
+        description: `${filename} has been saved to your downloads.`,
+      });
+    } catch (err: any) {
+      console.error("PDF generation error:", err);
+      toast({
+        title: "PDF Download Failed",
+        description: err.message || "Failed to generate PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const activeStoreName = 
@@ -671,11 +724,16 @@ export default function ConnectedStoresTrackerPage() {
 
             <div className="flex items-center gap-2">
               <Button
-                onClick={handlePrintPdf}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 px-3.5 py-1.5 h-8"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 px-3.5 py-1.5 h-8 transition-all disabled:opacity-75"
               >
-                <Download className="w-3.5 h-3.5" />
-                Download PDF
+                {isGeneratingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                {isGeneratingPdf ? "Generating PDF..." : "Download PDF"}
               </Button>
             </div>
           </div>
@@ -685,13 +743,13 @@ export default function ConnectedStoresTrackerPage() {
             id="printable-statement" 
             className="bg-[#f8fafc] text-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-[500px] mx-auto font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:bg-white"
           >
-            {/* Top Logo & Header (Official Logo Image with Transparent Background) */}
+            {/* Top Logo & Header (Official Logo Image with 100% Transparent Background) */}
             <div className="flex items-center justify-between pb-5 border-b border-slate-100 mb-5">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/assets/youuhost_official_logo.png" 
+                  src="/assets/youuhost_official_logo.png?v=4" 
                   alt="YouuHost" 
-                  className="h-8 md:h-10 w-auto object-contain"
+                  className="h-8 md:h-10 w-auto object-contain bg-transparent"
                   onError={(e) => {
                     (e.currentTarget as any).src = "/logo.png";
                   }}
@@ -895,11 +953,16 @@ export default function ConnectedStoresTrackerPage() {
               {/* Action Button */}
               <div className="mt-5 mb-4 text-center print:hidden flex items-center justify-center gap-2">
                 <Button 
-                  onClick={handlePrintPdf}
-                  className="w-full max-w-[280px] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
+                  onClick={handleDownloadPdf}
+                  disabled={isGeneratingPdf}
+                  className="w-full max-w-[280px] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-sm rounded-full py-3 h-auto shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-75"
                 >
-                  <Download className="w-4 h-4" />
-                  Download PDF
+                  {isGeneratingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  {isGeneratingPdf ? "Generating PDF File..." : "Download PDF"}
                 </Button>
               </div>
 

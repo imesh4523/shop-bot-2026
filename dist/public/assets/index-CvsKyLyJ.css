@@ -10620,6 +10620,10 @@ body:has(.tg-mini-app) {
   opacity: 0.5;
 }
 
+.disabled\:opacity-75:disabled{
+  opacity: 0.75;
+}
+
 .group:focus-within .group-focus-within\:text-primary{
   --tw-text-opacity: 1;
   color: hsl(var(--primary) / var(--tw-text-opacity, 1));
