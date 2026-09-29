@@ -3466,6 +3466,10 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgb(233 213 255 / 0.6);
 }
 
+.border-purple-200\/70{
+  border-color: rgb(233 213 255 / 0.7);
+}
+
 .border-purple-200\/80{
   border-color: rgb(233 213 255 / 0.8);
 }
@@ -5727,6 +5731,11 @@ h1, h2, h3, h4, h5, h6 {
 .via-\[\#D92078\]{
   --tw-gradient-to: rgb(217 32 120 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #D92078 var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
+.via-\[\#D92078\]\/10{
+  --tw-gradient-to: rgb(217 32 120 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(217 32 120 / 0.1) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
 .via-\[\#E0F2FE\]{
@@ -8568,6 +8577,11 @@ h1, h2, h3, h4, h5, h6 {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-purple-500\/25{
+  --tw-shadow-color: rgb(168 85 247 / 0.25);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .shadow-purple-500\/30{
   --tw-shadow-color: rgb(168 85 247 / 0.3);
   --tw-shadow: var(--tw-shadow-colored);
@@ -8635,6 +8649,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .shadow-rose-900\/30{
   --tw-shadow-color: rgb(136 19 55 / 0.3);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-sky-500\/25{
+  --tw-shadow-color: rgb(14 165 233 / 0.25);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
@@ -9646,6 +9665,11 @@ img, a {
 .hover\:border-purple-200:hover{
   --tw-border-opacity: 1;
   border-color: rgb(233 213 255 / var(--tw-border-opacity, 1));
+}
+
+.hover\:border-purple-300:hover{
+  --tw-border-opacity: 1;
+  border-color: rgb(216 180 254 / var(--tw-border-opacity, 1));
 }
 
 .hover\:border-purple-400:hover{
@@ -12071,10 +12095,6 @@ img, a {
     width: 2.25rem;
   }
 
-  .sm\:w-96{
-    width: 24rem;
-  }
-
   .sm\:w-\[160px\]{
     width: 160px;
   }
@@ -12283,6 +12303,10 @@ img, a {
     padding-right: 2rem;
   }
 
+  .sm\:pb-0{
+    padding-bottom: 0px;
+  }
+
   .sm\:pl-12{
     padding-left: 3rem;
   }
@@ -12447,6 +12471,10 @@ img, a {
     --tw-space-y-reverse: 0;
     margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
     margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+  }
+
+  .md\:self-auto{
+    align-self: auto;
   }
 
   .md\:p-10{

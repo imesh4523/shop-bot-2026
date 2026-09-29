@@ -18,6 +18,7 @@ import {
   EyeOff,
   Image as ImageIcon,
   LayoutGrid,
+  GripVertical,
 } from "lucide-react";
 import { FaAws, FaSpotify, FaYoutube, FaInstagram, FaFacebook, FaTiktok, FaTelegramPlane, FaLinode, FaWindows } from "react-icons/fa";
 import { SiDigitalocean, SiGooglecloud, SiOpenai, SiDuolingo, SiGooglegemini, SiClaude, SiCanva } from "react-icons/si";
@@ -134,6 +135,8 @@ export default function CategoriesManagerPage() {
   const [editingCat, setEditingCat] = useState<CustomCategoryItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [previewActiveId, setPreviewActiveId] = useState<string>("aws");
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { data: serverData, isLoading } = useQuery<{ categories: CustomCategoryItem[] | null; productBadges?: Record<string, any> }>({
     queryKey: ["/api/admin/categories/config"],
@@ -152,7 +155,11 @@ export default function CategoriesManagerPage() {
       if (serverData.categories && Array.isArray(serverData.categories) && serverData.categories.length > 0) {
         const savedIds = new Set(serverData.categories.map((c) => c.id.toLowerCase()));
         const missingDefaults = DEFAULT_CATEGORIES.filter((dc) => !savedIds.has(dc.id.toLowerCase()));
-        setCategoriesList([...serverData.categories, ...missingDefaults]);
+        const sanitized = [...serverData.categories, ...missingDefaults].map((c) => ({
+          ...c,
+          label: (c.label || "").replace(/\bSMM\b/gi, "").replace(/\s{2,}/g, " ").trim() || c.label,
+        }));
+        setCategoriesList(sanitized);
       } else {
         setCategoriesList(DEFAULT_CATEGORIES);
       }
@@ -226,11 +233,56 @@ export default function CategoriesManagerPage() {
     });
 
     setCategoriesList(updated);
+    saveMutation.mutate({ categories: updated, productBadges });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", String(index));
+    e.dataTransfer.effectAllowed = "move";
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const updated = [...categoriesList];
+    const [movedItem] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, movedItem);
+
+    // Re-index order
+    updated.forEach((c, idx) => {
+      c.order = idx;
+    });
+
+    setCategoriesList(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    // Auto-save the new ordering immediately!
+    saveMutation.mutate({ categories: updated, productBadges });
+    toast({
+      title: "Category Order Saved! 🔄",
+      description: `Moved "${movedItem.label}" to position ${targetIndex + 1}.`,
+    });
   };
 
   const toggleCategoryEnabled = (id: string, enabled: boolean) => {
     const updated = categoriesList.map((c) => (c.id === id ? { ...c, enabled } : c));
     setCategoriesList(updated);
+    saveMutation.mutate({ categories: updated, productBadges });
   };
 
   const openAddDialog = () => {
@@ -409,22 +461,50 @@ export default function CategoriesManagerPage() {
 
           {/* Categories Grid / Manager List */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#ECEEF8]">
-            <h2 className="text-base font-black text-[#181432] mb-4 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-purple-600" /> Configured Categories & Cloud Providers ({categoriesList.length})
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <h2 className="text-base font-black text-[#181432] flex items-center gap-2">
+                <Layers className="w-5 h-5 text-purple-600" /> Configured Categories & Cloud Providers ({categoriesList.length})
+              </h2>
+              <span className="text-xs text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1 border border-purple-200/60">
+                <GripVertical className="w-3.5 h-3.5" /> Drag & Drop any card to reorder position
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoriesList.map((cat, index) => {
                 const badgeStyle = BADGE_COLOR_STYLES[cat.badgeColor || "red"] || BADGE_COLOR_STYLES.red;
+                const isBeingDragged = draggedIndex === index;
+                const isDraggedOver = dragOverIndex === index;
+
                 return (
                   <div
                     key={cat.id}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
-                      cat.enabled ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-200" : "bg-gray-50/70 border-gray-200 opacity-60"
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={() => {
+                      if (dragOverIndex === index) setDragOverIndex(null);
+                    }}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={() => {
+                      setDraggedIndex(null);
+                      setDragOverIndex(null);
+                    }}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between cursor-grab active:cursor-grabbing select-none ${
+                      isBeingDragged
+                        ? "opacity-30 scale-95 border-dashed border-purple-500 bg-purple-50/30"
+                        : isDraggedOver
+                        ? "ring-2 ring-purple-600 scale-[1.02] bg-purple-50/80 border-purple-400 shadow-lg"
+                        : cat.enabled
+                        ? "bg-[#FDFCFE] border-[#ECEEF8] hover:border-purple-300 hover:shadow-xs"
+                        : "bg-gray-50/70 border-gray-200 opacity-60"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="text-gray-400 hover:text-purple-600 shrink-0 p-0.5">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
                         <div className="w-11 h-11 rounded-2xl bg-white border border-[#ECEEF8] flex items-center justify-center shadow-xs shrink-0">
                           {renderCategoryBrandIcon(cat.iconType, cat.customIconUrl, "w-6 h-6")}
                         </div>
@@ -437,11 +517,11 @@ export default function CategoriesManagerPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-[#7E7998] font-semibold">ID: {cat.id}</span>
+                          <span className="text-[11px] text-[#7E7998] font-semibold">ID: {cat.id} • #{index + 1}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <Switch
                           checked={cat.enabled}
                           onCheckedChange={(checked) => toggleCategoryEnabled(cat.id, checked)}

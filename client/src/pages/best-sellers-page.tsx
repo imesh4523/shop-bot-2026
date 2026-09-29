@@ -29,6 +29,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BestSellerItem {
   id: number;
+  rawId?: number;
+  productType?: "product" | "sandromania" | "cssx";
+  partnerName?: string;
   name: string;
   price: number;
   type: string;
@@ -55,6 +58,7 @@ const PRESET_BADGES = [
 export default function BestSellersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [partnerFilter, setPartnerFilter] = useState<"all" | "youuhost" | "sandromania" | "cssx">("all");
   const [items, setItems] = useState<BestSellerItem[]>([]);
   const [enableLightingBorder, setEnableLightingBorder] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
@@ -116,6 +120,23 @@ export default function BestSellersPage() {
     setHasChanges(true);
   };
 
+  const handleToggleFeatured = (id: number, checked: boolean) => {
+    const updated = items.map((item) => (item.id === id ? { ...item, isFeatured: checked } : item));
+    setItems(updated);
+    setHasChanges(true);
+    // Instant Auto-Save on toggle switch change
+    const configToSave = updated.map((item) => ({
+      productId: item.id,
+      isFeatured: item.isFeatured,
+      badge: item.badge,
+      orderIndex: Number(item.orderIndex || 0),
+      baseSoldCount: Number(item.baseSoldCount || 0),
+      customRating: Number(item.customRating || 4.9),
+      customReviewsCount: Number(item.customReviewsCount || 120),
+    }));
+    saveMutation.mutate({ config: configToSave, enableLightingBorder });
+  };
+
   const handleSaveAll = () => {
     const configToSave = items.map((item) => ({
       productId: item.id,
@@ -130,13 +151,12 @@ export default function BestSellersPage() {
   };
 
   const handleSetAllBaseSold = (amount: number) => {
-    setItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        baseSoldCount: amount,
-        totalSoldCount: amount + (item.realOrdersCount || 0),
-      }))
-    );
+    const updated = items.map((item) => ({
+      ...item,
+      baseSoldCount: amount,
+      totalSoldCount: amount + (item.realOrdersCount || 0),
+    }));
+    setItems(updated);
     setHasChanges(true);
     toast({
       title: "Bulk Applied",
@@ -144,12 +164,27 @@ export default function BestSellersPage() {
     });
   };
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.badge || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = items.filter((item) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      item.name.toLowerCase().includes(term) ||
+      (item.badge || "").toLowerCase().includes(term) ||
+      (item.partnerName || "").toLowerCase().includes(term) ||
+      (item.type || "").toLowerCase().includes(term);
+
+    if (!matchesSearch) return false;
+
+    if (partnerFilter === "all") return true;
+    if (partnerFilter === "youuhost") return !item.productType || item.productType === "product";
+    if (partnerFilter === "sandromania") return item.productType === "sandromania";
+    if (partnerFilter === "cssx") return item.productType === "cssx";
+    return true;
+  });
 
   const featuredCount = items.filter((i) => i.isFeatured).length;
+  const youuhostCount = items.filter((i) => !i.productType || i.productType === "product").length;
+  const sandromaniaCount = items.filter((i) => i.productType === "sandromania").length;
+  const cssxCount = items.filter((i) => i.productType === "cssx").length;
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
@@ -260,18 +295,68 @@ export default function BestSellersPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Search product name, badge..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-11 text-xs sm:text-sm glass-panel border-white/10 text-white rounded-xl"
-          />
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-start sm:items-center">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Search item, badge, partner..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-10 text-xs sm:text-sm glass-panel border-white/10 text-white rounded-xl"
+            />
+          </div>
+
+          {/* Partner Source Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setPartnerFilter("all")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                partnerFilter === "all"
+                  ? "bg-pink-600 text-white shadow-md shadow-pink-500/25"
+                  : "bg-white/5 text-white/60 hover:text-white border border-white/10"
+              }`}
+            >
+              All Items ({items.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPartnerFilter("youuhost")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                partnerFilter === "youuhost"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-500/25"
+                  : "bg-white/5 text-white/60 hover:text-white border border-white/10"
+              }`}
+            >
+              YouuHost ({youuhostCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPartnerFilter("sandromania")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                partnerFilter === "sandromania"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25"
+                  : "bg-white/5 text-white/60 hover:text-white border border-white/10"
+              }`}
+            >
+              Sandromania ({sandromaniaCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPartnerFilter("cssx")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                partnerFilter === "cssx"
+                  ? "bg-sky-600 text-white shadow-md shadow-sky-500/25"
+                  : "bg-white/5 text-white/60 hover:text-white border border-white/10"
+              }`}
+            >
+              CSxStore ({cssxCount})
+            </button>
+          </div>
         </div>
 
-        <div className="text-xs text-white/50 flex items-center gap-2">
+        <div className="text-xs text-white/50 flex items-center gap-2 self-start md:self-auto shrink-0">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           Live calculation: <code>Total Sold = Base Sold + Real Orders</code>
         </div>
@@ -285,12 +370,28 @@ export default function BestSellersPage() {
           <CardContent className="space-y-3">
             <Package className="w-12 h-12 text-white/20 mx-auto" />
             <h3 className="text-lg font-bold text-white">No products found</h3>
-            <p className="text-white/40 text-xs">Try adjusting your search query.</p>
+            <p className="text-white/40 text-xs">Try adjusting your search query or partner filter.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
           {filteredItems.map((item) => {
+            const isSandromania = item.productType === "sandromania";
+            const isCssx = item.productType === "cssx";
+            const partnerBadge = isSandromania ? (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] font-bold px-1.5 py-0.2">
+                Sandromania API
+              </Badge>
+            ) : isCssx ? (
+              <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-[9px] font-bold px-1.5 py-0.2">
+                CSxStore API
+              </Badge>
+            ) : (
+              <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[9px] font-bold px-1.5 py-0.2">
+                YouuHost Local
+              </Badge>
+            );
+
             return (
               <Card
                 key={item.id}
@@ -305,7 +406,7 @@ export default function BestSellersPage() {
                       <div className="flex flex-col items-center gap-1 shrink-0">
                         <Switch
                           checked={item.isFeatured}
-                          onCheckedChange={(checked) => handleUpdateItem(item.id, { isFeatured: checked })}
+                          onCheckedChange={(checked) => handleToggleFeatured(item.id, checked)}
                         />
                         <span className="text-[10px] font-bold text-white/50">
                           {item.isFeatured ? "Featured" : "Hidden"}
@@ -315,6 +416,7 @@ export default function BestSellersPage() {
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="text-base font-black text-white truncate">{item.name}</h4>
+                          {partnerBadge}
                           <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] font-bold px-2 py-0.5">
                             ${((item.price || 0) / 100).toFixed(2)} USD
                           </Badge>

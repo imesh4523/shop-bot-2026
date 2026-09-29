@@ -965,7 +965,7 @@ const getSmmPlatformConfig = (category: string = "", name: string = "") => {
   if (c.includes("tiktok")) {
     return {
       platform: "TikTok",
-      tag: "TikTok SMM",
+      tag: "TikTok",
       accent: "#000000",
       bgBadge: "bg-black/10 text-black border border-black/20",
       blobColor: "from-slate-200/80 to-zinc-300/50",
@@ -976,7 +976,7 @@ const getSmmPlatformConfig = (category: string = "", name: string = "") => {
   if (c.includes("instagram") || c.includes("insta")) {
     return {
       platform: "Instagram",
-      tag: "Instagram SMM",
+      tag: "Instagram",
       accent: "#E1306C",
       bgBadge: "bg-[#FCE8F0] text-[#E1306C] border border-[#FCE8F0]",
       blobColor: "from-pink-100/80 to-rose-200/50",
@@ -987,7 +987,7 @@ const getSmmPlatformConfig = (category: string = "", name: string = "") => {
   if (c.includes("facebook") || c.includes("fb")) {
     return {
       platform: "Facebook",
-      tag: "Facebook SMM",
+      tag: "Facebook",
       accent: "#1877F2",
       bgBadge: "bg-[#EBF3FF] text-[#1877F2] border border-[#EBF3FF]",
       blobColor: "from-blue-100/80 to-sky-200/50",
@@ -998,7 +998,7 @@ const getSmmPlatformConfig = (category: string = "", name: string = "") => {
   if (c.includes("telegram") || c.includes("tg")) {
     return {
       platform: "Telegram",
-      tag: "Telegram SMM",
+      tag: "Telegram",
       accent: "#24A1DE",
       bgBadge: "bg-[#E6F5FC] text-[#24A1DE] border border-[#E6F5FC]",
       blobColor: "from-sky-100/80 to-blue-200/50",
@@ -1008,7 +1008,7 @@ const getSmmPlatformConfig = (category: string = "", name: string = "") => {
   }
   return {
     platform: "Social",
-    tag: "Social SMM",
+    tag: "Social Boost",
     accent: "#6C5CE7",
     bgBadge: "bg-[#EDE9FE] text-[#6C5CE7] border border-[#EDE9FE]",
     blobColor: "from-purple-100/80 to-indigo-200/50",
@@ -1501,6 +1501,39 @@ export default function MiniAppShopModern() {
     refetchInterval: activeTab === "orders" ? 8000 : false,
   });
 
+  // Inline Tab Loading states for Orders and Profile
+  const [isOrdersTabLoading, setIsOrdersTabLoading] = useState(false);
+  const [isProfileTabLoading, setIsProfileTabLoading] = useState(false);
+
+  // Auto-sync fresh data inline without modal popup when user navigates to Orders or Profile
+  useEffect(() => {
+    if (activeTab === "orders") {
+      setIsOrdersTabLoading(true);
+      const timerStart = Date.now();
+      Promise.all([
+        refetchOrders(),
+        refetchSandromaniaOrders(),
+        refetchCssxOrders(),
+        refetchSmmOrders(),
+      ]).finally(() => {
+        const elapsed = Date.now() - timerStart;
+        const delay = Math.max(0, 600 - elapsed);
+        setTimeout(() => setIsOrdersTabLoading(false), delay);
+      });
+    } else if (activeTab === "profile") {
+      setIsProfileTabLoading(true);
+      const timerStart = Date.now();
+      Promise.all([
+        refetchUser(),
+        queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] }),
+      ]).finally(() => {
+        const elapsed = Date.now() - timerStart;
+        const delay = Math.max(0, 600 - elapsed);
+        setTimeout(() => setIsProfileTabLoading(false), delay);
+      });
+    }
+  }, [activeTab]);
+
   // Orders Tab Filter & Unified List State
   const [ordersFilter, setOrdersFilter] = useState<"all" | "account" | "smm" | "license">("all");
   const [isSyncingOrders, setIsSyncingOrders] = useState(false);
@@ -1541,6 +1574,11 @@ export default function MiniAppShopModern() {
       const prodType = ord.product?.type || "account";
       const conf = getProviderConfig(prodName, prodType);
 
+      const priceCentsVal = ord.product?.price || 0;
+      const orderPriceLkr = (ord as any).amountPaidLkr 
+        ? Number((ord as any).amountPaidLkr)
+        : (ord.product?.priceLkr ? Number(ord.product.priceLkr) : Math.round((priceCentsVal / 100) * lkrRate));
+
       list.push({
         id: `ord-${ord.id}`,
         rawId: ord.id,
@@ -1555,7 +1593,8 @@ export default function MiniAppShopModern() {
             Active / Completed
           </span>
         ),
-        priceCents: ord.product?.price || 0,
+        priceCents: priceCentsVal,
+        priceLkr: orderPriceLkr,
         quantity: 1,
         date: ord.createdAt ? new Date(ord.createdAt) : new Date(0),
         credentialData: ord.credential?.content || ord.credential?.data || ord.credentialData || ord.credentialContent || ord.content || (typeof ord.credential === "string" ? ord.credential : ""),
@@ -2760,22 +2799,36 @@ Support: https://t.me/youuhost_support
   // Terms & Conditions Agreement
   const [agreedToTerms, setAgreedToTerms] = useState(true);
 
-  // Helper to compute dynamic corner angle badge for any catalog product
-  const getProductBadge = (prod: Product) => {
+  // Helper to compute dynamic corner angle badge for any catalog product (local, sandromania, cssx, smm)
+  const getProductBadge = (item: any, itemType: "product" | "sandromania" | "cssx" | "smm" = "product") => {
     const productBadges = (categoryConfigData as any)?.productBadges;
-    const customBadge = productBadges?.[String(prod.id)] || productBadges?.[prod.id as any];
-    if (customBadge && customBadge.enabled !== false && customBadge.text) {
-      const grad = BADGE_COLOR_STYLES[customBadge.color] || BADGE_COLOR_STYLES.red;
-      return { text: customBadge.text, gradient: grad };
+    const lookupKeys = [
+      String(item.id),
+      `${itemType}_${item.id}`,
+      item.rawId ? String(item.rawId) : "",
+      item.serviceId ? String(item.serviceId) : "",
+      item.externalProductId ? String(item.externalProductId) : "",
+    ].filter(Boolean);
+
+    for (const k of lookupKeys) {
+      const customBadge = productBadges?.[k];
+      if (customBadge && customBadge.enabled !== false && customBadge.text) {
+        const grad = BADGE_COLOR_STYLES[customBadge.color] || BADGE_COLOR_STYLES.red;
+        return { text: customBadge.text, gradient: grad };
+      }
     }
 
-    const isSpecialOffer = (offers || []).some((o) => o.productId === prod.id && o.status === "active");
+    if (item.badge) {
+      return { text: item.badge, gradient: BADGE_COLOR_STYLES.red };
+    }
+
+    const isSpecialOffer = (offers || []).some((o) => o.productId === item.id && o.status === "active");
     if (isSpecialOffer) {
       return { text: "SPECIAL OFFER", gradient: BADGE_COLOR_STYLES.purple };
     }
 
-    const typeLower = (prod.type || "").toLowerCase();
-    const nameLower = (prod.name || "").toLowerCase();
+    const typeLower = (item.type || item.category || "").toLowerCase();
+    const nameLower = (item.name || item.title || "").toLowerCase();
     const catItem = categories.find((c) => c.id.toLowerCase() === typeLower || nameLower.includes(c.id.toLowerCase()));
     if (catItem && catItem.badgeEnabled && catItem.badgeText) {
       const grad = BADGE_COLOR_STYLES[catItem.badgeColor || "blue"] || BADGE_COLOR_STYLES.blue;
@@ -2783,6 +2836,39 @@ Support: https://t.me/youuhost_support
     }
 
     // Provider / Category Brand Palette Matching
+    if (nameLower.includes("duolingo") || typeLower.includes("duolingo")) {
+      return { text: "POPULAR", gradient: BADGE_COLOR_STYLES.emerald };
+    }
+    if (nameLower.includes("capcut") || typeLower.includes("capcut")) {
+      return { text: "PRO", gradient: BADGE_COLOR_STYLES.pink };
+    }
+    if (nameLower.includes("hotmail") || nameLower.includes("outlook") || typeLower.includes("hotmail")) {
+      return { text: "MAIL", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (nameLower.includes("windows") || typeLower.includes("windows")) {
+      return { text: "GENUINE", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (nameLower.includes("gemini") || nameLower.includes("chatgpt") || nameLower.includes("claude") || typeLower.includes("ai")) {
+      return { text: "AI PRO", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (nameLower.includes("canva") || typeLower.includes("canva")) {
+      return { text: "PRO", gradient: BADGE_COLOR_STYLES.pink };
+    }
+    if (nameLower.includes("adobe") || typeLower.includes("adobe")) {
+      return { text: "VIP", gradient: BADGE_COLOR_STYLES.red };
+    }
+    if (nameLower.includes("facebook") || typeLower.includes("facebook")) {
+      return { text: "BOOST", gradient: BADGE_COLOR_STYLES.blue };
+    }
+    if (nameLower.includes("instagram") || typeLower.includes("instagram")) {
+      return { text: "TRENDING", gradient: BADGE_COLOR_STYLES.pink };
+    }
+    if (nameLower.includes("tiktok") || typeLower.includes("tiktok")) {
+      return { text: "VIRAL", gradient: BADGE_COLOR_STYLES.pink };
+    }
+    if (nameLower.includes("telegram") || typeLower.includes("telegram")) {
+      return { text: "FAST", gradient: BADGE_COLOR_STYLES.blue };
+    }
     if (typeLower.includes("aws") || nameLower.includes("aws")) {
       return { text: "HOT CLOUD", gradient: BADGE_COLOR_STYLES.amber };
     }
@@ -2810,8 +2896,12 @@ Support: https://t.me/youuhost_support
     if (typeLower.includes("kamatera") || nameLower.includes("kamatera")) {
       return { text: "FAST VPS", gradient: BADGE_COLOR_STYLES.pink };
     }
-    if (typeLower.includes("ai") || nameLower.includes("chatgpt") || nameLower.includes("gemini")) {
-      return { text: "AI PRO", gradient: BADGE_COLOR_STYLES.emerald };
+
+    if (itemType === "sandromania" || itemType === "cssx") {
+      return { text: "AUTO KEY", gradient: "bg-gradient-to-r from-[#10A37F] to-[#00C9FF] text-white" };
+    }
+    if (itemType === "smm") {
+      return { text: "BOOST", gradient: "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white" };
     }
 
     return { text: "INSTANT", gradient: "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white" };
@@ -3170,8 +3260,8 @@ Support: https://t.me/youuhost_support
     setIsSandromaniaPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Processing Digital License...",
-      subtitle: "Connecting to automated delivery system & generating credentials...",
+      title: "Generating Credentials...",
+      subtitle: "Preparing your digital license keys...",
     });
 
     try {
@@ -3283,8 +3373,8 @@ Support: https://t.me/youuhost_support
     setIsCssxPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Processing Digital License...",
-      subtitle: "Connecting to CSxStore API & generating credentials...",
+      title: "Generating Credentials...",
+      subtitle: "Preparing your digital license keys...",
     });
 
     try {
@@ -3312,7 +3402,7 @@ Support: https://t.me/youuhost_support
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "Order Failed",
-        description: err.message || "Failed to process CSxStore purchase.",
+        description: err.message || "Failed to process digital license purchase.",
         variant: "destructive",
       });
     } finally {
@@ -3464,10 +3554,10 @@ Support: https://t.me/youuhost_support
     setIsPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Processing Instant Purchase...",
+      title: "Generating Credentials...",
       subtitle: appliedCoupon 
-        ? `Applying coupon ${appliedCoupon.code} & generating credentials...` 
-        : "Connecting to automated delivery system & generating credentials...",
+        ? `Applying coupon ${appliedCoupon.code} & preparing access...` 
+        : "Preparing your secure credentials...",
     });
 
     try {
@@ -3592,7 +3682,7 @@ Support: https://t.me/youuhost_support
     setIsSmmPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Placing SMM Boost Order...",
+      title: "Placing Boost Order...",
       subtitle: "Dispatching order to automated high-speed servers...",
     });
 
@@ -3607,7 +3697,7 @@ Support: https://t.me/youuhost_support
       recordPurchasedDelta(`smm_${detailSmmService.id}`, 1);
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
-        title: "🎉 SMM Order Placed!",
+        title: "🎉 Boost Order Placed!",
         description: `Your ${detailSmmService.name} order is now being processed.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
@@ -3621,7 +3711,7 @@ Support: https://t.me/youuhost_support
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
       toast({
         title: "Order Notice",
-        description: err.message || "Failed to submit SMM order.",
+        description: err.message || "Failed to submit order.",
         variant: "destructive",
       });
     } finally {
@@ -4023,8 +4113,8 @@ Support: https://t.me/youuhost_support
               </div>
             )}
 
-            {/* Best Sellers & Trending Sub-Slider */}
-            {products.length > 0 && (
+            {/* Best Sellers & Trending Sub-Slider (Strictly Featured Items Only - No Fallback) */}
+            {bestSellersData?.featured && bestSellersData.featured.length > 0 && (
               <div id="best-sellers-heading" className="mb-7 scroll-mt-4">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2">
@@ -4048,18 +4138,28 @@ Support: https://t.me/youuhost_support
                   }}
                 >
                   {(() => {
-                    let featuredList = (bestSellersData?.featured && bestSellersData.featured.length > 0)
+                    let featuredList = (bestSellersData?.featured && Array.isArray(bestSellersData.featured))
                       ? bestSellersData.featured.map((f: any) => {
+                          if (f.productType === "sandromania") {
+                            const real = sandromaniaProductsList.find((s: any) => s.id === f.rawId || s.id === (f.id - 100000));
+                            return real ? { ...real, ...f } : f;
+                          }
+                          if (f.productType === "cssx") {
+                            const real = cssxProductsList.find((c: any) => c.id === f.rawId || c.id === (f.id - 200000));
+                            return real ? { ...real, ...f } : f;
+                          }
                           const real = products.find((p) => p.id === f.id);
                           return real ? { ...real, ...f } : f;
                         })
-                      : products.slice(0, 6);
+                      : [];
+
+                    if (featuredList.length === 0) return null;
 
                     if (heroSearchFocusKeyword) {
                       const kw = heroSearchFocusKeyword.toLowerCase();
                       featuredList = [...featuredList].sort((a, b) => {
-                        const aMatch = (a.name || "").toLowerCase().includes(kw) || (a.category || "").toLowerCase().includes(kw) || (a.type || "").toLowerCase().includes(kw);
-                        const bMatch = (b.name || "").toLowerCase().includes(kw) || (b.category || "").toLowerCase().includes(kw) || (b.type || "").toLowerCase().includes(kw);
+                        const aMatch = (a.name || a.title || "").toLowerCase().includes(kw) || (a.category || "").toLowerCase().includes(kw) || (a.type || "").toLowerCase().includes(kw);
+                        const bMatch = (b.name || b.title || "").toLowerCase().includes(kw) || (b.category || "").toLowerCase().includes(kw) || (b.type || "").toLowerCase().includes(kw);
                         if (aMatch && !bMatch) return -1;
                         if (!aMatch && bMatch) return 1;
                         return 0;
@@ -4067,8 +4167,12 @@ Support: https://t.me/youuhost_support
                     }
 
                     return featuredList.map((p: any, idx: number) => {
-                      const priceFormatted = formatProductPrice(p);
-                      const stats = getItemStats(p, "product");
+                      const priceFormatted = p.productType === "sandromania"
+                        ? formatSandromaniaPrice(p, 1)
+                        : p.productType === "cssx"
+                        ? formatCssxPrice(p, 1)
+                        : formatProductPrice(p);
+                      const stats = getItemStats(p, p.productType === "sandromania" || p.productType === "cssx" ? "sandromania" : "product");
                       const totalSold = stats.sold;
                       const badgeLabel = p.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
                       const badgeGradient = idx % 2 === 0
@@ -4081,6 +4185,18 @@ Support: https://t.me/youuhost_support
                         <div
                           key={`bestseller-${p.id}`}
                           onClick={() => {
+                            if (p.productType === "sandromania") {
+                              const realProd = sandromaniaProductsList.find((s: any) => s.id === p.rawId || s.id === (p.id - 100000)) || p;
+                              setDetailSandromaniaProduct(realProd);
+                              setSandromaniaOrderQty(1);
+                              return;
+                            }
+                            if (p.productType === "cssx") {
+                              const realProd = cssxProductsList.find((c: any) => c.id === p.rawId || c.id === (p.id - 200000)) || p;
+                              setDetailCssxProduct(realProd);
+                              setCssxOrderQty(1);
+                              return;
+                            }
                             const realProd = products.find((pr) => pr.id === p.id) || p;
                             setDetailProduct(realProd);
                             setQuantity(1);
@@ -4110,10 +4226,10 @@ Support: https://t.me/youuhost_support
                           {/* Center Brand Icon & Title */}
                           <div className="flex flex-col items-center text-center mt-5 relative z-10">
                             <div className="w-12 h-12 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
-                              <BrandIcon name={p.name} type={p.type} className="w-7 h-7" />
+                              <BrandIcon name={p.name || p.title} type={p.type || p.category} className="w-7 h-7" />
                             </div>
                             <h4 className="text-xs font-black text-[#181432] line-clamp-1 w-full tracking-tight px-1">
-                              {p.name}
+                              {p.name || p.title}
                             </h4>
                             <span className="text-[10px] font-bold text-[#7E7998] mt-1 inline-flex items-center gap-1">
                               <span>{totalSold.toLocaleString()} sold</span>
@@ -4189,13 +4305,26 @@ Support: https://t.me/youuhost_support
                           isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
                         }`}
                       >
-                        {/* Top Action: YouuHost Badge & Platform Pill */}
+                        {/* Top-Right 45° Corner Angle Ribbon Banner */}
+                        {(() => {
+                          const badge = getProductBadge(smm, "smm");
+                          if (!badge || !badge.text || isOutOfStock) return null;
+                          return (
+                            <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                              <div
+                                className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`}
+                                style={{ letterSpacing: '0.04em' }}
+                              >
+                                {badge.text}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Top Action: Platform Tag */}
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${smmConf.bgBadge}`}>
                             {smmConf.tag}
-                          </span>
-                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                            <ShopBagIcon className="w-2.5 h-2.5" /> YouuHost
                           </span>
                         </div>
 
@@ -4218,7 +4347,7 @@ Support: https://t.me/youuhost_support
                           )}
                         </div>
 
-                        {/* YouuHost Service Details */}
+                        {/* Service Details */}
                         <div className="mt-1">
                           <h4 className="text-xs font-extrabold text-[#181432] line-clamp-2 group-hover:text-[#5B42F3] transition-colors leading-tight">
                             {smm.name}
@@ -4238,7 +4367,7 @@ Support: https://t.me/youuhost_support
                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
                           <div>
                             <span className="text-xs font-black text-[#181432]">{rateFormatted}</span>
-                            <span className="text-[9px] text-[#7E7998] block">YouuHost Boost</span>
+                            <span className="text-[9px] text-[#7E7998] block">Social Boost</span>
                           </div>
 
                           <button
@@ -4290,13 +4419,26 @@ Support: https://t.me/youuhost_support
                           isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
                         }`}
                       >
-                        {/* Top Action: Provider Tag & Instant Delivery Tag */}
+                        {/* Top-Right 45° Corner Angle Ribbon Banner */}
+                        {(() => {
+                          const badge = getProductBadge(sandProd, "sandromania");
+                          if (!badge || !badge.text || isOutOfStock) return null;
+                          return (
+                            <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                              <div
+                                className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`}
+                                style={{ letterSpacing: '0.04em' }}
+                              >
+                                {badge.text}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Top Action: Provider Tag */}
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                             {conf.tag}
-                          </span>
-                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-0.5">
-                            <ShopBagIcon className="w-2.5 h-2.5" /> Auto-Key
                           </span>
                         </div>
 
@@ -4390,13 +4532,26 @@ Support: https://t.me/youuhost_support
                           isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
                         }`}
                       >
-                        {/* Top Action: Provider Tag & Instant Delivery Tag */}
+                        {/* Top-Right 45° Corner Angle Ribbon Banner */}
+                        {(() => {
+                          const badge = getProductBadge(cssxProd, "cssx");
+                          if (!badge || !badge.text || isOutOfStock) return null;
+                          return (
+                            <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                              <div
+                                className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`}
+                                style={{ letterSpacing: '0.04em' }}
+                              >
+                                {badge.text}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Top Action: Provider Tag */}
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
                             {conf.tag}
-                          </span>
-                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100 flex items-center gap-0.5">
-                            <ShopBagIcon className="w-2.5 h-2.5" /> Auto-CDK
                           </span>
                         </div>
 
@@ -4644,14 +4799,22 @@ Support: https://t.me/youuhost_support
                 <span className="text-xs font-bold text-[#7E7998]">{unifiedOrdersList.length} Total</span>
                 <button
                   onClick={handleSyncAllOrders}
-                  disabled={isSyncingOrders}
+                  disabled={isSyncingOrders || isOrdersTabLoading}
                   className="text-[11px] font-bold text-[#5B42F3] bg-[#F5F4FC] hover:bg-[#EDE9FE] px-2.5 py-1 rounded-full border border-purple-200/60 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-3 h-3 ${isSyncingOrders ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`w-3 h-3 ${isSyncingOrders || isOrdersTabLoading ? "animate-spin" : ""}`} />
                   Sync
                 </button>
               </div>
             </div>
+
+            {/* Real Inline Live Sync Bar (Issue 6 - Smooth non-popup animation when entering Orders) */}
+            {isOrdersTabLoading && (
+              <div className="bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#5B42F3]" />
+                <span>Syncing latest orders & credentials...</span>
+              </div>
+            )}
 
             {/* CATEGORY FILTER TABS (Clean Scrollable Tabs without underline) */}
             <div 
@@ -5457,6 +5620,13 @@ Support: https://t.me/youuhost_support
         {/* PROFILE TAB */}
         {activeTab === "profile" && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            {/* Real Inline Profile Syncing Animation Bar (Issue 6 - Smooth non-popup sync) */}
+            {isProfileTabLoading && (
+              <div className="bg-gradient-to-r from-[#5B42F3]/10 via-[#D92078]/10 to-[#5B42F3]/10 border border-purple-200/70 rounded-2xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold text-[#5B42F3] animate-pulse shadow-xs">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#5B42F3]" />
+                <span>Refreshing profile & wallet balance...</span>
+              </div>
+            )}
             {!isCustomerLoggedIn ? (
               <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 {/* Decorative ambient glow */}
@@ -6386,7 +6556,7 @@ Support: https://t.me/youuhost_support
                   {/* SMM Target Link, Start Count, Remains & Quantity */}
                   {selectedTxDetail.type === "smm" && (
                     <div className="pt-0.5 space-y-1.5">
-                      <span className="text-[#9490A8] font-bold block">SMM Order Details:</span>
+                      <span className="text-[#9490A8] font-bold block">Boost Order Details:</span>
                       <div className="bg-[#F8F7FD] p-2.5 rounded-2xl border border-[#ECEEF8] space-y-2 text-[11px]">
                         {selectedTxDetail.smmLink && (
                           <div>
@@ -7332,7 +7502,7 @@ Support: https://t.me/youuhost_support
                   <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                   <div className="text-[11px] text-purple-950">
                     <span className="font-extrabold block">Instant Auto-Fulfillment</span>
-                    Your license key / digital CDK will be generated immediately via CSxStore and stored in your <b>Orders</b> tab with 1-click copy.
+                    Your license key / digital CDK will be generated immediately and stored in your <b>Orders</b> tab with 1-click copy.
                   </div>
                 </div>
 
@@ -7685,8 +7855,11 @@ Support: https://t.me/youuhost_support
         <DialogContent hideClose={true} className="!w-[calc(100vw-24px)] !max-w-[440px] bg-[#F8F9FD] border border-[#ECEEF8] rounded-[28px] sm:rounded-[32px] p-3.5 sm:p-5 shadow-2xl overflow-x-hidden max-h-[88vh] overflow-y-auto z-50">
           {selectedOrderDetails && (() => {
             const ord = selectedOrderDetails;
-            const priceUsd = (ord.priceCents / 100).toFixed(2);
-            const priceLkr = Math.round((ord.priceCents / 100) * lkrRate).toLocaleString();
+            const finalPriceLkrNum = ord.priceLkr != null && Number(ord.priceLkr) > 0
+              ? Number(ord.priceLkr)
+              : Math.round(((ord.priceCents || 0) / 100) * lkrRate);
+            const priceLkr = finalPriceLkrNum.toLocaleString();
+            const priceUsd = (ord.priceCents ? (ord.priceCents / 100) : (finalPriceLkrNum / lkrRate)).toFixed(2);
             const dateStr = ord.date && ord.date.getTime() > 0 ? format(ord.date, "MMM d, yyyy • HH:mm:ss") : "Recent";
 
             return (
@@ -7914,7 +8087,7 @@ Support: https://t.me/youuhost_support
                   { id: "Order Delivery Issue", label: "Order & Credentials", icon: PackageCheck },
                   { id: "Payment / Top-up", label: "Payment & Top-up", icon: CreditCard },
                   { id: "2FA / Credentials Problem", label: "2FA & Auth Issue", icon: ShieldCheck },
-                  { id: "SMM Boost Service", label: "SMM Boost Issue", icon: Rocket },
+                  { id: "SMM Boost Service", label: "Social Boost Issue", icon: Rocket },
                   { id: "API Key / Developer", label: "Developer API", icon: Code2 },
                   { id: "Other / Inquiry", label: "Other Inquiries", icon: HelpCircle },
                 ].map((cat) => {
@@ -8019,20 +8192,20 @@ Support: https://t.me/youuhost_support
             {ticketIssueType === "SMM Boost Service" && smmOrdersList.length > 0 && (
               <div className="animate-in fade-in slide-in-from-top-1">
                 <label className="text-[11px] font-bold text-[#6B658B] uppercase tracking-wider block mb-1.5">
-                  Related SMM Boost Order (Optional)
+                  Related Social Boost Order (Optional)
                 </label>
                 <select
                   value={ticketSmmOrderId}
                   onChange={(e) => setTicketSmmOrderId(e.target.value)}
                   className="w-full bg-white border border-[#ECEEF8] rounded-2xl p-2.5 text-xs text-[#181432] focus:outline-none focus:border-[#5B42F3]"
                 >
-                  <option value="">-- Select related SMM boost order --</option>
+                  <option value="">-- Select related boost order --</option>
                   {smmOrdersList.map((s: any) => {
-                    const title = s.serviceName || (s.smmService?.name) || `SMM Service #${s.smmServiceId || s.serviceId}`;
+                    const title = s.serviceName || (s.smmService?.name) || `Boost Service #${s.smmServiceId || s.serviceId}`;
                     const qty = s.quantity || 1000;
                     return (
-                      <option key={s.id} value={`SMM #${s.id} - ${title} (Qty: ${qty})`}>
-                        SMM #{s.id} • {title} • Qty: {qty} ({s.status || "Pending"})
+                      <option key={s.id} value={`Order #${s.id} - ${title} (Qty: ${qty})`}>
+                        Boost #{s.id} • {title} • Qty: {qty} ({s.status || "Pending"})
                       </option>
                     );
                   })}

@@ -3053,10 +3053,22 @@ export async function registerRoutes(
   app.get("/api/admin/best-sellers", isAuth, async (req, res) => {
     try {
       const allProducts = await storage.getProducts();
+      const sandroList = await db.select().from(sandromaniaProducts).where(eq(sandromaniaProducts.isActive, true));
+      const cssxList = await db.select().from(cssxProducts).where(eq(cssxProducts.isActive, true));
+
       const allOrders = await db.select({ productId: orders.productId, count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, "completed")).groupBy(orders.productId);
+      const sandroOrdersCounts = await db.select({ productId: sandromaniaOrders.sandromaniaProductId, count: sql<number>`count(*)` }).from(sandromaniaOrders).groupBy(sandromaniaOrders.sandromaniaProductId);
+      const cssxOrdersCounts = await db.select({ productId: cssxOrders.cssxProductId, count: sql<number>`count(*)` }).from(cssxOrders).groupBy(cssxOrders.cssxProductId);
+
       const orderCountMap: Record<number, number> = {};
       allOrders.forEach(o => {
         if (o.productId) orderCountMap[o.productId] = Number(o.count || 0);
+      });
+      sandroOrdersCounts.forEach(o => {
+        if (o.productId) orderCountMap[100000 + o.productId] = Number(o.count || 0);
+      });
+      cssxOrdersCounts.forEach(o => {
+        if (o.productId) orderCountMap[200000 + o.productId] = Number(o.count || 0);
       });
 
       const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
@@ -3076,25 +3088,91 @@ export async function registerRoutes(
         }
       }
 
-      const productsWithStats = allProducts.map(p => {
-        const conf = (Array.isArray(config) ? config : []).find((c: any) => c.productId === p.id) || {};
+      const hasSavedConfig = config.length > 0;
+
+      const unifiedList: any[] = [];
+
+      // 1. Regular Local Products
+      for (const p of allProducts) {
+        const conf = config.find((c: any) => c.productId === p.id) || {};
         const realCount = orderCountMap[p.id] || 0;
         const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
         const totalSold = baseSold + realCount;
-        return {
-          ...p,
+        unifiedList.push({
+          id: p.id,
+          rawId: p.id,
+          productType: "product",
+          name: p.name,
+          price: p.price,
+          type: p.type,
+          description: p.description,
+          partnerName: "YouuHost",
           realOrdersCount: realCount,
           baseSoldCount: baseSold,
           totalSoldCount: totalSold,
           customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
           customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
-          isFeatured: conf.isFeatured !== false,
+          isFeatured: conf.isFeatured === true || (!hasSavedConfig && unifiedList.length < 4),
           badge: conf.badge || "BEST SELLER",
           orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
-        };
-      });
+        });
+      }
 
-      res.json({ products: productsWithStats, config, enableLightingBorder });
+      // 2. Sandromania Partner Products
+      for (const s of sandroList) {
+        const unifiedId = 100000 + s.id;
+        const conf = config.find((c: any) => c.productId === unifiedId) || {};
+        const realCount = orderCountMap[unifiedId] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        unifiedList.push({
+          id: unifiedId,
+          rawId: s.id,
+          productType: "sandromania",
+          name: s.title,
+          price: s.sellingPriceUsd || 0,
+          type: s.category || "Digital License",
+          description: s.description || "",
+          partnerName: "Sandromania",
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured === true,
+          badge: conf.badge || "HOT DEAL",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        });
+      }
+
+      // 3. CSxStore Partner Products
+      for (const c of cssxList) {
+        const unifiedId = 200000 + c.id;
+        const conf = config.find((cfg: any) => cfg.productId === unifiedId) || {};
+        const realCount = orderCountMap[unifiedId] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        unifiedList.push({
+          id: unifiedId,
+          rawId: c.id,
+          productType: "cssx",
+          name: c.title,
+          price: c.sellingPriceUsd || 0,
+          type: c.category || "Digital License",
+          description: c.description || "",
+          partnerName: "CSxStore",
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured === true,
+          badge: conf.badge || "SPECIAL",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        });
+      }
+
+      res.json({ products: unifiedList, config, enableLightingBorder });
     } catch (err: any) {
       console.error("GET /api/admin/best-sellers error:", err);
       res.status(500).json({ message: err.message });
@@ -3119,10 +3197,22 @@ export async function registerRoutes(
   app.get("/api/mini/best-sellers", async (req, res) => {
     try {
       const allProducts = await storage.getProducts();
+      const sandroList = await db.select().from(sandromaniaProducts).where(eq(sandromaniaProducts.isActive, true));
+      const cssxList = await db.select().from(cssxProducts).where(eq(cssxProducts.isActive, true));
+
       const allOrders = await db.select({ productId: orders.productId, count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, "completed")).groupBy(orders.productId);
+      const sandroOrdersCounts = await db.select({ productId: sandromaniaOrders.sandromaniaProductId, count: sql<number>`count(*)` }).from(sandromaniaOrders).groupBy(sandromaniaOrders.sandromaniaProductId);
+      const cssxOrdersCounts = await db.select({ productId: cssxOrders.cssxProductId, count: sql<number>`count(*)` }).from(cssxOrders).groupBy(cssxOrders.cssxProductId);
+
       const orderCountMap: Record<number, number> = {};
       allOrders.forEach(o => {
         if (o.productId) orderCountMap[o.productId] = Number(o.count || 0);
+      });
+      sandroOrdersCounts.forEach(o => {
+        if (o.productId) orderCountMap[100000 + o.productId] = Number(o.count || 0);
+      });
+      cssxOrdersCounts.forEach(o => {
+        if (o.productId) orderCountMap[200000 + o.productId] = Number(o.count || 0);
       });
 
       const setting = await storage.getSetting("FEATURED_BEST_SELLERS_CONFIG");
@@ -3142,13 +3232,18 @@ export async function registerRoutes(
         }
       }
 
-      const productsWithStats = allProducts.map(p => {
-        const conf = (Array.isArray(config) ? config : []).find((c: any) => c.productId === p.id) || {};
+      const unifiedList: any[] = [];
+
+      for (const p of allProducts) {
+        const conf = config.find((c: any) => c.productId === p.id);
+        if (!conf) continue;
         const realCount = orderCountMap[p.id] || 0;
         const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
         const totalSold = baseSold + realCount;
-        return {
+        unifiedList.push({
           id: p.id,
+          rawId: p.id,
+          productType: "product",
           name: p.name,
           price: p.price,
           type: p.type,
@@ -3158,21 +3253,77 @@ export async function registerRoutes(
           totalSoldCount: totalSold,
           customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
           customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
-          isFeatured: conf.isFeatured !== false,
+          isFeatured: conf.isFeatured === true,
           badge: conf.badge || "BEST SELLER",
           orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
-        };
-      });
+        });
+      }
 
-      // Featured only sorted by orderIndex
-      const featured = productsWithStats
-        .filter(p => p.isFeatured)
+      for (const s of sandroList) {
+        const unifiedId = 100000 + s.id;
+        const conf = config.find((c: any) => c.productId === unifiedId);
+        if (!conf) continue;
+        const realCount = orderCountMap[unifiedId] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        unifiedList.push({
+          id: unifiedId,
+          rawId: s.id,
+          productType: "sandromania",
+          name: s.title,
+          price: s.sellingPriceUsd || 0,
+          sellingPriceLkr: s.sellingPriceLkr,
+          sellingPriceUsd: s.sellingPriceUsd,
+          type: s.category || "Digital License",
+          description: s.description || "",
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured === true,
+          badge: conf.badge || "HOT DEAL",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        });
+      }
+
+      for (const c of cssxList) {
+        const unifiedId = 200000 + c.id;
+        const conf = config.find((cfg: any) => cfg.productId === unifiedId);
+        if (!conf) continue;
+        const realCount = orderCountMap[unifiedId] || 0;
+        const baseSold = typeof conf.baseSoldCount === "number" ? conf.baseSoldCount : 3000;
+        const totalSold = baseSold + realCount;
+        unifiedList.push({
+          id: unifiedId,
+          rawId: c.id,
+          productType: "cssx",
+          name: c.title,
+          price: c.sellingPriceUsd || 0,
+          sellingPriceLkr: c.sellingPriceLkr,
+          sellingPriceUsd: c.sellingPriceUsd,
+          type: c.category || "Digital License",
+          description: c.description || "",
+          realOrdersCount: realCount,
+          baseSoldCount: baseSold,
+          totalSoldCount: totalSold,
+          customRating: typeof conf.customRating === "number" ? conf.customRating : 4.9,
+          customReviewsCount: typeof conf.customReviewsCount === "number" ? conf.customReviewsCount : Math.max(120, Math.floor(totalSold * 0.4)),
+          isFeatured: conf.isFeatured === true,
+          badge: conf.badge || "SPECIAL",
+          orderIndex: typeof conf.orderIndex === "number" ? conf.orderIndex : 0,
+        });
+      }
+
+      // Featured ONLY - strictly checks isFeatured === true
+      const featured = unifiedList
+        .filter(p => p.isFeatured === true)
         .sort((a, b) => a.orderIndex - b.orderIndex);
 
       res.json({
         featured,
         enableLightingBorder,
-        allStats: productsWithStats.reduce((acc: any, curr) => {
+        allStats: unifiedList.reduce((acc: any, curr) => {
           acc[curr.id] = curr;
           return acc;
         }, {})
@@ -3741,7 +3892,10 @@ export async function registerRoutes(
           let cats = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.categories) ? parsed.categories : []);
           const savedIds = new Set(cats.map((c: any) => (c.id || "").toLowerCase()));
           const missingDefaults = BUILTIN_DEFAULT_CATEGORIES.filter(dc => !savedIds.has(dc.id.toLowerCase()));
-          cats = [...cats, ...missingDefaults];
+          cats = [...cats, ...missingDefaults].map((c: any) => ({
+            ...c,
+            label: (c.label || "").replace(/\bSMM\b/gi, "").replace(/\s{2,}/g, " ").trim() || c.label,
+          }));
           return res.json({ categories: cats, productBadges: parsed?.productBadges || {} });
         } catch (e) {}
       }
@@ -3761,7 +3915,10 @@ export async function registerRoutes(
           let cats = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.categories) ? parsed.categories : []);
           const savedIds = new Set(cats.map((c: any) => (c.id || "").toLowerCase()));
           const missingDefaults = BUILTIN_DEFAULT_CATEGORIES.filter(dc => !savedIds.has(dc.id.toLowerCase()));
-          cats = [...cats, ...missingDefaults];
+          cats = [...cats, ...missingDefaults].map((c: any) => ({
+            ...c,
+            label: (c.label || "").replace(/\bSMM\b/gi, "").replace(/\s{2,}/g, " ").trim() || c.label,
+          }));
           data = { categories: cats, productBadges: parsed?.productBadges || {} };
         } catch (e) {}
       }
