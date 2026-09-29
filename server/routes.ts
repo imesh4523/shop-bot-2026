@@ -3735,21 +3735,20 @@ export async function registerRoutes(
   app.get("/api/payment/:id", handleGetPaymentForGateway);
   app.get("/api/payments/:id", handleGetPaymentForGateway);
 
-  // Internal Webhook from PayHere Proxy Gateway (imhost-main) when payment succeeds
-  app.post("/api/internal/payment-success", async (req, res) => {
+  // Core handler to verify and dispatch payment success receipt email, balance sync, and alerts
+  async function processPaymentSuccessReceipt(
+    paymentId: number,
+    options?: { method?: string; cardNo?: string; cardHolderName?: string }
+  ) {
     try {
-      const { paymentId, secret, method, cardNo, cardHolderName } = req.body;
-      if (secret !== "youuhost_internal_secret_2026") {
-        return res.status(403).json({ message: "Invalid internal secret" });
-      }
-      const numId = parseInt(paymentId, 10);
-      if (isNaN(numId)) return res.status(400).json({ message: "Invalid paymentId" });
-
-      const payment = await storage.getPayment(numId);
-      if (!payment) return res.status(404).json({ message: "Payment not found" });
+      const payment = await storage.getPayment(paymentId);
+      if (!payment) return false;
 
       const user = await storage.getTelegramUserById(payment.telegramUserId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) return false;
+
+      const method = options?.method || payment.paymentMethod;
+      const cardNo = options?.cardNo || payment.txid;
 
       // Determine detected payment method
       const rawMethod = (method || payment.paymentMethod || "card").toLowerCase();
@@ -3789,8 +3788,8 @@ export async function registerRoutes(
         methodDetails = last4 ? `Card ending in •••• ${last4}` : "Credit / Debit Card";
       }
 
-      // Update payment record with detected method and card number
-      if (method || cardNo) {
+      // Update payment record with detected method and card number if provided
+      if (options?.method || options?.cardNo) {
         await db.update(payments).set({
           paymentMethod: effectiveMethod,
           txid: cardNo || payment.txid || null,
@@ -3829,15 +3828,18 @@ export async function registerRoutes(
             eq(emailLogs.toEmail, user.email),
             eq(emailLogs.templateType, "payment_success")
           )
-        ).orderBy(desc(emailLogs.id)).limit(10);
+        ).orderBy(desc(emailLogs.id)).limit(15);
 
         const alreadySent = checkEmailLogs.some(log => {
           const meta = log.metadata as any;
-          return meta && (meta.referenceId === `${methodTitle.toUpperCase().replace(/\s+/g, '')}-${payment.id}` || meta.referenceId === `CARD-${payment.id}` || meta.referenceId === `PAYHERE-${payment.id}` || meta.paymentId === payment.id);
+          if (!meta) return false;
+          if (meta.paymentId === payment.id) return true;
+          if (typeof meta.referenceId === 'string' && meta.referenceId.endsWith(`-${payment.id}`)) return true;
+          return false;
         });
 
         if (!alreadySent) {
-          sendLuxuryReceiptEmail({
+          await sendLuxuryReceiptEmail({
             toEmail: user.email,
             recipientName: user.firstName || user.username || "Customer",
             amount: isLkr ? `Rs. ${creditLkr.toLocaleString()} LKR` : `$${(creditCents / 100).toFixed(2)} USD`,
@@ -3861,12 +3863,55 @@ export async function registerRoutes(
         body: `${displayUser} deposited ${isLkr ? `Rs. ${creditLkr.toLocaleString()}` : `$${(creditCents / 100).toFixed(2)}`} via ${methodTitle}`
       }).catch(() => {});
 
+      return true;
+    } catch (err: any) {
+      console.error(`[Process Payment Success Error #${paymentId}]:`, err);
+      return false;
+    }
+  }
+
+  // Internal Webhook from PayHere Proxy Gateway (imhost-main) when payment succeeds
+  app.post("/api/internal/payment-success", async (req, res) => {
+    try {
+      const { paymentId, secret, method, cardNo, cardHolderName } = req.body;
+      if (secret !== "youuhost_internal_secret_2026") {
+        return res.status(403).json({ message: "Invalid internal secret" });
+      }
+      const numId = parseInt(paymentId, 10);
+      if (isNaN(numId)) return res.status(400).json({ message: "Invalid paymentId" });
+
+      const ok = await processPaymentSuccessReceipt(numId, { method, cardNo, cardHolderName });
+      if (!ok) {
+        return res.status(404).json({ message: "Payment or user not found" });
+      }
       return res.json({ success: true, message: "Payment confirmed, balance synced, and receipt dispatched." });
     } catch (err: any) {
       console.error("[Internal Payment Success Error]:", err);
       return res.status(500).json({ message: err.message });
     }
   });
+
+  // Background Watchdog: Automatically checks recent completed payments and ensures deposit receipts are sent
+  setInterval(async () => {
+    try {
+      const recentCompleted = await db.select().from(payments).where(
+        and(
+          eq(payments.status, "completed"),
+          gt(payments.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+        )
+      ).orderBy(desc(payments.id)).limit(10);
+
+      for (const p of recentCompleted) {
+        if (p.paymentMethod === "admin_deduction") continue;
+        await processPaymentSuccessReceipt(p.id, {
+          method: p.paymentMethod || undefined,
+          cardNo: p.txid || undefined
+        });
+      }
+    } catch (e: any) {
+      // Fail-safe background watchdog
+    }
+  }, 10000);
 
   // Admin: PayHere Host Gateway Pairing Handshake
   app.post("/api/payhere/pair", isAuth, async (req, res) => {
