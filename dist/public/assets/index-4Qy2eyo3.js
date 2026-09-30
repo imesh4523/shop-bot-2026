@@ -7264,7 +7264,7 @@ const Route = ({ path, nest, match: match2, ...renderProps }) => {
   const children = base ? reactExports.createElement(Router$1, { base }, h_route(renderProps, params)) : h_route(renderProps, params);
   return reactExports.createElement(ParamsCtx.Provider, { value: params, children });
 };
-const Link = reactExports.forwardRef((props, ref) => {
+const Link$1 = reactExports.forwardRef((props, ref) => {
   const router = useRouter();
   const [currentPath, navigate2] = useLocationFromRouter(router);
   const {
@@ -11815,6 +11815,10 @@ const Link2 = createLucideIcon("Link2", [
   ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
   ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
   ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
+]);
+const Link = createLucideIcon("Link", [
+  ["path", { d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71", key: "1cjeqo" }],
+  ["path", { d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71", key: "19qd67" }]
 ]);
 const LoaderCircle = createLucideIcon("LoaderCircle", [
   ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
@@ -20420,7 +20424,7 @@ function LayoutShell({ children }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto pb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "grid gap-2 px-3", children: navigation.map((item) => {
       const isActive = location2 === item.href || item.href === "/imeshadmindashbord/connected-stores" && location2 === "/imeshadmindashbord/api-store-tracker";
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        Link,
+        Link$1,
         {
           href: item.href,
           className: `
@@ -62620,7 +62624,7 @@ function SettingsPage() {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-2xl space-y-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Link$1, { href: "/imeshadmindashbord/payhere", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-5 h-5" }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -62935,7 +62939,7 @@ function SettingsPage() {
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40 text-xs mt-1", children: "Configure Cloudflare DNS API and Resend Email keys for automatic domain setup and email relays." })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { size: "sm", variant: "outline", className: "text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 gap-1", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Link$1, { href: "/imeshadmindashbord/domain-automation", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Button, { size: "sm", variant: "outline", className: "text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 gap-1", children: [
           "Open Hub ",
           /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
         ] }) })
@@ -75088,7 +75092,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CQVewVOS.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BaJC98R_.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90622,7 +90626,7 @@ function BackupPage() {
     chatId: "",
     frequency: 3,
     googleDriveEnabled: false,
-    googleDriveAuthType: "service_account",
+    googleDriveAuthType: "rclone",
     googleDriveServiceAccount: "",
     googleDriveOauthClientId: "",
     googleDriveOauthClientSecret: "",
@@ -90640,6 +90644,18 @@ function BackupPage() {
   const [retentionPreset, setRetentionPreset] = reactExports.useState("7_weeks");
   const [customDays, setCustomDays] = reactExports.useState(49);
   const [showGuide, setShowGuide] = reactExports.useState(false);
+  const { data: rcloneStatus, refetch: refetchRcloneStatus, isFetching: isCheckingRclone } = useQuery({
+    queryKey: ["/api/rclone/status"],
+    refetchInterval: 5e3
+  });
+  const [authSession, setAuthSession] = reactExports.useState(null);
+  const [isStartingAuth, setIsStartingAuth] = reactExports.useState(false);
+  const [isPollingAuth, setIsPollingAuth] = reactExports.useState(false);
+  const [manualCode, setManualCode] = reactExports.useState("");
+  const [isSubmittingCode, setIsSubmittingCode] = reactExports.useState(false);
+  const [hasCopiedUrl, setHasCopiedUrl] = reactExports.useState(false);
+  const [rcloneFolders, setRcloneFolders] = reactExports.useState([]);
+  const [isLoadingRcloneFolders, setIsLoadingRcloneFolders] = reactExports.useState(false);
   const { data: config2, isLoading: isConfigLoading } = useQuery({
     queryKey: ["/api/backups/config"]
   });
@@ -90647,6 +90663,139 @@ function BackupPage() {
     queryKey: ["/api/backups/logs"],
     refetchInterval: 4e3
   });
+  reactExports.useEffect(() => {
+    if (rcloneStatus?.folders && Array.isArray(rcloneStatus.folders)) {
+      setRcloneFolders(rcloneStatus.folders);
+    }
+  }, [rcloneStatus]);
+  reactExports.useEffect(() => {
+    let timer = null;
+    if (isPollingAuth) {
+      timer = setInterval(async () => {
+        try {
+          const res = await apiRequest("GET", "/api/rclone/auth/session");
+          const data = await res.json();
+          if (data.status === "authorized") {
+            setIsPollingAuth(false);
+            setAuthSession(null);
+            toast2({
+              title: "🎉 Google Drive Connected!",
+              description: "Authorization completed via Rclone. Fetching folders now..."
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/rclone/status"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/backups/config"] });
+            fetchRcloneFolders();
+          } else if (data.status === "error") {
+            setIsPollingAuth(false);
+            toast2({
+              title: "Authorization Error",
+              description: data.error || "Rclone authorization failed",
+              variant: "destructive"
+            });
+          }
+        } catch (e3) {
+        }
+      }, 1500);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPollingAuth]);
+  const startRcloneAuth = async () => {
+    setIsStartingAuth(true);
+    try {
+      const res = await apiRequest("POST", "/api/rclone/auth/start");
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to start rclone auth session");
+      }
+      setAuthSession({
+        googleAuthUrl: data.googleAuthUrl,
+        sessionId: data.sessionId,
+        state: data.state
+      });
+      setIsPollingAuth(true);
+      toast2({
+        title: "Google Login URL Generated",
+        description: "Open the URL or copy it to your browser to authorize access."
+      });
+    } catch (err) {
+      toast2({
+        title: "Failed to Start Auth",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsStartingAuth(false);
+    }
+  };
+  const submitManualCode = async () => {
+    if (!manualCode.trim()) {
+      toast2({
+        title: "Missing Code",
+        description: "Please paste the redirect URL or code from your browser.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsSubmittingCode(true);
+    try {
+      const res = await apiRequest("POST", "/api/rclone/auth/submit-code", {
+        code: manualCode.trim(),
+        state: authSession?.state
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      toast2({
+        title: "Code Submitted",
+        description: "Verifying credentials with Google..."
+      });
+      setManualCode("");
+    } catch (err) {
+      toast2({
+        title: "Code Submission Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingCode(false);
+    }
+  };
+  const fetchRcloneFolders = async () => {
+    setIsLoadingRcloneFolders(true);
+    try {
+      const res = await apiRequest("GET", "/api/rclone/folders");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.folders)) {
+        setRcloneFolders(data.folders);
+        toast2({
+          title: "Folders Loaded",
+          description: `Found ${data.folders.length} folder(s) in Google Drive.`
+        });
+        if (!formData.googleDriveFolderName && data.folders.includes("youuhost backups")) {
+          setFormData((prev) => ({
+            ...prev,
+            googleDriveFolderName: "youuhost backups",
+            googleDriveFolderId: "youuhost backups"
+          }));
+        } else if (!formData.googleDriveFolderName && data.folders.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            googleDriveFolderName: data.folders[0],
+            googleDriveFolderId: data.folders[0]
+          }));
+        }
+      }
+    } catch (err) {
+      toast2({
+        title: "Folder Fetch Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingRcloneFolders(false);
+    }
+  };
   reactExports.useEffect(() => {
     if (config2) {
       const days = config2.retentionDays || 49;
@@ -90656,7 +90805,7 @@ function BackupPage() {
         chatId: config2.chatId || "",
         frequency: config2.frequency || 3,
         googleDriveEnabled: Boolean(config2.googleDriveEnabled),
-        googleDriveAuthType: config2.googleDriveAuthType || "service_account",
+        googleDriveAuthType: config2.googleDriveAuthType || "rclone",
         googleDriveServiceAccount: config2.googleDriveServiceAccount || "",
         googleDriveOauthClientId: config2.googleDriveOauthClientId || "",
         googleDriveOauthClientSecret: config2.googleDriveOauthClientSecret || "",
@@ -91054,44 +91203,48 @@ function BackupPage() {
               )
             ] }),
             formData.googleDriveEnabled && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6 animate-in slide-in-from-top-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold flex items-center gap-2 text-amber-200 text-sm", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "w-4 h-4 text-amber-400 shrink-0" }),
-                  "Google Drive Quota Policy Notice"
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-amber-200/90 leading-relaxed", children: [
-                  "Google assigns ",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "0 MB storage quota to robot Service Accounts" }),
-                  " on personal Gmail accounts (",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "@gmail.com" }),
-                  '). Therefore, uploads to personal "My Drive" folders fail unless one of the two methods below is used:'
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-lg bg-black/30 border border-white/5 space-y-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-white text-xs flex items-center gap-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-blue-400" }),
-                      "Option A: Workspace Shared Drive"
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${rcloneStatus?.status === "connected" ? "bg-green-500/10 border-green-500/30 text-green-300" : rcloneStatus?.status === "error" ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-red-500/10 border-red-500/30 text-red-300"}`, children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-3.5 h-3.5 rounded-full shrink-0 ${rcloneStatus?.status === "connected" ? "bg-green-400 shadow-[0_0_12px_#22c55e] animate-pulse" : "bg-red-400 shadow-[0_0_12px_#ef4444]"}` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-sm flex items-center gap-2", children: [
+                      rcloneStatus?.status === "connected" ? "Google Drive Connected & Active (Rclone)" : "Google Drive Not Configured",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: `text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 ${rcloneStatus?.status === "connected" ? "bg-green-500/20 text-green-300 border-green-500/40" : "bg-red-500/20 text-red-300 border-red-500/40"}`, children: rcloneStatus?.status === "connected" ? "LIVE CONNECTED" : "RE-CONFIG REQUIRED" })
                     ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/60", children: [
-                      "Create a ",
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Shared Drive" }),
-                      " in Google Workspace, add your Service Account email as ",
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Content Manager" }),
-                      ", and select that folder."
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-lg bg-black/30 border border-white/5 space-y-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-white text-xs flex items-center gap-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-green-400" }),
-                      "Option B: OAuth 2.0 (Personal Gmail)"
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/60", children: "Connect via OAuth 2.0 Client Credentials to upload directly into your personal 15 GB Google Drive quota without restrictions." })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs opacity-80 mt-0.5", children: rcloneStatus?.message || "Checking Google Drive connection status..." })
                   ] })
-                ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  Button,
+                  {
+                    type: "button",
+                    variant: "outline",
+                    size: "sm",
+                    disabled: isCheckingRclone,
+                    onClick: () => refetchRcloneStatus(),
+                    className: "border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs h-8 px-3 gap-1.5 shrink-0",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 ${isCheckingRclone ? "animate-spin text-purple-400" : ""}` }),
+                      "Check Live Status"
+                    ]
+                  }
+                )
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Authentication Mode" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setFormData({ ...formData, googleDriveAuthType: "rclone" }),
+                      className: `p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${formData.googleDriveAuthType === "rclone" ? "bg-purple-500/20 border-purple-500/40 text-purple-200 shadow-lg shadow-purple-500/10" : "bg-white/5 border-white/10 text-white/60 hover:text-white"}`,
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-4 h-4 text-purple-400" }),
+                        "Rclone (Recommended)"
+                      ]
+                    }
+                  ),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs(
                     "button",
                     {
@@ -91100,7 +91253,7 @@ function BackupPage() {
                       className: `p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${formData.googleDriveAuthType === "service_account" ? "bg-purple-500/20 border-purple-500/40 text-purple-200" : "bg-white/5 border-white/10 text-white/60 hover:text-white"}`,
                       children: [
                         /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-purple-400" }),
-                        "Service Account (Shared Drive)"
+                        "Shared Drive (Service Acc)"
                       ]
                     }
                   ),
@@ -91111,14 +91264,168 @@ function BackupPage() {
                       onClick: () => setFormData({ ...formData, googleDriveAuthType: "oauth2" }),
                       className: `p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${formData.googleDriveAuthType === "oauth2" ? "bg-blue-500/20 border-blue-500/40 text-blue-200" : "bg-white/5 border-white/10 text-white/60 hover:text-white"}`,
                       children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-4 h-4 text-blue-400" }),
-                        "OAuth 2.0 (Personal Gmail)"
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { className: "w-4 h-4 text-blue-400" }),
+                        "Manual OAuth 2.0"
                       ]
                     }
                   )
                 ] })
               ] }),
-              formData.googleDriveAuthType === "service_account" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+              formData.googleDriveAuthType === "rclone" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-5 animate-in fade-in", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("h4", { className: "font-bold text-sm text-white flex items-center gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { className: "w-4 h-4 text-purple-400" }),
+                        "Connect Google Drive (1-Click Rclone Link)"
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50 mt-0.5", children: "Generates an official Google authentication URL. Works seamlessly on personal 15 GB Gmail." })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      Button,
+                      {
+                        type: "button",
+                        onClick: startRcloneAuth,
+                        disabled: isStartingAuth || isPollingAuth,
+                        className: "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold h-10 px-4 gap-2 shadow-lg shrink-0",
+                        children: [
+                          isStartingAuth ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-4 h-4" }),
+                          rcloneStatus?.status === "connected" ? "Re-Generate Login URL" : "Generate Google Login URL"
+                        ]
+                      }
+                    )
+                  ] }),
+                  authSession && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-4 rounded-xl bg-purple-950/40 border border-purple-500/30 animate-in fade-in", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-xs text-purple-200", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold flex items-center gap-1.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin text-purple-400" }),
+                        "Waiting for Google Authorization..."
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-white/40", children: "Open in browser & click Allow" })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Input,
+                        {
+                          readOnly: true,
+                          value: authSession.googleAuthUrl,
+                          className: "glass-panel border-purple-500/20 bg-black/40 text-purple-200 text-xs font-mono h-10 rounded-xl"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Button,
+                        {
+                          type: "button",
+                          onClick: () => {
+                            navigator.clipboard.writeText(authSession.googleAuthUrl);
+                            setHasCopiedUrl(true);
+                            setTimeout(() => setHasCopiedUrl(false), 2500);
+                            toast2({ title: "Copied!", description: "Google Login URL copied to clipboard" });
+                          },
+                          className: "border border-purple-500/40 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 h-10 px-3 text-xs shrink-0 rounded-xl",
+                          children: hasCopiedUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4 text-green-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-4 h-4" })
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        Button,
+                        {
+                          type: "button",
+                          onClick: () => window.open(authSession.googleAuthUrl, "_blank"),
+                          className: "bg-purple-600 hover:bg-purple-500 text-white h-10 px-4 text-xs font-bold shrink-0 rounded-xl gap-1.5",
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-4 h-4" }),
+                            "Open Link"
+                          ]
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2 border-t border-white/10 space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[11px] text-white/60", children: "Authorized on a phone or another device? Paste the redirect URL or authorization code below:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Input,
+                          {
+                            placeholder: "Paste http://127.0.0.1:53682/?state=...&code=4/0A... or code",
+                            value: manualCode,
+                            onChange: (e3) => setManualCode(e3.target.value),
+                            className: "glass-panel border-white/10 bg-black/30 text-white text-xs h-9 rounded-xl font-mono"
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Button,
+                          {
+                            type: "button",
+                            onClick: submitManualCode,
+                            disabled: isSubmittingCode || !manualCode.trim(),
+                            className: "bg-white/10 hover:bg-white/20 text-white text-xs font-bold h-9 px-3 rounded-xl shrink-0",
+                            children: isSubmittingCode ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : "Submit Code"
+                          }
+                        )
+                      ] })
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FolderCheck, { className: "w-4 h-4 text-green-400" }),
+                      "Google Drive Destination Folder"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      Button,
+                      {
+                        type: "button",
+                        variant: "ghost",
+                        size: "sm",
+                        disabled: isLoadingRcloneFolders,
+                        onClick: fetchRcloneFolders,
+                        className: "text-xs text-purple-300 hover:text-white p-0 h-auto gap-1",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(FolderSync, { className: `w-3.5 h-3.5 ${isLoadingRcloneFolders ? "animate-spin" : ""}` }),
+                          "Refresh Folders"
+                        ]
+                      }
+                    )
+                  ] }),
+                  rcloneFolders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "select",
+                    {
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-full px-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400",
+                      value: formData.googleDriveFolderName,
+                      onChange: (e3) => {
+                        setFormData({
+                          ...formData,
+                          googleDriveFolderName: e3.target.value,
+                          googleDriveFolderId: e3.target.value
+                        });
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", className: "bg-[#121225] text-white/60", children: "-- Select Google Drive Folder --" }),
+                        rcloneFolders.map((f2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: f2, className: "bg-[#121225] text-white", children: [
+                          "📁 ",
+                          f2
+                        ] }, f2))
+                      ]
+                    }
+                  ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        placeholder: "e.g. youuhost backups",
+                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
+                        value: formData.googleDriveFolderName,
+                        onChange: (e3) => setFormData({ ...formData, googleDriveFolderName: e3.target.value, googleDriveFolderId: e3.target.value })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/40", children: [
+                      "Enter the folder name in your Google Drive (e.g. ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "youuhost backups" }),
+                      ")."
+                    ] })
+                  ] })
+                ] })
+              ] }),
+              formData.googleDriveAuthType === "service_account" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google Service Account Credentials (JSON)" }),
                   serviceAccountEmail && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-green-400 font-mono flex items-center gap-1", children: [
@@ -91149,20 +91456,6 @@ function BackupPage() {
                       className: "hidden",
                       onChange: handleFileUpload
                     }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    Button,
-                    {
-                      type: "button",
-                      variant: "outline",
-                      disabled: isFetchingFolders || !formData.googleDriveServiceAccount,
-                      onClick: () => fetchDriveFolders(),
-                      className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0",
-                      children: [
-                        isFetchingFolders ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-purple-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FolderSync, { className: "w-4 h-4 text-blue-400" }),
-                        "Fetch Folders"
-                      ]
-                    }
                   )
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -91182,114 +91475,46 @@ function BackupPage() {
                     }
                   }
                 ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "For Workspace Shared Drives: Add this service account email as a Content Manager inside the Shared Drive." })
-              ] }) : (
-                /* OAuth 2.0 Credentials UI */
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client ID" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Input,
-                      {
-                        placeholder: "e.g. 123456789-xxx.apps.googleusercontent.com",
-                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
-                        value: formData.googleDriveOauthClientId,
-                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientId: e3.target.value })
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client Secret" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Input,
-                      {
-                        type: "password",
-                        placeholder: "GOCSPX-xxxxxxxxxxxxxxxx",
-                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
-                        value: formData.googleDriveOauthClientSecret,
-                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientSecret: e3.target.value })
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "OAuth Refresh Token" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        Button,
-                        {
-                          type: "button",
-                          variant: "outline",
-                          disabled: isFetchingFolders || !formData.googleDriveOauthRefreshToken,
-                          onClick: () => fetchDriveFolders(),
-                          className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-8 px-3 gap-1.5 text-[11px] font-bold shrink-0",
-                          children: [
-                            isFetchingFolders ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin text-blue-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FolderSync, { className: "w-3.5 h-3.5 text-blue-400" }),
-                            "Fetch Folders"
-                          ]
-                        }
-                      )
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      Input,
-                      {
-                        type: "password",
-                        placeholder: "1//04xxxxxxxxxxxxxxxxxx",
-                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
-                        value: formData.googleDriveOauthRefreshToken,
-                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthRefreshToken: e3.target.value })
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "Uploads directly into your personal 15 GB Google Drive quota." })
-                  ] })
-                ] })
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(FolderCheck, { className: "w-4 h-4 text-green-400" }),
-                    "Google Drive Destination Folder"
-                  ] }),
-                  formData.googleDriveFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-purple-300 font-medium", children: [
-                    "Selected: ",
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: formData.googleDriveFolderName })
-                  ] })
-                ] }),
-                fetchedFolders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "select",
-                  {
-                    className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-full px-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400",
-                    value: formData.googleDriveFolderId,
-                    onChange: (e3) => {
-                      const selectedId = e3.target.value;
-                      const found = fetchedFolders.find((f2) => f2.id === selectedId);
-                      setFormData({
-                        ...formData,
-                        googleDriveFolderId: selectedId,
-                        googleDriveFolderName: found ? found.name : "Custom Folder"
-                      });
-                    },
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", className: "bg-[#121225] text-white/60", children: "-- Select Destination Folder --" }),
-                      fetchedFolders.map((f2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: f2.id, className: "bg-[#121225] text-white", children: [
-                        "📁 ",
-                        f2.name,
-                        " (",
-                        f2.id.slice(0, 10),
-                        "...)"
-                      ] }, f2.id))
-                    ]
-                  }
-                ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: 'Requires Google Workspace "Shared Drive" with Service Account as Content Manager.' })
+              ] }) }),
+              formData.googleDriveAuthType === "oauth2" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client ID" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     Input,
                     {
-                      placeholder: "Folder ID (or click 'Fetch Folders' to select from list)",
-                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
-                      value: formData.googleDriveFolderId,
-                      onChange: (e3) => setFormData({ ...formData, googleDriveFolderId: e3.target.value, googleDriveFolderName: "Manual Folder ID" })
+                      placeholder: "e.g. 123456789-xxx.apps.googleusercontent.com",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                      value: formData.googleDriveOauthClientId,
+                      onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientId: e3.target.value })
                     }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: 'Click "Fetch Folders" above after uploading your JSON to pick directly from your Google Drive.' })
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client Secret" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: "password",
+                      placeholder: "GOCSPX-xxxxxxxxxxxxxxxx",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                      value: formData.googleDriveOauthClientSecret,
+                      onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientSecret: e3.target.value })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "OAuth Refresh Token" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: "password",
+                      placeholder: "1//04xxxxxxxxxxxxxxxxxx",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                      value: formData.googleDriveOauthRefreshToken,
+                      onChange: (e3) => setFormData({ ...formData, googleDriveOauthRefreshToken: e3.target.value })
+                    }
+                  )
                 ] })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-4 rounded-xl bg-white/5 border border-white/10", children: [
@@ -110535,7 +110760,7 @@ ${finalDetails}`;
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-[#7E7998] mt-0.5", children: "Automate cloud purchases and balance queries." })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/api-docs", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Link$1, { href: "/api-docs", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 Button,
                 {
                   variant: "outline",
@@ -112034,7 +112259,7 @@ ${finalDetails}`;
           }
         ),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Link,
+          Link$1,
           {
             href: "/terms",
             target: "_blank",
@@ -131266,7 +131491,7 @@ function BestSellersPage() {
 function TermsPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-[#121214] text-[#E4E4E7] font-sans selection:bg-[#5B42F3] selection:text-white pb-16", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "sticky top-0 z-40 bg-[#121214]/90 backdrop-blur-md border-b border-[#27272A] px-4 sm:px-8 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-4xl mx-auto flex items-center justify-between", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Link, { href: "/", className: "flex items-center gap-3 group", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Link$1, { href: "/", className: "flex items-center gap-3 group", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5B42F3] to-[#38B6FF] p-0.5 shadow-lg shadow-[#5B42F3]/20 flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
           "img",
           {
@@ -131284,7 +131509,7 @@ function TermsPage() {
         ] }) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        Link,
+        Link$1,
         {
           href: "/",
           className: "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#27272A] hover:bg-[#3F3F46] text-xs font-bold text-white transition-all active:scale-95 border border-[#3F3F46]",
@@ -131503,7 +131728,7 @@ function TermsPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-500" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "© 2026 YouuHost Cloud Network. All Rights Reserved." })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { href: "/", className: "text-[#38B6FF] hover:underline", children: "Return to Store & Mini-App" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Link$1, { href: "/", className: "text-[#38B6FF] hover:underline", children: "Return to Store & Mini-App" })
       ] })
     ] })
   ] });

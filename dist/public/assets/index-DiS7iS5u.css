@@ -3386,6 +3386,10 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgb(34 197 94 / 0.3);
 }
 
+.border-green-500\/40{
+  border-color: rgb(34 197 94 / 0.4);
+}
+
 .border-green-500\/50{
   border-color: rgb(34 197 94 / 0.5);
 }
@@ -7433,10 +7437,6 @@ h1, h2, h3, h4, h5, h6 {
   color: rgb(253 230 138 / var(--tw-text-opacity, 1));
 }
 
-.text-amber-200\/90{
-  color: rgb(253 230 138 / 0.9);
-}
-
 .text-amber-300{
   --tw-text-opacity: 1;
   color: rgb(252 211 77 / var(--tw-text-opacity, 1));
@@ -8335,6 +8335,18 @@ h1, h2, h3, h4, h5, h6 {
 .shadow-\[0_0_10px_rgba\(39\2c 201\2c 63\2c 0\.3\)\]{
   --tw-shadow: 0 0 10px rgba(39,201,63,0.3);
   --tw-shadow-colored: 0 0 10px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.shadow-\[0_0_12px_\#22c55e\]{
+  --tw-shadow: 0 0 12px #22c55e;
+  --tw-shadow-colored: 0 0 12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.shadow-\[0_0_12px_\#ef4444\]{
+  --tw-shadow: 0 0 12px #ef4444;
+  --tw-shadow-colored: 0 0 12px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 

@@ -26,7 +26,12 @@ import {
   FileText,
   Calendar,
   Send,
-  HelpCircle
+  HelpCircle,
+  Link,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Check
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -75,7 +80,7 @@ export default function BackupPage() {
     chatId: "",
     frequency: 3,
     googleDriveEnabled: false,
-    googleDriveAuthType: "service_account" as "service_account" | "oauth2",
+    googleDriveAuthType: "rclone" as "rclone" | "service_account" | "oauth2",
     googleDriveServiceAccount: "",
     googleDriveOauthClientId: "",
     googleDriveOauthClientSecret: "",
@@ -94,6 +99,32 @@ export default function BackupPage() {
   const [customDays, setCustomDays] = useState<number>(49);
   const [showGuide, setShowGuide] = useState<boolean>(false);
 
+  // Rclone live status and auth state
+  const { data: rcloneStatus, refetch: refetchRcloneStatus, isFetching: isCheckingRclone } = useQuery<{
+    installed: boolean;
+    configured: boolean;
+    status: "connected" | "not_configured" | "error";
+    message: string;
+    folders?: string[];
+    lastChecked?: string;
+  }>({
+    queryKey: ["/api/rclone/status"],
+    refetchInterval: 5000,
+  });
+
+  const [authSession, setAuthSession] = useState<{
+    googleAuthUrl: string;
+    sessionId: string;
+    state: string;
+  } | null>(null);
+  const [isStartingAuth, setIsStartingAuth] = useState(false);
+  const [isPollingAuth, setIsPollingAuth] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+  const [hasCopiedUrl, setHasCopiedUrl] = useState(false);
+  const [rcloneFolders, setRcloneFolders] = useState<string[]>([]);
+  const [isLoadingRcloneFolders, setIsLoadingRcloneFolders] = useState(false);
+
   const { data: config, isLoading: isConfigLoading } = useQuery<BackupConfig | null>({
     queryKey: ["/api/backups/config"],
   });
@@ -104,6 +135,144 @@ export default function BackupPage() {
   });
 
   useEffect(() => {
+    if (rcloneStatus?.folders && Array.isArray(rcloneStatus.folders)) {
+      setRcloneFolders(rcloneStatus.folders);
+    }
+  }, [rcloneStatus]);
+
+  // Polling for Rclone OAuth completion
+  useEffect(() => {
+    let timer: any = null;
+    if (isPollingAuth) {
+      timer = setInterval(async () => {
+        try {
+          const res = await apiRequest("GET", "/api/rclone/auth/session");
+          const data = await res.json();
+          if (data.status === "authorized") {
+            setIsPollingAuth(false);
+            setAuthSession(null);
+            toast({
+              title: "🎉 Google Drive Connected!",
+              description: "Authorization completed via Rclone. Fetching folders now...",
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/rclone/status"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/backups/config"] });
+            fetchRcloneFolders();
+          } else if (data.status === "error") {
+            setIsPollingAuth(false);
+            toast({
+              title: "Authorization Error",
+              description: data.error || "Rclone authorization failed",
+              variant: "destructive",
+            });
+          }
+        } catch (e) {}
+      }, 1500);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPollingAuth]);
+
+  const startRcloneAuth = async () => {
+    setIsStartingAuth(true);
+    try {
+      const res = await apiRequest("POST", "/api/rclone/auth/start");
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to start rclone auth session");
+      }
+      setAuthSession({
+        googleAuthUrl: data.googleAuthUrl,
+        sessionId: data.sessionId,
+        state: data.state,
+      });
+      setIsPollingAuth(true);
+      toast({
+        title: "Google Login URL Generated",
+        description: "Open the URL or copy it to your browser to authorize access.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to Start Auth",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsStartingAuth(false);
+    }
+  };
+
+  const submitManualCode = async () => {
+    if (!manualCode.trim()) {
+      toast({
+        title: "Missing Code",
+        description: "Please paste the redirect URL or code from your browser.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmittingCode(true);
+    try {
+      const res = await apiRequest("POST", "/api/rclone/auth/submit-code", {
+        code: manualCode.trim(),
+        state: authSession?.state,
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      toast({
+        title: "Code Submitted",
+        description: "Verifying credentials with Google...",
+      });
+      setManualCode("");
+    } catch (err: any) {
+      toast({
+        title: "Code Submission Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingCode(false);
+    }
+  };
+
+  const fetchRcloneFolders = async () => {
+    setIsLoadingRcloneFolders(true);
+    try {
+      const res = await apiRequest("GET", "/api/rclone/folders");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.folders)) {
+        setRcloneFolders(data.folders);
+        toast({
+          title: "Folders Loaded",
+          description: `Found ${data.folders.length} folder(s) in Google Drive.`,
+        });
+        if (!formData.googleDriveFolderName && data.folders.includes("youuhost backups")) {
+          setFormData(prev => ({
+            ...prev,
+            googleDriveFolderName: "youuhost backups",
+            googleDriveFolderId: "youuhost backups",
+          }));
+        } else if (!formData.googleDriveFolderName && data.folders.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            googleDriveFolderName: data.folders[0],
+            googleDriveFolderId: data.folders[0],
+          }));
+        }
+      }
+    } catch (err: any) {
+      toast({
+        title: "Folder Fetch Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingRcloneFolders(false);
+    }
+  };
+
+  useEffect(() => {
     if (config) {
       const days = config.retentionDays || 49;
       setFormData({
@@ -112,7 +281,7 @@ export default function BackupPage() {
         chatId: config.chatId || "",
         frequency: config.frequency || 3,
         googleDriveEnabled: Boolean(config.googleDriveEnabled),
-        googleDriveAuthType: (config.googleDriveAuthType as any) || "service_account",
+        googleDriveAuthType: (config.googleDriveAuthType as any) || "rclone",
         googleDriveServiceAccount: config.googleDriveServiceAccount || "",
         googleDriveOauthClientId: config.googleDriveOauthClientId || "",
         googleDriveOauthClientSecret: config.googleDriveOauthClientSecret || "",
@@ -519,44 +688,65 @@ export default function BackupPage() {
 
               {formData.googleDriveEnabled && (
                 <div className="space-y-6 animate-in slide-in-from-top-2">
-                  {/* Google Quota Policy Warning */}
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-2">
-                    <div className="font-bold flex items-center gap-2 text-amber-200 text-sm">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                      Google Drive Quota Policy Notice
-                    </div>
-                    <p className="text-amber-200/90 leading-relaxed">
-                      Google assigns <strong>0 MB storage quota to robot Service Accounts</strong> on personal Gmail accounts (<code>@gmail.com</code>). 
-                      Therefore, uploads to personal "My Drive" folders fail unless one of the two methods below is used:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                      <div className="p-3 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                        <div className="font-bold text-white text-xs flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-                          Option A: Workspace Shared Drive
+                  {/* Live Connection Status Banner */}
+                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                    rcloneStatus?.status === "connected"
+                      ? "bg-green-500/10 border-green-500/30 text-green-300"
+                      : rcloneStatus?.status === "error"
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                      : "bg-red-500/10 border-red-500/30 text-red-300"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                        rcloneStatus?.status === "connected" 
+                          ? "bg-green-400 shadow-[0_0_12px_#22c55e] animate-pulse" 
+                          : "bg-red-400 shadow-[0_0_12px_#ef4444]"
+                      }`} />
+                      <div>
+                        <div className="font-bold text-sm flex items-center gap-2">
+                          {rcloneStatus?.status === "connected" ? "Google Drive Connected & Active (Rclone)" : "Google Drive Not Configured"}
+                          <Badge className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 ${
+                            rcloneStatus?.status === "connected" ? "bg-green-500/20 text-green-300 border-green-500/40" : "bg-red-500/20 text-red-300 border-red-500/40"
+                          }`}>
+                            {rcloneStatus?.status === "connected" ? "LIVE CONNECTED" : "RE-CONFIG REQUIRED"}
+                          </Badge>
                         </div>
-                        <p className="text-[11px] text-white/60">
-                          Create a <strong>Shared Drive</strong> in Google Workspace, add your Service Account email as <em>Content Manager</em>, and select that folder.
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                        <div className="font-bold text-white text-xs flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                          Option B: OAuth 2.0 (Personal Gmail)
-                        </div>
-                        <p className="text-[11px] text-white/60">
-                          Connect via OAuth 2.0 Client Credentials to upload directly into your personal 15 GB Google Drive quota without restrictions.
+                        <p className="text-xs opacity-80 mt-0.5">
+                          {rcloneStatus?.message || "Checking Google Drive connection status..."}
                         </p>
                       </div>
                     </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isCheckingRclone}
+                      onClick={() => refetchRcloneStatus()}
+                      className="border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs h-8 px-3 gap-1.5 shrink-0"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isCheckingRclone ? "animate-spin text-purple-400" : ""}`} />
+                      Check Live Status
+                    </Button>
                   </div>
 
-                  {/* Auth Type Selector */}
+                  {/* Auth Mode Tabs */}
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
                       Authentication Mode
                     </Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, googleDriveAuthType: "rclone" })}
+                        className={`p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
+                          formData.googleDriveAuthType === "rclone"
+                            ? "bg-purple-500/20 border-purple-500/40 text-purple-200 shadow-lg shadow-purple-500/10"
+                            : "bg-white/5 border-white/10 text-white/60 hover:text-white"
+                        }`}
+                      >
+                        <Cloud className="w-4 h-4 text-purple-400" />
+                        Rclone (Recommended)
+                      </button>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, googleDriveAuthType: "service_account" })}
@@ -567,7 +757,7 @@ export default function BackupPage() {
                         }`}
                       >
                         <ShieldCheck className="w-4 h-4 text-purple-400" />
-                        Service Account (Shared Drive)
+                        Shared Drive (Service Acc)
                       </button>
                       <button
                         type="button"
@@ -578,79 +768,219 @@ export default function BackupPage() {
                             : "bg-white/5 border-white/10 text-white/60 hover:text-white"
                         }`}
                       >
-                        <Cloud className="w-4 h-4 text-blue-400" />
-                        OAuth 2.0 (Personal Gmail)
+                        <Link className="w-4 h-4 text-blue-400" />
+                        Manual OAuth 2.0
                       </button>
                     </div>
                   </div>
 
-                  {/* Service Account UI */}
-                  {formData.googleDriveAuthType === "service_account" ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
-                          Google Service Account Credentials (JSON)
-                        </Label>
-                        {serviceAccountEmail && (
-                          <span className="text-[11px] text-green-400 font-mono flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {serviceAccountEmail}
-                          </span>
+                  {/* Mode 1: Rclone (Recommended) */}
+                  {formData.googleDriveAuthType === "rclone" && (
+                    <div className="space-y-5 animate-in fade-in">
+                      {/* Rclone Auth Connect Box */}
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div>
+                            <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                              <Link className="w-4 h-4 text-purple-400" />
+                              Connect Google Drive (1-Click Rclone Link)
+                            </h4>
+                            <p className="text-xs text-white/50 mt-0.5">
+                              Generates an official Google authentication URL. Works seamlessly on personal 15 GB Gmail.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={startRcloneAuth}
+                            disabled={isStartingAuth || isPollingAuth}
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold h-10 px-4 gap-2 shadow-lg shrink-0"
+                          >
+                            {isStartingAuth ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <ExternalLink className="w-4 h-4" />
+                            )}
+                            {rcloneStatus?.status === "connected" ? "Re-Generate Login URL" : "Generate Google Login URL"}
+                          </Button>
+                        </div>
+
+                        {authSession && (
+                          <div className="space-y-3 p-4 rounded-xl bg-purple-950/40 border border-purple-500/30 animate-in fade-in">
+                            <div className="flex items-center justify-between text-xs text-purple-200">
+                              <span className="font-bold flex items-center gap-1.5">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                                Waiting for Google Authorization...
+                              </span>
+                              <span className="text-[11px] text-white/40">Open in browser & click Allow</span>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Input
+                                readOnly
+                                value={authSession.googleAuthUrl}
+                                className="glass-panel border-purple-500/20 bg-black/40 text-purple-200 text-xs font-mono h-10 rounded-xl"
+                              />
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(authSession.googleAuthUrl);
+                                  setHasCopiedUrl(true);
+                                  setTimeout(() => setHasCopiedUrl(false), 2500);
+                                  toast({ title: "Copied!", description: "Google Login URL copied to clipboard" });
+                                }}
+                                className="border border-purple-500/40 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 h-10 px-3 text-xs shrink-0 rounded-xl"
+                              >
+                                {hasCopiedUrl ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() => window.open(authSession.googleAuthUrl, "_blank")}
+                                className="bg-purple-600 hover:bg-purple-500 text-white h-10 px-4 text-xs font-bold shrink-0 rounded-xl gap-1.5"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Open Link
+                              </Button>
+                            </div>
+
+                            {/* Manual Code input fallback */}
+                            <div className="pt-2 border-t border-white/10 space-y-2">
+                              <div className="text-[11px] text-white/60">
+                                Authorized on a phone or another device? Paste the redirect URL or authorization code below:
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Paste http://127.0.0.1:53682/?state=...&code=4/0A... or code"
+                                  value={manualCode}
+                                  onChange={(e) => setManualCode(e.target.value)}
+                                  className="glass-panel border-white/10 bg-black/30 text-white text-xs h-9 rounded-xl font-mono"
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={submitManualCode}
+                                  disabled={isSubmittingCode || !manualCode.trim()}
+                                  className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold h-9 px-3 rounded-xl shrink-0"
+                                >
+                                  {isSubmittingCode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Submit Code"}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0"
-                        >
-                          <FileText className="w-4 h-4" />
-                          Upload .json File
-                        </Button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          accept=".json,application/json"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={isFetchingFolders || !formData.googleDriveServiceAccount}
-                          onClick={() => fetchDriveFolders()}
-                          className="border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0"
-                        >
-                          {isFetchingFolders ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                          ) : (
-                            <FolderSync className="w-4 h-4 text-blue-400" />
-                          )}
-                          Fetch Folders
-                        </Button>
-                      </div>
+                      {/* Destination Folder Selector */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
+                            <FolderCheck className="w-4 h-4 text-green-400" />
+                            Google Drive Destination Folder
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={isLoadingRcloneFolders}
+                            onClick={fetchRcloneFolders}
+                            className="text-xs text-purple-300 hover:text-white p-0 h-auto gap-1"
+                          >
+                            <FolderSync className={`w-3.5 h-3.5 ${isLoadingRcloneFolders ? "animate-spin" : ""}`} />
+                            Refresh Folders
+                          </Button>
+                        </div>
 
-                      <Textarea
-                        placeholder='Paste Service Account JSON key content here ({ "type": "service_account", ... })'
-                        className="glass-panel border-white/10 bg-white/5 text-white rounded-xl text-xs font-mono h-24 resize-y mt-2"
-                        value={formData.googleDriveServiceAccount}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormData({ ...formData, googleDriveServiceAccount: val });
-                          try {
-                            const parsed = JSON.parse(val);
-                            if (parsed.client_email) setServiceAccountEmail(parsed.client_email);
-                          } catch (e) {}
-                        }}
-                      />
-                      <p className="text-[11px] text-white/40">
-                        For Workspace Shared Drives: Add this service account email as a Content Manager inside the Shared Drive.
-                      </p>
+                        {rcloneFolders.length > 0 ? (
+                          <select
+                            className="glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-full px-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400"
+                            value={formData.googleDriveFolderName}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                googleDriveFolderName: e.target.value,
+                                googleDriveFolderId: e.target.value,
+                              });
+                            }}
+                          >
+                            <option value="" className="bg-[#121225] text-white/60">-- Select Google Drive Folder --</option>
+                            {rcloneFolders.map((f) => (
+                              <option key={f} value={f} className="bg-[#121225] text-white">
+                                📁 {f}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="e.g. youuhost backups"
+                              className="glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm"
+                              value={formData.googleDriveFolderName}
+                              onChange={(e) => setFormData({ ...formData, googleDriveFolderName: e.target.value, googleDriveFolderId: e.target.value })}
+                            />
+                            <p className="text-[11px] text-white/40">
+                              Enter the folder name in your Google Drive (e.g. <code>youuhost backups</code>).
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    /* OAuth 2.0 Credentials UI */
+                  )}
+
+                  {/* Mode 2: Service Account UI */}
+                  {formData.googleDriveAuthType === "service_account" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
+                            Google Service Account Credentials (JSON)
+                          </Label>
+                          {serviceAccountEmail && (
+                            <span className="text-[11px] text-green-400 font-mono flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {serviceAccountEmail}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Upload .json File
+                          </Button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept=".json,application/json"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                          />
+                        </div>
+
+                        <Textarea
+                          placeholder='Paste Service Account JSON key content here ({ "type": "service_account", ... })'
+                          className="glass-panel border-white/10 bg-white/5 text-white rounded-xl text-xs font-mono h-24 resize-y mt-2"
+                          value={formData.googleDriveServiceAccount}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData({ ...formData, googleDriveServiceAccount: val });
+                            try {
+                              const parsed = JSON.parse(val);
+                              if (parsed.client_email) setServiceAccountEmail(parsed.client_email);
+                            } catch (e) {}
+                          }}
+                        />
+                        <p className="text-[11px] text-white/40">
+                          Requires Google Workspace "Shared Drive" with Service Account as Content Manager.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mode 3: Manual OAuth 2.0 Credentials UI */}
+                  {formData.googleDriveAuthType === "oauth2" && (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
@@ -678,25 +1008,9 @@ export default function BackupPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
-                            OAuth Refresh Token
-                          </Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={isFetchingFolders || !formData.googleDriveOauthRefreshToken}
-                            onClick={() => fetchDriveFolders()}
-                            className="border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-8 px-3 gap-1.5 text-[11px] font-bold shrink-0"
-                          >
-                            {isFetchingFolders ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                            ) : (
-                              <FolderSync className="w-3.5 h-3.5 text-blue-400" />
-                            )}
-                            Fetch Folders
-                          </Button>
-                        </div>
+                        <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">
+                          OAuth Refresh Token
+                        </Label>
                         <Input
                           type="password"
                           placeholder="1//04xxxxxxxxxxxxxxxxxx"
@@ -704,62 +1018,9 @@ export default function BackupPage() {
                           value={formData.googleDriveOauthRefreshToken}
                           onChange={(e) => setFormData({ ...formData, googleDriveOauthRefreshToken: e.target.value })}
                         />
-                        <p className="text-[11px] text-white/40">
-                          Uploads directly into your personal 15 GB Google Drive quota.
-                        </p>
                       </div>
                     </div>
                   )}
-
-                  {/* Folder Selection Dropdown */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
-                        <FolderCheck className="w-4 h-4 text-green-400" />
-                        Google Drive Destination Folder
-                      </Label>
-                      {formData.googleDriveFolderName && (
-                        <span className="text-[11px] text-purple-300 font-medium">
-                          Selected: <strong>{formData.googleDriveFolderName}</strong>
-                        </span>
-                      )}
-                    </div>
-
-                    {fetchedFolders.length > 0 ? (
-                      <select
-                        className="glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-full px-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400"
-                        value={formData.googleDriveFolderId}
-                        onChange={(e) => {
-                          const selectedId = e.target.value;
-                          const found = fetchedFolders.find(f => f.id === selectedId);
-                          setFormData({
-                            ...formData,
-                            googleDriveFolderId: selectedId,
-                            googleDriveFolderName: found ? found.name : "Custom Folder",
-                          });
-                        }}
-                      >
-                        <option value="" className="bg-[#121225] text-white/60">-- Select Destination Folder --</option>
-                        {fetchedFolders.map((f) => (
-                          <option key={f.id} value={f.id} className="bg-[#121225] text-white">
-                            📁 {f.name} ({f.id.slice(0, 10)}...)
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Folder ID (or click 'Fetch Folders' to select from list)"
-                          className="glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm"
-                          value={formData.googleDriveFolderId}
-                          onChange={(e) => setFormData({ ...formData, googleDriveFolderId: e.target.value, googleDriveFolderName: "Manual Folder ID" })}
-                        />
-                        <p className="text-[11px] text-white/40">
-                          Click "Fetch Folders" above after uploading your JSON to pick directly from your Google Drive.
-                        </p>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Retention Policy Setting (User requested 7 weeks or custom date) */}
                   <div className="space-y-3 p-4 rounded-xl bg-white/5 border border-white/10">

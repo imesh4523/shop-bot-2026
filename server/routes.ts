@@ -38,6 +38,7 @@ import { z } from "zod";
 import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
 import { GoogleDriveService } from "./google-drive-service";
+import { RcloneService } from "./rclone-service";
 import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
@@ -9045,6 +9046,92 @@ app.post("/api/backups/google-drive/test", isAuth, async (req, res) => {
       success: false,
       message: err.message || "Google Drive connection test failed",
     });
+  }
+});
+
+// ==================== RCLONE GOOGLE DRIVE ROUTES ====================
+
+app.get("/api/rclone/status", isAuth, async (req, res) => {
+  try {
+    // If not configured in file but token exists in DB, attempt auto-restore (resilient across server migration)
+    const configs = await storage.getBackupConfigs();
+    if (configs.length > 0 && configs[0].googleDriveServiceAccount) {
+      try {
+        const token = JSON.parse(configs[0].googleDriveServiceAccount);
+        if (token.refresh_token || token.access_token) {
+          RcloneService.saveTokenToConfig(token);
+        }
+      } catch (e) {}
+    }
+
+    const status = await RcloneService.getLiveStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+app.post("/api/rclone/auth/start", isAuth, async (req, res) => {
+  try {
+    const session = await RcloneService.startAuthSession();
+    res.json({
+      success: true,
+      googleAuthUrl: session.googleAuthUrl,
+      sessionId: session.sessionId,
+      state: session.state,
+    });
+  } catch (err: any) {
+    console.error("[RCLONE AUTH START ERROR]", err);
+    res.status(500).json({ success: false, message: err.message || "Failed to start rclone auth" });
+  }
+});
+
+app.get("/api/rclone/auth/session", isAuth, async (req, res) => {
+  try {
+    const session = RcloneService.getSessionStatus();
+    if (!session) {
+      return res.json({ status: "none" });
+    }
+
+    if (session.status === "authorized" && session.token) {
+      // Auto-save token into backup_configs table in DB for migration resilience
+      const configs = await storage.getBackupConfigs();
+      if (configs.length > 0) {
+        await storage.updateBackupConfig(configs[0].id, {
+          googleDriveEnabled: true,
+          googleDriveAuthType: "rclone",
+          googleDriveServiceAccount: JSON.stringify(session.token),
+          googleDriveOauthRefreshToken: session.token.refresh_token || null,
+        });
+      }
+    }
+
+    res.json(session);
+  } catch (err: any) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+app.post("/api/rclone/auth/submit-code", isAuth, async (req, res) => {
+  try {
+    const { code, state } = req.body;
+    if (!code) {
+      return res.status(400).json({ message: "Code or redirect URL is required" });
+    }
+
+    await RcloneService.submitAuthCode(code, state);
+    res.json({ success: true, message: "Code submitted to rclone" });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message || "Failed to forward auth code" });
+  }
+});
+
+app.get("/api/rclone/folders", isAuth, async (req, res) => {
+  try {
+    const folders = await RcloneService.listFolders();
+    res.json({ success: true, folders });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message || "Failed to list folders" });
   }
 });
 

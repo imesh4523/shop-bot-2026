@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import axios from "axios";
 import FormData from "form-data";
 import { GoogleDriveService } from "./google-drive-service";
+import { RcloneService } from "./rclone-service";
 
 // Use process.cwd() to get the root directory for temporary files
 const PROJECT_ROOT = process.cwd();
@@ -117,7 +118,9 @@ export class BackupService {
 
       const destination = config.backupDestination || "both";
       const shouldUploadTelegram = (destination === "both" || destination === "telegram") && Boolean(config.botToken && config.chatId);
-      const hasAuth = config.googleDriveAuthType === "oauth2"
+      const hasAuth = config.googleDriveAuthType === "rclone"
+        ? true
+        : config.googleDriveAuthType === "oauth2"
         ? Boolean(config.googleDriveOauthRefreshToken)
         : Boolean(config.googleDriveServiceAccount);
       const shouldUploadGDrive = (destination === "both" || destination === "google_drive") && Boolean(config.googleDriveEnabled && hasAuth);
@@ -125,48 +128,67 @@ export class BackupService {
       // 1. Google Drive Upload
       if (shouldUploadGDrive) {
         try {
-          const folderLabel = config.googleDriveFolderName || config.googleDriveFolderId || "Root Folder";
+          const folderLabel = config.googleDriveFolderName || config.googleDriveFolderId || "youuhost backups";
           await this.log(configId, `Uploading backup to Google Drive folder: "${folderLabel}"...`);
 
-          const authOptions = {
-            authType: (config.googleDriveAuthType as any) || (config.googleDriveOauthRefreshToken ? "oauth2" : "service_account"),
-            serviceAccountJson: config.googleDriveServiceAccount,
-            oauthClientId: config.googleDriveOauthClientId,
-            oauthClientSecret: config.googleDriveOauthClientSecret,
-            oauthRefreshToken: config.googleDriveOauthRefreshToken,
-          };
+          if (config.googleDriveAuthType === "rclone" || !config.googleDriveAuthType) {
+            // Restore token to rclone.conf if needed (e.g. migration resilience)
+            if (config.googleDriveServiceAccount) {
+              try {
+                const token = JSON.parse(config.googleDriveServiceAccount);
+                RcloneService.saveTokenToConfig(token);
+              } catch (e) {}
+            }
 
-          const gdriveResult = await GoogleDriveService.uploadFile(
-            authOptions,
-            config.googleDriveFolderId || "",
-            filePath,
-            fileName
-          );
+            const rcloneResult = await RcloneService.uploadBackup(filePath, folderLabel);
+            await this.log(configId, `Backup successfully uploaded to Google Drive! (${rcloneResult})`, "success");
 
-          await this.log(
-            configId,
-            `Backup successfully uploaded to Google Drive! File ID: ${gdriveResult.id}`,
-            "success"
-          );
+            // Apply Auto-Retention Policy
+            const retentionDays = config.retentionDays || 49;
+            await this.log(configId, `Running retention cleanup for files older than ${retentionDays} days (${Math.round(retentionDays / 7)} weeks)...`);
+            const cleanupResult = await RcloneService.cleanOldBackups(folderLabel, retentionDays);
+            await this.log(configId, cleanupResult, "info");
+          } else {
+            const authOptions = {
+              authType: (config.googleDriveAuthType as any) || (config.googleDriveOauthRefreshToken ? "oauth2" : "service_account"),
+              serviceAccountJson: config.googleDriveServiceAccount,
+              oauthClientId: config.googleDriveOauthClientId,
+              oauthClientSecret: config.googleDriveOauthClientSecret,
+              oauthRefreshToken: config.googleDriveOauthRefreshToken,
+            };
 
-          // Apply Auto-Retention Policy
-          const retentionDays = config.retentionDays || 49;
-          await this.log(configId, `Running retention cleanup for files older than ${retentionDays} days (${Math.round(retentionDays / 7)} weeks)...`);
-          
-          const cleanup = await GoogleDriveService.cleanOldBackups(
-            authOptions,
-            config.googleDriveFolderId || "",
-            retentionDays
-          );
+            const gdriveResult = await GoogleDriveService.uploadFile(
+              authOptions,
+              config.googleDriveFolderId || "",
+              filePath,
+              fileName
+            );
 
-          if (cleanup.deletedCount > 0) {
             await this.log(
               configId,
-              `Auto-retention cleanup completed: Removed ${cleanup.deletedCount} expired backup file(s) from Google Drive.`,
-              "info"
+              `Backup successfully uploaded to Google Drive! File ID: ${gdriveResult.id}`,
+              "success"
             );
-          } else {
-            await this.log(configId, `Auto-retention checked: No expired backups to delete.`);
+
+            // Apply Auto-Retention Policy
+            const retentionDays = config.retentionDays || 49;
+            await this.log(configId, `Running retention cleanup for files older than ${retentionDays} days (${Math.round(retentionDays / 7)} weeks)...`);
+            
+            const cleanup = await GoogleDriveService.cleanOldBackups(
+              authOptions,
+              config.googleDriveFolderId || "",
+              retentionDays
+            );
+
+            if (cleanup.deletedCount > 0) {
+              await this.log(
+                configId,
+                `Auto-retention cleanup completed: Removed ${cleanup.deletedCount} expired backup file(s) from Google Drive.`,
+                "info"
+              );
+            } else {
+              await this.log(configId, `Auto-retention checked: No expired backups to delete.`);
+            }
           }
         } catch (gdriveErr: any) {
           await this.log(configId, `Google Drive upload failed: ${gdriveErr.message}`, "error");
