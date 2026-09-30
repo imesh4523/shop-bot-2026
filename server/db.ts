@@ -26,10 +26,10 @@ export const pool = new Pool({
   ssl: isLocalhost ? false : {
     rejectUnauthorized: false
   },
-  min: 5,
-  max: 25,
-  idleTimeoutMillis: 300000,
-  connectionTimeoutMillis: 10000
+  min: 2,
+  max: 8,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 5000
 });
 
 // Periodic heartbeat to keep connections permanently warm and eliminate 2-second SSL re-handshakes

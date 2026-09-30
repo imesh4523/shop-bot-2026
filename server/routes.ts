@@ -10407,7 +10407,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
     { text: t(userLang, 'btn_search_catalog'), callback_data: 'search_catalog', style: 'primary', icon_custom_emoji_id: '5231012545799666522' }
   ]);
   inline_keyboard.push([
-    { text: t(userLang, 'btn_back'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    { text: t(userLang, 'btn_back'), callback_data: 'main_menu', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
   ]);
 
   const catalogCaption = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>${t(userLang, 'catalog_title')}</b>\n\n${t(userLang, 'choose_category')}`;
@@ -15942,22 +15942,12 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             const welcomeMsg = await targetBot.sendPhoto(chatId, photoToSend, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: startInlineMarkup,
+              reply_markup: bottomKeyboard,
               message_effect_id: '5046509860389126442'
             });
 
             if (welcomeMsg?.message_id) {
               messageBannerTrackMap.set(`${chatId}_${welcomeMsg.message_id}`, path.basename(bannerPath));
-            }
-
-            // Silently activate persistent bottom keyboard without any finger emoji or Quick Menu text bubble
-            try {
-              await targetBot.sendMessage(chatId, '\u2060', {
-                reply_markup: bottomKeyboard,
-                disable_notification: true
-              });
-            } catch (kbErr: any) {
-              console.warn('[Welcome Keyboard Warning]:', kbErr?.message);
             }
             return;
           } catch (err: any) {
