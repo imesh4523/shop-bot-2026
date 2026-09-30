@@ -15949,6 +15949,16 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             if (welcomeMsg?.message_id) {
               messageBannerTrackMap.set(`${chatId}_${welcomeMsg.message_id}`, path.basename(bannerPath));
             }
+
+            // Silently activate persistent bottom keyboard without any finger emoji or Quick Menu text bubble
+            try {
+              await targetBot.sendMessage(chatId, '\u2060', {
+                reply_markup: bottomKeyboard,
+                disable_notification: true
+              });
+            } catch (kbErr: any) {
+              console.warn('[Welcome Keyboard Warning]:', kbErr?.message);
+            }
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
