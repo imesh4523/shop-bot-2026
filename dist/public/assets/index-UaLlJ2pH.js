@@ -30932,6 +30932,7 @@ const sandromaniaProducts = pgTable("sandromania_products", {
   category: text("category").default("general"),
   bulkPrices: text("bulk_prices"),
   description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -30974,6 +30975,7 @@ const cssxProducts = pgTable("cssx_products", {
   // in cents
   category: text("category").default("general"),
   description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -59556,6 +59558,26 @@ function ProductsPage() {
       });
     }
   });
+  const syncPartnersMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/products/sync-partners");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast2({
+        title: "⚡ Partners Synced Successfully!",
+        description: data.message || `Synced ${data.syncedCount} new, ${data.updatedCount} updated products from API partners.`
+      });
+    },
+    onError: (error) => {
+      toast2({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync products from API partners.",
+        variant: "destructive"
+      });
+    }
+  });
   const filteredProducts = products2?.filter(
     (p2) => p2.name.toLowerCase().includes(search.toLowerCase()) || p2.type.toLowerCase().includes(search.toLowerCase())
   ) || [];
@@ -59563,9 +59585,22 @@ function ProductsPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-black text-white tracking-tighter drop-shadow-2xl", children: "Products" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm font-medium", children: "Manage your cloud account inventory." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 text-sm font-medium", children: "Manage your cloud account inventory & partner products." })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            variant: "outline",
+            onClick: () => syncPartnersMutation.mutate(),
+            disabled: syncPartnersMutation.isPending,
+            className: "h-11 px-5 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-300 font-black text-xs uppercase tracking-widest hover:bg-purple-500/20 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/10",
+            children: [
+              syncPartnersMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "h-4 w-4 animate-spin text-purple-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-4 w-4 text-purple-400" }),
+              "Sync Partner Products"
+            ]
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CreateProductDialog, { open: isCreateOpen, onOpenChange: setIsCreateOpen }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Button,
@@ -75298,7 +75333,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-75Ap74vT.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-C1Neiagg.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -107093,6 +107128,13 @@ function MiniAppShopModern() {
     }, 1e3);
     return () => clearInterval(timer);
   }, [resendTimer]);
+  const telegramPhotoUrl = reactExports.useMemo(() => {
+    if (typeof window !== "undefined") {
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.photo_url) return tgUser.photo_url;
+    }
+    return null;
+  }, []);
   const { data: user, isLoading: userLoading, refetch: refetchUser } = useQuery({
     queryKey: ["/api/mini/user"],
     queryFn: async () => {
@@ -107122,6 +107164,7 @@ function MiniAppShopModern() {
       return void 0;
     }
   });
+  const effectiveAvatarUrl = user?.avatarUrl || telegramPhotoUrl || null;
   const { data: products2 = [], isLoading: productsLoading } = useQuery({
     queryKey: ["/api/mini/products"],
     queryFn: async () => {
@@ -108619,7 +108662,7 @@ ${finalDetails}`;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
     const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
-    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr : userBalCents >= totalCents;
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
       const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
@@ -108709,7 +108752,7 @@ ${finalDetails}`;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
     const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
-    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+    const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr : userBalCents >= totalCents;
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
       const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
@@ -108857,7 +108900,7 @@ ${finalDetails}`;
       neededLkr = Math.round(finalPriceCents / 100 * lkrRate);
     }
     const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.floor(userBalanceCents / 100 * lkrRate);
-    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= neededLkr || userBalanceCents >= finalPriceCents : userBalanceCents >= finalPriceCents || userBalanceLkr >= neededLkr;
+    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= neededLkr : userBalanceCents >= finalPriceCents;
     if (!hasEnough) {
       const shortfallCents = Math.max(0, finalPriceCents - userBalanceCents);
       const shortfallUsd = parseFloat((shortfallCents / 100).toFixed(2));
@@ -108963,7 +109006,7 @@ ${finalDetails}`;
     const userBalanceCents = user?.balance || 0;
     const userBalanceUsd = userBalanceCents / 100;
     const userBalanceLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalanceCents / 100 * lkrRate);
-    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= totalLkr || userBalanceCents >= totalCents : userBalanceCents >= totalCents || userBalanceLkr >= totalLkr;
+    const hasEnough = selectedCurrency === "LKR" ? userBalanceLkr >= totalLkr : userBalanceCents >= totalCents;
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalanceLkr);
       const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
@@ -109278,10 +109321,10 @@ ${lines}`;
             {
               onClick: () => setActiveTab("profile"),
               className: "w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform",
-              children: user?.avatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              children: effectiveAvatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "img",
                 {
-                  src: user.avatarUrl,
+                  src: effectiveAvatarUrl,
                   alt: displayName,
                   className: "w-full h-full object-cover",
                   onError: (e3) => {
@@ -110953,10 +110996,10 @@ ${lines}`;
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 text-center shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" }),
-            user?.avatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            effectiveAvatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
               "img",
               {
-                src: user.avatarUrl,
+                src: effectiveAvatarUrl,
                 alt: displayName,
                 className: "w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3"
               }
@@ -112180,7 +112223,7 @@ ${lines}`;
           const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
           const userBalCents = user?.balance || 0;
           const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
-          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr : userBalCents >= totalCents;
           const isFav = favorites.includes(detailSandromaniaProduct.id);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
@@ -112358,7 +112401,7 @@ ${lines}`;
           const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
           const userBalCents = user?.balance || 0;
           const userBalLkr = user?.balanceLkr != null && user.balanceLkr >= 0 ? Number(user.balanceLkr) : Math.round(userBalCents / 100 * lkrRate);
-          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr || userBalCents >= totalCents : userBalCents >= totalCents || userBalLkr >= totalLkr;
+          const hasEnough = selectedCurrency === "LKR" ? userBalLkr >= totalLkr : userBalCents >= totalCents;
           const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
@@ -114821,6 +114864,7 @@ function SandromaniaPage() {
   const [editIsActive, setEditIsActive] = reactExports.useState(true);
   const [editShowOnTelegram, setEditShowOnTelegram] = reactExports.useState(false);
   const [editTelegramPriceUsd, setEditTelegramPriceUsd] = reactExports.useState("");
+  const [editCustomEmojiId, setEditCustomEmojiId] = reactExports.useState("");
   const [importSearch, setImportSearch] = reactExports.useState("");
   const [markupPercent, setMarkupPercent] = reactExports.useState(40);
   const [selectedProductsToImport, setSelectedProductsToImport] = reactExports.useState([]);
@@ -115014,6 +115058,7 @@ function SandromaniaPage() {
     setEditIsActive(prod.isActive !== false);
     setEditShowOnTelegram(Boolean(prod.showOnTelegram));
     setEditTelegramPriceUsd(prod.telegramPriceUsd ? (prod.telegramPriceUsd / 100).toFixed(2) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditCustomEmojiId(prod.customEmojiId || "");
   };
   const handleSaveEdit = () => {
     if (!editingProduct) return;
@@ -115046,7 +115091,8 @@ function SandromaniaPage() {
         category: editCategory.trim(),
         isActive: editIsActive,
         showOnTelegram: editShowOnTelegram,
-        telegramPriceUsd: tgPriceCents
+        telegramPriceUsd: tgPriceCents,
+        customEmojiId: editCustomEmojiId.trim() || null
       }
     });
   };
@@ -115319,9 +115365,15 @@ function SandromaniaPage() {
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-sm font-black text-white line-clamp-2 mb-1 drop-shadow-xs", children: prod.title }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-muted-foreground block mb-3", children: [
-                    "External ID: #",
-                    prod.externalProductId
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-3", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-muted-foreground", children: [
+                      "External ID: #",
+                      prod.externalProductId
+                    ] }),
+                    prod.customEmojiId && /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "border-purple-500/40 bg-purple-500/10 text-purple-300 text-[9px] font-mono px-1.5 py-0.2", children: [
+                      "✨ Emoji: ",
+                      prod.customEmojiId
+                    ] })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-xl border text-center mb-4", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -115848,6 +115900,20 @@ function SandromaniaPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-muted-foreground mt-0.5 block", children: "Special price used exclusively when customers browse and purchase via Telegram (USD only)." })
           ] })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-purple-300 block mb-1", children: "✨ Telegram Custom Emoji ID" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "text",
+              placeholder: "e.g. 5409048419211682843",
+              value: editCustomEmojiId,
+              onChange: (e3) => setEditCustomEmojiId(e3.target.value),
+              className: "font-mono text-xs rounded-xl border-purple-500/30 bg-purple-950/20 text-white"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 mt-0.5 block", children: "Telegram Custom Emoji ID for rich custom icon in Telegram WebApp & Bot" })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold block", children: "Active in Store" }),
@@ -115917,6 +115983,7 @@ function CssxApiPage() {
   const [editIsActive, setEditIsActive] = reactExports.useState(true);
   const [editShowOnTelegram, setEditShowOnTelegram] = reactExports.useState(false);
   const [editTelegramPriceUsd, setEditTelegramPriceUsd] = reactExports.useState("");
+  const [editCustomEmojiId, setEditCustomEmojiId] = reactExports.useState("");
   const [importSearch, setImportSearch] = reactExports.useState("");
   const [markupPercent, setMarkupPercent] = reactExports.useState(40);
   const [selectedProductsToImport, setSelectedProductsToImport] = reactExports.useState([]);
@@ -116136,6 +116203,7 @@ function CssxApiPage() {
     setEditIsActive(prod.isActive !== false);
     setEditShowOnTelegram(Boolean(prod.showOnTelegram));
     setEditTelegramPriceUsd(prod.telegramPriceUsd ? (prod.telegramPriceUsd / 100).toFixed(2) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditCustomEmojiId(prod.customEmojiId || "");
   };
   const handleSaveEdit = () => {
     if (!editingProduct) return;
@@ -116164,7 +116232,8 @@ function CssxApiPage() {
         description: editDescription,
         isActive: editIsActive,
         showOnTelegram: editShowOnTelegram,
-        telegramPriceUsd: tgPriceCents
+        telegramPriceUsd: tgPriceCents,
+        customEmojiId: editCustomEmojiId.trim() || null
       }
     });
   };
@@ -116518,6 +116587,10 @@ function CssxApiPage() {
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] font-mono text-purple-400/60", children: [
                         "CSX #",
                         p2.serviceId
+                      ] }),
+                      p2.customEmojiId && /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "border-purple-500/40 bg-purple-500/10 text-purple-300 text-[9px] font-mono px-1.5 py-0.2", children: [
+                        "✨ Emoji: ",
+                        p2.customEmojiId
                       ] }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs(
                         "div",
@@ -117004,6 +117077,20 @@ function CssxApiPage() {
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 mt-0.5 block", children: "Special price used exclusively when customers browse and purchase via Telegram (USD only)." })
           ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "text-xs font-bold text-purple-300 block mb-1", children: "✨ Telegram Custom Emoji ID" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "text",
+              placeholder: "e.g. 5409048419211682843",
+              value: editCustomEmojiId,
+              onChange: (e3) => setEditCustomEmojiId(e3.target.value),
+              className: "font-mono text-xs rounded-xl border-purple-500/30 bg-purple-950/20 text-white"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 mt-0.5 block", children: "Telegram Custom Emoji ID for rich custom icon in Telegram WebApp & Bot" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-3 rounded-xl bg-muted/40 border", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [

@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreHorizontal, Trash, Search, Server, Cloud, Shield, Copy, Key, Loader2, Trash2, Edit2, Megaphone, MessageSquare } from "lucide-react";
+import { Plus, MoreHorizontal, Trash, Search, Server, Cloud, Shield, Copy, Key, Loader2, Trash2, Edit2, Megaphone, MessageSquare, RefreshCw, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -222,6 +222,27 @@ export default function ProductsPage() {
     }
   });
 
+  const syncPartnersMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/products/sync-partners");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({
+        title: "⚡ Partners Synced Successfully!",
+        description: data.message || `Synced ${data.syncedCount} new, ${data.updatedCount} updated products from API partners.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Sync Failed", 
+        description: error.message || "Failed to sync products from API partners.", 
+        variant: "destructive" 
+      });
+    }
+  });
+
   const filteredProducts = products?.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.type.toLowerCase().includes(search.toLowerCase())
@@ -234,9 +255,22 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-black text-white tracking-tighter drop-shadow-2xl">
             Products
           </h1>
-          <p className="text-white/40 text-sm font-medium">Manage your cloud account inventory.</p>
+          <p className="text-white/40 text-sm font-medium">Manage your cloud account inventory & partner products.</p>
         </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => syncPartnersMutation.mutate()}
+              disabled={syncPartnersMutation.isPending}
+              className="h-11 px-5 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-300 font-black text-xs uppercase tracking-widest hover:bg-purple-500/20 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/10"
+            >
+              {syncPartnersMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+              ) : (
+                <RefreshCw className="h-4 w-4 text-purple-400" />
+              )}
+              Sync Partner Products
+            </Button>
             <CreateProductDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
             <Button 
               variant="outline"

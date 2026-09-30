@@ -1302,6 +1302,42 @@ export async function registerRoutes(
     }
   };
 
+  const syncTelegramAvatar = async (telegramId: string | number): Promise<string | null> => {
+    try {
+      const tgIdStr = telegramId.toString();
+      if (!/^\d+$/.test(tgIdStr)) return null;
+      const avatarFilename = `tg_${tgIdStr}.jpg`;
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const avatarPath = path.join(uploadsDir, avatarFilename);
+
+      if (fs.existsSync(avatarPath)) {
+        return `/uploads/${avatarFilename}`;
+      }
+
+      const activeBot = (typeof bot !== "undefined" && bot) ? bot : (await getBotToken() ? new TelegramBot((await getBotToken())!) : null);
+      if (!activeBot) return null;
+
+      const photos = await activeBot.getUserProfilePhotos(Number(tgIdStr), { limit: 1 });
+      if (photos && photos.total_count > 0 && photos.photos[0]?.length > 0) {
+        const bestPhoto = photos.photos[0][photos.photos[0].length - 1];
+        const fileLink = await activeBot.getFileLink(bestPhoto.file_id);
+        if (fileLink) {
+          const resp = await axios.get(fileLink, { responseType: 'arraybuffer', timeout: 5000 });
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          await fs.promises.writeFile(avatarPath, resp.data);
+          const localUrl = `/uploads/${avatarFilename}`;
+          await db.update(telegramUsers).set({ avatarUrl: localUrl }).where(eq(telegramUsers.telegramId, tgIdStr));
+          return localUrl;
+        }
+      }
+    } catch (e) {
+      // Ignore avatar fetch errors
+    }
+    return null;
+  };
+
   /**
    * Telegram Mini App & Web Customer Authentication Middleware
    * Verifies the initData sent from the Telegram Mini App using BOT_TOKEN,
@@ -1399,13 +1435,21 @@ export async function registerRoutes(
               username: userData.username || "",
               firstName: userData.first_name || "",
               lastName: userData.last_name || "",
+              avatarUrl: userData.photo_url || null,
               balance: 0,
               lastAction: null
             });
+          } else if (userData.photo_url && !dbUser.avatarUrl) {
+            await storage.updateTelegramUser(dbUser.id, { avatarUrl: userData.photo_url });
+            dbUser.avatarUrl = userData.photo_url;
           }
           (req as any).tgUser.dbUser = dbUser;
           if (req.session && dbUser?.id) {
             (req.session as any).customerUserId = dbUser.id;
+          }
+          // Background sync Telegram profile avatar if not set yet
+          if (!dbUser.avatarUrl && userData.id) {
+            syncTelegramAvatar(userData.id).catch(() => {});
           }
         } catch (e) {
           console.error("Error auto-resolving Telegram user in verifyMiniAppAuth:", e);
@@ -1876,6 +1920,10 @@ export async function registerRoutes(
       if (req.session && tgUser.dbUser.id) {
         (req.session as any).customerUserId = tgUser.dbUser.id;
       }
+      if (!tgUser.dbUser.avatarUrl && tgUser.dbUser.telegramId && /^\d+$/.test(tgUser.dbUser.telegramId)) {
+        const pic = await syncTelegramAvatar(tgUser.dbUser.telegramId);
+        if (pic) tgUser.dbUser.avatarUrl = pic;
+      }
       return res.json({
         ...tgUser.dbUser,
         isLoggedIn: true,
@@ -1891,9 +1939,14 @@ export async function registerRoutes(
         username: tgUser.username || "",
         firstName: tgUser.first_name || "",
         lastName: tgUser.last_name || "",
+        avatarUrl: tgUser.photo_url || null,
         balance: 0,
         lastAction: null
       });
+    }
+    if (!user.avatarUrl && user.telegramId && /^\d+$/.test(user.telegramId)) {
+      const pic = await syncTelegramAvatar(user.telegramId);
+      if (pic) user.avatarUrl = pic;
     }
     if (req.session && user?.id) {
       (req.session as any).customerUserId = user.id;
@@ -5623,6 +5676,104 @@ app.delete(api.products.delete.path, isAuth, async (req, res) => {
   res.status(204).send();
 });
 
+// Sync API Partners' products (CSxStore & Sandromania) into main products catalog
+app.post("/api/admin/products/sync-partners", isAuth, async (req, res) => {
+  try {
+    const rates = await fetchLiveExchangeRates();
+    const lkrRate = rates.LKR || 305.50;
+
+    const activeCssx = await db.select().from(cssxProducts).where(eq(cssxProducts.isActive, true));
+    const activeSandro = await db.select().from(sandromaniaProducts).where(eq(sandromaniaProducts.isActive, true));
+
+    const existingProducts = await db.select().from(products);
+    let syncedCount = 0;
+    let updatedCount = 0;
+
+    // 1. Sync CSxStore Products
+    for (const cp of activeCssx) {
+      const existing = existingProducts.find(p => 
+        p.name.trim().toLowerCase() === cp.title.trim().toLowerCase() ||
+        (p.description && p.description.includes(`CSX-${cp.serviceId}`))
+      );
+
+      const priceUsd = cp.sellingPriceUsd || 0;
+      const priceLkr = cp.sellingPriceLkr || Math.round((priceUsd / 100) * lkrRate);
+      const cat = cp.category || "Digital Licenses";
+
+      if (existing) {
+        await db.update(products).set({
+          price: priceUsd,
+          priceLkr: priceLkr,
+          customEmojiId: cp.customEmojiId || existing.customEmojiId || null,
+          status: cp.stock > 0 && cp.available ? "available" : "sold",
+          type: cat,
+        }).where(eq(products.id, existing.id));
+        updatedCount++;
+      } else {
+        await db.insert(products).values({
+          name: cp.title,
+          type: cat,
+          price: priceUsd,
+          priceLkr: priceLkr,
+          description: cp.description || `Auto-synced from CSxStore (ID: CSX-${cp.serviceId})`,
+          customEmojiId: cp.customEmojiId || null,
+          status: cp.stock > 0 && cp.available ? "available" : "sold",
+          isPreorderEnabled: false,
+          preorderQuota: 50,
+        });
+        syncedCount++;
+      }
+    }
+
+    // 2. Sync Sandromania Products
+    for (const sp of activeSandro) {
+      const existing = existingProducts.find(p => 
+        p.name.trim().toLowerCase() === sp.title.trim().toLowerCase() ||
+        (p.description && p.description.includes(`SANDRO-${sp.externalProductId}`))
+      );
+
+      const priceUsd = sp.sellingPriceUsd || 0;
+      const priceLkr = sp.sellingPriceLkr || Math.round((priceUsd / 100) * lkrRate);
+      const cat = sp.category || "Digital Accounts";
+
+      if (existing) {
+        await db.update(products).set({
+          price: priceUsd,
+          priceLkr: priceLkr,
+          customEmojiId: sp.customEmojiId || existing.customEmojiId || null,
+          status: sp.stock > 0 && sp.available ? "available" : "sold",
+          type: cat,
+        }).where(eq(products.id, existing.id));
+        updatedCount++;
+      } else {
+        await db.insert(products).values({
+          name: sp.title,
+          type: cat,
+          price: priceUsd,
+          priceLkr: priceLkr,
+          description: sp.description || `Auto-synced from Sandromania (ID: SANDRO-${sp.externalProductId})`,
+          customEmojiId: sp.customEmojiId || null,
+          status: sp.stock > 0 && sp.available ? "available" : "sold",
+          isPreorderEnabled: false,
+          preorderQuota: 50,
+        });
+        syncedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      syncedCount,
+      updatedCount,
+      totalPartnerProducts: activeCssx.length + activeSandro.length,
+      message: `Partner Sync Successful: ${syncedCount} new added, ${updatedCount} updated from CSxStore & Sandromania.`
+    });
+  } catch (err: any) {
+    console.error("[Sync Partner Products Error]:", err);
+    res.status(500).json({ message: err.message || "Failed to sync partner products" });
+  }
+});
+
 app.get("/api/products/:productId/credentials", isAuth, async (req, res) => {
   const productId = Number(req.params.productId);
   const credentialsList = await storage.getCredentialsByProduct(productId);
@@ -6957,7 +7108,7 @@ app.get("/api/admin/sandromania/products", isAuth, async (req, res) => {
 app.put("/api/admin/sandromania/products/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd } = req.body;
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd, customEmojiId } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
@@ -6970,6 +7121,7 @@ app.put("/api/admin/sandromania/products/:id", isAuth, async (req, res) => {
     if (title !== undefined) updates.title = title;
     if (category !== undefined) updates.category = category;
     if (description !== undefined) updates.description = description;
+    if (customEmojiId !== undefined) updates.customEmojiId = customEmojiId ? String(customEmojiId).trim() : null;
 
     const [updated] = await db
       .update(sandromaniaProducts)
@@ -7282,7 +7434,7 @@ app.get("/api/admin/cssx/products", isAuth, async (req, res) => {
 app.put("/api/admin/cssx/products/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd } = req.body;
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd, customEmojiId } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (sellingPriceUsd !== undefined) updates.sellingPriceUsd = parseInt(sellingPriceUsd);
@@ -7295,6 +7447,7 @@ app.put("/api/admin/cssx/products/:id", isAuth, async (req, res) => {
     if (title !== undefined) updates.title = title;
     if (category !== undefined) updates.category = category;
     if (description !== undefined) updates.description = description;
+    if (customEmojiId !== undefined) updates.customEmojiId = customEmojiId ? String(customEmojiId).trim() : null;
 
     const [updated] = await db
       .update(cssxProducts)
@@ -7546,19 +7699,29 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         : await tx.select().from(telegramUsers).where(eq(telegramUsers.telegramId, tgUser.id.toString())).for('update');
 
       if (!u) throw new Error("User account not found.");
-      const hasEnough = (u.balanceLkr != null && u.balanceLkr >= totalLkr) || u.balance >= totalCents;
-      if (!hasEnough) {
+      const effBalCents = u.balance != null ? u.balance : (u.balanceLkr ? Math.round((u.balanceLkr / lkrRate) * 100) : 0);
+      const effBalLkr = u.balanceLkr != null && u.balanceLkr >= 0 ? u.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
+
+      const isUsdOrder = req.body.platform === 'telegram' || req.body.currency === 'USD' || Boolean(req.headers['x-telegram-init-data']);
+      const hasEnough = isUsdOrder
+        ? effBalCents >= totalCents
+        : (effBalLkr >= totalLkr || effBalCents >= totalCents);
+
+      if (!hasEnough || effBalCents < totalCents) {
         throw new Error(
-          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(u.balanceLkr ?? Math.round(((u.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((u.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
-      // Deduct balance
+      // Deduct balance and ensure 100% synchronization
+      const remainingCents = Math.max(0, effBalCents - totalCents);
+      const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
+
       const [updatedUser] = await tx
         .update(telegramUsers)
         .set({
-          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${totalCents})`,
-          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${totalLkr}) ELSE NULL END`
+          balance: remainingCents,
+          balanceLkr: remainingLkr
         })
         .where(
           and(
@@ -7919,21 +8082,43 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       const lkrRate = rates.LKR || 305.50;
       const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
 
-      const hasEnough = (user.balanceLkr != null && user.balanceLkr >= totalLkr) || user.balance >= totalCents;
-      if (!hasEnough) {
+      const effBalCents = user.balance != null ? user.balance : (user.balanceLkr ? Math.round((user.balanceLkr / lkrRate) * 100) : 0);
+      const effBalLkr = user.balanceLkr != null && user.balanceLkr >= 0 ? user.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
+
+      const hasEnough = isTelegramOrder
+        ? effBalCents >= totalCents
+        : (effBalLkr >= totalLkr || effBalCents >= totalCents);
+
+      if (!hasEnough || effBalCents < totalCents) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${(user.balanceLkr ?? Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}).`
+          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
-      // Deduct balance in BOTH USD and LKR
-      await tx
+      // Deduct balance and ensure 100% synchronization
+      const remainingCents = Math.max(0, effBalCents - totalCents);
+      const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
+
+      const [updatedUser] = await tx
         .update(telegramUsers)
         .set({
-          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${totalCents})`,
-          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${totalLkr}) ELSE NULL END`
+          balance: remainingCents,
+          balanceLkr: remainingLkr
         })
-        .where(eq(telegramUsers.id, user.id));
+        .where(
+          and(
+            eq(telegramUsers.id, user.id),
+            or(
+              gte(telegramUsers.balance, totalCents),
+              gte(telegramUsers.balanceLkr, totalLkr)
+            )
+          )
+        )
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error("Transaction conflict or insufficient wallet balance.");
+      }
 
       // Place order via CSxStore API
       let orderRes: any = null;

@@ -99,6 +99,7 @@ export default function CssxApiPage() {
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [editShowOnTelegram, setEditShowOnTelegram] = useState<boolean>(false);
   const [editTelegramPriceUsd, setEditTelegramPriceUsd] = useState<string>("");
+  const [editCustomEmojiId, setEditCustomEmojiId] = useState<string>("");
 
   // Import Modal State
   const [importSearch, setImportSearch] = useState("");
@@ -344,6 +345,7 @@ export default function CssxApiPage() {
     setEditIsActive(prod.isActive !== false);
     setEditShowOnTelegram(Boolean(prod.showOnTelegram));
     setEditTelegramPriceUsd(prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditCustomEmojiId(prod.customEmojiId || "");
   };
 
   const handleSaveEdit = () => {
@@ -378,6 +380,7 @@ export default function CssxApiPage() {
         isActive: editIsActive,
         showOnTelegram: editShowOnTelegram,
         telegramPriceUsd: tgPriceCents,
+        customEmojiId: editCustomEmojiId.trim() || null,
       },
     });
   };
@@ -740,6 +743,11 @@ export default function CssxApiPage() {
                         </Badge>
                         <div className="flex items-center gap-1.5 flex-wrap justify-end">
                           <span className="text-[10px] font-mono text-purple-400/60">CSX #{p.serviceId}</span>
+                          {p.customEmojiId && (
+                            <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 text-[9px] font-mono px-1.5 py-0.2">
+                              ✨ Emoji: {p.customEmojiId}
+                            </Badge>
+                          )}
 
                           {/* Quick Toggle: Show in Telegram */}
                           <div 
@@ -1269,6 +1277,23 @@ export default function CssxApiPage() {
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Custom Emoji ID */}
+              <div>
+                <label className="text-xs font-bold text-purple-300 block mb-1">
+                  ✨ Telegram Custom Emoji ID
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 5409048419211682843"
+                  value={editCustomEmojiId}
+                  onChange={(e) => setEditCustomEmojiId(e.target.value)}
+                  className="font-mono text-xs rounded-xl border-purple-500/30 bg-purple-950/20 text-white"
+                />
+                <span className="text-[10px] text-purple-200/60 mt-0.5 block">
+                  Telegram Custom Emoji ID for rich custom icon in Telegram WebApp & Bot
+                </span>
               </div>
 
               {/* Active Switch */}

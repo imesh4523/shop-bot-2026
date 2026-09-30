@@ -1497,6 +1497,14 @@ export default function MiniAppShopModern() {
   }, [resendTimer]);
 
   // Queries
+  const telegramPhotoUrl = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+      if (tgUser?.photo_url) return tgUser.photo_url;
+    }
+    return null;
+  }, []);
+
   const { data: user, isLoading: userLoading, refetch: refetchUser } = useQuery<TelegramUser & { isLoggedIn?: boolean }>({
     queryKey: ["/api/mini/user"],
     queryFn: async () => {
@@ -1522,6 +1530,8 @@ export default function MiniAppShopModern() {
       return undefined;
     },
   });
+
+  const effectiveAvatarUrl = user?.avatarUrl || telegramPhotoUrl || null;
 
   const { data: products = [], isLoading: productsLoading } = useQuery<(Product & { stockCount?: number })[]>({
     queryKey: ["/api/mini/products"],
@@ -3347,8 +3357,8 @@ Support: https://t.me/youuhost_support
       : Math.round((userBalCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
-      : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+      ? (userBalLkr >= totalLkr)
+      : (userBalCents >= totalCents);
 
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
@@ -3460,8 +3470,8 @@ Support: https://t.me/youuhost_support
       : Math.round((userBalCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
-      : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+      ? (userBalLkr >= totalLkr)
+      : (userBalCents >= totalCents);
 
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
@@ -3638,8 +3648,8 @@ Support: https://t.me/youuhost_support
       : Math.floor((userBalanceCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalanceLkr >= neededLkr || userBalanceCents >= finalPriceCents)
-      : (userBalanceCents >= finalPriceCents || userBalanceLkr >= neededLkr);
+      ? (userBalanceLkr >= neededLkr)
+      : (userBalanceCents >= finalPriceCents);
 
     if (!hasEnough) {
       // 1. Calculate shortfall in USD
@@ -3769,8 +3779,8 @@ Support: https://t.me/youuhost_support
       : Math.round((userBalanceCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalanceLkr >= totalLkr || userBalanceCents >= totalCents)
-      : (userBalanceCents >= totalCents || userBalanceLkr >= totalLkr);
+      ? (userBalanceLkr >= totalLkr)
+      : (userBalanceCents >= totalCents);
 
     if (!hasEnough) {
       const shortfallLkr = Math.max(0, totalLkr - userBalanceLkr);
@@ -4144,9 +4154,9 @@ Support: https://t.me/youuhost_support
               onClick={() => setActiveTab("profile")}
               className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
             >
-              {user?.avatarUrl ? (
+              {effectiveAvatarUrl ? (
                 <img
-                  src={user.avatarUrl}
+                  src={effectiveAvatarUrl}
                   alt={displayName}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -6156,9 +6166,9 @@ Support: https://t.me/youuhost_support
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" />
 
                   {/* Avatar */}
-                  {user?.avatarUrl ? (
+                  {effectiveAvatarUrl ? (
                     <img
-                      src={user.avatarUrl}
+                      src={effectiveAvatarUrl}
                       alt={displayName}
                       className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3"
                     />
@@ -7598,8 +7608,8 @@ Support: https://t.me/youuhost_support
               ? Number((user as any).balanceLkr)
               : Math.round((userBalCents / 100) * lkrRate);
             const hasEnough = selectedCurrency === "LKR"
-              ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
-              : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+              ? (userBalLkr >= totalLkr)
+              : (userBalCents >= totalCents);
             const isFav = favorites.includes(detailSandromaniaProduct.id);
 
             return (
@@ -7796,8 +7806,8 @@ Support: https://t.me/youuhost_support
               ? Number((user as any).balanceLkr)
               : Math.round((userBalCents / 100) * lkrRate);
             const hasEnough = selectedCurrency === "LKR"
-              ? (userBalLkr >= totalLkr || userBalCents >= totalCents)
-              : (userBalCents >= totalCents || userBalLkr >= totalLkr);
+              ? (userBalLkr >= totalLkr)
+              : (userBalCents >= totalCents);
             const isFav = favorites.includes(`cssx_${detailCssxProduct.id}`);
 
             return (

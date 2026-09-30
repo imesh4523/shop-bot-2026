@@ -103,6 +103,7 @@ export default function SandromaniaPage() {
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [editShowOnTelegram, setEditShowOnTelegram] = useState<boolean>(false);
   const [editTelegramPriceUsd, setEditTelegramPriceUsd] = useState<string>("");
+  const [editCustomEmojiId, setEditCustomEmojiId] = useState<string>("");
 
   // Import Modal State
   const [importSearch, setImportSearch] = useState("");
@@ -320,6 +321,7 @@ export default function SandromaniaPage() {
     setEditIsActive(prod.isActive !== false);
     setEditShowOnTelegram(Boolean(prod.showOnTelegram));
     setEditTelegramPriceUsd(prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
+    setEditCustomEmojiId(prod.customEmojiId || "");
   };
 
   const handleSaveEdit = () => {
@@ -359,6 +361,7 @@ export default function SandromaniaPage() {
         isActive: editIsActive,
         showOnTelegram: editShowOnTelegram,
         telegramPriceUsd: tgPriceCents,
+        customEmojiId: editCustomEmojiId.trim() || null,
       },
     });
   };
@@ -652,9 +655,16 @@ export default function SandromaniaPage() {
                       </div>
 
                       <h4 className="text-sm font-black text-white line-clamp-2 mb-1 drop-shadow-xs">{prod.title}</h4>
-                      <span className="text-[10px] font-mono text-muted-foreground block mb-3">
-                        External ID: #{prod.externalProductId}
-                      </span>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          External ID: #{prod.externalProductId}
+                        </span>
+                        {prod.customEmojiId && (
+                          <Badge variant="outline" className="border-purple-500/40 bg-purple-500/10 text-purple-300 text-[9px] font-mono px-1.5 py-0.2">
+                            ✨ Emoji: {prod.customEmojiId}
+                          </Badge>
+                        )}
+                      </div>
 
                       {/* Pricing Breakdown Grid */}
                       <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-xl border text-center mb-4">
@@ -1180,6 +1190,23 @@ export default function SandromaniaPage() {
                 </div>
               )}
             </div>
+
+            {/* Custom Emoji ID */}
+              <div>
+                <label className="text-xs font-bold text-purple-300 block mb-1">
+                  ✨ Telegram Custom Emoji ID
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 5409048419211682843"
+                  value={editCustomEmojiId}
+                  onChange={(e) => setEditCustomEmojiId(e.target.value)}
+                  className="font-mono text-xs rounded-xl border-purple-500/30 bg-purple-950/20 text-white"
+                />
+                <span className="text-[10px] text-purple-200/60 mt-0.5 block">
+                  Telegram Custom Emoji ID for rich custom icon in Telegram WebApp & Bot
+                </span>
+              </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border">
               <div>
