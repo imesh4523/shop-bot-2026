@@ -7,7 +7,24 @@ export const getTelegramWebApp = () => {
 
 export const getTelegramInitData = () => {
   const webApp = getTelegramWebApp();
-  return webApp?.initData || "";
+  if (webApp?.initData && webApp.initData.trim() !== '') {
+    return webApp.initData;
+  }
+  if (typeof window !== 'undefined') {
+    // 1. Check window.location.hash for tgWebAppData
+    const hash = window.location.hash;
+    if (hash && hash.includes('tgWebAppData=')) {
+      const match = hash.match(/tgWebAppData=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    // 2. Check window.location.search for tgWebAppData
+    const search = window.location.search;
+    if (search && search.includes('tgWebAppData=')) {
+      const match = search.match(/tgWebAppData=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+  }
+  return "";
 };
 
 export const getTelegramUser = () => {

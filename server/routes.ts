@@ -1390,6 +1390,28 @@ export async function registerRoutes(
       const userData = JSON.parse(urlParams.get('user') || '{}');
       (req as any).tgUser = userData;
 
+      if (userData.id) {
+        try {
+          let dbUser = await storage.getTelegramUser(userData.id.toString());
+          if (!dbUser) {
+            dbUser = await storage.createTelegramUser({
+              telegramId: userData.id.toString(),
+              username: userData.username || "",
+              firstName: userData.first_name || "",
+              lastName: userData.last_name || "",
+              balance: 0,
+              lastAction: null
+            });
+          }
+          (req as any).tgUser.dbUser = dbUser;
+          if (req.session && dbUser?.id) {
+            (req.session as any).customerUserId = dbUser.id;
+          }
+        } catch (e) {
+          console.error("Error auto-resolving Telegram user in verifyMiniAppAuth:", e);
+        }
+      }
+
       next();
     } catch (err) {
       console.error("MiniApp Auth Error:", err);
@@ -1851,9 +1873,13 @@ export async function registerRoutes(
     }
 
     if (tgUser.dbUser) {
+      if (req.session && tgUser.dbUser.id) {
+        (req.session as any).customerUserId = tgUser.dbUser.id;
+      }
       return res.json({
         ...tgUser.dbUser,
-        isLoggedIn: true
+        isLoggedIn: true,
+        token: generateCustomerToken(tgUser.dbUser.id)
       });
     }
 
@@ -1869,9 +1895,13 @@ export async function registerRoutes(
         lastAction: null
       });
     }
+    if (req.session && user?.id) {
+      (req.session as any).customerUserId = user.id;
+    }
     res.json({
       ...user,
-      isLoggedIn: true
+      isLoggedIn: true,
+      token: generateCustomerToken(user.id)
     });
   });
 
@@ -10287,18 +10317,20 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
 
   const currCurrency = (userToDisplay as any)?.selectedCurrency || "USD";
   const userBalNum = userToDisplay.balance / 100;
+  const balanceUSD = userBalNum.toFixed(2);
+  const refBalance = (((userToDisplay as any)?.referralBalance || 0) / 100).toFixed(2);
   const { formatted: convertedBal } = formatPriceInCurrency(userBalNum, currCurrency);
   const balanceText = currCurrency === 'USD' ? `${balanceUSD} USD` : `${balanceUSD} USD (${convertedBal})`;
 
-  const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
+  const profileCaption = `👤 <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
     `<tg-emoji emoji-id="5424746623462823358">🏅</tg-emoji> Status: ${statusText}\n` +
-    `<tg-emoji emoji-id="5429518319243775957">💵</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n` +
-    `<tg-emoji emoji-id="5429518319243775957">💱</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
-    `<tg-emoji emoji-id="5208604387156448480">👥</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
+    `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💲</tg-emoji>\n` +
+    `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> Price currency: <b>${currCurrency}</b>\n` +
+    `<tg-emoji emoji-id="5208604387156448480">👤</tg-emoji> Referral balance: <b>${refBalance} USDT</b>\n` +
     `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> Purchases completed: <b>${userPurchases}</b>\n` +
-    `<tg-emoji emoji-id="6113971389935391397">🎟</tg-emoji> Promo code: <b>${promoCodeText}</b>\n` +
-    `<tg-emoji emoji-id="5850383023572259486">📊</tg-emoji> Total spent: <b>$${totalSpentUSD.toFixed(2)} USD</b>`;
+    `<tg-emoji emoji-id="6113971389935391397">🍰</tg-emoji> Promo code: <b>${promoCodeText}</b>\n` +
+    `Total spent: <b>$${totalSpentUSD.toFixed(2)} USD</b>`;
 
   const profileInlineKeyboard = {
     inline_keyboard: [
@@ -15942,7 +15974,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             const welcomeMsg = await targetBot.sendPhoto(chatId, photoToSend, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
-              reply_markup: bottomKeyboard,
+              reply_markup: startInlineMarkup,
               message_effect_id: '5046509860389126442'
             });
 
@@ -15956,7 +15988,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
         await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
-          reply_markup: bottomKeyboard,
+          reply_markup: startInlineMarkup,
           message_effect_id: '5046509860389126442'
         });
       };
