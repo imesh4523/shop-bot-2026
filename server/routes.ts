@@ -10032,19 +10032,42 @@ const invalidateCatalogCache = () => {
   catalogDataCache.cachedAt = 0;
 };
 
-const getPersistentBottomKeyboard = () => ({
-  keyboard: [
-    [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-    [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
-    [
-      { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
-      { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
-    ]
-  ],
-  resize_keyboard: true,
-  is_persistent: true,
-  one_time_keyboard: false
-});
+// Configurable flag: Set to true if persistent bottom keyboard is needed in the future
+const ENABLE_BOTTOM_KEYBOARD = false;
+
+const getPersistentBottomKeyboard = () => {
+  if (ENABLE_BOTTOM_KEYBOARD) {
+    return {
+      keyboard: [
+        [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+        [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+        [
+          { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+          { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+        ]
+      ],
+      resize_keyboard: true,
+      is_persistent: true,
+      one_time_keyboard: false
+    };
+  }
+  return {
+    remove_keyboard: true
+  };
+};
+
+const dismissKeyboardIfDisabled = async (targetBot: TelegramBot, chatId: number | string) => {
+  if (!ENABLE_BOTTOM_KEYBOARD) {
+    try {
+      const msg = await targetBot.sendMessage(chatId, '‎', { reply_markup: { remove_keyboard: true } });
+      if (msg?.message_id) {
+        setTimeout(() => {
+          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        }, 100);
+      }
+    } catch {}
+  }
+};
 
 const sendAutoDeleteError = async (
   targetBot: TelegramBot,
@@ -15931,17 +15954,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
       const opts: TelegramBot.SendMessageOptions = {
         parse_mode: 'HTML',
-        reply_markup: {
-          keyboard: [
-            [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-            [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
-            [
-              { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
-              { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
-            ]
-          ],
-          resize_keyboard: true
-        } as any
+        reply_markup: ENABLE_BOTTOM_KEYBOARD ? (getPersistentBottomKeyboard() as any) : { remove_keyboard: true }
       };
 
       // If no parameter, show the standard welcome message with generated purple banner photo
@@ -15964,7 +15977,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       };
 
       const sendWelcomeBanner = async () => {
-        const bottomKeyboard = getPersistentBottomKeyboard();
+        dismissKeyboardIfDisabled(targetBot, chatId).catch(() => {});
         const bannerFileId = getCachedBannerFileId(bannerPath);
 
         if (bannerFileId || fs.existsSync(bannerPath)) {
@@ -16263,24 +16276,32 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
 
         if (isCatalogNav) {
           storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
+          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+          dismissKeyboardIfDisabled(targetBot, chatId).catch(() => {});
           await sendCatalogMenu(targetBot, chatId);
           return;
         }
 
         if (isProfileNav) {
           storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
+          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+          dismissKeyboardIfDisabled(targetBot, chatId).catch(() => {});
           await sendUserProfileCard(targetBot, chatId, userId, msg.from);
           return;
         }
 
         if (isUsefulLinksNav) {
           storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
+          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+          dismissKeyboardIfDisabled(targetBot, chatId).catch(() => {});
           await sendUsefulLinksScreen(targetBot, chatId);
           return;
         }
 
         if (isSupportNav) {
           storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
+          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
+          dismissKeyboardIfDisabled(targetBot, chatId).catch(() => {});
           await sendSupportScreen(targetBot, chatId);
           return;
         }
