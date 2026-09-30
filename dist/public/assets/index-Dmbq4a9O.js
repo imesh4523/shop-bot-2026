@@ -11545,6 +11545,11 @@ const Clock = createLucideIcon("Clock", [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
 ]);
+const CloudUpload = createLucideIcon("CloudUpload", [
+  ["path", { d: "M12 13v8", key: "1l5pq0" }],
+  ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
+  ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
+]);
 const Cloud = createLucideIcon("Cloud", [
   ["path", { d: "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z", key: "p7xjir" }]
 ]);
@@ -11556,6 +11561,12 @@ const CodeXml = createLucideIcon("CodeXml", [
 const Code = createLucideIcon("Code", [
   ["polyline", { points: "16 18 22 12 16 6", key: "z7tu5w" }],
   ["polyline", { points: "8 6 2 12 8 18", key: "1eg1df" }]
+]);
+const Coins = createLucideIcon("Coins", [
+  ["circle", { cx: "8", cy: "8", r: "6", key: "3yglwk" }],
+  ["path", { d: "M18.09 10.37A6 6 0 1 1 10.34 18", key: "t5s6rm" }],
+  ["path", { d: "M7 6h1v4", key: "1obek4" }],
+  ["path", { d: "m16.71 13.88.7.71-2.82 2.82", key: "1rbuyh" }]
 ]);
 const Copy = createLucideIcon("Copy", [
   ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
@@ -11659,6 +11670,29 @@ const Flame = createLucideIcon("Flame", [
       key: "96xj49"
     }
   ]
+]);
+const FolderCheck = createLucideIcon("FolderCheck", [
+  [
+    "path",
+    {
+      d: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z",
+      key: "1kt360"
+    }
+  ],
+  ["path", { d: "m9 13 2 2 4-4", key: "6343dt" }]
+]);
+const FolderSync = createLucideIcon("FolderSync", [
+  [
+    "path",
+    {
+      d: "M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v.5",
+      key: "1dkoa9"
+    }
+  ],
+  ["path", { d: "M12 10v4h4", key: "1czhmt" }],
+  ["path", { d: "m12 14 1.535-1.605a5 5 0 0 1 8 1.5", key: "lvuxfi" }],
+  ["path", { d: "M22 22v-4h-4", key: "1ewp4q" }],
+  ["path", { d: "m22 18-1.535 1.605a5 5 0 0 1-8-1.5", key: "14ync0" }]
 ]);
 const Gift = createLucideIcon("Gift", [
   ["rect", { x: "3", y: "8", width: "18", height: "4", rx: "1", key: "bkv52" }],
@@ -30741,6 +30775,9 @@ const insertSpecialOfferSchema = createInsertSchema(specialOffers, {
 }).omit({ id: true, createdAt: true });
 const backupConfigs = pgTable("backup_configs", {
   id: serial("id").primaryKey(),
+  name: text("name").default("Primary Database Backup"),
+  type: text("type").default("daily"),
+  target: text("target").default("local"),
   dbUrl: text("db_url").notNull(),
   botToken: text("bot_token").notNull(),
   chatId: text("chat_id").notNull(),
@@ -30749,6 +30786,20 @@ const backupConfigs = pgTable("backup_configs", {
   status: text("status").notNull().default("active"),
   // active, disabled
   lastBackupAt: timestamp("last_backup_at"),
+  googleDriveEnabled: boolean("google_drive_enabled").default(false),
+  googleDriveAuthType: text("google_drive_auth_type").default("service_account"),
+  // 'service_account' or 'oauth2'
+  googleDriveServiceAccount: text("google_drive_service_account"),
+  googleDriveOauthClientId: text("google_drive_oauth_client_id"),
+  googleDriveOauthClientSecret: text("google_drive_oauth_client_secret"),
+  googleDriveOauthRefreshToken: text("google_drive_oauth_refresh_token"),
+  googleDriveUserEmail: text("google_drive_user_email"),
+  googleDriveFolderId: text("google_drive_folder_id"),
+  googleDriveFolderName: text("google_drive_folder_name"),
+  retentionDays: integer("retention_days").default(49),
+  // default 7 weeks = 49 days
+  backupDestination: text("backup_destination").default("both"),
+  // 'both', 'telegram', 'google_drive'
   createdAt: timestamp("created_at").defaultNow()
 });
 const backupLogs = pgTable("backup_logs", {
@@ -61124,92 +61175,351 @@ function OrdersPage() {
 }
 function PaymentsPage() {
   const [search, setSearch] = reactExports.useState("");
+  const [statusFilter, setStatusFilter] = reactExports.useState("all");
+  const [currencyFilter, setCurrencyFilter] = reactExports.useState("all");
+  const { toast: toast2 } = useToast();
   const { data: payments2, isLoading } = useQuery({
-    queryKey: ["/api/payments"]
+    queryKey: ["/api/payments"],
+    refetchInterval: 1e4
   });
+  const copyToClipboard = (text2, label) => {
+    navigator.clipboard.writeText(text2);
+    toast2({
+      title: "Copied to Clipboard",
+      description: `${label}: ${text2}`
+    });
+  };
   const filteredPayments = payments2?.filter((payment) => {
     const searchLower = search.toLowerCase();
+    const email = payment.telegramUser?.email?.toLowerCase() || "";
     const username = payment.telegramUser?.username?.toLowerCase() || "";
-    const telegramId = payment.telegramUser?.telegramId || "";
+    const telegramId = payment.telegramUser?.telegramId?.toLowerCase() || "";
+    const fullName = `${payment.telegramUser?.firstName || ""} ${payment.telegramUser?.lastName || ""}`.toLowerCase();
     const method = payment.paymentMethod?.toLowerCase() || "";
-    return username.includes(searchLower) || telegramId.includes(searchLower) || method.includes(searchLower);
+    const txid = payment.txid?.toLowerCase() || "";
+    const externalId = payment.externalId?.toLowerCase() || "";
+    const id2 = payment.id.toString();
+    const matchesSearch = email.includes(searchLower) || username.includes(searchLower) || telegramId.includes(searchLower) || fullName.includes(searchLower) || method.includes(searchLower) || txid.includes(searchLower) || externalId.includes(searchLower) || id2.includes(searchLower);
+    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+    const paymentCurr = (payment.currency || "USD").toUpperCase();
+    const matchesCurrency = currencyFilter === "all" || paymentCurr === currencyFilter;
+    return matchesSearch && matchesStatus && matchesCurrency;
   });
+  const totalCompleted = payments2?.filter((p2) => p2.status === "completed") || [];
+  const totalUsdAmount = totalCompleted.filter((p2) => (p2.currency || "USD").toUpperCase() === "USD").reduce((acc, p2) => acc + p2.amount / 100, 0);
+  const totalLkrAmount = totalCompleted.filter((p2) => (p2.currency || "").toUpperCase() === "LKR").reduce((acc, p2) => acc + p2.amount / 100, 0);
   const getStatusBadge = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "completed":
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-green-500/20 text-green-400 border-green-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 mr-1" }),
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-green-500/20 text-green-400 border-green-500/30 font-semibold gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }),
           " Completed"
         ] });
       case "failed":
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-red-500/20 text-red-400 border-red-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3 h-3 mr-1" }),
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-red-500/20 text-red-400 border-red-500/30 font-semibold gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3 h-3" }),
           " Failed"
         ] });
       case "expired":
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-gray-500/20 text-gray-400 border-gray-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3 mr-1" }),
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-gray-500/20 text-gray-400 border-gray-500/30 font-semibold gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3" }),
           " Expired"
         ] });
       default:
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3 mr-1" }),
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30 font-semibold gap-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3" }),
           " Pending"
         ] });
     }
   };
+  const formatPaymentMethod = (method) => {
+    const m2 = (method || "").toLowerCase();
+    if (m2 === "admin_topup") {
+      return {
+        label: "YouuHost Team Added",
+        badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-3.5 h-3.5 text-blue-400" })
+      };
+    }
+    if (m2 === "admin_deduction") {
+      return {
+        label: "Team Balance Deduction",
+        badgeClass: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(ArrowDownLeft, { className: "w-3.5 h-3.5 text-orange-400" })
+      };
+    }
+    if (m2 === "frimi" || m2.includes("frimi")) {
+      return {
+        label: "FriMi",
+        badgeClass: "bg-red-500/20 text-red-300 border-red-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-red-400" })
+      };
+    }
+    if (m2 === "ipay" || m2.includes("ipay")) {
+      return {
+        label: "iPay (Sri Lanka)",
+        badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-teal-400" })
+      };
+    }
+    if (m2 === "qplus" || m2.includes("q+")) {
+      return {
+        label: "Q+ Payment",
+        badgeClass: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-indigo-400" })
+      };
+    }
+    if (m2 === "mastercard" || m2.includes("master")) {
+      return {
+        label: "Mastercard",
+        badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-amber-400" })
+      };
+    }
+    if (m2 === "visa" || m2.includes("visa")) {
+      return {
+        label: "Visa Card",
+        badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-blue-400" })
+      };
+    }
+    if (m2 === "payhere" || m2 === "card" || m2 === "card_payment") {
+      return {
+        label: "Credit / Debit Card",
+        badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(CreditCard, { className: "w-3.5 h-3.5 text-purple-400" })
+      };
+    }
+    if (m2 === "binance_pay" || m2 === "binance") {
+      return {
+        label: "Binance Pay",
+        badgeClass: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Coins, { className: "w-3.5 h-3.5 text-yellow-400" })
+      };
+    }
+    if (m2 === "cryptomus" || m2 === "crypto") {
+      return {
+        label: "Cryptomus",
+        badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Coins, { className: "w-3.5 h-3.5 text-emerald-400" })
+      };
+    }
+    if (m2 === "bep20") {
+      return {
+        label: "USDT (BEP-20)",
+        badgeClass: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Coins, { className: "w-3.5 h-3.5 text-cyan-400" })
+      };
+    }
+    if (m2 === "trc20") {
+      return {
+        label: "USDT (TRC-20)",
+        badgeClass: "bg-green-500/20 text-green-300 border-green-500/30",
+        icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Coins, { className: "w-3.5 h-3.5 text-green-400" })
+      };
+    }
+    return {
+      label: method || "Standard",
+      badgeClass: "bg-white/10 text-white/70 border-white/10",
+      icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-3.5 h-3.5 text-white/50" })
+    };
+  };
+  const renderAmount = (amountInCents, currencyRaw) => {
+    const isLkr = (currencyRaw || "").toUpperCase() === "LKR";
+    const isNegative = amountInCents < 0;
+    const absVal = Math.abs(amountInCents) / 100;
+    if (isLkr) {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 font-bold", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: isNegative ? "text-red-400" : "text-white", children: [
+          isNegative ? "-" : "",
+          "Rs. ",
+          absVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] py-0 px-1 border-blue-400/30 text-blue-300 bg-blue-500/10", children: "LKR" })
+      ] });
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 font-bold", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: isNegative ? "text-red-400" : "text-white", children: [
+        isNegative ? "-" : "",
+        "$",
+        absVal.toFixed(2)
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] py-0 px-1 border-green-400/30 text-green-300 bg-green-500/10", children: "USD" })
+    ] });
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8 animate-in", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-4xl font-black text-white tracking-tighter", children: "Payments" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 mt-1 font-medium", children: "Manage and track user deposits" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-4xl font-black text-white tracking-tighter", children: "Payments & Deposits" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 mt-1 font-medium", children: "Manage customer deposits, top-ups, and transaction history" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-6 py-3 rounded-2xl flex items-center gap-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-5 h-5 text-purple-400" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white font-bold", children: "Payment Gateway" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white font-bold", children: "Live Gateway Ledger" })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative max-w-md", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Input,
-        {
-          placeholder: "Search by username, ID or method...",
-          className: "glass-panel pl-12 h-14 rounded-2xl border-white/10 text-white placeholder:text-white/20",
-          value: search,
-          onChange: (e3) => setSearch(e3.target.value)
-        }
-      )
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(CardTitle, { className: "text-xl font-bold text-white", children: "Transaction History" }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold", children: "User" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold", children: "Amount" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold", children: "Method" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold", children: "Status" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold", children: "Date" })
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: filteredPayments?.map((payment) => /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/5 transition-colors", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white font-bold", children: [
-              "@",
-              payment.telegramUser?.username || "Unknown"
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white/30 text-xs", children: [
-              "ID: ",
-              payment.telegramUser?.telegramId
-            ] })
-          ] }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "text-white font-bold", children: [
-            "$",
-            (payment.amount / 100).toFixed(2)
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-5", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 p-5 bg-gradient-to-br from-green-500/10 via-transparent to-transparent", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold uppercase tracking-wider text-white/50", children: "Total LKR Volume" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-blue-500/20 text-blue-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Coins, { className: "w-4 h-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black text-white", children: [
+            "Rs. ",
+            totalLkrAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "border-white/10 text-white/60", children: payment.paymentMethod }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: getStatusBadge(payment.status) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-white/40 text-sm", children: format(new Date(payment.createdAt), "MMM d, HH:mm") })
-        ] }, payment.id)) })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-blue-300/80 mt-1", children: "Sri Lanka Rupee deposits" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 p-5 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold uppercase tracking-wider text-white/50", children: "Total USD Volume" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-green-500/20 text-green-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DollarSign, { className: "w-4 h-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-black text-white", children: [
+            "$",
+            totalUsdAmount.toFixed(2)
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-green-300/80 mt-1", children: "USDT & USD Card payments" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 p-5 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold uppercase tracking-wider text-white/50", children: "Total Transactions" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 rounded-xl bg-purple-500/20 text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-4 h-4" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-black text-white", children: payments2?.length || 0 }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-purple-300/80 mt-1", children: [
+            totalCompleted.length,
+            " Completed Successfully"
+          ] })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex-1 max-w-md", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Input,
+          {
+            placeholder: "Search by customer email, @username, ID, method, or TXID...",
+            className: "glass-panel pl-12 h-12 rounded-xl border-white/10 text-white placeholder:text-white/30 text-sm",
+            value: search,
+            onChange: (e3) => setSearch(e3.target.value)
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "select",
+          {
+            className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl px-4 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-purple-400",
+            value: currencyFilter,
+            onChange: (e3) => setCurrencyFilter(e3.target.value),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "all", className: "bg-[#121225] text-white", children: "All Currencies" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "LKR", className: "bg-[#121225] text-white", children: "LKR (Rs.)" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "USD", className: "bg-[#121225] text-white", children: "USD ($)" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "select",
+          {
+            className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl px-4 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-purple-400",
+            value: statusFilter,
+            onChange: (e3) => setStatusFilter(e3.target.value),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "all", className: "bg-[#121225] text-white", children: "All Statuses" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "completed", className: "bg-[#121225] text-white", children: "Completed" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "pending", className: "bg-[#121225] text-white", children: "Pending" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "expired", className: "bg-[#121225] text-white", children: "Expired" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "failed", className: "bg-[#121225] text-white", children: "Failed" })
+            ]
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden shadow-2xl", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "border-b border-white/5 py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold text-white flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Transaction History" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-white/40 font-normal", children: [
+          "Showing ",
+          filteredPayments?.length || 0,
+          " of ",
+          payments2?.length || 0,
+          " records"
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CardContent, { className: "p-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/50 font-bold text-xs", children: "Customer (Email / User)" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/50 font-bold text-xs", children: "Amount" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/50 font-bold text-xs", children: "Payment Method & Reference" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/50 font-bold text-xs", children: "Status" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/50 font-bold text-xs", children: "Date & Time" })
+        ] }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 5, className: "h-40 text-center text-white/40", children: "Loading payment records..." }) }) : !filteredPayments || filteredPayments.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 5, className: "h-40 text-center text-white/40", children: "No payment transactions found matching your criteria." }) }) : filteredPayments.map((payment) => {
+          const methodInfo = formatPaymentMethod(payment.paymentMethod);
+          const email = payment.telegramUser?.email;
+          const username = payment.telegramUser?.username;
+          const tgId = payment.telegramUser?.telegramId;
+          const isGoogleUser = payment.telegramUser?.authProvider === "google" || tgId && tgId.startsWith("google:");
+          return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/5 transition-colors", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
+              email ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white font-bold text-sm tracking-tight flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Mail, { className: "w-3.5 h-3.5 text-purple-400 shrink-0" }),
+                  email
+                ] }),
+                isGoogleUser && /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { variant: "outline", className: "text-[10px] px-1.5 py-0 border-blue-400/30 text-blue-300 bg-blue-500/10", children: "Google" })
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-white font-bold text-sm", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-3.5 h-3.5 text-blue-400 shrink-0" }),
+                username ? `@${username}` : "Telegram User"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-xs text-white/40", children: [
+                email && username && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+                  "@",
+                  username
+                ] }),
+                tgId && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "span",
+                  {
+                    onClick: () => copyToClipboard(tgId, "Customer ID"),
+                    className: "cursor-pointer hover:text-white/70 font-mono text-[11px] truncate max-w-[160px]",
+                    title: tgId,
+                    children: [
+                      "ID: ",
+                      tgId
+                    ]
+                  }
+                )
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: renderAmount(payment.amount, payment.currency) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: `w-fit font-bold text-xs gap-1.5 ${methodInfo.badgeClass}`, children: [
+                methodInfo.icon,
+                methodInfo.label
+              ] }),
+              (payment.txid || payment.externalId) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 text-[11px] text-white/40 font-mono", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate max-w-[150px]", children: payment.txid || payment.externalId }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Copy,
+                  {
+                    className: "w-3 h-3 cursor-pointer hover:text-white/80 shrink-0",
+                    onClick: () => copyToClipboard(payment.txid || payment.externalId || "", "Reference ID")
+                  }
+                )
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: getStatusBadge(payment.status) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-white/50 text-xs", children: payment.createdAt ? format(new Date(payment.createdAt), "MMM d, yyyy HH:mm") : "N/A" })
+          ] }, payment.id);
+        }) })
       ] }) })
     ] })
   ] });
@@ -74778,7 +75088,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BznAkZZK.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CQVewVOS.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -90305,28 +90615,78 @@ function TelegramClientPage() {
 function BackupPage() {
   const { toast: toast2 } = useToast();
   const consoleEndRef = reactExports.useRef(null);
+  const fileInputRef = reactExports.useRef(null);
   const [formData, setFormData] = reactExports.useState({
     dbUrl: "",
     botToken: "",
     chatId: "",
-    frequency: 3
+    frequency: 3,
+    googleDriveEnabled: false,
+    googleDriveAuthType: "service_account",
+    googleDriveServiceAccount: "",
+    googleDriveOauthClientId: "",
+    googleDriveOauthClientSecret: "",
+    googleDriveOauthRefreshToken: "",
+    googleDriveUserEmail: "",
+    googleDriveFolderId: "",
+    googleDriveFolderName: "",
+    retentionDays: 49,
+    // 7 weeks default
+    backupDestination: "both"
   });
+  const [fetchedFolders, setFetchedFolders] = reactExports.useState([]);
+  const [serviceAccountEmail, setServiceAccountEmail] = reactExports.useState("");
+  const [isFetchingFolders, setIsFetchingFolders] = reactExports.useState(false);
+  const [retentionPreset, setRetentionPreset] = reactExports.useState("7_weeks");
+  const [customDays, setCustomDays] = reactExports.useState(49);
+  const [showGuide, setShowGuide] = reactExports.useState(false);
   const { data: config2, isLoading: isConfigLoading } = useQuery({
     queryKey: ["/api/backups/config"]
   });
   const { data: logs, isLoading: isLogsLoading } = useQuery({
     queryKey: ["/api/backups/logs"],
-    refetchInterval: 5e3
-    // Refresh logs every 5 seconds
+    refetchInterval: 4e3
   });
   reactExports.useEffect(() => {
     if (config2) {
+      const days = config2.retentionDays || 49;
       setFormData({
-        dbUrl: config2.dbUrl,
-        botToken: config2.botToken,
-        chatId: config2.chatId,
-        frequency: config2.frequency
+        dbUrl: config2.dbUrl || "",
+        botToken: config2.botToken || "",
+        chatId: config2.chatId || "",
+        frequency: config2.frequency || 3,
+        googleDriveEnabled: Boolean(config2.googleDriveEnabled),
+        googleDriveAuthType: config2.googleDriveAuthType || "service_account",
+        googleDriveServiceAccount: config2.googleDriveServiceAccount || "",
+        googleDriveOauthClientId: config2.googleDriveOauthClientId || "",
+        googleDriveOauthClientSecret: config2.googleDriveOauthClientSecret || "",
+        googleDriveOauthRefreshToken: config2.googleDriveOauthRefreshToken || "",
+        googleDriveUserEmail: config2.googleDriveUserEmail || "",
+        googleDriveFolderId: config2.googleDriveFolderId || "",
+        googleDriveFolderName: config2.googleDriveFolderName || "",
+        retentionDays: days,
+        backupDestination: config2.backupDestination || "both"
       });
+      setCustomDays(days);
+      if (days === 49) {
+        setRetentionPreset("7_weeks");
+      } else if (days === 14) {
+        setRetentionPreset("2_weeks");
+      } else if (days === 30) {
+        setRetentionPreset("1_month");
+      } else {
+        setRetentionPreset("custom");
+      }
+      if (config2.googleDriveServiceAccount) {
+        try {
+          const parsed = JSON.parse(config2.googleDriveServiceAccount);
+          if (parsed.client_email) setServiceAccountEmail(parsed.client_email);
+        } catch (e3) {
+        }
+      }
+      if (config2.googleDriveFolderId && config2.googleDriveFolderName) {
+        setFetchedFolders([{ id: config2.googleDriveFolderId, name: config2.googleDriveFolderName }]);
+      }
     }
   }, [config2]);
   reactExports.useEffect(() => {
@@ -90334,6 +90694,117 @@ function BackupPage() {
       consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [logs]);
+  const handleFileUpload = (e3) => {
+    const file = e3.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text2 = event.target?.result;
+        const parsed = JSON.parse(text2);
+        if (!parsed.client_email || !parsed.private_key) {
+          throw new Error("Uploaded file is not a valid Google Service Account JSON key (missing client_email or private_key).");
+        }
+        setFormData((prev) => ({ ...prev, googleDriveServiceAccount: text2 }));
+        setServiceAccountEmail(parsed.client_email);
+        toast2({
+          title: "Service Account Loaded",
+          description: `Loaded credentials for: ${parsed.client_email}`
+        });
+        fetchDriveFolders(text2);
+      } catch (err) {
+        toast2({
+          title: "Invalid JSON File",
+          description: err.message,
+          variant: "destructive"
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+  const fetchDriveFolders = async (saJson) => {
+    const isOAuth = formData.googleDriveAuthType === "oauth2";
+    if (isOAuth) {
+      if (!formData.googleDriveOauthClientId || !formData.googleDriveOauthClientSecret || !formData.googleDriveOauthRefreshToken) {
+        toast2({
+          title: "Missing OAuth Credentials",
+          description: "Please enter your OAuth Client ID, Client Secret, and Refresh Token.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      const jsonToUse = saJson || formData.googleDriveServiceAccount;
+      if (!jsonToUse || jsonToUse.trim().length === 0) {
+        toast2({
+          title: "Missing Credentials",
+          description: "Please upload or paste your Google Service Account JSON key first.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    setIsFetchingFolders(true);
+    try {
+      const res = await apiRequest("POST", "/api/backups/google-drive/folders", {
+        authType: formData.googleDriveAuthType,
+        serviceAccountJson: formData.googleDriveServiceAccount,
+        oauthClientId: formData.googleDriveOauthClientId,
+        oauthClientSecret: formData.googleDriveOauthClientSecret,
+        oauthRefreshToken: formData.googleDriveOauthRefreshToken
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to fetch folders");
+      }
+      setServiceAccountEmail(data.clientEmail);
+      setFetchedFolders(data.folders || []);
+      if (data.folders.length === 0) {
+        toast2({
+          title: "No Folders Found",
+          description: isOAuth ? "Connected via OAuth, but no folders were found in your Google Drive." : `Connected to ${data.clientEmail}, but no shared folders were found. Remember to share your Google Drive folder with this email as 'Editor'!`
+        });
+      } else {
+        toast2({
+          title: "Folders Fetched Successfully",
+          description: `Found ${data.folders.length} folder(s) in Google Drive.`
+        });
+        if (!formData.googleDriveFolderId && data.folders.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            googleDriveFolderId: data.folders[0].id,
+            googleDriveFolderName: data.folders[0].name
+          }));
+        }
+      }
+    } catch (err) {
+      toast2({
+        title: "Google Drive Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsFetchingFolders(false);
+    }
+  };
+  const handleRetentionPresetChange = (preset) => {
+    setRetentionPreset(preset);
+    if (preset === "7_weeks") {
+      setFormData((prev) => ({ ...prev, retentionDays: 49 }));
+      setCustomDays(49);
+    } else if (preset === "2_weeks") {
+      setFormData((prev) => ({ ...prev, retentionDays: 14 }));
+      setCustomDays(14);
+    } else if (preset === "1_month") {
+      setFormData((prev) => ({ ...prev, retentionDays: 30 }));
+      setCustomDays(30);
+    }
+  };
+  const handleCustomDaysChange = (days) => {
+    const val = Math.max(1, days);
+    setCustomDays(val);
+    setFormData((prev) => ({ ...prev, retentionDays: val }));
+  };
   const updateMutation = useMutation({
     mutationFn: async (data) => {
       const res = await apiRequest("POST", "/api/backups/config", data);
@@ -90341,14 +90812,15 @@ function BackupPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/backups/config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/backups/logs"] });
       toast2({
-        title: "Configuration Saved",
-        description: "Your database backup settings have been updated."
+        title: "Backup Settings Saved",
+        description: "Your database backup & Google Drive configuration have been updated."
       });
     },
     onError: (error) => {
       toast2({
-        title: "Error",
+        title: "Save Failed",
         description: error.message,
         variant: "destructive"
       });
@@ -90359,148 +90831,591 @@ function BackupPage() {
       const res = await apiRequest("POST", "/api/backups/trigger");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/backups/logs"] });
       toast2({
         title: "Backup Triggered",
-        description: "The backup process has started in the background. Check console for status."
+        description: data.message || "Backup process started. Live console below shows status."
       });
     },
     onError: (error) => {
       toast2({
-        title: "Backup Failed",
+        title: "Execution Error",
         description: error.message,
         variant: "destructive"
       });
     }
   });
-  if (isConfigLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center min-h-[400px]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin text-purple-400" }) });
-  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-10 animate-in", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "DB Backup" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 mt-2 font-medium", children: "Automated PostgreSQL 17 Backup System" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl", children: "Database Backup & Sync" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/60 mt-2 font-medium", children: "PostgreSQL 17 Automated Backups with Telegram & Google Drive Cloud Storage" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { className: "w-5 h-5 text-purple-400" }),
-        "Status: ",
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: config2?.isActive ? "text-green-400" : "text-yellow-400", children: config2?.isActive ? "Active" : "Inactive" })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            variant: "outline",
+            size: "sm",
+            onClick: () => setShowGuide(!showGuide),
+            className: "border-white/10 text-white/70 hover:text-white hover:bg-white/5 rounded-xl gap-2 text-xs",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(CircleHelp, { className: "w-4 h-4 text-purple-400" }),
+              showGuide ? "Hide Setup Guide" : "Google Drive Setup Guide"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "glass-panel px-5 py-2.5 rounded-full flex items-center gap-3 text-xs font-bold text-white shadow-lg border-white/20", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Database, { className: "w-4 h-4 text-purple-400" }),
+          "Status: ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-green-400", children: "Active" })
+        ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden h-fit", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-2xl font-bold flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-6 h-6 text-purple-400" }),
-            "Backup Configuration"
+    showGuide && /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border border-purple-500/30 bg-purple-950/20 p-6 rounded-2xl animate-in slide-in-from-top-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-purple-500/20 rounded-xl text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-6 h-6" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 flex-1 text-sm text-white/80", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-bold text-white flex items-center gap-2", children: "How to Connect Google Drive (4 Simple Steps)" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("ol", { className: "list-decimal pl-5 space-y-2 text-xs sm:text-sm text-white/70", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-white", children: "Enable Google Drive API:" }),
+            " Go to the Google Cloud Console (console.cloud.google.com), create or open a project, navigate to ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "APIs & Services > Library" }),
+            ", and search for ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Google Drive API" }),
+            " & click ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Enable" }),
+            "."
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60", children: "Configure where to fetch the dump and where to send it via Telegram." })
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-white", children: "Create a Service Account:" }),
+            " Under ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "APIs & Services > Credentials" }),
+            ", click ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Create Credentials > Service Account" }),
+            ". Name it (e.g. ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "db-backup-bot" }),
+            ") and finish."
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-white", children: "Generate JSON Key:" }),
+            " Click on your newly created Service Account > ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Keys" }),
+            " tab > ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Add Key > Create new key > JSON" }),
+            ". A ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".json" }),
+            " file will automatically download to your computer."
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-white", children: "Share Your Google Drive Folder:" }),
+            " Open your Google Drive, create a folder (e.g. ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "YouuHost Database Backups" }),
+            "), right-click > ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Share" }),
+            ", and paste the ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "client_email" }),
+            " of your service account (e.g. ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "backup@...iam.gserviceaccount.com" }),
+            ") with ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Editor" }),
+            " permission."
+          ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-6 space-y-6", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "PostgreSQL Connection URL" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              Input,
-              {
-                placeholder: "postgresql://user:pass@host:port/dbname",
-                className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl",
-                value: formData.dbUrl,
-                onChange: (e3) => setFormData({ ...formData, dbUrl: e3.target.value })
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-white/40", children: "The URL of the database you want to backup." })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-purple-300 font-medium", children: 'Once done, click "Upload Service Account JSON" below, click "Fetch Folders", select your folder, and click Save Configuration!' })
+      ] })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden shadow-2xl", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 pb-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold flex items-center gap-2 text-white", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-5 h-5 text-purple-400" }),
+              "PostgreSQL & Telegram Backup"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/60 text-xs", children: "Configure database source connection and Telegram notifications." })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-6 space-y-5", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Telegram Bot Token" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "PostgreSQL Connection URL" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 Input,
                 {
-                  type: "password",
-                  placeholder: "Bot Token",
-                  className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl",
-                  value: formData.botToken,
-                  onChange: (e3) => setFormData({ ...formData, botToken: e3.target.value })
+                  placeholder: "postgresql://doadmin:pass@host:25060/defaultdb?sslmode=require",
+                  className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
+                  value: formData.dbUrl,
+                  onChange: (e3) => setFormData({ ...formData, dbUrl: e3.target.value })
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "DigitalOcean or cloud PostgreSQL connection string with credentials." })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Telegram Bot Token" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    type: "password",
+                    placeholder: "Bot Token (e.g. 8597932397:...)",
+                    className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
+                    value: formData.botToken,
+                    onChange: (e3) => setFormData({ ...formData, botToken: e3.target.value })
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Telegram Chat ID" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Input,
+                  {
+                    placeholder: "Chat ID (e.g. 7507799896)",
+                    className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
+                    value: formData.chatId,
+                    onChange: (e3) => setFormData({ ...formData, chatId: e3.target.value })
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Backup Frequency (Hours)" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-3 items-center", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: "number",
+                      min: "1",
+                      max: "72",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl w-24 text-center font-bold",
+                      value: formData.frequency,
+                      onChange: (e3) => setFormData({ ...formData, frequency: Math.max(1, parseInt(e3.target.value) || 1) })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-white/60", children: [
+                    "Every ",
+                    formData.frequency,
+                    " hrs"
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Backup Destination" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "select",
+                  {
+                    className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl w-full px-3 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400",
+                    value: formData.backupDestination,
+                    onChange: (e3) => setFormData({ ...formData, backupDestination: e3.target.value }),
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "both", className: "bg-[#121225] text-white", children: "Google Drive & Telegram (Both)" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "google_drive", className: "bg-[#121225] text-white", children: "Google Drive Only" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "telegram", className: "bg-[#121225] text-white", children: "Telegram Only" })
+                    ]
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0 overflow-hidden shadow-2xl border-t border-purple-500/20", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold flex items-center gap-2 text-white", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-5 h-5 text-blue-400" }),
+                "Google Drive Cloud Storage Integration"
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(CardDescription, { className: "text-white/60 text-xs", children: [
+                "Upload automated ",
+                /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".dump" }),
+                " files to your Google Drive folder & manage retention."
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: `text-xs px-3 py-1 font-bold ${formData.googleDriveEnabled ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-white/10 text-white/40 border-white/10"}`, children: formData.googleDriveEnabled ? "Enabled" : "Disabled" })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-6 space-y-6", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-0.5", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm font-bold text-white flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(CloudUpload, { className: "w-4 h-4 text-purple-400" }),
+                  "Enable Google Drive Storage"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50", children: "Automatically push backup dumps to Google Drive on each scheduled run" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "checkbox",
+                  id: "gdrive-toggle",
+                  className: "w-5 h-5 accent-purple-500 cursor-pointer rounded",
+                  checked: formData.googleDriveEnabled,
+                  onChange: (e3) => setFormData({ ...formData, googleDriveEnabled: e3.target.checked })
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Chat ID / User ID" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
+            formData.googleDriveEnabled && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6 animate-in slide-in-from-top-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold flex items-center gap-2 text-amber-200 text-sm", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(TriangleAlert, { className: "w-4 h-4 text-amber-400 shrink-0" }),
+                  "Google Drive Quota Policy Notice"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-amber-200/90 leading-relaxed", children: [
+                  "Google assigns ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "0 MB storage quota to robot Service Accounts" }),
+                  " on personal Gmail accounts (",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "@gmail.com" }),
+                  '). Therefore, uploads to personal "My Drive" folders fail unless one of the two methods below is used:'
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3 pt-1", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-lg bg-black/30 border border-white/5 space-y-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-white text-xs flex items-center gap-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-blue-400" }),
+                      "Option A: Workspace Shared Drive"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-[11px] text-white/60", children: [
+                      "Create a ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Shared Drive" }),
+                      " in Google Workspace, add your Service Account email as ",
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "Content Manager" }),
+                      ", and select that folder."
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 rounded-lg bg-black/30 border border-white/5 space-y-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-bold text-white text-xs flex items-center gap-1.5", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3.5 h-3.5 text-green-400" }),
+                      "Option B: OAuth 2.0 (Personal Gmail)"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/60", children: "Connect via OAuth 2.0 Client Credentials to upload directly into your personal 15 GB Google Drive quota without restrictions." })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Authentication Mode" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setFormData({ ...formData, googleDriveAuthType: "service_account" }),
+                      className: `p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${formData.googleDriveAuthType === "service_account" ? "bg-purple-500/20 border-purple-500/40 text-purple-200" : "bg-white/5 border-white/10 text-white/60 hover:text-white"}`,
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-4 h-4 text-purple-400" }),
+                        "Service Account (Shared Drive)"
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setFormData({ ...formData, googleDriveAuthType: "oauth2" }),
+                      className: `p-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${formData.googleDriveAuthType === "oauth2" ? "bg-blue-500/20 border-blue-500/40 text-blue-200" : "bg-white/5 border-white/10 text-white/60 hover:text-white"}`,
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Cloud, { className: "w-4 h-4 text-blue-400" }),
+                        "OAuth 2.0 (Personal Gmail)"
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              formData.googleDriveAuthType === "service_account" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google Service Account Credentials (JSON)" }),
+                  serviceAccountEmail && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-green-400 font-mono flex items-center gap-1", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }),
+                    serviceAccountEmail
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      type: "button",
+                      variant: "outline",
+                      onClick: () => fileInputRef.current?.click(),
+                      className: "border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0",
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(FileText, { className: "w-4 h-4" }),
+                        "Upload .json File"
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "input",
+                    {
+                      type: "file",
+                      ref: fileInputRef,
+                      accept: ".json,application/json",
+                      className: "hidden",
+                      onChange: handleFileUpload
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      type: "button",
+                      variant: "outline",
+                      disabled: isFetchingFolders || !formData.googleDriveServiceAccount,
+                      onClick: () => fetchDriveFolders(),
+                      className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-11 px-4 gap-2 text-xs font-bold shrink-0",
+                      children: [
+                        isFetchingFolders ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin text-purple-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FolderSync, { className: "w-4 h-4 text-blue-400" }),
+                        "Fetch Folders"
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Textarea,
+                  {
+                    placeholder: 'Paste Service Account JSON key content here ({ "type": "service_account", ... })',
+                    className: "glass-panel border-white/10 bg-white/5 text-white rounded-xl text-xs font-mono h-24 resize-y mt-2",
+                    value: formData.googleDriveServiceAccount,
+                    onChange: (e3) => {
+                      const val = e3.target.value;
+                      setFormData({ ...formData, googleDriveServiceAccount: val });
+                      try {
+                        const parsed = JSON.parse(val);
+                        if (parsed.client_email) setServiceAccountEmail(parsed.client_email);
+                      } catch (e22) {
+                      }
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "For Workspace Shared Drives: Add this service account email as a Content Manager inside the Shared Drive." })
+              ] }) : (
+                /* OAuth 2.0 Credentials UI */
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client ID" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        placeholder: "e.g. 123456789-xxx.apps.googleusercontent.com",
+                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                        value: formData.googleDriveOauthClientId,
+                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientId: e3.target.value })
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Google OAuth 2.0 Client Secret" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        type: "password",
+                        placeholder: "GOCSPX-xxxxxxxxxxxxxxxx",
+                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                        value: formData.googleDriveOauthClientSecret,
+                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthClientSecret: e3.target.value })
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "OAuth Refresh Token" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        Button,
+                        {
+                          type: "button",
+                          variant: "outline",
+                          disabled: isFetchingFolders || !formData.googleDriveOauthRefreshToken,
+                          onClick: () => fetchDriveFolders(),
+                          className: "border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl h-8 px-3 gap-1.5 text-[11px] font-bold shrink-0",
+                          children: [
+                            isFetchingFolders ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin text-blue-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(FolderSync, { className: "w-3.5 h-3.5 text-blue-400" }),
+                            "Fetch Folders"
+                          ]
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Input,
+                      {
+                        type: "password",
+                        placeholder: "1//04xxxxxxxxxxxxxxxxxx",
+                        className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-xs font-mono",
+                        value: formData.googleDriveOauthRefreshToken,
+                        onChange: (e3) => setFormData({ ...formData, googleDriveOauthRefreshToken: e3.target.value })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: "Uploads directly into your personal 15 GB Google Drive quota." })
+                  ] })
+                ] })
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(FolderCheck, { className: "w-4 h-4 text-green-400" }),
+                    "Google Drive Destination Folder"
+                  ] }),
+                  formData.googleDriveFolderName && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-purple-300 font-medium", children: [
+                    "Selected: ",
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: formData.googleDriveFolderName })
+                  ] })
+                ] }),
+                fetchedFolders.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "select",
+                  {
+                    className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-full px-4 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400",
+                    value: formData.googleDriveFolderId,
+                    onChange: (e3) => {
+                      const selectedId = e3.target.value;
+                      const found = fetchedFolders.find((f2) => f2.id === selectedId);
+                      setFormData({
+                        ...formData,
+                        googleDriveFolderId: selectedId,
+                        googleDriveFolderName: found ? found.name : "Custom Folder"
+                      });
+                    },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", className: "bg-[#121225] text-white/60", children: "-- Select Destination Folder --" }),
+                      fetchedFolders.map((f2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: f2.id, className: "bg-[#121225] text-white", children: [
+                        "📁 ",
+                        f2.name,
+                        " (",
+                        f2.id.slice(0, 10),
+                        "...)"
+                      ] }, f2.id))
+                    ]
+                  }
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      placeholder: "Folder ID (or click 'Fetch Folders' to select from list)",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-11 rounded-xl text-sm",
+                      value: formData.googleDriveFolderId,
+                      onChange: (e3) => setFormData({ ...formData, googleDriveFolderId: e3.target.value, googleDriveFolderName: "Manual Folder ID" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[11px] text-white/40", children: 'Click "Fetch Folders" above after uploading your JSON to pick directly from your Google Drive.' })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 p-4 rounded-xl bg-white/5 border border-white/10", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white/70 uppercase tracking-widest flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Calendar, { className: "w-4 h-4 text-yellow-400" }),
+                    "Auto-Deletion / Retention Policy"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "text-[10px] border-yellow-500/30 text-yellow-400", children: [
+                    formData.retentionDays,
+                    " Days (",
+                    Math.round(formData.retentionDays / 7),
+                    " Weeks)"
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-white/50 leading-relaxed", children: [
+                  "Automatically purge old ",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".dump" }),
+                  " files in your Google Drive folder older than this threshold to save space:"
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      type: "button",
+                      size: "sm",
+                      variant: retentionPreset === "7_weeks" ? "default" : "outline",
+                      onClick: () => handleRetentionPresetChange("7_weeks"),
+                      className: `rounded-xl text-xs font-bold ${retentionPreset === "7_weeks" ? "bg-purple-600 text-white" : "border-white/10 text-white/70 hover:bg-white/5"}`,
+                      children: "7 Weeks (49d) ⭐"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      type: "button",
+                      size: "sm",
+                      variant: retentionPreset === "1_month" ? "default" : "outline",
+                      onClick: () => handleRetentionPresetChange("1_month"),
+                      className: `rounded-xl text-xs font-bold ${retentionPreset === "1_month" ? "bg-purple-600 text-white" : "border-white/10 text-white/70 hover:bg-white/5"}`,
+                      children: "1 Month (30d)"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      type: "button",
+                      size: "sm",
+                      variant: retentionPreset === "2_weeks" ? "default" : "outline",
+                      onClick: () => handleRetentionPresetChange("2_weeks"),
+                      className: `rounded-xl text-xs font-bold ${retentionPreset === "2_weeks" ? "bg-purple-600 text-white" : "border-white/10 text-white/70 hover:bg-white/5"}`,
+                      children: "2 Weeks (14d)"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Button,
+                    {
+                      type: "button",
+                      size: "sm",
+                      variant: retentionPreset === "custom" ? "default" : "outline",
+                      onClick: () => setRetentionPreset("custom"),
+                      className: `rounded-xl text-xs font-bold ${retentionPreset === "custom" ? "bg-purple-600 text-white" : "border-white/10 text-white/70 hover:bg-white/5"}`,
+                      children: "Custom Days"
+                    }
+                  )
+                ] }),
+                retentionPreset === "custom" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 pt-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs text-white/60", children: "Delete dumps older than:" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      type: "number",
+                      min: "1",
+                      max: "365",
+                      className: "glass-panel border-white/10 bg-white/5 text-white h-10 rounded-xl w-24 text-center font-bold",
+                      value: customDays,
+                      onChange: (e3) => handleCustomDaysChange(parseInt(e3.target.value) || 1)
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/60", children: "days" })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-2 flex flex-col sm:flex-row gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
                 {
-                  placeholder: "Chat ID",
-                  className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl",
-                  value: formData.chatId,
-                  onChange: (e3) => setFormData({ ...formData, chatId: e3.target.value })
+                  onClick: () => updateMutation.mutate(formData),
+                  disabled: updateMutation.isPending,
+                  className: "flex-1 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold shadow-lg shadow-purple-500/20 text-white",
+                  children: [
+                    updateMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-5 h-5 mr-2" }),
+                    "Save Configuration"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Button,
+                {
+                  onClick: () => triggerMutation.mutate(),
+                  disabled: triggerMutation.isPending,
+                  variant: "outline",
+                  className: "h-12 px-6 rounded-xl border-white/20 hover:bg-white/5 font-bold text-white",
+                  children: [
+                    triggerMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin mr-2" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "w-5 h-5 mr-2 text-green-400" }),
+                    "Run Now"
+                  ]
                 }
               )
             ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Label, { className: "text-xs font-bold text-white/50 uppercase tracking-widest", children: "Backup Frequency (Hours)" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4 items-center", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Input,
-                {
-                  type: "number",
-                  min: "1",
-                  max: "24",
-                  className: "glass-panel border-white/10 bg-white/5 text-white h-12 rounded-xl w-32",
-                  value: formData.frequency,
-                  onChange: (e3) => setFormData({ ...formData, frequency: parseInt(e3.target.value) })
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm text-white/60", children: [
-                "Automatically runs every ",
-                formData.frequency,
-                " hours."
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "pt-4 flex gap-4", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                onClick: () => updateMutation.mutate(formData),
-                disabled: updateMutation.isPending,
-                className: "flex-1 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold",
-                children: [
-                  updateMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Save, { className: "w-5 h-5 mr-2" }),
-                  "Save Configuration"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              Button,
-              {
-                onClick: () => triggerMutation.mutate(),
-                disabled: triggerMutation.isPending || !config2,
-                variant: "outline",
-                className: "h-12 px-6 rounded-xl border-white/20 hover:bg-white/5 font-bold text-white",
-                children: [
-                  triggerMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "w-5 h-5 mr-2 text-green-400" }),
-                  "Run Now"
-                ]
-              }
-            )
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "relative glass-panel border-0 overflow-hidden flex flex-col h-[600px] group/console shadow-2xl", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "relative glass-panel border-0 overflow-hidden flex flex-col h-[750px] group/console shadow-2xl", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none z-10 opacity-30" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { className: "bg-white/5 backdrop-blur-3xl border-b border-white/10 shrink-0 py-4 relative z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 button-red h-3 rounded-full bg-[#FF5F56] shadow-[0_0_10px_rgba(255,95,86,0.3)]" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 button-yellow h-3 rounded-full bg-[#FFBD2E] shadow-[0_0_10px_rgba(255,189,46,0.2)]" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 button-green h-3 rounded-full bg-[#27C93F] shadow-[0_0_10px_rgba(39,201,63,0.3)]" })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 h-3 rounded-full bg-[#FF5F56] shadow-[0_0_10px_rgba(255,95,86,0.3)]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 h-3 rounded-full bg-[#FFBD2E] shadow-[0_0_10px_rgba(255,189,46,0.2)]" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 h-3 rounded-full bg-[#27C93F] shadow-[0_0_10px_rgba(39,201,63,0.3)]" })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-4 w-px bg-white/10 mx-1" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-sm font-black flex items-center gap-2 text-white/90 uppercase tracking-[0.2em]", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Terminal, { className: "w-4 h-4 text-purple-400" }),
-              "Live Console"
+              "Backup Live Console"
             ] })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-2 py-0.5 rounded bg-green-500/20 text-[10px] font-bold text-green-400 border border-green-500/30", children: "LIVE" }) })
@@ -90512,65 +91427,43 @@ function BackupPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-8 h-8 animate-spin" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "italic font-medium animate-pulse", children: "Establishing terminal connection..." })
             ] }) : logs.map((log2) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4 group animate-in slide-in-from-left-2 duration-300", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/20 shrink-0 select-none font-medium", children: format(new Date(log2.createdAt), "HH:mm:ss") }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/30 shrink-0 select-none font-medium text-xs", children: format(new Date(log2.createdAt), "HH:mm:ss") }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-1", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `
-                        flex items-center gap-2 font-medium leading-relaxed
-                        ${log2.status === "success" ? "text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]" : ""}
-                        ${log2.status === "error" ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]" : ""}
-                        ${log2.status === "starting" ? "text-blue-400" : ""}
-                        ${log2.status === "info" ? "text-white/80" : ""}
-                      `, children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0 opacity-50", children: log2.status === "success" ? "✔" : log2.status === "error" ? "✖" : "›" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-                  log2.message,
-                  log2.fileSize && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ml-2 text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/5", children: [
-                    (log2.fileSize / 1024 / 1024).toFixed(2),
-                    " MB"
-                  ] })
-                ] })
+                          flex items-center gap-2 font-medium leading-relaxed
+                          ${log2.level === "success" ? "text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]" : ""}
+                          ${log2.level === "error" ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]" : ""}
+                          ${log2.level === "info" ? "text-white/80" : ""}
+                        `, children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0 opacity-60", children: log2.level === "success" ? "✔" : log2.level === "error" ? "✖" : "›" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: log2.message })
               ] }) })
             ] }, log2.id)),
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: consoleEndRef })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 bg-white/5 border-t border-white/10 shrink-0 flex justify-between items-center text-[10px] text-white/40 font-bold uppercase tracking-[0.15em] px-6", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-6", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2 group/stat", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3.5 h-3.5 text-blue-400 group-hover/stat:scale-110 transition-transform" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3.5 h-3.5 text-blue-400" }),
                 "SCHED: ",
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-white/70", children: [
-                  config2?.frequency || 0,
+                  formData.frequency,
                   "H"
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2 group/stat", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(History, { className: "w-3.5 h-3.5 text-purple-400 group-hover/stat:scale-110 transition-transform" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(History, { className: "w-3.5 h-3.5 text-purple-400" }),
                 "LAST: ",
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/70", children: config2?.lastBackup ? format(new Date(config2.lastBackup), "MMM d, HH:mm") : "NEVER" })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/70", children: config2?.lastBackupAt ? format(new Date(config2.lastBackupAt), "MMM d, HH:mm") : "NEVER" })
               ] })
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" }),
-              "SECURE CHANNEL"
+              "ONLINE"
             ] })
           ] })
         ] })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "glass-card border-0 bg-blue-500/10 border-blue-500/20 p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-blue-500/20 p-3 rounded-xl h-fit", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShieldCheck, { className: "w-6 h-6 text-blue-400" }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-lg font-bold text-white", children: "Cloud Shooping Security Protocol" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-white/60 text-sm leading-relaxed", children: [
-          "Backups are generated on-server using ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "pg_dump" }),
-          " v17. Files are temporarily stored in ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "~/pg_backups" }),
-          "and uploaded to your Telegram bot via the Bot API. After successful upload, the local file is deleted to save space. The backup includes the full database structure and data in custom format (",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".dump" }),
-          ")."
-        ] })
-      ] })
-    ] }) })
+      ] }) })
+    ] })
   ] });
 }
 function ForwardPage() {

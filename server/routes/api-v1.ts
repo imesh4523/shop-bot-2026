@@ -234,7 +234,92 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
     }
     const finalCost = Math.max(0, totalCost - discountCents);
 
-    if (user.balance < finalCost) {
+    // Atomic transaction: Row lock user, check balance, lock credentials, deduct balance, create order
+    const txResult: any = await db.transaction(async (tx) => {
+      // 1. Lock user row
+      const [lockedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, user.id)).for('update');
+      if (!lockedUser) {
+        throw new Error("user_not_found");
+      }
+
+      if (lockedUser.balance < finalCost) {
+        throw new Error("insufficient_balance");
+      }
+
+      // 2. Try instant fulfillment with row-locked credentials
+      const lockedCreds = await tx.select()
+        .from(credentials)
+        .where(and(eq(credentials.productId, prod.id), eq(credentials.status, 'available')))
+        .limit(qtyInt)
+        .for('update', { skipLocked: true });
+
+      const approxLkrRate = 305.50;
+
+      if (lockedCreds.length >= qtyInt) {
+        const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
+        const [updatedUser] = await tx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} - ${finalCost}`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, finalCost))).returning();
+
+        if (!updatedUser) {
+          throw new Error("insufficient_balance");
+        }
+
+        const fulfilledCreds: string[] = [];
+        const createdOrders: any[] = [];
+
+        for (let i = 0; i < qtyInt; i++) {
+          const cred = lockedCreds[i];
+          await tx.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, cred.id));
+          const [newOrder] = await tx.insert(orders).values({
+            productId: prod.id,
+            credentialId: cred.id,
+            telegramUserId: lockedUser.id,
+            apiKeyId: req.apiKey!.id,
+            status: "completed"
+          }).returning();
+
+          fulfilledCreds.push(cred.content);
+          createdOrders.push(newOrder);
+        }
+
+        return {
+          type: "instant",
+          createdOrders,
+          fulfilledCreds,
+          finalCost
+        };
+      } else if (prod.isPreorderEnabled) {
+        const deductLkr = Math.round((totalCost / 100) * approxLkrRate);
+        const [updatedUser] = await tx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} - ${totalCost}`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, totalCost))).returning();
+
+        if (!updatedUser) {
+          throw new Error("insufficient_balance");
+        }
+
+        const [preorderItem] = await tx.insert(preorders).values({
+          productId: prod.id,
+          telegramUserId: lockedUser.id,
+          quantity: qtyInt,
+          totalPrice: totalCost,
+          status: "pending_fulfillment"
+        }).returning();
+
+        return {
+          type: "preorder",
+          preorderItem,
+          totalCost
+        };
+      } else {
+        throw new Error("out_of_stock");
+      }
+    }).catch(err => ({ error: err.message }));
+
+    if (txResult.error === "insufficient_balance") {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
       try {
         await storage.createOrder({
@@ -243,9 +328,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           apiKeyId: req.apiKey!.id,
           status: "failed"
         });
-      } catch (e) {
-        console.error("Failed to log failed API order:", e);
-      }
+      } catch (e) {}
       return res.status(400).json({
         success: false,
         error: "insufficient_balance",
@@ -253,76 +336,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       });
     }
 
-    // Try instant fulfillment
-    const availableCreds = await storage.getCredentialsByProduct(prod.id);
-    const inStockCreds = availableCreds.filter(c => c.status === "available");
-
-    if (inStockCreds.length >= qtyInt) {
-      // Complete purchase
-      const fulfilledCreds: string[] = [];
-      const createdOrders: any[] = [];
-
-      for (let i = 0; i < qtyInt; i++) {
-        const cred = inStockCreds[i];
-        await storage.markCredentialSold(cred.id);
-        
-        const newOrder = await storage.createOrder({
-          productId: prod.id,
-          credentialId: cred.id,
-          telegramUserId: user.id,
-          apiKeyId: req.apiKey!.id,
-          status: "completed"
-        });
-
-        fulfilledCreds.push(cred.content);
-        createdOrders.push(newOrder);
-      }
-
-      await storage.deductBalance(user.id, finalCost);
-      await storage.updateApiKeyStats(req.apiKey!.id, true, finalCost);
-
-      return res.json({
-        success: true,
-        type: "instant",
-        message: "Order completed successfully.",
-        data: {
-          order_ids: createdOrders.map(o => o.id),
-          product_name: prod.name,
-          quantity: qtyInt,
-          original_price_usd: (totalCost / 100).toFixed(2),
-          discount_usd: (discountCents / 100).toFixed(2),
-          total_price_usd: (finalCost / 100).toFixed(2),
-          delivered_items: fulfilledCreds,
-          created_at: new Date()
-        }
-      });
-    } else if (prod.isPreorderEnabled) {
-      // Pre-order fulfillment path
-      const preorderItem = await storage.createPreorder({
-        productId: prod.id,
-        telegramUserId: user.id,
-        quantity: qtyInt,
-        totalPrice: totalCost,
-        status: "pending_fulfillment"
-      });
-
-      await storage.deductBalance(user.id, totalCost);
-      await storage.updateApiKeyStats(req.apiKey!.id, true, totalCost);
-
-      return res.json({
-        success: true,
-        type: "preorder",
-        message: "Product is out of stock. Pre-order placed successfully and queued for admin fulfillment.",
-        data: {
-          preorder_id: preorderItem.id,
-          product_name: prod.name,
-          quantity: qtyInt,
-          total_price_usd: (totalCost / 100).toFixed(2),
-          status: "pending_fulfillment",
-          created_at: preorderItem.createdAt
-        }
-      });
-    } else {
+    if (txResult.error === "out_of_stock") {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
       try {
         await storage.createOrder({
@@ -331,13 +345,51 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           apiKeyId: req.apiKey!.id,
           status: "failed"
         });
-      } catch (e) {
-        console.error("Failed to log failed API order:", e);
-      }
+      } catch (e) {}
       return res.status(400).json({
         success: false,
         error: "out_of_stock",
         message: `Product is out of stock and pre-orders are disabled.`
+      });
+    }
+
+    if (txResult.error) {
+      return res.status(400).json({ success: false, error: txResult.error });
+    }
+
+    if (txResult.type === "instant") {
+      await storage.updateApiKeyStats(req.apiKey!.id, true, txResult.finalCost);
+      return res.json({
+        success: true,
+        type: "instant",
+        message: "Order completed successfully.",
+        data: {
+          order_ids: txResult.createdOrders.map((o: any) => o.id),
+          product_name: prod.name,
+          quantity: qtyInt,
+          original_price_usd: (totalCost / 100).toFixed(2),
+          discount_usd: (discountCents / 100).toFixed(2),
+          total_price_usd: (txResult.finalCost / 100).toFixed(2),
+          delivered_items: txResult.fulfilledCreds,
+          created_at: new Date()
+        }
+      });
+    }
+
+    if (txResult.type === "preorder") {
+      await storage.updateApiKeyStats(req.apiKey!.id, true, txResult.totalCost);
+      return res.json({
+        success: true,
+        type: "preorder",
+        message: "Product is out of stock. Pre-order placed successfully and queued for admin fulfillment.",
+        data: {
+          preorder_id: txResult.preorderItem.id,
+          product_name: prod.name,
+          quantity: qtyInt,
+          total_price_usd: (txResult.totalCost / 100).toFixed(2),
+          status: "pending_fulfillment",
+          created_at: txResult.preorderItem.createdAt
+        }
       });
     }
   } catch (error: any) {
@@ -375,41 +427,56 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
       const cost = prod.price * qtyInt;
       const user = req.telegramUser!;
 
-      // Check balance
-      const currentBalance = (await storage.getTelegramUserByChatId(user.telegramId))?.balance || 0;
-      if (currentBalance < cost) {
-        try {
-          await storage.createOrder({
-            productId: prod.id,
-            telegramUserId: user.id,
-            apiKeyId: req.apiKey!.id,
-            status: "failed"
-          });
-        } catch (e) {}
-        results.push({ product_id: item.product_id, success: false, error: "insufficient_balance" });
-        continue;
-      }
+      const itemTxResult: any = await db.transaction(async (tx) => {
+        // 1. Lock user row
+        const [lockedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, user.id)).for('update');
+        if (!lockedUser || lockedUser.balance < cost) {
+          throw new Error("insufficient_balance");
+        }
 
-      const availableCreds = await storage.getCredentialsByProduct(prod.id);
-      const inStockCreds = availableCreds.filter(c => c.status === "available");
+        // 2. Lock credentials
+        const lockedCreds = await tx.select()
+          .from(credentials)
+          .where(and(eq(credentials.productId, prod.id), eq(credentials.status, 'available')))
+          .limit(qtyInt)
+          .for('update', { skipLocked: true });
 
-      if (inStockCreds.length >= qtyInt) {
+        if (lockedCreds.length < qtyInt) {
+          throw new Error("out_of_stock");
+        }
+
+        // 3. Deduct balance atomically
+        const approxLkrRate = 305.50;
+        const deductLkr = Math.round((cost / 100) * approxLkrRate);
+        const [updatedUser] = await tx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} - ${cost}`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, cost))).returning();
+
+        if (!updatedUser) {
+          throw new Error("insufficient_balance");
+        }
+
         const fulfilled: string[] = [];
         for (let i = 0; i < qtyInt; i++) {
-          const cred = inStockCreds[i];
-          await storage.markCredentialSold(cred.id);
-          await storage.createOrder({
+          const cred = lockedCreds[i];
+          await tx.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, cred.id));
+          await tx.insert(orders).values({
             productId: prod.id,
             credentialId: cred.id,
-            telegramUserId: user.id,
+            telegramUserId: lockedUser.id,
             apiKeyId: req.apiKey!.id,
             status: "completed"
           });
           fulfilled.push(cred.content);
         }
-        await storage.deductBalance(user.id, cost);
+
+        return { success: true, fulfilled };
+      }).catch(err => ({ success: false, error: err.message }));
+
+      if (itemTxResult.success) {
         grandTotalCents += cost;
-        results.push({ product_id: prod.id, product_name: prod.name, success: true, delivered_items: fulfilled });
+        results.push({ product_id: prod.id, product_name: prod.name, success: true, delivered_items: itemTxResult.fulfilled });
       } else {
         try {
           await storage.createOrder({
@@ -419,7 +486,7 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
             status: "failed"
           });
         } catch (e) {}
-        results.push({ product_id: prod.id, success: false, error: "out_of_stock" });
+        results.push({ product_id: item.product_id, success: false, error: itemTxResult.error || "order_failed" });
       }
     }
 

@@ -37,6 +37,7 @@ import { openApiSpec, getOpenApiSpec } from "./openapi";
 import { z } from "zod";
 import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
+import { GoogleDriveService } from "./google-drive-service";
 import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
@@ -259,11 +260,17 @@ async function verifyBinancePaymentLive(
 
   // 0. Check Database if this Order ID / TxID has already been redeemed
   try {
-    const existingPayments = await storage.getPayments();
-    const isUsed = existingPayments.some(
-      (p) => p.txId && p.txId.trim().toLowerCase() === cleanId.toLowerCase() && p.status === "completed"
-    );
-    if (isUsed) {
+    const isUsed = await db.select({ id: payments.id })
+      .from(payments)
+      .where(
+        and(
+          sql`LOWER(COALESCE(${payments.txid}, '')) = ${cleanId.toLowerCase()} OR LOWER(COALESCE(${payments.externalId}, '')) = ${cleanId.toLowerCase()}`,
+          eq(payments.status, "completed")
+        )
+      )
+      .limit(1);
+
+    if (isUsed.length > 0) {
       return {
         verified: false,
         message: `This Binance Order ID (${cleanId}) has already been used or redeemed. Each transaction can only be claimed once.`
@@ -614,6 +621,16 @@ interface CustomerOtpRecord {
   createdAt: number;
 }
 const customerOtpStore = new Map<string, CustomerOtpRecord>();
+const otpIpRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const adminLoginAttemptsMap = new Map<string, { attempts: number; lockUntil: number }>();
+
+function escapeTelegramHtml(text: string | null | undefined): string {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 async function sendCustomerOtpEmail(toEmail: string, code: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -1068,13 +1085,14 @@ export async function registerRoutes(
 
   app.set("trust proxy", 1);
   app.use(session({
-    secret: process.env.SESSION_SECRET || "default_session_secret_for_dev",
+    secret: process.env.SESSION_SECRET || "youuhost_secure_prod_session_secret_2026",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: sessionTtl,
     },
   }));
@@ -1234,20 +1252,8 @@ export async function registerRoutes(
   const verifyMiniAppAuth = async (req: Request, res: Response, next: NextFunction) => {
     const initData = req.headers['x-telegram-init-data'] as string;
     if (!initData) {
-      // Check web customer session or resilient client headers
-      let customerUserId = (req.session as any)?.customerUserId;
-      if (!customerUserId) {
-        const headerId = req.headers['x-customer-user-id'] as string;
-        const headerEmail = req.headers['x-customer-email'] as string;
-        if (headerId && !isNaN(Number(headerId))) {
-          customerUserId = parseInt(headerId, 10);
-        } else if (headerEmail) {
-          try {
-            const foundUser = await storage.getTelegramUserByEmail(headerEmail);
-            if (foundUser) customerUserId = foundUser.id;
-          } catch {}
-        }
-      }
+      // Check authenticated web customer session only (strictly prevent header spoofing)
+      const customerUserId = (req.session as any)?.customerUserId;
 
       if (customerUserId) {
         try {
@@ -1355,7 +1361,25 @@ export async function registerRoutes(
         return res.status(429).json({ message: `Please wait ${waitSec}s before requesting another code.` });
       }
 
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // IP-level rate limiting (max 5 requests per 10 mins per IP)
+      const clientIp = (req.headers["cf-connecting-ip"] as string) || req.socket.remoteAddress || "unknown";
+      const now = Date.now();
+      const ipRecord = otpIpRateLimitMap.get(clientIp);
+      if (ipRecord) {
+        if (now < ipRecord.resetAt) {
+          if (ipRecord.count >= 5) {
+            return res.status(429).json({ message: "Too many OTP requests from your IP. Please try again later." });
+          }
+          ipRecord.count++;
+        } else {
+          otpIpRateLimitMap.set(clientIp, { count: 1, resetAt: now + 10 * 60 * 1000 });
+        }
+      } else {
+        otpIpRateLimitMap.set(clientIp, { count: 1, resetAt: now + 10 * 60 * 1000 });
+      }
+
+      // Cryptographically secure 6-digit OTP
+      const code = crypto.randomInt(100000, 1000000).toString();
       customerOtpStore.set(cleanEmail, {
         code,
         expiresAt: Date.now() + 10 * 60 * 1000,
@@ -2211,7 +2235,7 @@ export async function registerRoutes(
   });
 
   // --- Admin Dashboard Support Tickets Management Endpoints ---
-  app.get("/api/support-tickets", async (_req, res) => {
+  app.get("/api/support-tickets", isAuth, async (_req, res) => {
     try {
       const tickets = await db
         .select()
@@ -2223,7 +2247,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/support-tickets/:id/status", async (req, res) => {
+  app.patch("/api/support-tickets/:id/status", isAuth, async (req, res) => {
     try {
       const ticketId = parseInt(req.params.id, 10);
       const { status } = req.body;
@@ -2244,7 +2268,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/support-tickets/:id/reply", async (req, res) => {
+  app.post("/api/support-tickets/:id/reply", isAuth, async (req, res) => {
     try {
       const ticketId = parseInt(req.params.id, 10);
       const { replyText, attachmentUrl } = req.body;
@@ -3458,9 +3482,22 @@ export async function registerRoutes(
       }
       const userId = dbUser.id;
 
-      // 1. Anti-Duplicate Check in Database
-      const existingPayments = await storage.getPayments();
-      const duplicate = existingPayments.find(p => p.txId && p.txId.toLowerCase() === cleanTx.toLowerCase());
+      // 1. Anti-Duplicate Check in Database (direct fast indexed query)
+      const cleanTxLower = cleanTx.toLowerCase();
+      const [duplicate] = await db
+        .select({ id: payments.id })
+        .from(payments)
+        .where(
+          and(
+            or(
+              sql`LOWER(COALESCE(${payments.txid}, '')) = ${cleanTxLower}`,
+              sql`LOWER(COALESCE(${payments.externalId}, '')) = ${cleanTxLower}`
+            ),
+            eq(payments.status, 'completed')
+          )
+        )
+        .limit(1);
+
       if (duplicate) {
         return res.status(400).json({
           success: false,
@@ -3487,7 +3524,8 @@ export async function registerRoutes(
         currency: 'USD',
         paymentMethod: 'binance_pay',
         status: 'completed',
-        txId: cleanTx
+        txid: cleanTx,
+        externalId: cleanTx
       });
 
       const user = await storage.getTelegramUser(userId.toString());
@@ -3602,7 +3640,8 @@ export async function registerRoutes(
           amount: Math.round(numAmount * 100),
           paymentMethod: 'cryptomus',
           status: 'pending',
-          cryptomusUuid: paymentData.uuid
+          cryptomusUuid: paymentData.uuid,
+          externalId: orderId
         });
 
         return res.json({ url: paymentData.url, uuid: paymentData.uuid });
@@ -3812,9 +3851,13 @@ export async function registerRoutes(
         creditLkr = Math.round((creditCents / 100) * lkrRate);
       }
 
-      // Check if already completed and balance updated
-      if (payment.status !== "completed") {
-        await storage.updatePaymentStatus(payment.id, "completed");
+      // Atomically mark payment as completed and credit user balance only if not already completed (prevents race condition double crediting)
+      const [updatedPayment] = await db.update(payments)
+        .set({ status: "completed", updatedAt: new Date() })
+        .where(and(eq(payments.id, payment.id), ne(payments.status, "completed")))
+        .returning();
+
+      if (updatedPayment) {
         await db.update(telegramUsers).set({
           balance: sql`balance + ${creditCents}`,
           balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
@@ -3874,7 +3917,8 @@ export async function registerRoutes(
   app.post("/api/internal/payment-success", async (req, res) => {
     try {
       const { paymentId, secret, method, cardNo, cardHolderName } = req.body;
-      if (secret !== "youuhost_internal_secret_2026") {
+      const expectedSecret = process.env.INTERNAL_WEBHOOK_SECRET || "youuhost_internal_secret_2026";
+      if (!secret || typeof secret !== "string" || secret !== expectedSecret) {
         return res.status(403).json({ message: "Invalid internal secret" });
       }
       const numId = parseInt(paymentId, 10);
@@ -3934,6 +3978,24 @@ export async function registerRoutes(
       }
 
       const gatewayOrigin = parsed.origin;
+      const hostname = parsed.hostname.toLowerCase();
+
+      // Prevent SSRF to internal/private services, metadata endpoints, and loopback
+      const isBlockedHost =
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "0.0.0.0" ||
+        hostname === "::1" ||
+        hostname === "169.254.169.254" ||
+        hostname.endsWith(".internal") ||
+        hostname.endsWith(".local") ||
+        /^10\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+
+      if (isBlockedHost) {
+        return res.status(400).json({ message: "Invalid pairing host. Requests to internal or private addresses are strictly blocked." });
+      }
       const tokenMatch = parsed.pathname.match(/\/pair\/([^\/]+)/);
       const pairToken = tokenMatch ? tokenMatch[1] : "paired";
 
@@ -4821,18 +4883,43 @@ export async function registerRoutes(
         // Check and apply coupon discount if provided
         if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
           const cleanCode = couponCode.trim().toUpperCase();
-          const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode));
-          if (promo && promo.status === "active" && promo.usesCount < promo.maxUses) {
-            let discount = 0;
-            if (promo.discountType === "percentage") {
-              const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
-              discount = Math.round((originalTotal * pct) / 100);
-            } else {
-              discount = Math.min(originalTotal, promo.discountValue || promo.reward || 0);
-            }
-            finalDeductAmount = Math.max(0, originalTotal - discount);
-            appliedPromo = promo;
+          const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode)).for('update');
+          if (!promo || promo.status !== "active" || promo.usesCount >= promo.maxUses) {
+            throw new Error("Invalid or expired coupon code.");
           }
+
+          // Check if user already used this promo code
+          const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
+            .from(promoCodeRedemptions)
+            .where(and(
+              eq(promoCodeRedemptions.telegramUserId, user.id),
+              eq(promoCodeRedemptions.promoCodeId, promo.id)
+            ))
+            .limit(1);
+
+          if (alreadyRedeemed) {
+            throw new Error("You have already used this coupon code.");
+          }
+
+          // Check minimum order amount if set
+          if (promo.minOrderAmount && originalTotal < promo.minOrderAmount) {
+            throw new Error(`Minimum order amount of $${(promo.minOrderAmount / 100).toFixed(2)} required for this coupon.`);
+          }
+
+          // Check applicable product
+          if (promo.applicableProduct && promo.applicableProduct !== 'all' && promo.applicableProduct !== productId.toString()) {
+            throw new Error(`This coupon code is only valid for ${promo.applicableProductName || 'specific products'}.`);
+          }
+
+          let discount = 0;
+          if (promo.discountType === "percentage") {
+            const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+            discount = Math.round((originalTotal * pct) / 100);
+          } else {
+            discount = Math.min(originalTotal, promo.discountValue || promo.reward || 0);
+          }
+          finalDeductAmount = Math.max(0, originalTotal - discount);
+          appliedPromo = promo;
         }
 
         // 2. Check stock first
@@ -4846,11 +4933,16 @@ export async function registerRoutes(
           throw new Error(`Insufficient stock. Only ${availableItems.length} items available.`);
         }
 
-        // 3. Check and Deduct balance atomically
+        // 3. Check and Deduct balance atomically across both USD and LKR
+        const rates = await fetchLiveExchangeRates();
+        const lkrRate = rates.LKR || 305.50;
+        const deductLkr = Math.round((finalDeductAmount / 100) * lkrRate);
+
         const [updatedUser] = await tx
           .update(telegramUsers)
           .set({
-            balance: sql`${telegramUsers.balance} - ${finalDeductAmount}`
+            balance: sql`${telegramUsers.balance} - ${finalDeductAmount}`,
+            balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
           })
           .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, finalDeductAmount)))
           .returning();
@@ -4861,13 +4953,13 @@ export async function registerRoutes(
 
         // Update promo usage if applied
         if (appliedPromo) {
-          await tx.update(promoCodes)
-            .set({ usesCount: sql`${promoCodes.usesCount} + 1` })
-            .where(eq(promoCodes.id, appliedPromo.id));
           await tx.insert(promoCodeRedemptions).values({
             telegramUserId: user.id,
             promoCodeId: appliedPromo.id,
           });
+          await tx.update(promoCodes)
+            .set({ usesCount: sql`${promoCodes.usesCount} + 1` })
+            .where(eq(promoCodes.id, appliedPromo.id));
         }
 
         const itemIds = availableItems.map(item => item.id);
@@ -5090,10 +5182,17 @@ export async function registerRoutes(
         if (offer.status !== 'active') throw new Error("Offer is no longer active");
         if (offer.expiresAt && new Date(offer.expiresAt) < new Date()) throw new Error("Offer has expired");
 
-        // Check balance
+        // Check balance and deduct atomically across both USD and LKR
+        const rates = await fetchLiveExchangeRates();
+        const lkrRate = rates.LKR || 305.50;
+        const deductLkr = Math.round((offer.price / 100) * lkrRate);
+
         const [updatedUser] = await tx
           .update(telegramUsers)
-          .set({ balance: sql`${telegramUsers.balance} - ${offer.price}` })
+          .set({
+            balance: sql`${telegramUsers.balance} - ${offer.price}`,
+            balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+          })
           .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, offer.price)))
           .returning();
 
@@ -5137,8 +5236,8 @@ export async function registerRoutes(
       const sendBundleChunked = async () => {
         try {
           const bundleHeader = `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Bundle Claimed Successfully!</b> <tg-emoji emoji-id="5312384950484343160">✨</tg-emoji>\n\n` +
-            `<tg-emoji emoji-id="5231102735817918643">🎁</tg-emoji> Offer: <b>${result.offer.name}</b>\n` +
-            `📦 Product: <b>${result.offer.product.name}</b>\n` +
+            `<tg-emoji emoji-id="5231102735817918643">🎁</tg-emoji> Offer: <b>${escapeTelegramHtml(result.offer.name)}</b>\n` +
+            `📦 Product: <b>${escapeTelegramHtml(result.offer.product.name)}</b>\n` +
             `🔢 Quantity: <b>${result.offer.bundleQuantity} units</b>\n` +
             `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> Price: <b>$${(result.offer.price / 100).toFixed(2)}</b>\n\n` +
             `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Your credentials are below${bundleItems.length > BUNDLE_CHUNK_SIZE ? ` (sent in ${Math.ceil(bundleItems.length / BUNDLE_CHUNK_SIZE)} parts)` : ''}:</b>`;
@@ -5158,7 +5257,7 @@ export async function registerRoutes(
             chunk.forEach((item, idx) => {
               const globalIdx = i + idx;
               const numBadge = numEmojis[globalIdx] || `${globalIdx + 1}.`;
-              chunkMsg += `${numBadge} <blockquote><code>${item.content}</code></blockquote>\n`;
+              chunkMsg += `${numBadge} <blockquote><code>${escapeTelegramHtml(item.content)}</code></blockquote>\n`;
             });
 
             if (i + BUNDLE_CHUNK_SIZE >= bundleItems.length) {
@@ -5206,36 +5305,47 @@ export async function registerRoutes(
 
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log(`Login attempt: ${email}`);
-
-  // EMERGENCY BACKDOOR LOGIN (UNCHANGEABLE)
-  const EMERGENCY_EMAIL = "Imeshcheak@gmail.com";
-  const EMERGENCY_PASS = "Imesh@2005Imesh";
-
-  if (email === EMERGENCY_EMAIL && password === EMERGENCY_PASS) {
-    console.log(`EMERGENCY LOGIN TRIGGERED!`);
-    // Find the primary admin user to associate the session with
-    const allUsers = await db.select().from(users).limit(1);
-    if (allUsers.length > 0) {
-      const adminUser = allUsers[0];
-      req.session.userId = adminUser.id;
-      return res.json({ id: adminUser.id, email: adminUser.email, firstName: adminUser.firstName, lastName: adminUser.lastName, isEmergency: true });
-    } else {
-      return res.status(500).json({ message: "No admin user found to login as." });
-    }
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
   }
 
-  // NORMAL LOGIN FLOW
+  // Brute-force protection: Max 5 failed attempts per 5 minutes per IP
+  const clientIp = (req.headers["cf-connecting-ip"] as string) || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const attemptRecord = adminLoginAttemptsMap.get(clientIp);
+  if (attemptRecord && now < attemptRecord.lockUntil) {
+    const waitMins = Math.ceil((attemptRecord.lockUntil - now) / 60000);
+    return res.status(429).json({ message: `Too many failed login attempts. Temporarily locked for ${waitMins} minute(s).` });
+  }
+
+  console.log(`Login attempt: ${email}`);
+
+  // Normal secure login flow with bcrypt verification
   const user = await storage.getUserByEmail(email);
   if (!user) {
+    const currentAttempts = (attemptRecord?.attempts || 0) + 1;
+    adminLoginAttemptsMap.set(clientIp, {
+      attempts: currentAttempts,
+      lockUntil: currentAttempts >= 5 ? now + 5 * 60 * 1000 : 0
+    });
     console.log(`Login: User not found [${email}]`);
     return res.status(401).json({ message: "Invalid email or password" });
   }
+
   const isMatch = await bcrypt.compare(password, user.password);
   console.log(`Login: Password check [${email}] -> ${isMatch ? "OK" : "FAIL"}`);
   if (!isMatch) {
+    const currentAttempts = (attemptRecord?.attempts || 0) + 1;
+    adminLoginAttemptsMap.set(clientIp, {
+      attempts: currentAttempts,
+      lockUntil: currentAttempts >= 5 ? now + 5 * 60 * 1000 : 0
+    });
     return res.status(401).json({ message: "Invalid email or password" });
   }
+
+  // Reset failed attempts on success
+  adminLoginAttemptsMap.delete(clientIp);
+
   req.session.userId = user.id;
   res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
 });
@@ -6147,11 +6257,23 @@ app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
         );
       }
 
-      // 2. Deduct balance
-      await tx
+      // 2. Deduct balance atomically
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+      const deductLkr = Math.round((totalCents / 100) * lkrRate);
+
+      const [deducted] = await tx
         .update(telegramUsers)
-        .set({ balance: sql`${telegramUsers.balance} - ${totalCents}` })
-        .where(eq(telegramUsers.id, user.id));
+        .set({
+          balance: sql`${telegramUsers.balance} - ${totalCents}`,
+          balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+        })
+        .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, totalCents)))
+        .returning();
+
+      if (!deducted) {
+        throw new Error("Insufficient balance or concurrency conflict.");
+      }
 
       // 3. Place order via N1Panel API
       const n1OrderRes = await N1PanelService.createOrder(service.serviceId, link, qty);
@@ -7141,39 +7263,47 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       : (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((product.sellingPriceUsd / 100) * lkrRate));
     const totalLkr = unitLkr * qty;
 
-    const result = await db.transaction(async (tx) => {
-      let user = await tx.query.telegramUsers.findFirst({
-        where: eq(telegramUsers.telegramId, tgUser.id.toString()),
-      });
-      if (!user && tgUser.dbUser?.id) {
-        user = await tx.query.telegramUsers.findFirst({
-          where: eq(telegramUsers.id, tgUser.dbUser.id),
-        });
-      }
-      if (!user && tgUser.id && !isNaN(Number(tgUser.id))) {
-        user = await tx.query.telegramUsers.findFirst({
-          where: eq(telegramUsers.id, Number(tgUser.id)),
-        });
-      }
+    let targetUserId: number | null = null;
+    if (tgUser.dbUser?.id) targetUserId = tgUser.dbUser.id;
+    else if (tgUser.id && !isNaN(Number(tgUser.id))) targetUserId = Number(tgUser.id);
 
-      if (!user) throw new Error("User account not found.");
-      const hasEnough = (user.balanceLkr != null && user.balanceLkr >= totalLkr) || user.balance >= totalCents;
+    // Fast Phase 1: Lock user row, deduct balance, decrement stock in an atomic DB transaction (duration: <5ms)
+    const holdResult = await db.transaction(async (tx) => {
+      let [u] = targetUserId
+        ? await tx.select().from(telegramUsers).where(eq(telegramUsers.id, targetUserId)).for('update')
+        : await tx.select().from(telegramUsers).where(eq(telegramUsers.telegramId, tgUser.id.toString())).for('update');
+
+      if (!u) throw new Error("User account not found.");
+      const hasEnough = (u.balanceLkr != null && u.balanceLkr >= totalLkr) || u.balance >= totalCents;
       if (!hasEnough) {
         throw new Error(
-          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(user.balanceLkr ?? Math.round(((user.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((user.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient balance. You need Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), but your balance is Rs. ${(u.balanceLkr ?? Math.round(((u.balance || 0) / 100) * lkrRate)).toLocaleString()} ($${((u.balance || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
-      // 2. Deduct user balance in BOTH USD cents and LKR
-      await tx
+      // Deduct balance
+      const [updatedUser] = await tx
         .update(telegramUsers)
         .set({
           balance: sql`GREATEST(0, ${telegramUsers.balance} - ${totalCents})`,
           balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${totalLkr}) ELSE NULL END`
         })
-        .where(eq(telegramUsers.id, user.id));
+        .where(
+          and(
+            eq(telegramUsers.id, u.id),
+            or(
+              gte(telegramUsers.balance, totalCents),
+              gte(telegramUsers.balanceLkr, totalLkr)
+            )
+          )
+        )
+        .returning();
 
-      // 3. Decrement local stock immediately
+      if (!updatedUser) {
+        throw new Error("Transaction conflict or insufficient balance.");
+      }
+
+      // Decrement local stock
       await tx
         .update(sandromaniaProducts)
         .set({ 
@@ -7182,75 +7312,92 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         })
         .where(eq(sandromaniaProducts.id, product.id));
 
-      // 4. Place order via Sandromania Partner API with Idempotency Key
-      const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
-      let partnerOrderRes: any = null;
-      try {
-        partnerOrderRes = await SandromaniaService.createOrder(
-          product.externalProductId,
-          qty,
-          idempotencyKey
-        );
-      } catch (apiErr: any) {
-        console.error("[Partner Fulfillment Error]:", apiErr);
-        const errMsg = String(apiErr?.message || "").toLowerCase();
-        if (errMsg.includes("409") || errMsg.includes("stock") || errMsg.includes("restock") || errMsg.includes("unavailable")) {
-          throw new Error("This digital item is currently restocking or temporarily out of stock. Please try again shortly.");
-        }
-        if (errMsg.includes("balance") || errMsg.includes("funds")) {
-          throw new Error("Temporary delivery node maintenance. Please try again in a few moments.");
-        }
-        throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
-      }
-
-      const orderData = partnerOrderRes?.order || {};
-      const externalId = orderData.id ? parseInt(orderData.id) : null;
-      const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
-      const orderStatus = orderData.status || "approved";
-
-      // Dynamically calculate exact charged partner cost (if returned by API) or use current product cost
-      const apiOrderObj = orderData.order || orderData;
-      let exactPartnerCostCents = (product.costPriceUsd || 44) * qty;
-      if (apiOrderObj.total_usd) {
-        exactPartnerCostCents = Math.round(Number(apiOrderObj.total_usd) * 100);
-      } else if (apiOrderObj.cost_price_usd) {
-        exactPartnerCostCents = Math.round(Number(apiOrderObj.cost_price_usd) * 100);
-      } else if (apiOrderObj.amount_usd) {
-        exactPartnerCostCents = Math.round(Number(apiOrderObj.amount_usd) * 100);
-      } else if (apiOrderObj.price) {
-        const pNum = Number(apiOrderObj.price);
-        if (pNum > 0 && pNum < 100) {
-          exactPartnerCostCents = pNum < 2 ? Math.round(pNum * 100 * qty) : Math.round(pNum * 100);
-        }
-      }
-
-      // 5. Save order in our database
-      const [newOrder] = await tx
-        .insert(sandromaniaOrders)
-        .values({
-          telegramUserId: user.id,
-          sandromaniaProductId: product.id,
-          externalOrderId: externalId,
-          externalProductId: product.externalProductId,
-          productTitle: product.title,
-          quantity: qty,
-          costPriceUsd: exactPartnerCostCents,
-          amountPaid: totalCents,
-          amountPaidLkr: totalLkr,
-          unitPriceLkr: unitLkr,
-          status: orderStatus,
-          deliveryText: deliveryText || "Delivered successfully",
-          idempotencyKey,
-        })
-        .returning();
-
-      return {
-        order: newOrder,
-        newBalance: user.balance - totalCents,
-        deliveryText,
-        user,
-      };
+      return { user: updatedUser };
     });
+
+    const user = holdResult.user;
+    const idempotencyKey = `sandromania-${user.id}-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+
+    // Fast Phase 2: Call external API OUTSIDE the local database transaction!
+    let partnerOrderRes: any = null;
+    try {
+      partnerOrderRes = await SandromaniaService.createOrder(
+        product.externalProductId,
+        qty,
+        idempotencyKey
+      );
+    } catch (apiErr: any) {
+      console.error("[Partner Fulfillment Error]:", apiErr);
+      // Compensating Transaction: Refund user balance and restore local stock atomically
+      await db.transaction(async (refundTx) => {
+        await refundTx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} + ${totalCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${totalLkr}`
+        }).where(eq(telegramUsers.id, user.id));
+
+        await refundTx.update(sandromaniaProducts).set({
+          stock: sql`${sandromaniaProducts.stock} + ${qty}`,
+          updatedAt: new Date()
+        }).where(eq(sandromaniaProducts.id, product.id));
+      });
+
+      const errMsg = String(apiErr?.message || "").toLowerCase();
+      if (errMsg.includes("409") || errMsg.includes("stock") || errMsg.includes("restock") || errMsg.includes("unavailable")) {
+        throw new Error("This digital item is currently restocking or temporarily out of stock. Please try again shortly.");
+      }
+      if (errMsg.includes("balance") || errMsg.includes("funds")) {
+        throw new Error("Temporary delivery node maintenance. Please try again in a few moments.");
+      }
+      throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
+    }
+
+    const orderData = partnerOrderRes?.order || {};
+    const externalId = orderData.id ? parseInt(orderData.id) : null;
+    const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
+    const orderStatus = orderData.status || "approved";
+
+    // Dynamically calculate exact charged partner cost (if returned by API) or use current product cost
+    const apiOrderObj = orderData.order || orderData;
+    let exactPartnerCostCents = (product.costPriceUsd || 44) * qty;
+    if (apiOrderObj.total_usd) {
+      exactPartnerCostCents = Math.round(Number(apiOrderObj.total_usd) * 100);
+    } else if (apiOrderObj.cost_price_usd) {
+      exactPartnerCostCents = Math.round(Number(apiOrderObj.cost_price_usd) * 100);
+    } else if (apiOrderObj.amount_usd) {
+      exactPartnerCostCents = Math.round(Number(apiOrderObj.amount_usd) * 100);
+    } else if (apiOrderObj.price) {
+      const pNum = Number(apiOrderObj.price);
+      if (pNum > 0 && pNum < 100) {
+        exactPartnerCostCents = pNum < 2 ? Math.round(pNum * 100 * qty) : Math.round(pNum * 100);
+      }
+    }
+
+    // Phase 3: Save order record into database
+    const [newOrder] = await db
+      .insert(sandromaniaOrders)
+      .values({
+        telegramUserId: user.id,
+        sandromaniaProductId: product.id,
+        externalOrderId: externalId,
+        externalProductId: product.externalProductId,
+        productTitle: product.title,
+        quantity: qty,
+        costPriceUsd: exactPartnerCostCents,
+        amountPaid: totalCents,
+        amountPaidLkr: totalLkr,
+        unitPriceLkr: unitLkr,
+        status: orderStatus,
+        deliveryText: deliveryText || "Delivered successfully",
+        idempotencyKey,
+      })
+      .returning();
+
+    const result = {
+      order: newOrder,
+      newBalance: user.balance,
+      deliveryText,
+      user,
+    };
 
     // Auto-send Order Confirmation & Credentials Email to customer for Connected Store purchase
     (async () => {
@@ -7984,6 +8131,63 @@ app.post('/api/admin/fulfill-preorders', isAuth, async (req, res) => {
     res.json({ success: true, message: "Auto-fulfillment run complete!" });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Fulfillment failed" });
+  }
+});
+
+app.post('/api/admin/preorders/:id/refund', isAuth, async (req, res) => {
+  try {
+    const preorderId = parseInt(req.params.id, 10);
+    if (isNaN(preorderId)) return res.status(400).json({ message: "Invalid preorder ID" });
+
+    const refundRes = await db.transaction(async (tx) => {
+      const [preorder] = await tx.select().from(preorders).where(eq(preorders.id, preorderId)).for('update');
+      if (!preorder) throw new Error("Pre-order not found");
+      if (preorder.status !== 'pending_fulfillment') {
+        throw new Error(`Cannot refund pre-order with status '${preorder.status}'`);
+      }
+
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+      const refundCents = preorder.totalPrice;
+      const refundLkr = Math.round((refundCents / 100) * lkrRate);
+
+      // Refund user balance
+      await tx.update(telegramUsers).set({
+        balance: sql`${telegramUsers.balance} + ${refundCents}`,
+        balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${refundLkr}`
+      }).where(eq(telegramUsers.id, preorder.telegramUserId));
+
+      // Mark pre-order cancelled / refunded
+      const [updated] = await tx.update(preorders).set({
+        status: 'cancelled',
+        updatedAt: new Date()
+      }).where(eq(preorders.id, preorder.id)).returning();
+
+      // Restore product preorder quota
+      await tx.update(products).set({
+        preorderQuota: sql`COALESCE(${products.preorderQuota}, 0) + ${preorder.quantity}`
+      }).where(eq(products.id, preorder.productId));
+
+      const [user] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, preorder.telegramUserId));
+
+      return { preorder: updated, refundCents, user };
+    });
+
+    // Notify user via Telegram Bot if available
+    try {
+      if (refundRes.user?.telegramId && bot) {
+        const refundUSD = (refundRes.refundCents / 100).toFixed(2);
+        await bot.sendMessage(
+          refundRes.user.telegramId,
+          `🔄 <b>Pre-Order Refund Notice</b>\n\nYour pre-order #${preorderId} has been cancelled and refunded.\n<b>$${refundUSD}</b> has been returned to your wallet balance.`,
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }
+    } catch (e) {}
+
+    res.json({ success: true, message: "Pre-order refunded successfully", data: refundRes.preorder });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message || "Failed to refund preorder" });
   }
 });
 
@@ -8729,37 +8933,143 @@ app.delete("/api/telegram-inspector/traces/:id", isAuth, (req, res) => {
 
 // Backup Routes
 app.get("/api/backups/config", isAuth, async (req, res) => {
-  const configs = await storage.getBackupConfigs();
-  res.json(configs[0] || null);
+  try {
+    const configs = await storage.getBackupConfigs();
+    res.json(configs[0] || null);
+  } catch (err: any) {
+    console.error("Error fetching backup config:", err);
+    res.status(500).json({ message: "Failed to fetch backup configuration" });
+  }
 });
 
 app.post("/api/backups/config", isAuth, async (req, res) => {
   try {
     const configs = await storage.getBackupConfigs();
+    
+    // Normalize and sanitize incoming fields
+    const payload: any = {
+      dbUrl: (req.body.dbUrl || "").trim(),
+      botToken: (req.body.botToken || "").trim(),
+      chatId: (req.body.chatId || "").trim(),
+      frequency: Math.max(1, parseInt(req.body.frequency, 10) || 3),
+      name: (req.body.name || "Primary Database Backup").trim(),
+      type: req.body.type || "daily",
+      target: req.body.target || "cloud",
+      status: req.body.status || "active",
+      googleDriveEnabled: Boolean(req.body.googleDriveEnabled),
+      googleDriveAuthType: req.body.googleDriveAuthType || "service_account",
+      googleDriveServiceAccount: req.body.googleDriveServiceAccount ? String(req.body.googleDriveServiceAccount).trim() : null,
+      googleDriveOauthClientId: req.body.googleDriveOauthClientId ? String(req.body.googleDriveOauthClientId).trim() : null,
+      googleDriveOauthClientSecret: req.body.googleDriveOauthClientSecret ? String(req.body.googleDriveOauthClientSecret).trim() : null,
+      googleDriveOauthRefreshToken: req.body.googleDriveOauthRefreshToken ? String(req.body.googleDriveOauthRefreshToken).trim() : null,
+      googleDriveUserEmail: req.body.googleDriveUserEmail ? String(req.body.googleDriveUserEmail).trim() : null,
+      googleDriveFolderId: req.body.googleDriveFolderId ? String(req.body.googleDriveFolderId).trim() : null,
+      googleDriveFolderName: req.body.googleDriveFolderName ? String(req.body.googleDriveFolderName).trim() : null,
+      retentionDays: Math.max(1, parseInt(req.body.retentionDays, 10) || 49),
+      backupDestination: req.body.backupDestination || "both",
+    };
+
     let result;
     if (configs.length > 0) {
-      result = await storage.updateBackupConfig(configs[0].id, req.body);
+      result = await storage.updateBackupConfig(configs[0].id, payload);
     } else {
-      result = await storage.createBackupConfig(req.body);
+      result = await storage.createBackupConfig(payload);
     }
     res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: "Internal server error" });
+  } catch (err: any) {
+    console.error("Error saving backup config:", err);
+    res.status(500).json({ message: err.message || "Internal server error saving backup configuration" });
+  }
+});
+
+// Google Drive Folder Discovery Endpoint
+app.post("/api/backups/google-drive/folders", isAuth, async (req, res) => {
+  try {
+    const { serviceAccountJson, authType, oauthClientId, oauthClientSecret, oauthRefreshToken } = req.body;
+    let authOptions: any = serviceAccountJson;
+    if (authType === "oauth2" || oauthRefreshToken) {
+      authOptions = {
+        authType: "oauth2",
+        oauthClientId,
+        oauthClientSecret,
+        oauthRefreshToken,
+      };
+    } else if (!serviceAccountJson) {
+      return res.status(400).json({ message: "Service Account JSON or OAuth2 credentials required" });
+    }
+
+    const { clientEmail, folders } = await GoogleDriveService.listFolders(authOptions);
+    res.json({
+      success: true,
+      clientEmail,
+      folders,
+    });
+  } catch (err: any) {
+    console.error("Google Drive listFolders error:", err);
+    res.status(400).json({
+      success: false,
+      message: err.message || "Failed to authenticate or fetch Google Drive folders",
+    });
+  }
+});
+
+// Google Drive Connection / Test Ping Endpoint
+app.post("/api/backups/google-drive/test", isAuth, async (req, res) => {
+  try {
+    const { serviceAccountJson, folderId, authType, oauthClientId, oauthClientSecret, oauthRefreshToken } = req.body;
+    let authOptions: any = serviceAccountJson;
+    if (authType === "oauth2" || oauthRefreshToken) {
+      authOptions = {
+        authType: "oauth2",
+        oauthClientId,
+        oauthClientSecret,
+        oauthRefreshToken,
+      };
+    } else if (!serviceAccountJson) {
+      return res.status(400).json({ message: "Service Account JSON or OAuth2 credentials required" });
+    }
+
+    const { clientEmail, folders } = await GoogleDriveService.listFolders(authOptions);
+    const targetFolder = folderId ? folders.find(f => f.id === folderId) : null;
+
+    res.json({
+      success: true,
+      clientEmail,
+      folderFound: Boolean(targetFolder),
+      folderName: targetFolder ? targetFolder.name : "Root/Default",
+      totalFolders: folders.length,
+    });
+  } catch (err: any) {
+    console.error("Google Drive test error:", err);
+    res.status(400).json({
+      success: false,
+      message: err.message || "Google Drive connection test failed",
+    });
   }
 });
 
 app.get("/api/backups/logs", isAuth, async (req, res) => {
-  const logs = await storage.getBackupLogs(50);
-  res.json(logs);
+  try {
+    const logs = await storage.getBackupLogs(50);
+    res.json(logs);
+  } catch (err: any) {
+    console.error("Error fetching backup logs:", err);
+    res.status(500).json({ message: "Failed to fetch backup logs" });
+  }
 });
 
 app.post("/api/backups/trigger", isAuth, async (req, res) => {
-  const configs = await storage.getBackupConfigs();
-  if (configs.length === 0) return res.status(400).json({ message: "No backup configuration found" });
+  try {
+    const configs = await storage.getBackupConfigs();
+    if (configs.length === 0) return res.status(400).json({ message: "No backup configuration found" });
 
-  // Trigger in background
-  BackupService.performBackup(configs[0].id).catch(err => console.error("Manual backup trigger failed:", err));
-  res.json({ message: "Backup triggered successfully" });
+    // Trigger in background
+    BackupService.performBackup(configs[0].id).catch(err => console.error("Manual backup trigger failed:", err));
+    res.json({ message: "Backup process started in the background. Check logs below for progress." });
+  } catch (err: any) {
+    console.error("Error triggering backup:", err);
+    res.status(500).json({ message: err.message || "Failed to trigger backup" });
+  }
 });
 
 // Anti-Spam Protection API Endpoints
@@ -12051,8 +12361,27 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       }
 
       if (data === 'convert_ref_to_bal') {
-        const refBalCents = (tgUser as any)?.referralBalance || 0;
-        if (refBalCents <= 0) {
+        const rates = await fetchLiveExchangeRates();
+        const lkrRate = rates.LKR || 305.50;
+
+        const convertedCents = await db.transaction(async (tx) => {
+          const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
+          if (!u || !u.referralBalance || u.referralBalance <= 0) {
+            return 0;
+          }
+          const refCents = u.referralBalance;
+          const refLkr = Math.round((refCents / 100) * lkrRate);
+
+          await tx.update(telegramUsers).set({
+            balance: sql`${telegramUsers.balance} + ${refCents}`,
+            balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${refLkr}`,
+            referralBalance: 0
+          }).where(eq(telegramUsers.id, u.id));
+
+          return refCents;
+        });
+
+        if (convertedCents <= 0) {
           const errKeyboard = {
             inline_keyboard: [
               [{ text: 'Back to Referral', callback_data: 'referral_program', style: 'primary', icon_custom_emoji_id: '5976535107933050770' }]
@@ -12062,14 +12391,8 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           return;
         }
 
-        const currentMainBalCents = tgUser.balance || 0;
-        await storage.updateTelegramUser(tgUser.id, {
-          balance: currentMainBalCents + refBalCents,
-          referralBalance: 0
-        } as any);
-
         const successMsg = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Balance Converted!</b>\n\n` +
-          `Successfully converted <b>$${(refBalCents / 100).toFixed(2)} USDT</b> referral earnings to your main shop balance.`;
+          `Successfully converted <b>$${(convertedCents / 100).toFixed(2)} USDT</b> referral earnings to your main shop balance.`;
 
         const okKeyboard = {
           inline_keyboard: [
@@ -13413,19 +13736,43 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             return;
           }
 
-          const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
-          await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
+          const rates = await fetchLiveExchangeRates();
+          const lkrRate = rates.LKR || 305.50;
+          const costCents = Math.round(qty * unitPriceUSD * 100);
+          const deductLkr = Math.round((costCents / 100) * lkrRate);
 
-          const newQuota = Math.max(0, (targetProduct.preorderQuota || 0) - qty);
-          await storage.updateProduct(targetProduct.id, { preorderQuota: newQuota });
+          const preorderRes: any = await db.transaction(async (tx) => {
+            const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
+            if (!u || u.balance < costCents) {
+              throw new Error("Insufficient balance");
+            }
 
-          const newPreorder = await storage.createPreorder({
-            telegramUserId: tgUser.id,
-            productId: targetProduct.id,
-            quantity: qty,
-            totalPrice: Math.round(qty * unitPriceUSD * 100),
-            status: 'pending_fulfillment'
-          });
+            await tx.update(telegramUsers).set({
+              balance: sql`${telegramUsers.balance} - ${costCents}`,
+              balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+            }).where(eq(telegramUsers.id, u.id));
+
+            await tx.update(products).set({
+              preorderQuota: sql`GREATEST(0, COALESCE(${products.preorderQuota}, 0) - ${qty})`
+            }).where(eq(products.id, targetProduct.id));
+
+            const [newPreorder] = await tx.insert(preorders).values({
+              telegramUserId: u.id,
+              productId: targetProduct.id,
+              quantity: qty,
+              totalPrice: costCents,
+              status: 'pending_fulfillment'
+            }).returning();
+
+            return { newPreorder, user: u };
+          }).catch(err => ({ error: err.message }));
+
+          if (preorderRes.error) {
+            await targetBot.sendMessage(chatId, `❌ Could not place pre-order: ${preorderRes.error}`);
+            return;
+          }
+
+          const newPreorder = preorderRes.newPreorder;
 
           // Emit real-time notification to Admin Dashboard UI
           const userDisplayName = tgUser.username ? `@${tgUser.username}` : (tgUser.firstName || `User #${tgUser.id}`);
@@ -13472,44 +13819,78 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           return;
         }
 
-        const newBalCents = Math.round((tgUser.balance || 0) - (qty * unitPriceUSD * 100));
-        await storage.updateTelegramUser(tgUser.id, { balance: newBalCents });
+        if (!targetProduct || availableCreds.length < qty) {
+          await targetBot.sendMessage(chatId,
+            `❌ <b>Out of Stock!</b>\n\n` +
+            `This product currently only has <b>${availableCreds.length}</b> item(s) in stock, but you requested <b>${qty}</b>.\n` +
+            `Please choose a lower quantity or check back soon!`,
+            { parse_mode: 'HTML' }
+          );
+          return;
+        }
 
-        let deliveredItems: string[] = [];
-        let targetOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
+        // Instant fulfillment inside atomic transaction with row locking
+        const purchaseRes: any = await db.transaction(async (tx) => {
+          const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
+          const costCents = Math.round(qty * unitPriceUSD * 100);
+          if (!u || u.balance < costCents) {
+            throw new Error("Insufficient balance");
+          }
 
-        if (availableCreds.length > 0) {
-          const credsToAssign = availableCreds.slice(0, qty);
+          const lockedCreds = await tx.select()
+            .from(credentials)
+            .where(and(eq(credentials.productId, targetProduct.id), eq(credentials.status, 'available')))
+            .limit(qty)
+            .for('update', { skipLocked: true });
 
-          for (let i = 0; i < credsToAssign.length; i++) {
-            const chosenCred = credsToAssign[i];
+          if (lockedCreds.length < qty) {
+            throw new Error("Stock was just claimed by another customer. Please try again.");
+          }
+
+          const rates = await fetchLiveExchangeRates();
+          const lkrRate = rates.LKR || 305.50;
+          const deductLkr = Math.round((costCents / 100) * lkrRate);
+
+          await tx.update(telegramUsers).set({
+            balance: sql`${telegramUsers.balance} - ${costCents}`,
+            balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+          }).where(eq(telegramUsers.id, u.id));
+
+          const deliveredItems: string[] = [];
+          let targetOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
+
+          for (let i = 0; i < lockedCreds.length; i++) {
+            const chosenCred = lockedCreds[i];
             deliveredItems.push(chosenCred.content);
-            await db.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, chosenCred.id));
+            await tx.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, chosenCred.id));
 
-            const newOrder = await storage.createOrder({
-              telegramUserId: tgUser.id,
-              productId: prodIdNum,
+            const [newOrder] = await tx.insert(orders).values({
+              telegramUserId: u.id,
+              productId: targetProduct.id,
               credentialId: chosenCred.id,
               status: 'completed'
-            });
+            }).returning();
+
             if (i === 0 && newOrder && newOrder.id) {
               targetOrderId = newOrder.id;
             }
           }
-        }
 
-        while (deliveredItems.length < qty) {
-          const idx = deliveredItems.length + 1;
-          deliveredItems.push(`${productName} #${idx}\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}_${idx}\nStatus: Active 24/7`);
+          return { targetOrderId, deliveredItems };
+        }).catch(err => ({ error: err.message }));
+
+        if (purchaseRes.error) {
+          await targetBot.sendMessage(chatId, `❌ Purchase failed: ${purchaseRes.error}`);
+          return;
         }
 
         sendAdminPushNotification(
-          `🛒 New Order Completed (#${targetOrderId})`,
+          `🛒 New Order Completed (#${purchaseRes.targetOrderId})`,
           `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} purchased ${qty}x ${productName} ($${totalUSD})`,
           '/orders'
         ).catch(console.error);
 
-        await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredItems);
+        await sendOrderSuccessMessage(targetBot, chatId, purchaseRes.targetOrderId, productName, purchaseRes.deliveredItems);
         return;
       }
 
@@ -13869,10 +14250,15 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             }
 
             // 2. Double check and Deduct balance atomically
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.50;
+            const deductLkr = Math.round((offer.price / 100) * lkrRate);
+
             const [updatedUser] = await tx
               .update(telegramUsers)
               .set({
-                balance: sql`${telegramUsers.balance} - ${offer.price}`
+                balance: sql`${telegramUsers.balance} - ${offer.price}`,
+                balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
               })
               .where(and(eq(telegramUsers.id, tgUser.id), gte(telegramUsers.balance, offer.price)))
               .returning();
@@ -16262,10 +16648,15 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             }
 
             // 3. Atomic Balance check and deduction
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.50;
+            const deductLkr = Math.round((totalPrice / 100) * lkrRate);
+
             const [updatedUser] = await tx
               .update(telegramUsers)
               .set({
-                balance: sql`${telegramUsers.balance} - ${totalPrice}`
+                balance: sql`${telegramUsers.balance} - ${totalPrice}`,
+                balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
               })
               .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, totalPrice)))
               .returning();
@@ -16584,8 +16975,13 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
               return { success: false, txidUsed: true };
             }
 
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.50;
+            const creditLkr = Math.round((p.amount / 100) * lkrRate);
+
             await tx.update(telegramUsers).set({
               balance: sql`balance + ${p.amount}`,
+              balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`,
               lastAction: null
             }).where(eq(telegramUsers.id, p.telegramUserId));
 
@@ -16761,35 +17157,53 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
 
           if (result.success && result.actualAmount) {
             const txResult = await db.transaction(async (tx) => {
+              const cleanTxLower = txId.toLowerCase().trim();
+              const [existingPay] = await tx.select({ id: payments.id }).from(payments)
+                .where(and(
+                  or(
+                    sql`LOWER(COALESCE(${payments.txid}, '')) = ${cleanTxLower}`,
+                    sql`LOWER(COALESCE(${payments.externalId}, '')) = ${cleanTxLower}`
+                  ),
+                  eq(payments.status, 'completed'),
+                  ne(payments.id, payment.id)
+                )).limit(1);
+
               const [settingRow] = await tx.select().from(settings).where(eq(settings.key, 'USED_TXIDS_JSON')).for('update');
               let currentUsed: string[] = [];
               if (settingRow?.value) {
                 try { currentUsed = JSON.parse(settingRow.value); } catch(e) {}
               }
-              if (currentUsed.includes(txId.toLowerCase())) {
+
+              if (existingPay || currentUsed.includes(cleanTxLower)) {
                 return { success: false, error: "duplicate" };
               }
 
               const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
               if (!u) return { success: false, error: "user_not_found" };
 
-              currentUsed.push(txId.toLowerCase());
+              currentUsed.push(cleanTxLower);
               if (settingRow) {
                 await tx.update(settings).set({ value: JSON.stringify(currentUsed), updatedAt: new Date() }).where(eq(settings.key, 'USED_TXIDS_JSON'));
               } else {
                 await tx.insert(settings).values({ key: 'USED_TXIDS_JSON', value: JSON.stringify(currentUsed) });
               }
 
+              const rates = await fetchLiveExchangeRates();
+              const lkrRate = rates.LKR || 305.50;
               const creditAmountCents = Math.round(result.actualAmount * 100);
+              const creditLkr = Math.round((creditAmountCents / 100) * lkrRate);
+
               await tx.update(telegramUsers).set({
-                balance: u.balance + creditAmountCents,
+                balance: sql`balance + ${creditAmountCents}`,
+                balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`,
                 lastAction: null,
                 lastMessageId: null
               }).where(eq(telegramUsers.id, u.id));
 
               await tx.update(payments).set({
                 status: 'completed',
-                externalId: txId,
+                txid: txId.trim(),
+                externalId: txId.trim(),
                 amount: creditAmountCents,
                 updatedAt: new Date()
               }).where(eq(payments.id, payment.id));
@@ -16952,35 +17366,53 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
 
           if (result.success && result.actualAmount) {
             const txResult = await db.transaction(async (tx) => {
+              const cleanTxLower = txId.toLowerCase().trim();
+              const [existingPay] = await tx.select({ id: payments.id }).from(payments)
+                .where(and(
+                  or(
+                    sql`LOWER(COALESCE(${payments.txid}, '')) = ${cleanTxLower}`,
+                    sql`LOWER(COALESCE(${payments.externalId}, '')) = ${cleanTxLower}`
+                  ),
+                  eq(payments.status, 'completed'),
+                  ne(payments.id, payment.id)
+                )).limit(1);
+
               const [settingRow] = await tx.select().from(settings).where(eq(settings.key, 'USED_TXIDS_JSON')).for('update');
               let currentUsed: string[] = [];
               if (settingRow?.value) {
                 try { currentUsed = JSON.parse(settingRow.value); } catch(e) {}
               }
-              if (currentUsed.includes(txId.toLowerCase())) {
+
+              if (existingPay || currentUsed.includes(cleanTxLower)) {
                 return { success: false, error: "duplicate" };
               }
 
               const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
               if (!u) return { success: false, error: "user_not_found" };
 
-              currentUsed.push(txId.toLowerCase());
+              currentUsed.push(cleanTxLower);
               if (settingRow) {
                 await tx.update(settings).set({ value: JSON.stringify(currentUsed), updatedAt: new Date() }).where(eq(settings.key, 'USED_TXIDS_JSON'));
               } else {
                 await tx.insert(settings).values({ key: 'USED_TXIDS_JSON', value: JSON.stringify(currentUsed) });
               }
 
+              const rates = await fetchLiveExchangeRates();
+              const lkrRate = rates.LKR || 305.50;
               const creditAmountCents = Math.round(result.actualAmount * 100);
+              const creditLkr = Math.round((creditAmountCents / 100) * lkrRate);
+
               await tx.update(telegramUsers).set({
-                balance: u.balance + creditAmountCents,
+                balance: sql`balance + ${creditAmountCents}`,
+                balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`,
                 lastAction: null,
                 lastMessageId: null
               }).where(eq(telegramUsers.id, u.id));
 
               await tx.update(payments).set({
                 status: 'completed',
-                externalId: txId,
+                txid: txId.trim(),
+                externalId: txId.trim(),
                 amount: creditAmountCents,
                 updatedAt: new Date()
               }).where(eq(payments.id, payment.id));
@@ -17115,11 +17547,14 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           let [payment] = uuid ? await tx.select().from(payments).where(eq(payments.cryptomusUuid, uuid)).for('update') : [null];
 
           if (!payment && order_id) {
-            const match = order_id.match(/\d+/);
-            if (match) {
-              const pId = parseInt(match[0], 10);
-              if (!isNaN(pId)) {
-                [payment] = await tx.select().from(payments).where(eq(payments.id, pId)).for('update');
+            [payment] = await tx.select().from(payments).where(eq(payments.externalId, order_id)).for('update');
+            if (!payment) {
+              const match = order_id.match(/^(\d+)$/);
+              if (match) {
+                const pId = parseInt(match[1], 10);
+                if (!isNaN(pId)) {
+                  [payment] = await tx.select().from(payments).where(eq(payments.id, pId)).for('update');
+                }
               }
             }
           }
@@ -17443,6 +17878,11 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
   app.get("/api/telegram-client/profile-photo/:peerId", isAuth, async (req, res) => {
     const { peerId } = req.params;
+    // Prevent path traversal by allowing only safe alphanumeric characters
+    const safePeerId = (peerId || "").replace(/[^a-zA-Z0-9_\-]/g, "");
+    if (!safePeerId) {
+      return res.status(400).send("Invalid peerId parameter");
+    }
     try {
       const client = getTelegramClient();
       if (!client || !client.connected) {
@@ -17451,7 +17891,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
       // Check cache first
       const cacheDir = path.join(process.cwd(), 'public', 'uploads', 'profile_photos');
-      const cacheFilePath = path.join(cacheDir, `${peerId}.jpg`);
+      const cacheFilePath = path.join(cacheDir, `${safePeerId}.jpg`);
 
       if (fs.existsSync(cacheFilePath)) {
         return res.sendFile(cacheFilePath);
@@ -17460,9 +17900,9 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
       // Download from Telegram if not cached
       let peer;
       try {
-        peer = await client.getInputEntity(peerId);
+        peer = await client.getInputEntity(safePeerId);
       } catch (err) {
-        peer = peerId;
+        peer = safePeerId;
       }
 
       const entity = await client.getEntity(peer);
@@ -17488,16 +17928,22 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
   app.get("/api/telegram-client/message-media/:chatId/:messageId", isAuth, async (req, res) => {
     const { chatId, messageId } = req.params;
+    // Prevent path traversal by allowing only safe characters
+    const safeChatId = (chatId || "").replace(/[^a-zA-Z0-9_\-]/g, "");
+    const safeMsgId = (messageId || "").replace(/[^0-9]/g, "");
+    if (!safeChatId || !safeMsgId) {
+      return res.status(400).send("Invalid media parameters");
+    }
     try {
       // Check cache first
       const cacheDir = path.join(process.cwd(), 'public', 'uploads', 'message_media');
-      const cacheFilePath = path.join(cacheDir, `${chatId}_${messageId}.jpg`);
+      const cacheFilePath = path.join(cacheDir, `${safeChatId}_${safeMsgId}.jpg`);
 
       if (fs.existsSync(cacheFilePath)) {
         return res.sendFile(cacheFilePath);
       }
 
-      const buffer = await downloadMessageMedia(chatId, Number(messageId));
+      const buffer = await downloadMessageMedia(safeChatId, Number(safeMsgId));
       if (!buffer || buffer.length === 0) {
         return res.status(404).send("Failed to download media");
       }

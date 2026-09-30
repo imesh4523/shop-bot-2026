@@ -453,10 +453,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deductBalance(userId: number, amount: number): Promise<boolean> {
+    const approxLkrRate = 305.50;
+    const deductLkr = Math.round((amount / 100) * approxLkrRate);
+
     const [result] = await db
       .update(telegramUsers)
       .set({
-        balance: sql`${telegramUsers.balance} - ${amount}`
+        balance: sql`${telegramUsers.balance} - ${amount}`,
+        balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
       })
       .where(and(eq(telegramUsers.id, userId), gte(telegramUsers.balance, amount)))
       .returning();
@@ -911,13 +915,11 @@ export class DatabaseStorage implements IStorage {
 
   async redeemPromoCode(telegramUserId: number, promoCodeId: number, reward: number): Promise<void> {
     await db.transaction(async (tx) => {
-      // 1. Credit the user's balance
-      await tx
-        .update(telegramUsers)
-        .set({
-          balance: sql`${telegramUsers.balance} + ${reward}`
-        })
-        .where(eq(telegramUsers.id, telegramUserId));
+      // 1. Create the redemption log record FIRST (triggers unique constraint if user already redeemed)
+      await tx.insert(promoCodeRedemptions).values({
+        telegramUserId,
+        promoCodeId,
+      });
 
       // 2. Increment the promo code's usesCount
       await tx
@@ -927,11 +929,17 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(promoCodes.id, promoCodeId));
 
-      // 3. Create the redemption log record
-      await tx.insert(promoCodeRedemptions).values({
-        telegramUserId,
-        promoCodeId,
-      });
+      // 3. Credit the user's balance and balanceLkr
+      const approxLkrRate = 305.50;
+      const creditLkr = Math.round((reward / 100) * approxLkrRate);
+
+      await tx
+        .update(telegramUsers)
+        .set({
+          balance: sql`${telegramUsers.balance} + ${reward}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${creditLkr}`
+        })
+        .where(eq(telegramUsers.id, telegramUserId));
     });
   }
 

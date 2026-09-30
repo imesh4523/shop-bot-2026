@@ -355,12 +355,26 @@ export type InsertSpecialOffer = z.infer<typeof insertSpecialOfferSchema>;
 // Database Backup Entities
 export const backupConfigs = pgTable("backup_configs", {
   id: serial("id").primaryKey(),
+  name: text("name").default("Primary Database Backup"),
+  type: text("type").default("daily"),
+  target: text("target").default("local"),
   dbUrl: text("db_url").notNull(),
   botToken: text("bot_token").notNull(),
   chatId: text("chat_id").notNull(),
   frequency: integer("frequency").notNull().default(3), // in hours
   status: text("status").notNull().default("active"), // active, disabled
   lastBackupAt: timestamp("last_backup_at"),
+  googleDriveEnabled: boolean("google_drive_enabled").default(false),
+  googleDriveAuthType: text("google_drive_auth_type").default("service_account"), // 'service_account' or 'oauth2'
+  googleDriveServiceAccount: text("google_drive_service_account"),
+  googleDriveOauthClientId: text("google_drive_oauth_client_id"),
+  googleDriveOauthClientSecret: text("google_drive_oauth_client_secret"),
+  googleDriveOauthRefreshToken: text("google_drive_oauth_refresh_token"),
+  googleDriveUserEmail: text("google_drive_user_email"),
+  googleDriveFolderId: text("google_drive_folder_id"),
+  googleDriveFolderName: text("google_drive_folder_name"),
+  retentionDays: integer("retention_days").default(49), // default 7 weeks = 49 days
+  backupDestination: text("backup_destination").default("both"), // 'both', 'telegram', 'google_drive'
   createdAt: timestamp("created_at").defaultNow(),
 });
 

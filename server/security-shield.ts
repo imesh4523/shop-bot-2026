@@ -107,13 +107,17 @@ const XSS_PATTERNS = [
   /\beval\s*\(/i,
 ];
 
-// Helper: Extract real client IP
+// Helper: Extract real client IP securely
 export function getClientIp(req: Request): string {
   const cfIp = req.headers["cf-connecting-ip"];
   if (cfIp && typeof cfIp === "string") return cfIp.trim();
 
+  // Only consider x-forwarded-for if sent from trusted local proxy
+  const remote = req.socket.remoteAddress || "";
+  const isLocalProxy = remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1";
+
   const xff = req.headers["x-forwarded-for"];
-  if (xff && typeof xff === "string") {
+  if (isLocalProxy && xff && typeof xff === "string") {
     return xff.split(",")[0].trim();
   }
 
@@ -158,10 +162,14 @@ function jailIp(ip: string, reason: string, durationMinutes: number = 30) {
 
 // --- MAIN SECURITY SHIELD MIDDLEWARE ---
 export function securityShieldMiddleware(req: Request, res: Response, next: NextFunction) {
-  const ip = getClientIp(req);
-  if (ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || ip === "::ffff:127.0.0.1") {
+  // Only genuine direct socket loopback calls without proxy headers can bypass
+  const directRemote = req.socket.remoteAddress || "";
+  const isDirectLoopback = directRemote === "127.0.0.1" || directRemote === "::1" || directRemote === "::ffff:127.0.0.1";
+  if (isDirectLoopback && !req.headers["cf-connecting-ip"] && !req.headers["x-forwarded-for"]) {
     return next();
   }
+
+  const ip = getClientIp(req);
   const now = Date.now();
   const url = req.originalUrl || req.url;
   const userAgent = (req.headers["user-agent"] as string) || "";
