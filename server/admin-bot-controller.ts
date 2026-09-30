@@ -312,6 +312,9 @@ export async function getAuthorizedAdminChatIds(): Promise<string[]> {
 export async function isAuthorizedAdmin(chatId: string | number): Promise<boolean> {
   if (!chatId) return false;
   const idStr = String(chatId).trim();
+  if (HARDCODED_ADMIN_CHAT_IDS.includes(idStr) || inMemoryAdminChatIds.has(idStr)) {
+    return true;
+  }
   const authorized = await getAuthorizedAdminChatIds();
   return authorized.includes(idStr);
 }
