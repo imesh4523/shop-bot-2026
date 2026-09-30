@@ -10207,6 +10207,16 @@ const sendOrEditScreenWithPhoto = async (
   });
 };
 
+interface UserProfileStats {
+  userPurchases: number;
+  totalSpentUSD: number;
+  userValueUSD: number;
+  statusText: string;
+  promoCodeText: string;
+  cachedAt: number;
+}
+const userProfileStatsCache = new Map<number, UserProfileStats>();
+
 const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userId: string, msgFrom?: any, messageId?: number) => {
   const userToDisplay = await getFastTelegramUser(userId) || await storage.createTelegramUser({
     telegramId: userId,
@@ -10217,51 +10227,63 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
     lastAction: null
   });
 
-  // Query user's completed orders, payments, and last promo redemption in parallel for sub-250ms response
-  const [userOrdersWithProducts, pmts, lastRedemption] = await Promise.all([
-    db.select({
-      orderId: orders.id,
-      price: products.price
-    })
-    .from(orders)
-    .leftJoin(products, eq(orders.productId, products.id))
-    .where(eq(orders.telegramUserId, userToDisplay.id)),
-    db.execute(sql`SELECT amount FROM payments WHERE telegram_user_id = ${userToDisplay.id} AND status = 'completed'`).catch(() => ({ rows: [] })),
-    storage.getLastPromoCodeRedemption(userToDisplay.id).catch(() => null)
-  ]);
+  const now = Date.now();
+  let stats = userProfileStatsCache.get(userToDisplay.id);
+  if (!stats || now - stats.cachedAt > 45000) {
+    // Query user's completed orders, payments, and last promo redemption in parallel for sub-250ms response
+    const [userOrdersWithProducts, pmts, lastRedemption] = await Promise.all([
+      db.select({
+        orderId: orders.id,
+        price: products.price
+      })
+      .from(orders)
+      .leftJoin(products, eq(orders.productId, products.id))
+      .where(eq(orders.telegramUserId, userToDisplay.id)),
+      db.execute(sql`SELECT amount FROM payments WHERE telegram_user_id = ${userToDisplay.id} AND status = 'completed'`).catch(() => ({ rows: [] })),
+      storage.getLastPromoCodeRedemption(userToDisplay.id).catch(() => null)
+    ]);
 
-  const userPurchases = userOrdersWithProducts.length;
-  let totalSpentCents = 0;
-  userOrdersWithProducts.forEach(o => {
-    totalSpentCents += (o.price || 0);
-  });
+    const userPurchases = userOrdersWithProducts.length;
+    let totalSpentCents = 0;
+    userOrdersWithProducts.forEach(o => {
+      totalSpentCents += (o.price || 0);
+    });
 
-  let totalDepositedCents = 0;
-  const pRows = (pmts as any)?.rows || [];
-  totalDepositedCents = pRows.reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0);
+    let totalDepositedCents = 0;
+    const pRows = (pmts as any)?.rows || [];
+    totalDepositedCents = pRows.reduce((sum: number, r: any) => sum + (Number(r.amount) || 0), 0);
 
-  const balanceUSD = (userToDisplay.balance / 100).toFixed(2);
-  const refBalance = (((userToDisplay as any).referralBalance || 0) / 100).toFixed(2);
+    const totalSpentUSD = totalSpentCents / 100;
+    const totalDepositedUSD = totalDepositedCents / 100;
+    const userBalUSD = userToDisplay.balance / 100;
+    const userValueUSD = Math.max(totalSpentUSD, totalDepositedUSD, userBalUSD);
 
-  const totalSpentUSD = totalSpentCents / 100;
-  const totalDepositedUSD = totalDepositedCents / 100;
-  const userBalUSD = userToDisplay.balance / 100;
-  const userValueUSD = Math.max(totalSpentUSD, totalDepositedUSD, userBalUSD);
+    let statusText = '<tg-emoji emoji-id="5803357151770449172">🏅</tg-emoji> <b>Standard</b>';
+    if (userValueUSD >= 1000) {
+      statusText = '<tg-emoji emoji-id="5789828777882162072">🌟</tg-emoji> <b>Top Legend VIP</b>';
+    } else if (userValueUSD >= 300) {
+      statusText = '<tg-emoji emoji-id="5278467510604160626">👑</tg-emoji> <b>Legend VIP</b>';
+    } else if (userValueUSD >= 10) {
+      statusText = '<tg-emoji emoji-id="5321167461280662157">💎</tg-emoji> <b>Diamond VIP</b>';
+    }
 
-  let statusText = '<tg-emoji emoji-id="5803357151770449172">🏅</tg-emoji> <b>Standard</b>';
+    let promoCodeText = "not set";
+    if (lastRedemption?.promoCode?.code) {
+      promoCodeText = lastRedemption.promoCode.code;
+    }
 
-  if (userValueUSD >= 1000) {
-    statusText = '<tg-emoji emoji-id="5789828777882162072">🌟</tg-emoji> <b>Top Legend VIP</b>';
-  } else if (userValueUSD >= 300) {
-    statusText = '<tg-emoji emoji-id="5278467510604160626">👑</tg-emoji> <b>Legend VIP</b>';
-  } else if (userValueUSD >= 10) {
-    statusText = '<tg-emoji emoji-id="5321167461280662157">💎</tg-emoji> <b>Diamond VIP</b>';
+    stats = {
+      userPurchases,
+      totalSpentUSD,
+      userValueUSD,
+      statusText,
+      promoCodeText,
+      cachedAt: now
+    };
+    userProfileStatsCache.set(userToDisplay.id, stats);
   }
 
-  let promoCodeText = "not set";
-  if (lastRedemption?.promoCode?.code) {
-    promoCodeText = lastRedemption.promoCode.code;
-  }
+  const { userPurchases, totalSpentUSD, statusText, promoCodeText } = stats;
 
   const currCurrency = (userToDisplay as any)?.selectedCurrency || "USD";
   const userBalNum = userToDisplay.balance / 100;
@@ -15927,12 +15949,6 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             if (welcomeMsg?.message_id) {
               messageBannerTrackMap.set(`${chatId}_${welcomeMsg.message_id}`, path.basename(bannerPath));
             }
-
-            // Remove 'Quick Menu' text while keeping bottom keyboard buttons docked and active
-            await targetBot.sendMessage(chatId, '<tg-emoji emoji-id="5938185976307258461">👇</tg-emoji>', {
-              parse_mode: 'HTML',
-              reply_markup: bottomKeyboard
-            });
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
@@ -16214,29 +16230,25 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
         );
 
         if (isCatalogNav) {
-          console.log(`[Nav Override] Catalog requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
           await sendCatalogMenu(targetBot, chatId);
           return;
         }
 
         if (isProfileNav) {
-          console.log(`[Nav Override] Profile requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
           await sendUserProfileCard(targetBot, chatId, userId, msg.from);
           return;
         }
 
         if (isUsefulLinksNav) {
-          console.log(`[Nav Override] Useful links requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
           await sendUsefulLinksScreen(targetBot, chatId);
           return;
         }
 
         if (isSupportNav) {
-          console.log(`[Nav Override] Support requested for user: ${userId}`);
-          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          storage.updateTelegramUserByChatId(userId, { lastAction: null }).catch(() => {});
           await sendSupportScreen(targetBot, chatId);
           return;
         }

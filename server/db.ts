@@ -25,8 +25,19 @@ export const pool = new Pool({
   connectionString,
   ssl: isLocalhost ? false : {
     rejectUnauthorized: false
-  }
+  },
+  min: 5,
+  max: 25,
+  idleTimeoutMillis: 300000,
+  connectionTimeoutMillis: 10000
 });
+
+// Periodic heartbeat to keep connections permanently warm and eliminate 2-second SSL re-handshakes
+setInterval(async () => {
+  try {
+    await pool.query('SELECT 1');
+  } catch (err) {}
+}, 20000);
 
 // Test connection & ensure session table
 pool.connect()

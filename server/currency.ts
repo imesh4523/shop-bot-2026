@@ -30,34 +30,34 @@ let cachedRates: Record<string, number> = {
   PKR: 278.40
 };
 
-let lastFetchTime = 0;
+let isRefreshingRates = false;
 
 export async function fetchLiveExchangeRates(): Promise<Record<string, number>> {
   const now = Date.now();
-  // Refetch every 15 minutes
-  if (now - lastFetchTime < 15 * 60 * 1000 && lastFetchTime > 0) {
-    return cachedRates;
-  }
-
-  try {
-    const res = await axios.get('https://open.er-api.com/v6/latest/USD', { timeout: 5000 });
-    if (res.data?.rates) {
-      const liveRates = res.data.rates;
-      cachedRates = {
-        USD: 1.0,
-        EUR: liveRates.EUR || cachedRates.EUR,
-        RUB: liveRates.RUB || cachedRates.RUB,
-        GBP: liveRates.GBP || cachedRates.GBP,
-        RON: liveRates.RON || cachedRates.RON,
-        LKR: liveRates.LKR || cachedRates.LKR,
-        INR: liveRates.INR || cachedRates.INR,
-        PKR: liveRates.PKR || cachedRates.PKR
-      };
-      lastFetchTime = now;
-      console.log('[CURRENCY ENGINE] Updated live exchange rates from market:', cachedRates);
-    }
-  } catch (err: any) {
-    console.warn('[CURRENCY ENGINE] Live exchange rate API fetch failed, using cached fallback rates:', err.message);
+  // Trigger background refresh if expired, but ALWAYS return immediately from memory (<0.01ms)
+  if (now - lastFetchTime > 15 * 60 * 1000 && !isRefreshingRates) {
+    isRefreshingRates = true;
+    axios.get('https://open.er-api.com/v6/latest/USD', { timeout: 4000 })
+      .then(res => {
+        if (res.data?.rates) {
+          const liveRates = res.data.rates;
+          cachedRates = {
+            USD: 1.0,
+            EUR: liveRates.EUR || cachedRates.EUR,
+            RUB: liveRates.RUB || cachedRates.RUB,
+            GBP: liveRates.GBP || cachedRates.GBP,
+            RON: liveRates.RON || cachedRates.RON,
+            LKR: liveRates.LKR || cachedRates.LKR,
+            INR: liveRates.INR || cachedRates.INR,
+            PKR: liveRates.PKR || cachedRates.PKR
+          };
+          lastFetchTime = Date.now();
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        isRefreshingRates = false;
+      });
   }
 
   return cachedRates;
