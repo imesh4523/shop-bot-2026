@@ -307,6 +307,22 @@ token = ${tokenStr}
   }
 
   /**
+   * Lists backup files in a remote folder using rclone lsf --files-only
+   */
+  static async listBackupFiles(remoteFolderName: string = "youuhost backups"): Promise<string[]> {
+    const bin = this.getBinaryPath();
+    const folder = remoteFolderName.trim().replace(/^\/+|\/+$/g, "");
+    const target = folder ? `gdrive:${folder}/` : "gdrive:";
+    return new Promise((resolve) => {
+      execFile(bin, ["lsf", "--files-only", target], { timeout: 15000 }, (error, stdout) => {
+        if (error || !stdout) return resolve([]);
+        const files = stdout.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+        resolve(files);
+      });
+    });
+  }
+
+  /**
    * Uploads database backup to Google Drive folder using rclone copy
    */
   static async uploadBackup(filePath: string, remoteFolderName: string): Promise<string> {

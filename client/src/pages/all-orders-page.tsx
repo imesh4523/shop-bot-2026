@@ -94,7 +94,7 @@ export default function AllOrdersPage() {
       (o.link || "").toLowerCase().includes(search.toLowerCase()) ||
       (o.category || "").toLowerCase().includes(search.toLowerCase());
 
-    const matchesType = selectedType === "all" || o.orderType === selectedType;
+    const matchesType = selectedType === "all" || o.orderType === selectedType || (selectedType === "partner" && (o.orderType === "partner" || o.orderType === "cssx"));
 
     const s = (o.status || "").toLowerCase();
     const isCompleted = s === "completed" || s === "approved" || s === "success";
@@ -112,7 +112,7 @@ export default function AllOrdersPage() {
   const totalRevenueCents = allOrders.reduce((acc, o) => acc + (o.amountCents || 0), 0);
   const cloudCount = allOrders.filter(o => o.orderType === "cloud").length;
   const smmCount = allOrders.filter(o => o.orderType === "smm").length;
-  const partnerCount = allOrders.filter(o => o.orderType === "partner").length;
+  const partnerCount = allOrders.filter(o => o.orderType === "partner" || o.orderType === "cssx").length;
 
   const copyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -360,8 +360,8 @@ export default function AllOrdersPage() {
                     </TableCell>
 
                     <TableCell className="font-mono font-black text-xs text-white">
-                      <div>{order.amountUsd}</div>
-                      <div className="text-[10px] text-white/40">{order.amountLkr}</div>
+                      <div>{order.displayAmount || (order.currency === "LKR" ? order.amountLkr : order.amountUsd)}</div>
+                      <div className="text-[10px] text-white/40">{order.currency === "LKR" ? order.amountUsd : order.amountLkr}</div>
                     </TableCell>
 
                     <TableCell className="text-[11px] font-mono text-white/70">

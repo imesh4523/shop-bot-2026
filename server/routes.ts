@@ -39,6 +39,7 @@ import { fetchActivity } from "./aws-service";
 import { BackupService } from "./backup-service";
 import { GoogleDriveService } from "./google-drive-service";
 import { RcloneService } from "./rclone-service";
+import { verifyTotp, getOtpAuthUrl, getQrCodeUrl } from "./totp-service";
 import TelegramBot from "node-telegram-bot-api";
 import crypto from "crypto";
 import axios from "axios";
@@ -1092,7 +1093,7 @@ export async function registerRoutes(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       maxAge: sessionTtl,
     },
@@ -1240,21 +1241,91 @@ export async function registerRoutes(
     console.error('Error verifying database schema tables:', err.message);
   }
 
+  const getRequestHost = (req: Request): string => {
+    const rawHost = (req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "";
+    return rawHost.split(":")[0].toLowerCase().trim();
+  };
+
+  const isAdminHost = (req: Request): boolean => {
+    const host = getRequestHost(req);
+    const allowed = [
+      "imeshmain2.youuhost.com",
+      "localhost",
+      "127.0.0.1",
+    ];
+    return allowed.includes(host) || host.endsWith(".localhost");
+  };
+
   const isAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!isAdminHost(req)) {
+      return res.status(404).json({ message: "Not found" });
+    }
     if (req.session.userId) return next();
     res.status(401).json({ message: "Unauthorized" });
+  };
+
+  // Strict Domain Isolation: Block /api/admin from youuhost.com and any third-party hosts
+  app.use("/api/admin", (req: Request, res: Response, next: NextFunction) => {
+    if (!isAdminHost(req)) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    next();
+  });
+
+  const CUSTOMER_AUTH_SECRET = process.env.SESSION_SECRET || "youuhost_customer_jwt_secret_2026";
+
+  const generateCustomerToken = (userId: number): string => {
+    const ts = Date.now();
+    const signature = crypto.createHmac("sha256", CUSTOMER_AUTH_SECRET).update(`${userId}:${ts}`).digest("hex");
+    return `${userId}.${ts}.${signature}`;
+  };
+
+  const verifyCustomerToken = (token: string): number | null => {
+    try {
+      if (!token || typeof token !== "string") return null;
+      const cleanToken = token.trim();
+      const parts = cleanToken.split(".");
+      if (parts.length !== 3) return null;
+      const [userIdStr, tsStr, sig] = parts;
+      const userId = parseInt(userIdStr, 10);
+      const ts = parseInt(tsStr, 10);
+      if (!userId || isNaN(userId) || !ts || isNaN(ts) || !sig) return null;
+      // Valid for 90 days
+      if (Date.now() - ts > 90 * 24 * 60 * 60 * 1000) return null;
+      const expectedSig = crypto.createHmac("sha256", CUSTOMER_AUTH_SECRET).update(`${userId}:${ts}`).digest("hex");
+      if (sig === expectedSig) {
+        return userId;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   };
 
   /**
    * Telegram Mini App & Web Customer Authentication Middleware
    * Verifies the initData sent from the Telegram Mini App using BOT_TOKEN,
-   * OR authenticates web customers via session (customerUserId).
+   * OR authenticates web customers via session (customerUserId) or customer auth token.
    */
   const verifyMiniAppAuth = async (req: Request, res: Response, next: NextFunction) => {
     const initData = req.headers['x-telegram-init-data'] as string;
     if (!initData) {
-      // Check authenticated web customer session only (strictly prevent header spoofing)
-      const customerUserId = (req.session as any)?.customerUserId;
+      let customerUserId = (req.session as any)?.customerUserId;
+
+      // Check Bearer token or custom customer header if session cookie was not provided
+      if (!customerUserId) {
+        const rawAuth = (req.headers['authorization'] as string) || (req.headers['x-customer-auth-token'] as string);
+        if (rawAuth) {
+          const token = rawAuth.replace(/^Bearer\s+/i, '').trim();
+          const verifiedId = verifyCustomerToken(token);
+          if (verifiedId) {
+            customerUserId = verifiedId;
+            if (req.session) {
+              (req.session as any).customerUserId = verifiedId;
+            }
+          }
+        }
+      }
 
       if (customerUserId) {
         try {
@@ -1328,10 +1399,21 @@ export async function registerRoutes(
 
   // --- Customer Web Authentication (Email OTP & Google Login) ---
 
-  // Check current customer session
+  // Check current customer session (via session cookie or Bearer auth token)
   app.get("/api/auth/customer/me", async (req, res) => {
     try {
-      const customerUserId = (req.session as any)?.customerUserId;
+      let customerUserId = (req.session as any)?.customerUserId;
+      if (!customerUserId) {
+        const rawAuth = (req.headers['authorization'] as string) || (req.headers['x-customer-auth-token'] as string);
+        if (rawAuth) {
+          const token = rawAuth.replace(/^Bearer\s+/i, '').trim();
+          const verifiedId = verifyCustomerToken(token);
+          if (verifiedId) {
+            customerUserId = verifiedId;
+            if (req.session) (req.session as any).customerUserId = verifiedId;
+          }
+        }
+      }
       if (!customerUserId) {
         return res.json({ isLoggedIn: false, user: null });
       }
@@ -1340,7 +1422,14 @@ export async function registerRoutes(
         delete (req.session as any).customerUserId;
         return res.json({ isLoggedIn: false, user: null });
       }
-      return res.json({ isLoggedIn: true, user });
+      return res.json({
+        isLoggedIn: true,
+        user: {
+          ...user,
+          isLoggedIn: true
+        },
+        token: generateCustomerToken(user.id)
+      });
     } catch (err: any) {
       console.error("auth/customer/me error:", err);
       return res.json({ isLoggedIn: false, user: null });
@@ -1464,9 +1553,12 @@ export async function registerRoutes(
         });
       });
 
+      const authToken = generateCustomerToken(user.id);
+
       return res.json({
         success: true,
         message: "Successfully signed in!",
+        token: authToken,
         user: {
           ...user,
           isLoggedIn: true
@@ -1621,7 +1713,8 @@ export async function registerRoutes(
         });
       });
 
-      return res.redirect("/?auth_success=google");
+      const token = generateCustomerToken(user.id);
+      return res.redirect(`/?auth_success=google&auth_token=${encodeURIComponent(token)}`);
     } catch (err: any) {
       console.error("Google OAuth callback error:", err);
       return res.redirect("/?auth_error=" + encodeURIComponent(err.message || "Failed to sign in with Google"));
@@ -1710,9 +1803,12 @@ export async function registerRoutes(
         });
       });
 
+      const token = generateCustomerToken(user.id);
+
       return res.json({
         success: true,
         message: "Successfully signed in with Google!",
+        token,
         user: {
           ...user,
           isLoggedIn: true
@@ -2329,15 +2425,6 @@ export async function registerRoutes(
         }
       }
       if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
-      }
-      if (!dbUser) {
-        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-      }
-      if (!dbUser) {
         return res.json({ success: true, keys: [], activeKey: null, totalOrders: 0, successOrders: 0, failedOrders: 0, revenueCents: 0 });
       }
 
@@ -2378,15 +2465,6 @@ export async function registerRoutes(
         }
       }
       if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
-      }
-      if (!dbUser) {
-        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-      }
-      if (!dbUser) {
         return res.status(401).json({ success: false, message: "Please sign in to generate an API key" });
       }
 
@@ -2421,15 +2499,6 @@ export async function registerRoutes(
         }
       }
       if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
-      }
-      if (!dbUser) {
-        dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-      }
-      if (!dbUser) {
         return res.status(401).json({ success: false, message: "Authentication required" });
       }
 
@@ -2457,12 +2526,6 @@ export async function registerRoutes(
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
       }
       if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
-      }
-      if (!dbUser) {
         return res.status(401).json({ success: false, message: "Authentication required" });
       }
 
@@ -2487,12 +2550,6 @@ export async function registerRoutes(
       let dbUser = tgUser?.dbUser;
       if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
-      }
-      if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
       }
       if (!dbUser) {
         return res.status(401).json({ success: false, message: "Authentication required" });
@@ -2534,12 +2591,6 @@ export async function registerRoutes(
       let dbUser = tgUser?.dbUser;
       if (!dbUser && tgUser && !tgUser.isGuest && tgUser.id) {
         dbUser = await storage.getTelegramUser(tgUser.id.toString());
-      }
-      if (!dbUser) {
-        const adminId = (req.session as any)?.passport?.user;
-        if (adminId) {
-          dbUser = (await db.select().from(telegramUsers).limit(1))[0];
-        }
       }
       if (!dbUser) {
         return res.json([]);
@@ -2915,9 +2966,13 @@ export async function registerRoutes(
         .orderBy(desc(orders.createdAt));
 
       const cloudItems = directOrders.map(o => {
-        const costUsd = ((o.products?.price || 0) / 100);
-        const costLkr = Math.round(costUsd * lkrRate);
         const user = o.telegram_users;
+        const isLkr = user?.selectedCurrency === "LKR";
+        const costUsd = ((o.products?.price || 0) / 100);
+        const costLkr = (o.products as any)?.priceLkr ? Number((o.products as any).priceLkr) : Math.round(costUsd * lkrRate);
+        const currency = isLkr ? "LKR" : "USD";
+        const displayAmount = isLkr ? `Rs. ${costLkr.toLocaleString()}` : `$${costUsd.toFixed(2)}`;
+
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
         const buyerTgId = user?.telegramId || null;
@@ -2937,6 +2992,8 @@ export async function registerRoutes(
           buyerEmail,
           buyerTelegramId: buyerTgId,
           buyerId: o.orders.telegramUserId,
+          currency,
+          displayAmount,
           amountCents: o.products?.price || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
           amountLkr: `Rs. ${costLkr.toLocaleString()}`,
@@ -2955,9 +3012,13 @@ export async function registerRoutes(
         .orderBy(desc(smmOrders.createdAt));
 
       const smmItems = smmItemsRaw.map(s => {
+        const user = s.telegram_users;
+        const isLkr = user?.selectedCurrency === "LKR";
         const costUsd = ((s.smm_orders.charge || 0) / 100);
         const costLkr = Math.round(costUsd * lkrRate);
-        const user = s.telegram_users;
+        const currency = isLkr ? "LKR" : "USD";
+        const displayAmount = isLkr ? `Rs. ${costLkr.toLocaleString()}` : `$${costUsd.toFixed(2)}`;
+
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
         const buyerTgId = user?.telegramId || null;
@@ -2977,6 +3038,8 @@ export async function registerRoutes(
           buyerEmail,
           buyerTelegramId: buyerTgId,
           buyerId: s.smm_orders.telegramUserId,
+          currency,
+          displayAmount,
           amountCents: s.smm_orders.charge || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
           amountLkr: `Rs. ${costLkr.toLocaleString()}`,
@@ -2999,9 +3062,14 @@ export async function registerRoutes(
         .orderBy(desc(sandromaniaOrders.createdAt));
 
       const partnerItems = partnerItemsRaw.map(sp => {
-        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
-        const costLkr = Math.round(costUsd * lkrRate);
         const user = sp.telegram_users;
+        const hasLkrPaid = sp.sandromania_orders.amountPaidLkr && Number(sp.sandromania_orders.amountPaidLkr) > 0;
+        const isLkr = Boolean(hasLkrPaid || user?.selectedCurrency === "LKR");
+        const costUsd = ((sp.sandromania_orders.amountPaid || 0) / 100);
+        const costLkr = hasLkrPaid ? Number(sp.sandromania_orders.amountPaidLkr) : Math.round(costUsd * lkrRate);
+        const currency = isLkr ? "LKR" : "USD";
+        const displayAmount = isLkr ? `Rs. ${costLkr.toLocaleString()}` : `$${costUsd.toFixed(2)}`;
+
         const buyerUsername = user?.username ? `@${user.username}` : null;
         const buyerEmail = user?.email || null;
         const buyerTgId = user?.telegramId || null;
@@ -3021,6 +3089,8 @@ export async function registerRoutes(
           buyerEmail,
           buyerTelegramId: buyerTgId,
           buyerId: sp.sandromania_orders.telegramUserId,
+          currency,
+          displayAmount,
           amountCents: sp.sandromania_orders.amountPaid || 0,
           amountUsd: `$${costUsd.toFixed(2)}`,
           amountLkr: `Rs. ${costLkr.toLocaleString()}`,
@@ -3033,8 +3103,59 @@ export async function registerRoutes(
         };
       });
 
-      // Combine and sort by date descending
-      const all = [...cloudItems, ...smmItems, ...partnerItems].sort((a, b) => {
+      // 4. CSxStore Partner Orders
+      const cssxItemsRaw = await db.select()
+        .from(cssxOrders)
+        .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
+        .leftJoin(telegramUsers, eq(cssxOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(cssxOrders.createdAt));
+
+      const cssxItems = cssxItemsRaw.map(cs => {
+        const user = cs.telegram_users;
+        const hasLkrPaid = cs.cssx_orders.amountPaidLkr && Number(cs.cssx_orders.amountPaidLkr) > 0;
+        const isLkr = Boolean(hasLkrPaid || user?.selectedCurrency === "LKR");
+        const costUsd = ((cs.cssx_orders.amountPaid || 0) / 100);
+        const costLkr = hasLkrPaid 
+          ? Number(cs.cssx_orders.amountPaidLkr) 
+          : (cs.cssx_products?.sellingPriceLkr ? Number(cs.cssx_products.sellingPriceLkr) : Math.round(costUsd * lkrRate));
+        const currency = isLkr ? "LKR" : "USD";
+        const displayAmount = isLkr ? `Rs. ${costLkr.toLocaleString()}` : `$${costUsd.toFixed(2)}`;
+
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyer = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
+
+        return {
+          id: cs.cssx_orders.externalOrderId ? `#${cs.cssx_orders.externalOrderId}` : `#${cs.cssx_orders.id}`,
+          rawId: cs.cssx_orders.id,
+          orderType: "cssx" as const,
+          typeLabel: "CSxStore Partner",
+          title: cs.cssx_orders.productTitle || cs.cssx_products?.title || "Partner Good",
+          category: cs.cssx_products?.category || "CSxStore",
+          buyer,
+          buyerUsername,
+          buyerEmail,
+          buyerTelegramId: buyerTgId,
+          buyerId: cs.cssx_orders.telegramUserId,
+          currency,
+          displayAmount,
+          amountCents: cs.cssx_orders.amountPaid || 0,
+          amountUsd: `$${costUsd.toFixed(2)}`,
+          amountLkr: `Rs. ${costLkr.toLocaleString()}`,
+          status: cs.cssx_orders.status || "completed",
+          quantity: cs.cssx_orders.quantity || 1,
+          deliveredContent: cs.cssx_orders.deliveryText || null,
+          externalOrderId: cs.cssx_orders.externalOrderId || null,
+          details: `Partner Order #${cs.cssx_orders.externalOrderId || cs.cssx_orders.id}`,
+          createdAt: cs.cssx_orders.createdAt || new Date()
+        };
+      });
+
+      // Combine all orders and sort by date descending
+      const all = [...cloudItems, ...smmItems, ...partnerItems, ...cssxItems].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
@@ -4606,7 +4727,7 @@ export async function registerRoutes(
           : (sp.sandromania_orders.productTitle || "Partner Digital Good");
 
         return {
-          id: extId ? `YOUUHOST-${extId}` : `YOUUHOST-${2000 + sp.sandromania_orders.id}`,
+          id: extId ? `${extId}` : `${2000 + sp.sandromania_orders.id}`,
           rawId: sp.sandromania_orders.id,
           externalOrderId: extId,
           quantity: qty,
@@ -4651,7 +4772,7 @@ export async function registerRoutes(
           : (co.cssx_orders.productTitle || "Partner Digital Good");
 
         return {
-          id: extId ? `YOUUHOST-CSX-${extId}` : `YOUUHOST-CSX-${3000 + co.cssx_orders.id}`,
+          id: extId ? `${extId}` : `${3000 + co.cssx_orders.id}`,
           rawId: co.cssx_orders.id,
           externalOrderId: extId,
           quantity: qty,
@@ -5305,7 +5426,12 @@ export async function registerRoutes(
 
 
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
+  // Strict Domain Isolation: Admin login is ONLY permitted on imeshmain2.youuhost.com or localhost
+  if (!isAdminHost(req)) {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  const { email, password, totpCode } = req.body;
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required" });
   }
@@ -5319,7 +5445,7 @@ app.post("/api/login", async (req, res) => {
     return res.status(429).json({ message: `Too many failed login attempts. Temporarily locked for ${waitMins} minute(s).` });
   }
 
-  console.log(`Login attempt: ${email}`);
+  console.log(`[LOGIN] Admin login attempt for: ${email} from Host: ${req.headers["host"]}`);
 
   // Normal secure login flow with bcrypt verification
   const user = await storage.getUserByEmail(email);
@@ -5344,6 +5470,25 @@ app.post("/api/login", async (req, res) => {
     return res.status(401).json({ message: "Invalid email or password" });
   }
 
+  // Mandatory 2FA Google Authenticator Check
+  const secretSetting = await storage.getSetting("ADMIN_2FA_SECRET");
+  const secret = secretSetting?.value || process.env.ADMIN_2FA_SECRET || "YOUUHOST2FAMAINSECRETKEY234567AA";
+
+  if (!totpCode || typeof totpCode !== "string") {
+    return res.status(401).json({ message: "Google Authenticator 6-digit code is required", requires2FA: true });
+  }
+
+  const isTotpValid = verifyTotp(totpCode.trim(), secret);
+  if (!isTotpValid) {
+    console.warn(`[2FA] Invalid Google Authenticator code for admin [${email}]`);
+    const currentAttempts = (attemptRecord?.attempts || 0) + 1;
+    adminLoginAttemptsMap.set(clientIp, {
+      attempts: currentAttempts,
+      lockUntil: currentAttempts >= 5 ? now + 5 * 60 * 1000 : 0
+    });
+    return res.status(401).json({ message: "Invalid 6-digit Google Authenticator code. Please check your app and try again." });
+  }
+
   // Reset failed attempts on success
   adminLoginAttemptsMap.delete(clientIp);
 
@@ -5358,7 +5503,7 @@ app.post("/api/logout", (req, res) => {
   });
 });
 
-app.post("/api/admin/credentials", async (req, res) => {
+app.post("/api/admin/credentials", isAuth, async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -5383,10 +5528,33 @@ app.post("/api/admin/credentials", async (req, res) => {
 });
 
 app.get("/api/auth/user", async (req, res) => {
+  if (!isAdminHost(req)) return res.status(404).json({ message: "Not found" });
   if (!req.session.userId) return res.status(401).json({ message: "Not logged in" });
   const user = await storage.getUser(req.session.userId);
   if (!user) return res.status(401).json({ message: "User not found" });
   res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
+});
+
+app.get("/api/admin/2fa/qr", isAuth, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.session.userId!);
+    const secretSetting = await storage.getSetting("ADMIN_2FA_SECRET");
+    const secret = secretSetting?.value || process.env.ADMIN_2FA_SECRET || "YOUUHOST2FAMAINSECRETKEY234567AA";
+    const email = user?.email || "admin@youuhost.com";
+    const otpAuthUrl = getOtpAuthUrl(email, secret, "YouuHost Admin");
+    const qrCodeUrl = getQrCodeUrl(otpAuthUrl);
+
+    res.json({
+      success: true,
+      secret,
+      otpAuthUrl,
+      qrCodeUrl,
+      issuer: "YouuHost Admin",
+      email
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.get(api.products.list.path, isAuth, async (req, res) => {
@@ -7225,6 +7393,79 @@ app.get("/api/mini/sandromania/products", verifyMiniAppAuth, async (req, res) =>
   }
 });
 
+// Universal Multi-Format Delivery Extractor for ANY Partner / Product (Pipe, Colon, JSON, Arrays, Keys, Invites)
+function extractUniversalDelivery(raw: any): string {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw.trim();
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (!item) return "";
+        if (typeof item === "string") return item.trim();
+        if (typeof item === "object") {
+          if (item.email && item.password) {
+            return `${item.email}|${item.password}${item.token ? `|${item.token}` : ''}${item.extra ? `|${item.extra}` : ''}`;
+          }
+          if (item.username && item.password) {
+            return `${item.username}:${item.password}${item.host ? `@${item.host}:${item.port || ''}` : ''}`;
+          }
+          if (item.key || item.code || item.license || item.token) {
+            return item.key || item.code || item.license || item.token;
+          }
+          return JSON.stringify(item);
+        }
+        return String(item);
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (typeof raw === "object") {
+    const candidates = [
+      raw.delivery_text,
+      raw.deliveryText,
+      raw.delivery,
+      raw.products,
+      raw.keys,
+      raw.key,
+      raw.credentials,
+      raw.items,
+      raw.accounts,
+      raw.account,
+      raw.tokens,
+      raw.token,
+      raw.codes,
+      raw.code,
+      raw.license,
+      raw.licenses,
+      raw.content,
+      raw.delivery_data,
+      raw.result,
+      raw.details,
+      raw.data,
+      raw.info,
+    ];
+    for (const c of candidates) {
+      if (c && c !== raw) {
+        const res = extractUniversalDelivery(c);
+        if (res && res !== "{}") return res;
+      }
+    }
+    if (raw.email && raw.password) {
+      return `${raw.email}|${raw.password}${raw.token ? `|${raw.token}` : ''}`;
+    }
+    if (raw.username && raw.password) {
+      return `${raw.username}:${raw.password}`;
+    }
+    try {
+      const serialized = JSON.stringify(raw);
+      if (serialized !== "{}") return serialized;
+    } catch {
+      return String(raw);
+    }
+  }
+  return String(raw);
+}
+
 // Purchase Product with Instant Auto-Delivery
 app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) => {
   const tgUser = (req as any).tgUser;
@@ -7352,9 +7593,10 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
     }
 
-    const orderData = partnerOrderRes?.order || {};
+    const orderData = partnerOrderRes?.order || partnerOrderRes?.data || partnerOrderRes || {};
     const externalId = orderData.id ? parseInt(orderData.id) : null;
-    const deliveryText = orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "");
+    const rawDelivery = extractUniversalDelivery(orderData);
+    const deliveryText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : (orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "Delivered successfully"));
     const orderStatus = orderData.status || "approved";
 
     // Dynamically calculate exact charged partner cost (if returned by API) or use current product cost
@@ -7680,8 +7922,15 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       }
 
       const orderData = orderRes?.order || orderRes?.data || orderRes || {};
-      const externalId = String(orderData.id || orderData.order_id || "");
-      const deliveryText = orderData.delivery_data || orderData.keys || orderData.license || orderData.credentials || (Array.isArray(orderData.items) ? JSON.stringify(orderData.items) : "Provisioned successfully.");
+      const rawExtId = orderData.internal_order_id || orderData.id || orderData.order_id || "";
+      const externalId = String(rawExtId).replace(/^API_/i, "");
+
+      let deliveryText = extractUniversalDelivery(orderData);
+      if (!deliveryText || deliveryText === "{}" || deliveryText === "Provisioned successfully.") {
+        deliveryText = externalId
+          ? `Order submitted to fulfillment provider. Provider Order ID: #${externalId}`
+          : "Provisioned successfully.";
+      }
 
       const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round(((totalCents / qty) / 100) * lkrRate);
       const [newOrder] = await tx
@@ -7689,7 +7938,7 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         .values({
           telegramUserId: user.id,
           cssxProductId: product.id,
-          externalOrderId: externalId || `CSX-${Date.now()}`,
+          externalOrderId: externalId || String(Date.now()),
           serviceId: product.serviceId,
           productTitle: product.title,
           quantity: qty,
@@ -18506,7 +18755,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   // =========================================================================
 
   // 1. Get Email Logs & Metrics
-  app.get("/api/admin/emails/logs", async (_req, res) => {
+  app.get("/api/admin/emails/logs", isAuth, async (_req, res) => {
     try {
       const logs = await db.select().from(emailLogs).orderBy(desc(emailLogs.id)).limit(200);
       
@@ -18529,7 +18778,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   });
 
   // 2. Get registered users for recipient picker & broadcast
-  app.get("/api/admin/emails/users", async (_req, res) => {
+  app.get("/api/admin/emails/users", isAuth, async (_req, res) => {
     try {
       const emailMap = new Map<string, {
         id: number;
@@ -18614,7 +18863,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   });
 
   // 3. Live Email HTML Preview
-  app.post("/api/admin/emails/preview", async (req, res) => {
+  app.post("/api/admin/emails/preview", isAuth, async (req, res) => {
     try {
       const {
         templateType = "payment_success",
@@ -18689,7 +18938,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   });
 
   // 4. Download / Preview Generated PDF Invoice
-  app.post("/api/admin/emails/download-pdf", async (req, res) => {
+  app.post("/api/admin/emails/download-pdf", isAuth, async (req, res) => {
     try {
       const {
         toEmail = "customer@example.com",
@@ -18721,7 +18970,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   });
 
   // 5. Send Single or Broadcast Emails
-  app.post("/api/admin/emails/send", async (req, res) => {
+  app.post("/api/admin/emails/send", isAuth, async (req, res) => {
     try {
       const {
         templateType = "payment_success",
@@ -19067,7 +19316,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
   });
 
   // 6. Test SMTP Relay Connection
-  app.post("/api/admin/emails/test-smtp", async (_req, res) => {
+  app.post("/api/admin/emails/test-smtp", isAuth, async (_req, res) => {
     try {
       const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
       const smtpPort = parseInt((await storage.getSetting("SMTP_PORT"))?.value || process.env.SMTP_PORT || "587", 10);
@@ -19109,10 +19358,40 @@ Allow: /
 Allow: /shop
 Allow: /api-docs
 Allow: /terms
+Allow: /sitemap.xml
 Disallow: /admin
 Disallow: /api/admin
 Disallow: /api/private
 
+# Global High-Priority Search Engine Crawlers
+User-agent: Googlebot
+Allow: /
+Allow: /shop
+Allow: /sitemap.xml
+
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.webp
+
+User-agent: Bingbot
+Allow: /
+Allow: /shop
+
+User-agent: DuckDuckBot
+Allow: /
+Allow: /shop
+
+User-agent: Baiduspider
+Allow: /
+Allow: /shop
+
+User-agent: YandexBot
+Allow: /
+Allow: /shop
+
+Host: ${domain.replace(/^https?:\/\//, '')}
 Sitemap: ${domain}/sitemap.xml
 `);
   });
@@ -19124,14 +19403,38 @@ Sitemap: ${domain}/sitemap.xml
       const domain = `${req.protocol}://${req.get("host") || "youuhost.com"}`;
       const now = new Date().toISOString().split("T")[0];
 
+      const escapeXml = (unsafe: string) => {
+        return (unsafe || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+      };
+
       const staticPages = [
         { loc: `${domain}/`, priority: "1.0", changefreq: "daily" },
-        { loc: `${domain}/shop`, priority: "0.9", changefreq: "daily" },
+        { loc: `${domain}/shop`, priority: "0.95", changefreq: "daily" },
         { loc: `${domain}/api-docs`, priority: "0.8", changefreq: "weekly" },
         { loc: `${domain}/terms`, priority: "0.5", changefreq: "monthly" }
       ];
 
-      const activeProducts = await storage.getProducts();
+      const categorySlugs = [
+        "cloud-accounts",
+        "ai-tools-subscriptions",
+        "streaming-subscriptions",
+        "email-accounts",
+        "vpn-proxies",
+        "developer-tools",
+        "smm-social-growth",
+        "promos-coupons"
+      ];
+
+      const [activeProducts, sandromaniaProds, cssxProds] = await Promise.all([
+        storage.getProducts().catch(() => []),
+        db.select().from(sandromaniaProducts).where(eq(sandromaniaProducts.isActive, true)).catch(() => []),
+        db.select().from(cssxProducts).where(eq(cssxProducts.isActive, true)).catch(() => [])
+      ]);
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
       xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
@@ -19140,11 +19443,25 @@ Sitemap: ${domain}/sitemap.xml
         xml += `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
       }
 
+      for (const cat of categorySlugs) {
+        xml += `  <url>\n    <loc>${domain}/shop?category=${cat}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+      }
+
       for (const prod of activeProducts) {
         if (prod.status === "available") {
           const prodUrl = `${domain}/?product=${prod.id}`;
-          xml += `  <url>\n    <loc>${prodUrl}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+          xml += `  <url>\n    <loc>${prodUrl}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n    <image:image>\n      <image:loc>${domain}/assets/youuhost_logo-DHO_k5Bj.png</image:loc>\n      <image:title>${escapeXml(prod.name)}</image:title>\n    </image:image>\n  </url>\n`;
         }
+      }
+
+      for (const sp of sandromaniaProds) {
+        const prodUrl = `${domain}/shop?sandroProduct=${sp.id}`;
+        xml += `  <url>\n    <loc>${prodUrl}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n    <image:image>\n      <image:loc>${domain}/assets/youuhost_logo-DHO_k5Bj.png</image:loc>\n      <image:title>${escapeXml(sp.title)}</image:title>\n    </image:image>\n  </url>\n`;
+      }
+
+      for (const cp of cssxProds) {
+        const prodUrl = `${domain}/shop?csxProduct=${cp.id}`;
+        xml += `  <url>\n    <loc>${prodUrl}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n    <image:image>\n      <image:loc>${domain}/assets/youuhost_logo-DHO_k5Bj.png</image:loc>\n      <image:title>${escapeXml(cp.title)}</image:title>\n    </image:image>\n  </url>\n`;
       }
 
       xml += `</urlset>`;

@@ -20,22 +20,31 @@ namespace AntiOneSpamGuard
 
         private const int VK_1 = 0x31;       // Top-row '1' / '!'
         private const int VK_NUMPAD1 = 0x61; // Numpad '1'
+        private const int VK_SHIFT = 0x10;
+        private const int VK_CONTROL = 0x11;
+        private const int VK_MENU = 0x12;    // Alt key
 
-        private const long MIN_COOLDOWN_MS = 400;
-        private const long REQUIRED_SILENCE_MS = 250;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+        private static readonly UIntPtr SYNTHETIC_EXTRA_INFO = (UIntPtr)0x1337;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
+            public UIntPtr dwExtraInfo;
+        }
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
         private static LowLevelKeyboardProc _proc;
         private static IntPtr _hookID = IntPtr.Zero;
         private static GCHandle _procHandle;
 
-        private static readonly Stopwatch _timer = Stopwatch.StartNew();
-        private static long _lastAllowedTime = -10000;
-        private static long _lastAnyEventTime = -10000;
         public static long BlockedCount = 0;
-
         public static bool IsProtectionActive = true;
-        public static bool StrictMuteMode = false;
+        public static bool StrictMuteMode = true; // 100% silent block on stuck '1' (Zero leaks!)
 
         private static NotifyIcon _notifyIcon;
         private static ContextMenuStrip _contextMenu;
@@ -60,7 +69,7 @@ namespace AntiOneSpamGuard
         [STAThread]
         public static void Main()
         {
-            Log("Main starting...");
+            Log("Main starting (v2.0 Zero-Leak)...");
             try
             {
                 Application.EnableVisualStyles();
@@ -76,7 +85,7 @@ namespace AntiOneSpamGuard
                 Log("Hook installed: " + _hookID);
 
                 System.Windows.Forms.Timer watchdog = new System.Windows.Forms.Timer();
-                watchdog.Interval = 10000;
+                watchdog.Interval = 5000;
                 watchdog.Tick += (s, e) => {
                     UpdateTrayText();
                     if (_hookID == IntPtr.Zero && IsProtectionActive)
@@ -143,35 +152,51 @@ namespace AntiOneSpamGuard
         {
             if (nCode >= 0 && IsProtectionActive)
             {
-                int msg = wParam.ToInt32();
-                if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+                KBDLLHOOKSTRUCT info = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+
+                // If this is our own synthetic '1' generated via Alt+1 or Ctrl+1, let it pass through!
+                if (info.dwExtraInfo == SYNTHETIC_EXTRA_INFO)
                 {
-                    int vkCode = Marshal.ReadInt32(lParam);
+                    return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                }
+
+                int msg = wParam.ToInt32();
+                if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN || msg == WM_KEYUP || msg == WM_SYSKEYUP)
+                {
+                    int vkCode = (int)info.vkCode;
 
                     if (vkCode == VK_1 || vkCode == VK_NUMPAD1)
                     {
-                        if (StrictMuteMode)
+                        bool isShift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                        bool isAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+                        bool isCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+
+                        // 1. If Shift is pressed (e.g. user typing '!'), allow it!
+                        if (isShift)
                         {
-                            Interlocked.Increment(ref BlockedCount);
-                            return (IntPtr)1;
-                        }
-
-                        long now = _timer.ElapsedMilliseconds;
-                        long timeSinceAllowed = now - _lastAllowedTime;
-                        long timeSinceLastEvent = now - _lastAnyEventTime;
-
-                        _lastAnyEventTime = now;
-
-                        if (timeSinceAllowed >= MIN_COOLDOWN_MS && timeSinceLastEvent >= REQUIRED_SILENCE_MS)
-                        {
-                            _lastAllowedTime = now;
                             return CallNextHookEx(_hookID, nCode, wParam, lParam);
                         }
-                        else
+
+                        // 2. If Alt or Ctrl is held down with 1, user intentionally wants to type '1'!
+                        if (isAlt || isCtrl)
+                        {
+                            if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+                            {
+                                ThreadPool.QueueUserWorkItem(_ => {
+                                    Thread.Sleep(20);
+                                    keybd_event((byte)VK_1, 0, 0, SYNTHETIC_EXTRA_INFO);
+                                    keybd_event((byte)VK_1, 0, KEYEVENTF_KEYUP, SYNTHETIC_EXTRA_INFO);
+                                });
+                            }
+                            return (IntPtr)1; // Block the raw event so no double-trigger
+                        }
+
+                        // 3. Otherwise: Unmodified physical '1' is 100% BLOCKED (Zero Leak!)
+                        if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
                         {
                             Interlocked.Increment(ref BlockedCount);
-                            return (IntPtr)1;
                         }
+                        return (IntPtr)1; // Discard completely
                     }
                 }
             }
@@ -183,42 +208,51 @@ namespace AntiOneSpamGuard
         {
             _contextMenu = new ContextMenuStrip();
 
-            _statusItem = new ToolStripMenuItem("??? Protection: ACTIVE (Click to Pause)", null, (s, e) => {
+            _statusItem = new ToolStripMenuItem("🛡️ Protection: 100% ZERO-LEAK ACTIVE", null, (s, e) => {
                 IsProtectionActive = !IsProtectionActive;
                 UpdateTrayStatus();
             });
             _statusItem.Font = new Font(_contextMenu.Font, FontStyle.Bold);
 
-            _blockedCountItem = new ToolStripMenuItem("?? Spams Blocked: 0");
+            _blockedCountItem = new ToolStripMenuItem("🚫 Spams Blocked: 0");
             _blockedCountItem.Enabled = false;
 
-            _strictMuteItem = new ToolStripMenuItem("?? Complete '1' Mute Mode", null, (s, e) => {
+            ToolStripMenuItem tipItem = new ToolStripMenuItem("💡 Tip: Press Alt+1 or Ctrl+1 to type '1'");
+            tipItem.Enabled = false;
+
+            ToolStripMenuItem copyOneItem = new ToolStripMenuItem("📋 Copy '1' to Clipboard", null, (s, e) => {
+                try {
+                    Clipboard.SetText("1");
+                    _notifyIcon.ShowBalloonTip(1500, "Copied", "Digit '1' copied to clipboard!", ToolTipIcon.Info);
+                } catch {}
+            });
+
+            _strictMuteItem = new ToolStripMenuItem("🔒 100% Strict Mute Mode (Zero-Leak)", null, (s, e) => {
                 StrictMuteMode = !StrictMuteMode;
                 _strictMuteItem.Checked = StrictMuteMode;
-                _notifyIcon.ShowBalloonTip(2000, "Mode Changed",
-                    StrictMuteMode ? "Complete 1 Mute ON: All '1' key presses are now blocked." : "Smart Anti-Repeat ON: Single tap allowed, repeats blocked.",
-                    ToolTipIcon.Info);
             });
-            _strictMuteItem.Checked = false;
+            _strictMuteItem.Checked = true;
 
-            _startupItem = new ToolStripMenuItem("?? Run on Windows Startup", null, (s, e) => {
+            _startupItem = new ToolStripMenuItem("⚡ Run on Windows Startup", null, (s, e) => {
                 ToggleStartup();
             });
             _startupItem.Checked = IsStartupEnabled();
 
-            ToolStripMenuItem testItem = new ToolStripMenuItem("?? Test Protection (Open Notepad)", null, (s, e) => {
-                Process.Start("notepad.exe");
+            ToolStripMenuItem testItem = new ToolStripMenuItem("📝 Open Notepad (Test)", null, (s, e) => {
+                try { Process.Start("notepad.exe"); } catch {}
             });
 
             ToolStripSeparator sep1 = new ToolStripSeparator();
             ToolStripSeparator sep2 = new ToolStripSeparator();
 
-            ToolStripMenuItem exitItem = new ToolStripMenuItem("? Exit", null, (s, e) => {
+            ToolStripMenuItem exitItem = new ToolStripMenuItem("❌ Exit", null, (s, e) => {
                 Application.Exit();
             });
 
             _contextMenu.Items.Add(_statusItem);
             _contextMenu.Items.Add(_blockedCountItem);
+            _contextMenu.Items.Add(tipItem);
+            _contextMenu.Items.Add(copyOneItem);
             _contextMenu.Items.Add(sep1);
             _contextMenu.Items.Add(_strictMuteItem);
             _contextMenu.Items.Add(_startupItem);
@@ -229,7 +263,7 @@ namespace AntiOneSpamGuard
             _notifyIcon = new NotifyIcon
             {
                 Icon = CreateShieldIcon(true),
-                Text = "Anti-1 Spam Guard: Active",
+                Text = "Anti-1 Guard: Zero-Leak Active",
                 ContextMenuStrip = _contextMenu,
                 Visible = true
             };
@@ -244,7 +278,7 @@ namespace AntiOneSpamGuard
         {
             if (IsProtectionActive)
             {
-                _statusItem.Text = "??? Protection: ACTIVE (Click to Pause)";
+                _statusItem.Text = "🛡️ Protection: 100% ZERO-LEAK ACTIVE";
                 _statusItem.ForeColor = Color.DarkGreen;
                 _notifyIcon.Icon = CreateShieldIcon(true);
                 _notifyIcon.Text = string.Format("Anti-1 Guard: Active | Blocked: {0}", BlockedCount);
@@ -252,7 +286,7 @@ namespace AntiOneSpamGuard
             }
             else
             {
-                _statusItem.Text = "?? Protection: PAUSED (Click to Resume)";
+                _statusItem.Text = "⚠️ Protection: PAUSED (Click to Resume)";
                 _statusItem.ForeColor = Color.DarkRed;
                 _notifyIcon.Icon = CreateShieldIcon(false);
                 _notifyIcon.Text = "Anti-1 Guard: PAUSED";
@@ -263,7 +297,7 @@ namespace AntiOneSpamGuard
         {
             if (_blockedCountItem != null)
             {
-                _blockedCountItem.Text = string.Format("?? Spams Blocked: {0}", BlockedCount);
+                _blockedCountItem.Text = string.Format("🚫 Spams Blocked: {0}", BlockedCount);
             }
             if (_notifyIcon != null && IsProtectionActive)
             {
@@ -361,6 +395,12 @@ namespace AntiOneSpamGuard
             }
             catch {}
         }
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);

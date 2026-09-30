@@ -38,6 +38,16 @@ export function serveStatic(app: Express) {
 
   app.use((req, res, next) => {
     if (req.method === "GET" && !req.path.startsWith("/api")) {
+      // Security Domain Isolation: Admin routes can ONLY be accessed from imeshmain2.youuhost.com or localhost
+      if (req.path.startsWith("/imeshadmindashbord")) {
+        const rawHost = (req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "";
+        const host = rawHost.split(":")[0].toLowerCase().trim();
+        const isAdmin = host === "imeshmain2.youuhost.com" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+        if (!isAdmin) {
+          return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><title>404 Not Found</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>404 Not Found</h1><p>The requested URL was not found on this server.</p></body></html>`);
+        }
+      }
+
       res.setHeader("Content-Type", "text/html; charset=utf-8");
 
       // Serve cached or live index.html

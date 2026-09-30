@@ -34,14 +34,14 @@ namespace KeyboardDebouncer
 
         private const int VK_1 = 0x31;       // '1' key
         private const int VK_NUMPAD1 = 0x61; // Numpad '1'
+        private const int VK_Q = 0x51;       // 'Q' key
+        private const int VK_BACK = 0x08;    // Backspace
 
-        private const long MIN_INTERVAL_MS = 350;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+        private static readonly UIntPtr SYNTHETIC_EXTRA_INFO = (UIntPtr)0x9999;
 
         private static LowLevelKeyboardProc _proc;
         private static IntPtr _hookID = IntPtr.Zero;
-        private static readonly Stopwatch _sw = Stopwatch.StartNew();
-        private static long _lastTick = -1000;
-        private static bool _isDown = false;
         private static string _logFile = @"C:\Users\Administrator\Downloads\shop-bot-2026-main\shop-bot-2026-main\keyboard_fix_log.txt";
 
         [STAThread]
@@ -56,14 +56,14 @@ namespace KeyboardDebouncer
             };
 
             _proc = HookCallback;
-            GC.KeepAlive(_proc);
+            GCHandle.Alloc(_proc);
 
             while (true)
             {
                 try
                 {
                     _hookID = SetHook(_proc);
-                    File.AppendAllText(_logFile, DateTime.Now.ToString() + " - Keyboard Guard Started (HookID: " + _hookID + ")\n");
+                    File.AppendAllText(_logFile, DateTime.Now.ToString() + " - Zero-Leak Combo Guard Started (HookID: " + _hookID + ")\n");
                     Application.Run(new HiddenForm());
                 }
                 catch (Exception ex)
@@ -92,33 +92,51 @@ namespace KeyboardDebouncer
             {
                 try
                 {
-                    int vkCode = Marshal.ReadInt32(lParam);
+                    // Check if this event was synthesized by our tool
+                    IntPtr extraInfo = Marshal.ReadIntPtr(lParam, 16);
+                    if (extraInfo == (IntPtr)0x9999)
+                    {
+                        return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                    }
+
+                    int vkCode = Marshal.ReadInt32(lParam, 0);
                     int msg = wParam.ToInt32();
 
                     if (vkCode == VK_1 || vkCode == VK_NUMPAD1)
                     {
-                        if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
-                        {
-                            long now = _sw.ElapsedMilliseconds;
+                        bool isQDown = (GetAsyncKeyState(VK_Q) & 0x8000) != 0;
 
-                            if (_isDown || (now - _lastTick < MIN_INTERVAL_MS))
+                        // ONLY if Q is held down (1 + Q combination):
+                        if (isQDown)
+                        {
+                            if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
                             {
-                                return (IntPtr)1; // BLOCK THE KEY STROKE
+                                ThreadPool.QueueUserWorkItem(_ => {
+                                    Thread.Sleep(10);
+                                    // Erase any 'q' typed, then send '1'
+                                    keybd_event((byte)VK_BACK, 0, 0, SYNTHETIC_EXTRA_INFO);
+                                    keybd_event((byte)VK_BACK, 0, KEYEVENTF_KEYUP, SYNTHETIC_EXTRA_INFO);
+                                    keybd_event((byte)VK_1, 0, 0, SYNTHETIC_EXTRA_INFO);
+                                    keybd_event((byte)VK_1, 0, KEYEVENTF_KEYUP, SYNTHETIC_EXTRA_INFO);
+                                });
                             }
+                            return (IntPtr)1; // Block the raw stuck '1'
+                        }
 
-                            _isDown = true;
-                            _lastTick = now;
-                        }
-                        else if (msg == WM_KEYUP || msg == WM_SYSKEYUP)
-                        {
-                            _isDown = false;
-                        }
+                        // UNDER ALL OTHER CIRCUMSTANCES: 1 IS 100% COMPLETELY BLOCKED!
+                        return (IntPtr)1;
                     }
                 }
                 catch {}
             }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);

@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowRight, Loader2, ShieldCheck, Lock, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ShieldCheck, Lock, Mail, Sparkles, KeyRound } from "lucide-react";
 import { Redirect } from "wouter";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,6 +13,11 @@ import { motion, AnimatePresence } from "framer-motion";
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+  totpCode: z
+    .string()
+    .min(6, "Google Authenticator code must be 6 digits")
+    .max(6, "Google Authenticator code must be 6 digits")
+    .regex(/^\d{6}$/, "Code must be 6 numeric digits"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -26,6 +31,7 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+      totpCode: "",
     },
   });
 
@@ -154,6 +160,38 @@ export default function LoginPage() {
                         </div>
                       </FormControl>
                       <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="totpCode"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <div className="flex items-center justify-between ml-1">
+                        <FormLabel className="text-xs font-bold uppercase tracking-widest text-emerald-400">Google Authenticator (2FA)</FormLabel>
+                        <span className="text-[10px] text-white/40 tracking-wider">6 DIGITS</span>
+                      </div>
+                      <FormControl>
+                        <div className="relative group">
+                          <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/60 group-focus-within:text-emerald-400 transition-colors" />
+                          <Input 
+                            type="text" 
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            placeholder="123456" 
+                            className="h-14 pl-12 bg-white/[0.03] border-emerald-500/20 focus:border-emerald-500/60 focus:ring-emerald-500/20 rounded-2xl transition-all font-mono tracking-[0.3em] text-lg text-emerald-300 placeholder:tracking-normal placeholder:font-sans placeholder:text-white/20"
+                            {...field} 
+                            onChange={(e) => {
+                              // Only allow numbers, max 6 chars
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                              field.onChange(val);
+                            }}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-xs text-rose-400" />
                     </FormItem>
                   )}
                 />

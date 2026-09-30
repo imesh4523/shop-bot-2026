@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
-import { products, orders, credentials, apiKeys, telegramUsers, preorders } from "@shared/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions } from "@shared/schema";
+import { eq, and, desc, sql, gte } from "drizzle-orm";
 
 export const apiV1Router = Router();
 
@@ -13,12 +13,12 @@ interface AuthenticatedApiRequest extends Request {
 }
 
 async function authenticateApiKey(req: AuthenticatedApiRequest, res: Response, next: NextFunction) {
-  const authHeader = req.header("X-API-Key") || (req.query.api_key as string);
+  const authHeader = req.header("X-API-Key") || (req.header("Authorization") ? req.header("Authorization")!.replace(/^Bearer\s+/i, "") : null);
   
   if (!authHeader) {
     return res.status(401).json({
       error: "unauthorized",
-      message: "Missing API Key. Provide key in 'X-API-Key' header.",
+      message: "Missing API Key. Provide key in 'X-API-Key' or 'Authorization: Bearer <key>' header.",
       statusCode: 401
     });
   }
@@ -120,7 +120,39 @@ function apiV1RateLimiter(req: AuthenticatedApiRequest, res: Response, next: Nex
   next();
 }
 
-// Apply auth middleware to all /api/v1 routes
+// Pre-authentication IP rate limiter: Prevents database DoS and key brute-forcing
+const apiV1IpRateLimitMap = new Map<string, { count: number; windowStart: number }>();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of apiV1IpRateLimitMap.entries()) {
+    if (now - val.windowStart > 5000) {
+      apiV1IpRateLimitMap.delete(key);
+    }
+  }
+}, 60000);
+
+function apiV1IpRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const ip = (req.headers["cf-connecting-ip"] as string) || req.socket.remoteAddress || "unknown_ip";
+  const now = Date.now();
+  const limit = 40; // Max 40 requests per second per IP
+  const entry = apiV1IpRateLimitMap.get(ip);
+  if (!entry || now - entry.windowStart >= 1000) {
+    apiV1IpRateLimitMap.set(ip, { count: 1, windowStart: now });
+    return next();
+  }
+  entry.count += 1;
+  if (entry.count > limit) {
+    return res.status(429).json({
+      error: "ip_rate_limit_exceeded",
+      message: "Too many API requests from this IP. Please slow down.",
+      statusCode: 429
+    });
+  }
+  next();
+}
+
+// Apply auth middleware to all /api/v1 routes (IP limiter runs FIRST before database access)
+apiV1Router.use(apiV1IpRateLimiter as any);
 apiV1Router.use(authenticateApiKey as any);
 apiV1Router.use(apiV1RateLimiter as any);
 
@@ -221,9 +253,11 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
 
     const rawCoupon = coupon_code || couponCode;
     let discountCents = 0;
+    let appliedPromo: any = null;
     if (rawCoupon && typeof rawCoupon === "string" && rawCoupon.trim()) {
       const promo = await storage.getPromoCodeByCode(rawCoupon.trim().toUpperCase());
       if (promo && promo.status === "active" && promo.usesCount < promo.maxUses) {
+        appliedPromo = promo;
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discountCents = Math.round((totalCost * pct) / 100);
@@ -242,8 +276,36 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         throw new Error("user_not_found");
       }
 
-      if (lockedUser.balance < finalCost) {
+      const approxLkrRate = 305.50;
+      const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
+
+      // Support dual-currency balance verification (USD cents or LKR)
+      const hasEnough = (lockedUser.balance >= finalCost) || (lockedUser.balanceLkr != null && lockedUser.balanceLkr >= deductLkr);
+      if (!hasEnough) {
         throw new Error("insufficient_balance");
+      }
+
+      // Record promo redemption and increment usesCount atomically inside transaction
+      if (appliedPromo) {
+        const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
+          .from(promoCodeRedemptions)
+          .where(and(
+            eq(promoCodeRedemptions.telegramUserId, lockedUser.id),
+            eq(promoCodeRedemptions.promoCodeId, appliedPromo.id)
+          )).limit(1);
+
+        if (alreadyRedeemed) {
+          throw new Error("coupon_already_used");
+        }
+
+        await tx.insert(promoCodeRedemptions).values({
+          telegramUserId: lockedUser.id,
+          promoCodeId: appliedPromo.id,
+        });
+
+        await tx.update(promoCodes)
+          .set({ usesCount: sql`${promoCodes.usesCount} + 1` })
+          .where(eq(promoCodes.id, appliedPromo.id));
       }
 
       // 2. Try instant fulfillment with row-locked credentials
@@ -252,8 +314,6 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         .where(and(eq(credentials.productId, prod.id), eq(credentials.status, 'available')))
         .limit(qtyInt)
         .for('update', { skipLocked: true });
-
-      const approxLkrRate = 305.50;
 
       if (lockedCreds.length >= qtyInt) {
         const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
@@ -291,11 +351,11 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           finalCost
         };
       } else if (prod.isPreorderEnabled) {
-        const deductLkr = Math.round((totalCost / 100) * approxLkrRate);
+        const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
         const [updatedUser] = await tx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} - ${totalCost}`,
+          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${finalCost})`,
           balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
-        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, totalCost))).returning();
+        }).where(and(eq(telegramUsers.id, lockedUser.id), or(gte(telegramUsers.balance, finalCost), gte(telegramUsers.balanceLkr, deductLkr)))).returning();
 
         if (!updatedUser) {
           throw new Error("insufficient_balance");
@@ -305,14 +365,14 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           productId: prod.id,
           telegramUserId: lockedUser.id,
           quantity: qtyInt,
-          totalPrice: totalCost,
+          totalPrice: finalCost,
           status: "pending_fulfillment"
         }).returning();
 
         return {
           type: "preorder",
           preorderItem,
-          totalCost
+          totalCost: finalCost
         };
       } else {
         throw new Error("out_of_stock");
@@ -410,6 +470,14 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
         success: false,
         error: "invalid_params",
         message: "orders must be a non-empty array of { product_id, quantity }."
+      });
+    }
+
+    if (orderList.length > 50) {
+      return res.status(400).json({
+        success: false,
+        error: "batch_limit_exceeded",
+        message: "Maximum 50 items allowed per batch order request."
       });
     }
 
@@ -512,9 +580,15 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
  */
 apiV1Router.get("/orders", async (req: AuthenticatedApiRequest, res: Response) => {
   try {
-    const keyOrders = await storage.getApiKeyOrders(req.apiKey!.id);
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
+    const offset = (page - 1) * limit;
 
-    const formatted = await Promise.all(keyOrders.map(async (ord) => {
+    const allKeyOrders = await storage.getApiKeyOrders(req.apiKey!.id);
+    const totalCount = allKeyOrders.length;
+    const paginatedOrders = allKeyOrders.slice(offset, offset + limit);
+
+    const formatted = await Promise.all(paginatedOrders.map(async (ord) => {
       let credContent = null;
       if (ord.credentialId) {
         const [cred] = await db.select().from(credentials).where(eq(credentials.id, ord.credentialId));
@@ -536,6 +610,10 @@ apiV1Router.get("/orders", async (req: AuthenticatedApiRequest, res: Response) =
     return res.json({
       success: true,
       count: formatted.length,
+      total_count: totalCount,
+      page,
+      limit,
+      total_pages: Math.ceil(totalCount / limit),
       data: formatted
     });
   } catch (error: any) {
@@ -637,7 +715,7 @@ apiV1Router.get("/stats", async (req: AuthenticatedApiRequest, res: Response) =>
       success: true,
       data: {
         key: maskedKey,
-        full_key: key.key,
+        full_key: maskedKey,
         status: key.status,
         total_orders: key.totalOrders,
         success_orders: key.successOrders,

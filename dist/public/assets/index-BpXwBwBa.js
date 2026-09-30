@@ -12026,7 +12026,7 @@ const SendHorizontal = createLucideIcon("SendHorizontal", [
   ],
   ["path", { d: "M6 12h16", key: "s4cdu5" }]
 ]);
-const Send$1 = createLucideIcon("Send", [
+const Send = createLucideIcon("Send", [
   [
     "path",
     {
@@ -20412,7 +20412,7 @@ function LayoutShell({ children }) {
     { name: "Referral Program", href: "/imeshadmindashbord/referrals", icon: Users },
     { name: "Spam Protector", href: "/imeshadmindashbord/spam-protector", icon: ShieldAlert },
     { name: "Telegram Inspector", href: "/imeshadmindashbord/telegram-inspector", icon: Smile },
-    { name: "Telegram AI", href: "/imeshadmindashbord/telegram-client", icon: Send$1 },
+    { name: "Telegram AI", href: "/imeshadmindashbord/telegram-client", icon: Send },
     { name: "Auto Forward", href: "/imeshadmindashbord/forward", icon: Share2 },
     { name: "Settings", href: "/imeshadmindashbord/settings", icon: Settings }
   ];
@@ -31097,7 +31097,6 @@ const api = {
   },
   orders: {
     list: {
-      path: "/api/orders",
       responses: {
         200: z$2.array(z$2.custom())
       }
@@ -61036,54 +61035,218 @@ function EditCredentialForm({
     ] }) })
   ] }) });
 }
-function useOrders() {
-  return useQuery({
-    queryKey: [api.orders.list.path],
-    queryFn: async () => {
-      const res = await fetch(api.orders.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch orders");
-      const data = await res.json();
-      const parsed = api.orders.list.responses[200].safeParse(data);
-      return parsed.success ? parsed.data : Array.isArray(data) ? data : [];
-    }
-  });
-}
 function OrdersPage() {
-  const { data: orders2, isLoading } = useOrders();
-  const [search, setSearch] = reactExports.useState("");
   const { toast: toast2 } = useToast();
+  const [search, setSearch] = reactExports.useState("");
+  const [selectedType, setSelectedType] = reactExports.useState("all");
   const [copiedId, setCopiedId] = reactExports.useState(null);
+  const [selectedOrderDetails, setSelectedOrderDetails] = reactExports.useState(null);
+  const { data: allOrders = [], isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ["/api/admin/all-orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/all-orders", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch consolidated orders");
+      return res.json();
+    },
+    refetchInterval: 12e3
+  });
   const copyToClipboard = (text2, id2) => {
     navigator.clipboard.writeText(text2);
     setCopiedId(id2);
     toast2({
       title: "Copied!",
-      description: "Credentials copied to clipboard."
+      description: "Order credentials copied to clipboard."
     });
     setTimeout(() => setCopiedId(null), 2e3);
   };
-  const filteredOrders = orders2?.filter(
-    (order) => order.product?.name.toLowerCase().includes(search.toLowerCase()) || order.telegramUser?.username?.toLowerCase().includes(search.toLowerCase()) || order.telegramUser?.telegramId.includes(search)
-  ) || [];
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-8", children: [
+  const filteredOrders = reactExports.useMemo(() => {
+    return allOrders.filter((order) => {
+      if (selectedType !== "all") {
+        if (selectedType === "partner") {
+          if (order.orderType !== "partner" && order.orderType !== "sandromania") return false;
+        } else if (order.orderType !== selectedType) {
+          return false;
+        }
+      }
+      if (!search.trim()) return true;
+      const q2 = search.toLowerCase().trim();
+      const idStr = String(order.id || "").toLowerCase();
+      const rawIdStr = String(order.rawId || "");
+      const titleStr = String(order.title || order.product?.name || "").toLowerCase();
+      const buyerStr = String(order.buyer || "").toLowerCase();
+      const usernameStr = String(order.buyerUsername || order.telegramUser?.username || "").toLowerCase();
+      const emailStr = String(order.buyerEmail || order.telegramUser?.email || "").toLowerCase();
+      const tgIdStr = String(order.buyerTelegramId || order.telegramUser?.telegramId || "");
+      const statusStr = String(order.status || "").toLowerCase();
+      return idStr.includes(q2) || rawIdStr.includes(q2) || titleStr.includes(q2) || buyerStr.includes(q2) || usernameStr.includes(q2) || emailStr.includes(q2) || tgIdStr.includes(q2) || statusStr.includes(q2);
+    });
+  }, [allOrders, selectedType, search]);
+  const counts = reactExports.useMemo(() => {
+    return {
+      all: allOrders.length,
+      cloud: allOrders.filter((o2) => o2.orderType === "cloud").length,
+      partner: allOrders.filter((o2) => o2.orderType === "partner" || o2.orderType === "sandromania").length,
+      cssx: allOrders.filter((o2) => o2.orderType === "cssx").length,
+      smm: allOrders.filter((o2) => o2.orderType === "smm").length
+    };
+  }, [allOrders]);
+  const getOrderIcon = (orderType) => {
+    switch (orderType) {
+      case "smm":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(Share2, { className: "w-4 h-4 text-purple-400" });
+      case "partner":
+      case "sandromania":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-4 h-4 text-emerald-400" });
+      case "cssx":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-4 h-4 text-cyan-400" });
+      case "cloud":
+      default:
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-4 h-4 text-purple-400" });
+    }
+  };
+  const getOrderTypeBadge = (orderType, typeLabel) => {
+    switch (orderType) {
+      case "smm":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20", children: "SMM Boost" });
+      case "partner":
+      case "sandromania":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20", children: "Sandromania" });
+      case "cssx":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20", children: "CSxStore Partner" });
+      case "cloud":
+      default:
+        return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20", children: "Cloud" });
+    }
+  };
+  const renderStatusBadge = (statusStr) => {
+    const s2 = (statusStr || "").toLowerCase();
+    if (s2 === "completed" || s2 === "approved" || s2 === "success" || s2 === "active") {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-green-500/10 text-green-400 border-green-500/20 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3" }),
+        " COMPLETED"
+      ] });
+    }
+    if (s2.includes("pend") || s2.includes("wait") || s2.includes("progress")) {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Clock, { className: "w-3 h-3" }),
+        " ",
+        statusStr.toUpperCase()
+      ] });
+    }
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { className: "bg-rose-500/10 text-rose-400 border-rose-500/20 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(CircleX, { className: "w-3 h-3" }),
+      " ",
+      statusStr.toUpperCase()
+    ] });
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-bold tracking-tight text-white", children: "Orders" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 mt-1 font-medium", children: "History of all transactions." })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-3xl font-black tracking-tight text-white", children: "Orders" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(Badge, { variant: "outline", className: "border-purple-500/30 text-purple-300 font-mono text-xs", children: [
+            allOrders.length,
+            " Total"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-white/40 mt-1 font-medium text-xs", children: "History of all transactions across Cloud, SMM, Sandromania & CSxStore." })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full sm:w-64", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-2.5 top-2.5 h-4 w-4 text-white/30" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          Input,
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
           {
-            type: "search",
-            placeholder: "Search orders...",
-            className: "pl-9 glass-panel border-white/10 text-white placeholder:text-white/20",
-            value: search,
-            onChange: (e3) => setSearch(e3.target.value)
+            variant: "outline",
+            size: "sm",
+            onClick: () => refetch(),
+            disabled: isRefetching,
+            className: "h-10 px-3.5 glass-panel border-white/10 text-white font-bold text-xs rounded-xl hover:bg-white/10",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-3.5 h-3.5 mr-1.5 ${isRefetching ? "animate-spin" : ""}` }),
+              "Refresh"
+            ]
           }
-        )
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative w-full sm:w-72", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Input,
+            {
+              type: "search",
+              placeholder: "Search orders, buyer, ID...",
+              className: "pl-9 glass-panel border-white/10 text-white placeholder:text-white/20 h-10 rounded-xl",
+              value: search,
+              onChange: (e3) => setSearch(e3.target.value)
+            }
+          )
+        ] })
       ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setSelectedType("all"),
+          className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedType === "all" ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30" : "glass-panel border-white/5 text-white/60 hover:text-white hover:bg-white/5"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Layers, { className: "w-3.5 h-3.5" }),
+            " All Orders (",
+            counts.all,
+            ")"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setSelectedType("cloud"),
+          className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedType === "cloud" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30" : "glass-panel border-white/5 text-white/60 hover:text-white hover:bg-white/5"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-3.5 h-3.5 text-blue-400" }),
+            " Cloud Accounts (",
+            counts.cloud,
+            ")"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setSelectedType("partner"),
+          className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedType === "partner" ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30" : "glass-panel border-white/5 text-white/60 hover:text-white hover:bg-white/5"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingBag, { className: "w-3.5 h-3.5 text-emerald-400" }),
+            " Sandromania (",
+            counts.partner,
+            ")"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setSelectedType("cssx"),
+          className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedType === "cssx" ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/30" : "glass-panel border-white/5 text-white/60 hover:text-white hover:bg-white/5"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Sparkles, { className: "w-3.5 h-3.5 text-cyan-400" }),
+            " CSxStore Partner (",
+            counts.cssx,
+            ")"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => setSelectedType("smm"),
+          className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${selectedType === "smm" ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30" : "glass-panel border-white/5 text-white/60 hover:text-white hover:bg-white/5"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Share2, { className: "w-3.5 h-3.5 text-purple-400" }),
+            " YouuHost Boosts (",
+            counts.smm,
+            ")"
+          ]
+        }
+      )
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "glass-card border-0 rounded-3xl overflow-hidden shadow-2xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Table$1, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(TableHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-transparent", children: [
@@ -61096,85 +61259,128 @@ function OrdersPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableHead, { className: "text-white/40 font-bold uppercase tracking-widest text-[10px] text-right pr-8", children: "Actions" })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(TableBody, { children: isLoading ? Array.from({ length: 5 }).map((_2, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-12 bg-white/5" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-16 bg-white/5" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-36 bg-white/5" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-32 bg-white/5" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-24 bg-white/5" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-20 bg-white/5" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-16 bg-white/5" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-16 bg-white/5" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-20 bg-white/5" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "pr-8", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-8 w-8 ml-auto rounded-xl bg-white/5" }) })
-      ] }, i)) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 7, className: "h-32 text-center text-white/20 font-medium", children: "No orders found." }) }) : filteredOrders.map((order) => /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/5 transition-all duration-500", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-mono text-[10px] text-white/30 tracking-tighter", children: [
-          "#",
-          order.id
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center text-purple-400", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ShoppingCart, { className: "w-4 h-4" }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight", children: order.product?.name || "Deleted Product" })
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-white/30", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }) }),
-          order.telegramUser ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight truncate", children: order.telegramUser.username ? `@${order.telegramUser.username}` : order.telegramUser.email || "No Username" }),
-            order.telegramUser.email && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] text-purple-300 font-mono truncate", children: [
-              "✉️ ",
-              order.telegramUser.email
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/20 font-black", children: [
-              "ID: ",
-              order.telegramUser.telegramId
-            ] })
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/20 italic text-xs", children: "Unknown User" })
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-white/40 text-[11px] font-bold", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Calendar, { className: "w-3 h-3 text-white/20" }),
-          order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : "-"
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(Badge, { className: "bg-green-500/10 text-green-400 border-green-500/20 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg", children: "Completed" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-black text-sm text-white", children: [
-          "$",
-          ((order.product?.price || 0) / 100).toFixed(2)
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Dialog, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(DialogTrigger, { asChild: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { size: "icon", variant: "ghost", className: "h-10 w-10 rounded-xl text-white/20 hover:text-white hover:bg-white/5 transition-all", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "h-5 w-5" }) }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogContent, { className: "glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-md rounded-[2rem] p-8 shadow-4xl", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { className: "mb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "flex items-center gap-3 text-2xl font-black text-white tracking-tighter", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white shadow-lg", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-5 h-5" }) }),
-              "Credentials"
-            ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 rounded-3xl glass-panel border-white/5 bg-white/[0.02] relative group min-h-[120px] flex items-center justify-center overflow-hidden", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "text-sm text-white/80 font-mono whitespace-pre-wrap break-all relative z-10 leading-relaxed text-center", children: order.credential?.content || "No content available" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Button,
-                  {
-                    size: "icon",
-                    variant: "ghost",
-                    className: "absolute top-4 right-4 h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100",
-                    onClick: () => copyToClipboard(order.credential?.content || "", order.id),
-                    children: copiedId === order.id ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "h-5 w-5 text-green-400" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "h-5 w-5 text-white/40" })
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-2 pt-2 border-t border-white/5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/20 font-black uppercase tracking-widest", children: "Product" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-white/60 font-bold", children: order.product?.name })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-1 text-right", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/20 font-black uppercase tracking-widest", children: "Buyer" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm text-white/60 font-bold", children: [
-                    "@",
-                    order.telegramUser?.username || "Unknown"
-                  ] })
+      ] }, i)) : filteredOrders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(TableRow, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { colSpan: 7, className: "h-40 text-center text-white/30 font-medium", children: "No orders found." }) }) : filteredOrders.map((order) => {
+        const orderId = order.id || `#${order.rawId}`;
+        const title = order.title || order.product?.name || "Digital Service";
+        const username = order.buyerUsername || (order.telegramUser?.username ? `@${order.telegramUser.username}` : null);
+        const email = order.buyerEmail || order.telegramUser?.email || null;
+        const tgId = order.buyerTelegramId || order.telegramUser?.telegramId || null;
+        const displayAmount = order.displayAmount || (order.currency === "LKR" ? order.amountLkr || `Rs. ${order.amountPaidLkr}` : order.amountUsd || `$${((order.amountCents || order.product?.price || 0) / 100).toFixed(2)}`);
+        order.deliveredContent || order.credential?.content || order.deliveryText || order.details || "Instant fulfillment processed.";
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(TableRow, { className: "border-white/5 hover:bg-white/5 transition-all duration-300", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "font-mono text-xs font-black text-purple-300/80 tracking-tight", children: orderId }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0", children: getOrderIcon(order.orderType) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight truncate max-w-[200px] sm:max-w-xs", children: title }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 mt-0.5", children: [
+                getOrderTypeBadge(order.orderType, order.typeLabel),
+                order.quantity > 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40 font-mono", children: [
+                  "×",
+                  order.quantity
                 ] })
               ] })
             ] })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-white/30 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(User, { className: "w-4 h-4" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-bold text-white tracking-tight truncate max-w-[160px]", children: username || email || (tgId ? `ID: ${tgId}` : "Unknown User") }),
+              email && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-purple-300 font-mono truncate max-w-[180px]", children: email }),
+              tgId && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/30 font-black", children: tgId })
+            ] })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-white/40 text-[11px] font-bold", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Calendar, { className: "w-3 h-3 text-white/20 shrink-0" }),
+            order.createdAt ? format(new Date(order.createdAt), "MMM d, HH:mm") : "-"
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { children: renderStatusBadge(order.status) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "font-mono font-black text-sm text-white", children: displayAmount }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-right pr-8", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              size: "icon",
+              variant: "ghost",
+              onClick: () => setSelectedOrderDetails(order),
+              className: "h-10 w-10 rounded-xl text-white/30 hover:text-white hover:bg-white/10 transition-all",
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "h-5 w-5" })
+            }
+          ) })
+        ] }, order.id || order.rawId);
+      }) })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Dialog, { open: !!selectedOrderDetails, onOpenChange: (open2) => !open2 && setSelectedOrderDetails(null), children: /* @__PURE__ */ jsxRuntimeExports.jsx(DialogContent, { className: "glass-panel border-white/10 bg-background/95 backdrop-blur-3xl sm:max-w-lg rounded-[2rem] p-8 shadow-4xl text-white", children: selectedOrderDetails && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(DialogHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(DialogTitle, { className: "flex items-center gap-3 text-xl font-black text-white tracking-tight", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white shadow-lg shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Package, { className: "w-5 h-5" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              "Order ",
+              selectedOrderDetails.id || `#${selectedOrderDetails.rawId}`
+            ] }),
+            getOrderTypeBadge(selectedOrderDetails.orderType, selectedOrderDetails.typeLabel)
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/40 font-normal mt-0.5", children: selectedOrderDetails.title || selectedOrderDetails.product?.name })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3 p-4 rounded-2xl bg-white/5 border border-white/5 text-xs", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-white/40 uppercase tracking-wider block", children: "Buyer" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white truncate block", children: selectedOrderDetails.buyerUsername || selectedOrderDetails.buyerEmail || selectedOrderDetails.buyerTelegramId }),
+          selectedOrderDetails.buyerEmail && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] text-purple-300 font-mono block truncate", children: selectedOrderDetails.buyerEmail })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-right", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] font-bold text-white/40 uppercase tracking-wider block", children: "Charged Amount" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-black text-base font-mono text-emerald-400 block", children: selectedOrderDetails.displayAmount || (selectedOrderDetails.currency === "LKR" ? selectedOrderDetails.amountLkr : selectedOrderDetails.amountUsd) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40 font-mono block", children: [
+            "Currency: ",
+            selectedOrderDetails.currency || "USD"
           ] })
-        ] }) })
-      ] }, order.id)) })
-    ] }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px] font-bold text-white/50 uppercase tracking-wider block mb-2", children: "Delivered License / Credentials Content:" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-2xl glass-panel border-white/10 bg-black/40 relative group min-h-[100px] flex items-center", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("pre", { className: "text-xs text-white/90 font-mono whitespace-pre-wrap break-all relative z-10 leading-relaxed w-full", children: selectedOrderDetails.deliveredContent || selectedOrderDetails.credential?.content || selectedOrderDetails.deliveryText || selectedOrderDetails.details || "No credential data available" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Button,
+            {
+              size: "sm",
+              variant: "outline",
+              className: "absolute top-3 right-3 h-8 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border-white/10 gap-1.5",
+              onClick: () => copyToClipboard(
+                selectedOrderDetails.deliveredContent || selectedOrderDetails.credential?.content || selectedOrderDetails.deliveryText || selectedOrderDetails.details || "",
+                selectedOrderDetails.id || selectedOrderDetails.rawId
+              ),
+              children: copiedId === (selectedOrderDetails.id || selectedOrderDetails.rawId) ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "h-3.5 w-3.5 text-green-400" }),
+                " Copied"
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "h-3.5 w-3.5 text-white/60" }),
+                " Copy"
+              ] })
+            }
+          )
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] text-white/40 pt-2 border-t border-white/5", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+          "Date: ",
+          selectedOrderDetails.createdAt ? format(new Date(selectedOrderDetails.createdAt), "yyyy-MM-dd HH:mm:ss") : "N/A"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+          "Status: ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-white font-mono uppercase", children: selectedOrderDetails.status })
+        ] })
+      ] })
+    ] }) }) })
   ] });
 }
 function PaymentsPage() {
@@ -75092,7 +75298,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BaJC98R_.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-Dy3Q-qq1.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -78663,7 +78869,7 @@ function BroadcastPage() {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-card border-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardHeader, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-5 h-5 text-blue-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-5 h-5 text-blue-400" }),
             "Forward Message"
           ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "space-y-4", children: [
@@ -86526,7 +86732,8 @@ const createMotionComponent = /* @__PURE__ */ createMotionComponentFactory({
 const motion = /* @__PURE__ */ createDOMMotionComponentProxy(createMotionComponent);
 const loginSchema = z$2.object({
   email: z$2.string().email("Invalid email address"),
-  password: z$2.string().min(1, "Password is required")
+  password: z$2.string().min(1, "Password is required"),
+  totpCode: z$2.string().min(6, "Google Authenticator code must be 6 digits").max(6, "Google Authenticator code must be 6 digits").regex(/^\d{6}$/, "Code must be 6 numeric digits")
 });
 function LoginPage() {
   const { user, isLoading, login, isLoggingIn } = useAuth();
@@ -86535,7 +86742,8 @@ function LoginPage() {
     resolver: t(loginSchema),
     defaultValues: {
       email: "",
-      password: ""
+      password: "",
+      totpCode: ""
     }
   });
   if (!isLoading && user) {
@@ -86669,6 +86877,39 @@ function LoginPage() {
                         )
                       ] }) }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, { className: "text-xs" })
+                    ] })
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  FormField,
+                  {
+                    control: form.control,
+                    name: "totpCode",
+                    render: ({ field }) => /* @__PURE__ */ jsxRuntimeExports.jsxs(FormItem, { className: "space-y-2", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between ml-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(FormLabel, { className: "text-xs font-bold uppercase tracking-widest text-emerald-400", children: "Google Authenticator (2FA)" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/40 tracking-wider", children: "6 DIGITS" })
+                      ] }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FormControl, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative group", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(KeyRound, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/60 group-focus-within:text-emerald-400 transition-colors" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          Input,
+                          {
+                            type: "text",
+                            inputMode: "numeric",
+                            autoComplete: "one-time-code",
+                            maxLength: 6,
+                            placeholder: "123456",
+                            className: "h-14 pl-12 bg-white/[0.03] border-emerald-500/20 focus:border-emerald-500/60 focus:ring-emerald-500/20 rounded-2xl transition-all font-mono tracking-[0.3em] text-lg text-emerald-300 placeholder:tracking-normal placeholder:font-sans placeholder:text-white/20",
+                            ...field,
+                            onChange: (e3) => {
+                              const val = e3.target.value.replace(/\D/g, "").slice(0, 6);
+                              field.onChange(val);
+                            }
+                          }
+                        )
+                      ] }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(FormMessage, { className: "text-xs text-rose-400" })
                     ] })
                   }
                 ),
@@ -87948,7 +88189,7 @@ function TelegramUsersPage() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-xs font-bold text-purple-300 shadow-sm", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-sky-400" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-400" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
             telegramCount,
             " Telegram"
@@ -87992,7 +88233,7 @@ function TelegramUsersPage() {
               onClick: () => handleAccountTypeChange("telegram"),
               className: `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${accountTypeFilter === "telegram" ? "bg-sky-600 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`,
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-sky-300" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-sky-300" }),
                 "Telegram Users (",
                 telegramCount,
                 ")"
@@ -88128,7 +88369,7 @@ function TelegramUsersPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { className: "w-3 h-3 text-blue-400" }),
                   user.authProvider === "google" || user.telegramId?.startsWith("google:") ? "Google Account" : "Email Account"
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3 h-3 text-sky-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3 h-3 text-sky-400" }),
                   " Telegram Bot"
                 ] }),
                 isUserBanned ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1", children: [
@@ -90512,7 +90753,7 @@ function TelegramClientPage() {
                   type: "submit",
                   disabled: !typedMessage.trim() || sendMessageMutation.isPending,
                   className: "bg-purple-600 hover:bg-purple-700 text-white h-11 w-11 p-0 flex items-center justify-center shadow-lg shadow-purple-600/10 shrink-0",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4" })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4" })
                 }
               )
             ]
@@ -91964,7 +92205,7 @@ function ForwardPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "lg:col-span-5 space-y-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "glass-panel border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent shadow-2xl rounded-[2rem] overflow-hidden", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(CardHeader, { className: "p-8 pb-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(CardTitle, { className: "text-xl font-bold text-white flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-5 h-5 text-purple-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-5 h-5 text-purple-400" }),
             "Forward Configurations"
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(CardDescription, { className: "text-white/40", children: "Configure the forward bot credentials and delivery settings" })
@@ -92068,7 +92309,7 @@ function ForwardPage() {
                 size: "sm",
                 className: "rounded-xl border-white/10 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border-amber-500/20 flex items-center gap-1.5 transition-all text-xs font-black py-4 px-3.5",
                 children: [
-                  testForwardMutation.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
+                  testForwardMutation.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
                   "Test Forward"
                 ]
               }
@@ -92642,7 +92883,7 @@ Problem details: ${ticket.details || ticket.issueType}`;
                 disabled: isReplyingThis || !replyTexts[ticket.id]?.trim() && !replyAttachments[ticket.id] || isCompressingMap[ticket.id],
                 className: "w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl px-4 sm:px-5 flex items-center justify-center gap-2 h-10 sm:h-12 shrink-0 cursor-pointer text-xs sm:text-sm",
                 children: [
-                  isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
+                  isReplyingThis ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
                   "Send Reply"
                 ]
               }
@@ -94447,7 +94688,7 @@ function MiniAppShop$1() {
                   onClick: handleSendChat,
                   disabled: !chatMessage.trim() || isSendingChat,
                   className: "w-10 h-10 rounded-xl bg-primary flex items-center justify-center transition-transform active:scale-90 disabled:opacity-50",
-                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4 text-white" })
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4 text-white" })
                 }
               )
             ] })
@@ -105767,6 +106008,11 @@ const miniApiRequest = async (method, path, body) => {
   };
   try {
     if (typeof window !== "undefined") {
+      const token = localStorage.getItem("yh_auth_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+        headers["x-customer-auth-token"] = token;
+      }
       const savedUserStr = localStorage.getItem("yh_active_user");
       if (savedUserStr) {
         const u2 = JSON.parse(savedUserStr);
@@ -106776,6 +107022,13 @@ function MiniAppShopModern() {
     document.body.style.background = "#F8F9FD";
     document.body.style.backgroundColor = "#F8F9FD";
     const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get("auth_token");
+    if (tokenFromUrl) {
+      try {
+        localStorage.setItem("yh_auth_token", tokenFromUrl);
+      } catch {
+      }
+    }
     if (urlParams.get("auth_success") === "google") {
       toast2({
         title: "Google Sign-In Successful! 🎉",
@@ -106837,6 +107090,21 @@ function MiniAppShopModern() {
         }
       }
       return data;
+    },
+    initialData: () => {
+      try {
+        if (typeof window !== "undefined") {
+          const saved = localStorage.getItem("yh_active_user");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && (parsed.id || parsed.email) && !parsed.isGuest) {
+              return { ...parsed, isLoggedIn: true };
+            }
+          }
+        }
+      } catch {
+      }
+      return void 0;
     }
   });
   const { data: products2 = [], isLoading: productsLoading } = useQuery({
@@ -107094,7 +107362,7 @@ function MiniAppShopModern() {
         }
       }
       const prodTitle = sandroOrd.productTitle || sandroOrd.product?.title || sandromaniaProductsList.find((p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId)?.title || "Digital Product";
-      const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || 2e3 + sandroOrd.id}`;
+      const orderNum = `#YOUUHOST - ${sandroOrd.externalOrderId || 2e3 + sandroOrd.id}`;
       const matchedProd = sandromaniaProductsList.find(
         (p2) => p2.id === sandroOrd.sandromaniaProductId || p2.externalProductId === sandroOrd.externalProductId || p2.title && sandroOrd.productTitle && p2.title.trim().toLowerCase() === sandroOrd.productTitle.trim().toLowerCase()
       );
@@ -107134,7 +107402,8 @@ function MiniAppShopModern() {
         }
       }
       const prodTitle = cssxOrd.productTitle || cssxOrd.product?.title || cssxProductsList.find((p2) => p2.id === cssxOrd.cssxProductId || p2.serviceId === cssxOrd.serviceId)?.title || "Digital Product";
-      const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || 3e3 + cssxOrd.id}`;
+      const cleanExtId = String(cssxOrd.externalOrderId || "").replace(/^API_/i, "");
+      const orderNum = `#YOUUHOST - ${cleanExtId || 3e3 + cssxOrd.id}`;
       const matchedProd = cssxProductsList.find(
         (p2) => p2.id === cssxOrd.cssxProductId || p2.serviceId === cssxOrd.serviceId || p2.name && cssxOrd.productTitle && p2.name.trim().toLowerCase() === cssxOrd.productTitle.trim().toLowerCase()
       );
@@ -107172,21 +107441,28 @@ function MiniAppShopModern() {
     const priceUsd = (ord.priceCents / 100).toFixed(2);
     const priceLkr = Math.round(ord.priceCents / 100 * lkrRate).toLocaleString();
     let credSection = "";
-    if (ord.credentialData) {
-      credSection = `DELIVERED CREDENTIALS / ACCESS:
+    const rawDelivery = ord.credentialData || ord.licenseKey;
+    if (rawDelivery) {
+      const formatted = formatDeliveredCredentialsForCopy(rawDelivery, ord.quantity, ord.title);
+      if (formatted !== rawDelivery) {
+        credSection = `PARSED DETAILS / CREDENTIALS:
 ----------------------------------------
-${ord.credentialData}
+${formatted}
+
+RAW DATA:
+${rawDelivery}
 `;
+      } else {
+        credSection = `DELIVERED CREDENTIALS / ACCESS / CDK:
+----------------------------------------
+${rawDelivery}
+`;
+      }
       if (ord.twoFactorSecret) {
         credSection += `
 2FA SECRET KEY: ${ord.twoFactorSecret}
 `;
       }
-    } else if (ord.licenseKey) {
-      credSection = `DIGITAL LICENSE / CDK / DATA:
-----------------------------------------
-${ord.licenseKey}
-`;
     } else if (ord.smmLink) {
       credSection = `SERVICE TARGET LINK:
 ----------------------------------------
@@ -107824,6 +108100,7 @@ ${finalDetails}`;
     if (isTelegramUser) return true;
     if (user?.isLoggedIn === true) return true;
     if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest") return true;
+    if (user?.email && user?.id && user.id !== 0 && !user.isGuest) return true;
     return false;
   }, [user, isTelegramUser]);
   const greeting = reactExports.useMemo(() => {
@@ -107854,6 +108131,7 @@ ${finalDetails}`;
       const res = await fetch("/api/auth/customer/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email: authEmail.trim() })
       });
       const data = await res.json();
@@ -107902,11 +108180,25 @@ ${finalDetails}`;
       const res = await fetch("/api/auth/customer/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email: authEmail.trim(), code: codeToVerify })
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Verification failed.");
+      }
+      if (data.token) {
+        try {
+          localStorage.setItem("yh_auth_token", data.token);
+        } catch {
+        }
+      }
+      if (data.user) {
+        try {
+          localStorage.setItem("yh_active_user", JSON.stringify(data.user));
+        } catch {
+        }
+        queryClient.setQueryData(["/api/mini/user"], { ...data.user, isLoggedIn: true });
       }
       const elapsed = Date.now() - startTime;
       const delay2 = Math.max(0, 2500 - elapsed);
@@ -107948,11 +108240,22 @@ ${finalDetails}`;
   };
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/customer/logout", { method: "POST" });
+      await fetch("/api/auth/customer/logout", { method: "POST", credentials: "include" });
       try {
         localStorage.removeItem("yh_active_user");
+        localStorage.removeItem("yh_auth_token");
       } catch {
       }
+      queryClient.setQueryData(["/api/mini/user"], {
+        id: 0,
+        telegramId: "0",
+        username: "Guest",
+        firstName: "Web Visitor",
+        lastName: "",
+        balance: 0,
+        isLoggedIn: false,
+        isGuest: true
+      });
       toast2({
         title: "Signed Out",
         description: "You have been logged out successfully."
@@ -108735,27 +109038,156 @@ ${finalDetails}`;
       return false;
     }
   };
-  const formatDeliveredCredentialsForCopy = (raw, qty = 1) => {
-    if (!raw) return "";
+  const parseUniversalCredentials = (raw, title) => {
+    if (!raw) return [];
     const clean = raw.trim();
-    let items = [];
-    if (clean.startsWith("[") && clean.endsWith("]")) {
+    if (clean.startsWith("{") && clean.endsWith("}") || clean.startsWith("[") && clean.endsWith("]")) {
       try {
         const parsed = JSON.parse(clean);
-        if (Array.isArray(parsed)) items = parsed.map(String).map((s2) => s2.trim()).filter(Boolean);
+        if (Array.isArray(parsed)) {
+          return parsed.flatMap((item, idx) => {
+            if (typeof item === "string") return [parseSingleCredentialLine(item, idx + 1)];
+            if (typeof item === "object" && item !== null) return [parseObjectCredential(item, idx + 1)];
+            return [];
+          });
+        } else if (typeof parsed === "object" && parsed !== null) {
+          return [parseObjectCredential(parsed, 1)];
+        }
       } catch {
       }
     }
-    if (items.length === 0) {
-      items = clean.split(/\r?\n/).map((l2) => l2.trim()).filter(Boolean);
+    const lines = clean.split(/\r?\n/).map((l2) => l2.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      return lines.map((line2, idx) => parseSingleCredentialLine(line2, idx + 1));
     }
-    if (items.length > 1) {
-      return items.map((line2, idx) => {
-        const num = String(idx + 1).padStart(2, "0");
-        return `item ${num} - ${line2}`;
-      }).join("\n\n");
+    return [];
+  };
+  const parseSingleCredentialLine = (line2, index2) => {
+    const trimmed = line2.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+      return {
+        index: index2,
+        type: "url",
+        raw: trimmed,
+        fields: [{ label: "Access / Invite Link", value: trimmed, isUrl: true }]
+      };
     }
-    return clean;
+    if (trimmed.includes("|")) {
+      const parts2 = trimmed.split("|").map((p2) => p2.trim());
+      const fields = [];
+      const uLabel = parts2[0]?.includes("@") ? "Email / Username" : "Username";
+      fields.push({ label: uLabel, value: parts2[0] || "" });
+      if (parts2.length > 1) {
+        fields.push({ label: "Password", value: parts2[1] || "", isSecret: true });
+      }
+      if (parts2.length > 2) {
+        const p2 = parts2[2];
+        const isOtp = /^[A-Z0-9]{16,32}$/i.test(p2) || /^\d{6}$/.test(p2);
+        fields.push({
+          label: isOtp ? "2FA / Secret Key" : "Extra / Auth Token",
+          value: p2
+        });
+      }
+      if (parts2.length > 3) {
+        parts2.slice(3).forEach((extraPart, eIdx) => {
+          fields.push({
+            label: parts2.length === 4 ? "Security / GUID" : `Extra Part ${eIdx + 1}`,
+            value: extraPart
+          });
+        });
+      }
+      return {
+        index: index2,
+        type: "account",
+        raw: trimmed,
+        fields
+      };
+    }
+    if (trimmed.includes(":") && !trimmed.startsWith("http")) {
+      const parts2 = trimmed.split(":").map((p2) => p2.trim());
+      if (parts2.length === 4 && /^\d+$/.test(parts2[1])) {
+        return {
+          index: index2,
+          type: "server",
+          raw: trimmed,
+          fields: [
+            { label: "Host / IP", value: parts2[0] },
+            { label: "Port", value: parts2[1] },
+            { label: "Username", value: parts2[2] },
+            { label: "Password", value: parts2[3], isSecret: true }
+          ]
+        };
+      }
+      if (parts2.length >= 2) {
+        const uLabel = parts2[0]?.includes("@") ? "Email / Username" : "Username";
+        const fields = [
+          { label: uLabel, value: parts2[0] },
+          { label: "Password", value: parts2[1], isSecret: true }
+        ];
+        if (parts2.length > 2) {
+          fields.push({ label: "2FA / PIN / Code", value: parts2.slice(2).join(":") });
+        }
+        return {
+          index: index2,
+          type: "account",
+          raw: trimmed,
+          fields
+        };
+      }
+    }
+    const isKey2 = /^[A-Z0-9]{4,5}(-[A-Z0-9]{4,5}){3,7}$/i.test(trimmed) || trimmed.length > 15;
+    return {
+      index: index2,
+      type: isKey2 ? "license" : "custom",
+      raw: trimmed,
+      fields: [{ label: isKey2 ? "License Key / Activation CDK" : "Digital Credential", value: trimmed }]
+    };
+  };
+  const parseObjectCredential = (obj, index2) => {
+    const fields = [];
+    const username = obj.username || obj.email || obj.user || obj.login;
+    const password = obj.password || obj.pass;
+    const token = obj.token || obj.auth || obj.cookie || obj.session;
+    const key = obj.key || obj.license || obj.cdk || obj.code;
+    const url2 = obj.url || obj.link || obj.invite;
+    if (username) fields.push({ label: String(username).includes("@") ? "Email / Username" : "Username", value: String(username) });
+    if (password) fields.push({ label: "Password", value: String(password), isSecret: true });
+    if (token) fields.push({ label: "Auth Token / Cookie", value: typeof token === "object" ? JSON.stringify(token) : String(token) });
+    if (key) fields.push({ label: "Activation Key / CDK", value: String(key) });
+    if (url2) fields.push({ label: "Access / Invite Link", value: String(url2), isUrl: true });
+    Object.keys(obj).forEach((k2) => {
+      if (!["username", "email", "user", "login", "password", "pass", "token", "auth", "cookie", "session", "key", "license", "cdk", "code", "url", "link", "invite"].includes(k2.toLowerCase())) {
+        fields.push({ label: k2.charAt(0).toUpperCase() + k2.slice(1), value: typeof obj[k2] === "object" ? JSON.stringify(obj[k2]) : String(obj[k2]) });
+      }
+    });
+    return {
+      index: index2,
+      type: username && password ? "account" : key ? "license" : url2 ? "url" : "custom",
+      raw: typeof obj === "string" ? obj : JSON.stringify(obj),
+      fields
+    };
+  };
+  const formatDeliveredCredentialsForCopy = (raw, qty = 1, title = "") => {
+    if (!raw) return "";
+    const clean = raw.trim();
+    const accounts = parseUniversalCredentials(clean);
+    if (accounts.length === 0) return clean;
+    const hasStructured = accounts.some((a2) => a2.fields.length > 1 || a2.fields[0]?.isUrl);
+    if (!hasStructured) {
+      if (accounts.length > 1) {
+        return accounts.map((a2) => `item ${String(a2.index).padStart(2, "0")} - ${a2.raw}`).join("\n\n");
+      }
+      return clean;
+    }
+    if (accounts.length === 1) {
+      return accounts[0].fields.map((f2) => `${f2.label}: ${f2.value}`).join("\n");
+    }
+    return accounts.map((acc) => {
+      const num = String(acc.index).padStart(2, "0");
+      const lines = acc.fields.map((f2) => `${f2.label}: ${f2.value}`).join("\n");
+      return `[Account / Item ${num}]
+${lines}`;
+    }).join("\n\n");
   };
   const copyToClipboard = (text2, title = "Copied to Clipboard") => {
     if (!text2) return;
@@ -109754,26 +110186,85 @@ ${finalDetails}`;
                       onCopy: (c2) => copyToClipboard(c2, "2FA Code Copied")
                     }
                   ) }),
-                  (ord.credentialData || ord.licenseKey) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200", onClick: (e3) => e3.stopPropagation(), children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1", children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 text-emerald-600" }),
-                        " Digital Credentials / CDK:"
+                  (ord.credentialData || ord.licenseKey) && (() => {
+                    const rawCreds = ord.credentialData || ord.licenseKey;
+                    const accounts = parseUniversalCredentials(rawCreds, ord.title);
+                    const hasStructured = accounts.length > 0 && accounts.some((a2) => a2.fields.length > 1 || a2.fields[0]?.isUrl);
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200", onClick: (e3) => e3.stopPropagation(), children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-1.5", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1", children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-3 h-3 text-emerald-600" }),
+                          hasStructured ? "Parsed Credentials / Access:" : "Digital Credentials / CDK:"
+                        ] }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+                          hasStructured && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                            "button",
+                            {
+                              onClick: () => copyToClipboard(rawCreds, "Raw Data Copied! 📋"),
+                              className: "text-[9.5px] font-bold text-[#7E7998] hover:text-[#181432] bg-white px-1.5 py-0.5 rounded-md border border-slate-200 shadow-2xs active:scale-95 transition-transform",
+                              title: "Copy Original Raw Data",
+                              children: "Raw"
+                            }
+                          ),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                            "button",
+                            {
+                              onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(rawCreds, ord.quantity, ord.title), "Credentials Copied! 📋"),
+                              className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform",
+                              children: [
+                                /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-2.5 h-2.5" }),
+                                " Copy All"
+                              ]
+                            }
+                          )
+                        ] })
                       ] }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                        "button",
-                        {
-                          onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.credentialData || ord.licenseKey, ord.quantity), "Credentials Copied! 📋"),
-                          className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform",
-                          children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-2.5 h-2.5" }),
-                            " Copy"
-                          ]
-                        }
-                      )
-                    ] }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner", children: ord.credentialData || ord.licenseKey })
-                  ] }),
+                      hasStructured ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2", children: accounts.map((acc, aIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white/95 p-2.5 rounded-xl border border-emerald-100 shadow-2xs space-y-1.5 text-[11px]", children: [
+                        accounts.length > 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[9.5px] font-black text-emerald-800 uppercase border-b border-emerald-50 pb-0.5", children: [
+                          "Account / Item #",
+                          acc.index
+                        ] }),
+                        acc.fields.map((f2, fIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `flex items-center justify-between gap-1.5 py-0.5 ${fIdx < acc.fields.length - 1 ? "border-b border-slate-100" : ""}`, children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold text-[10px] shrink-0", children: [
+                            f2.label,
+                            ":"
+                          ] }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 min-w-0 flex-1 justify-end", children: [
+                            f2.isUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "a",
+                              {
+                                href: f2.value,
+                                target: "_blank",
+                                rel: "noopener noreferrer",
+                                className: "text-[10.5px] text-[#5B42F3] hover:underline font-mono truncate max-w-[170px]",
+                                children: f2.value
+                              }
+                            ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `font-mono text-[10.5px] truncate select-all ${f2.isSecret ? "font-bold text-emerald-700" : "font-bold text-[#181432]"}`, children: f2.value }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "button",
+                              {
+                                onClick: () => copyToClipboard(f2.value, `${f2.label} Copied`),
+                                className: "text-[#5B42F3] hover:text-[#4A32D6] p-0.5 hover:bg-purple-50 rounded shrink-0",
+                                title: `Copy ${f2.label}`,
+                                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-2.5 h-2.5" })
+                              }
+                            ),
+                            f2.isUrl && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "a",
+                              {
+                                href: f2.value,
+                                target: "_blank",
+                                rel: "noopener noreferrer",
+                                className: "text-emerald-600 hover:text-emerald-700 p-0.5 hover:bg-emerald-50 rounded shrink-0",
+                                title: "Open Link",
+                                children: /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-2.5 h-2.5" })
+                              }
+                            )
+                          ] })
+                        ] }, fIdx))
+                      ] }, aIdx)) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner", children: rawCreds })
+                    ] });
+                  })(),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between text-[11px] pt-1.5 border-t border-[#F5F4FC]", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-bold text-[#181432]", children: [
@@ -110350,7 +110841,7 @@ ${finalDetails}`;
                   /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }),
                   " Sending Verification Code..."
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
                   " Send 6-Digit Code"
                 ] })
               }
@@ -111168,7 +111659,7 @@ ${finalDetails}`;
                 "button",
                 {
                   onClick: () => {
-                    copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent), "Account Info Copied! 📋");
+                    copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent, 1, selectedTxDetail.description || ""), "Account Info Copied! 📋");
                   },
                   className: "text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95",
                   children: [
@@ -112147,7 +112638,7 @@ ${finalDetails}`;
             onClick: handleSendChat,
             disabled: isChatSending || !chatMsg.trim(),
             className: "w-9 h-9 rounded-full bg-gradient-to-r from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" })
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
           }
         )
       ] })
@@ -112374,26 +112865,85 @@ ${finalDetails}`;
                 )
               ] })
             ] }),
-            ord.licenseKey && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] rounded-3xl p-3 sm:p-4 border border-emerald-200 shadow-xs space-y-2 w-full overflow-hidden", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs font-black text-emerald-800", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-600" }),
-                  "Digital License / Activation CDK"
+            ord.licenseKey && (() => {
+              const rawCreds = ord.licenseKey;
+              const accounts = parseUniversalCredentials(rawCreds, ord.title);
+              const hasStructured = accounts.length > 0 && accounts.some((a2) => a2.fields.length > 1 || a2.fields[0]?.isUrl);
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#F0FDF4] rounded-3xl p-3 sm:p-4 border border-emerald-200 shadow-xs space-y-2 w-full overflow-hidden", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 text-xs font-black text-emerald-800", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "w-4 h-4 text-emerald-600" }),
+                    hasStructured ? "Parsed Credentials / Access:" : "Digital License / Activation CDK"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    hasStructured && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        onClick: () => copyToClipboard(rawCreds, "Raw Data Copied! 📋"),
+                        className: "text-[10px] font-bold text-[#7E7998] hover:text-[#181432] bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs active:scale-95 transition-transform",
+                        title: "Copy Original Raw Data",
+                        children: "Raw"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "button",
+                      {
+                        onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(rawCreds, ord.quantity, ord.title), "Credentials Copied! 📋"),
+                        className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform",
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" }),
+                          " Copy All"
+                        ]
+                      }
+                    )
+                  ] })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                  "button",
-                  {
-                    onClick: () => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋"),
-                    className: "text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform",
-                    children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" }),
-                      " Copy"
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold", children: ord.licenseKey })
-            ] }),
+                hasStructured ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-2.5", children: accounts.map((acc, aIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white p-3 rounded-2xl border border-emerald-100 shadow-2xs space-y-2 text-[11px]", children: [
+                  accounts.length > 1 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] font-black text-emerald-800 uppercase border-b border-emerald-50 pb-1", children: [
+                    "Account / Item #",
+                    acc.index
+                  ] }),
+                  acc.fields.map((f2, fIdx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `flex items-center justify-between gap-2 py-1 ${fIdx < acc.fields.length - 1 ? "border-b border-slate-100" : ""}`, children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[#7E7998] font-bold text-xs shrink-0", children: [
+                      f2.label,
+                      ":"
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5 min-w-0 flex-1 justify-end", children: [
+                      f2.isUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "a",
+                        {
+                          href: f2.value,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          className: "text-[11px] text-[#5B42F3] hover:underline font-mono truncate max-w-[220px]",
+                          children: f2.value
+                        }
+                      ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `font-mono text-xs truncate select-all ${f2.isSecret ? "font-bold text-emerald-700" : "font-bold text-[#181432]"}`, children: f2.value }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          onClick: () => copyToClipboard(f2.value, `${f2.label} Copied`),
+                          className: "text-[#5B42F3] hover:text-[#4A32D6] p-1 hover:bg-purple-50 rounded shrink-0",
+                          title: `Copy ${f2.label}`,
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-3 h-3" })
+                        }
+                      ),
+                      f2.isUrl && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "a",
+                        {
+                          href: f2.value,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          className: "text-emerald-600 hover:text-emerald-700 p-1 hover:bg-emerald-50 rounded shrink-0",
+                          title: "Open Link",
+                          children: /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
+                        }
+                      )
+                    ] })
+                  ] }, fIdx))
+                ] }, aIdx)) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold", children: rawCreds })
+              ] });
+            })(),
             ord.orderType === "smm" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-3 sm:p-4 border border-[#ECEEF8] shadow-xs space-y-2.5 overflow-hidden w-full", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between text-xs font-black text-[#D92078]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(ShopBagIcon, { className: "w-4 h-4 text-[#D92078]" }),
@@ -112892,7 +113442,7 @@ ${finalDetails}`;
               onClick: () => handleSendTicketReply(supportSelectedTicket.id),
               disabled: isReplyingTicket || !ticketReplyMsg.trim() && !replyAttachment,
               className: "w-10 h-10 rounded-full bg-gradient-to-r from-[#5B42F3] to-[#8E54E9] text-white flex items-center justify-center hover:opacity-95 disabled:opacity-40 shadow-sm shrink-0 active:scale-95 cursor-pointer",
-              children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" })
+              children: isReplyingTicket ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" })
             }
           )
         ] })
@@ -115956,7 +116506,7 @@ function CssxApiPage() {
                           className: `flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all ${p2.showOnTelegram ? "bg-blue-500/15 border-blue-500/30 text-blue-400 font-extrabold" : "bg-white/5 border-white/10 text-white/40 font-medium"}`,
                           title: "Toggle Show on Telegram",
                           children: [
-                            /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-2.5 h-2.5" }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-2.5 h-2.5" }),
                             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[9px]", children: [
                               "TG: ",
                               p2.showOnTelegram ? "ON" : "OFF"
@@ -116025,7 +116575,7 @@ function CssxApiPage() {
                   ] }),
                   p2.showOnTelegram && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 font-bold", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-[11px]", children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3 h-3" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3 h-3" }),
                       " Telegram Price:"
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-black text-blue-300", children: [
@@ -116222,7 +116772,7 @@ function CssxApiPage() {
                 disabled: isPlayingLoading,
                 className: "w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl h-11 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2",
                 children: [
-                  isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-4 h-4" }),
+                  isPlayingLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-4 h-4 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-4 h-4" }),
                   "Send Live Request"
                 ]
               }
@@ -116413,7 +116963,7 @@ function CssxApiPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-black text-blue-400 flex items-center gap-1.5", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
                 " Show in Telegram"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-purple-200/60 block", children: "Enable product in Telegram Bot catalog & Telegram Mini-App" })
@@ -118323,7 +118873,7 @@ function DomainAutomationPage() {
               onClick: () => setTestEmailModal(true),
               className: "bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 mr-1" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 mr-1" }),
                 " Send Test Email"
               ]
             }
@@ -118728,7 +119278,7 @@ function DomainAutomationPage() {
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1.5", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(Label, { className: "text-xs font-bold text-white flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5 text-purple-400" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5 text-purple-400" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Default Sender / From Address" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -118942,7 +119492,7 @@ function DomainAutomationPage() {
               disabled: isSendingTest,
               className: "bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-2",
               children: [
-                isSendingTest ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "w-3.5 h-3.5" }),
+                isSendingTest ? /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-3.5 h-3.5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-3.5 h-3.5" }),
                 "Send Test Email"
               ]
             }
@@ -120358,7 +120908,7 @@ function AllOrdersPage() {
   });
   const filteredOrders = allOrders.filter((o2) => {
     const matchesSearch = (o2.id || "").toLowerCase().includes(search.toLowerCase()) || (o2.title || "").toLowerCase().includes(search.toLowerCase()) || (o2.buyer || "").toLowerCase().includes(search.toLowerCase()) || (o2.link || "").toLowerCase().includes(search.toLowerCase()) || (o2.category || "").toLowerCase().includes(search.toLowerCase());
-    const matchesType = selectedType === "all" || o2.orderType === selectedType;
+    const matchesType = selectedType === "all" || o2.orderType === selectedType || selectedType === "partner" && (o2.orderType === "partner" || o2.orderType === "cssx");
     const s2 = (o2.status || "").toLowerCase();
     const isCompleted = s2 === "completed" || s2 === "approved" || s2 === "success";
     const isPending = s2 === "pending" || s2 === "processing" || s2 === "in progress";
@@ -120372,7 +120922,7 @@ function AllOrdersPage() {
   allOrders.reduce((acc, o2) => acc + (o2.amountCents || 0), 0);
   const cloudCount = allOrders.filter((o2) => o2.orderType === "cloud").length;
   const smmCount = allOrders.filter((o2) => o2.orderType === "smm").length;
-  const partnerCount = allOrders.filter((o2) => o2.orderType === "partner").length;
+  const partnerCount = allOrders.filter((o2) => o2.orderType === "partner" || o2.orderType === "cssx").length;
   const copyText = (text2, id2) => {
     navigator.clipboard.writeText(text2);
     setCopiedId(id2);
@@ -120563,8 +121113,8 @@ function AllOrdersPage() {
             ] })
           ] }) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs(TableCell, { className: "font-mono font-black text-xs text-white", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: order.amountUsd }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10px] text-white/40", children: order.amountLkr })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { children: order.displayAmount || (order.currency === "LKR" ? order.amountLkr : order.amountUsd) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[10px] text-white/40", children: order.currency === "LKR" ? order.amountUsd : order.amountLkr })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(TableCell, { className: "text-[11px] font-mono text-white/70", children: order.orderType === "smm" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-emerald-400", children: order.startCount || "0" }),
@@ -120889,7 +121439,7 @@ function EmailHubPage() {
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider", children: "Total Dispatched" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xl font-bold text-white", children: counts.total })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-5 w-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-5 w-5" }) })
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-card/40 border-white/10 backdrop-blur-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(CardContent, { className: "p-5 flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
@@ -120916,7 +121466,7 @@ function EmailHubPage() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, className: "space-y-6", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsList, { className: "bg-card/60 border border-white/10 p-1 rounded-xl", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "compose", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4" }),
           " Compose & Dispatch"
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs(TabsTrigger, { value: "logs", className: "data-[state=active]:bg-emerald-500 data-[state=active]:text-white gap-2", children: [
@@ -121305,7 +121855,7 @@ function EmailHubPage() {
                   /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "h-4 w-4 mr-2 animate-spin" }),
                   "Dispatching Email..."
                 ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send$1, { className: "h-4 w-4 mr-2" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "h-4 w-4 mr-2" }),
                   recipientMode === "broadcast" ? `Broadcast to All ${userCount} Users` : "Send Verified Email Now"
                 ] })
               }

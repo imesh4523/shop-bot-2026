@@ -198,6 +198,11 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
 
   try {
     if (typeof window !== "undefined") {
+      const token = localStorage.getItem("yh_auth_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+        headers["x-customer-auth-token"] = token;
+      }
       const savedUserStr = localStorage.getItem("yh_active_user");
       if (savedUserStr) {
         const u = JSON.parse(savedUserStr);
@@ -1431,6 +1436,10 @@ export default function MiniAppShopModern() {
 
     // Handle Google OAuth Callback params
     const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get("auth_token");
+    if (tokenFromUrl) {
+      try { localStorage.setItem("yh_auth_token", tokenFromUrl); } catch {}
+    }
     if (urlParams.get("auth_success") === "google") {
       toast({
         title: "Google Sign-In Successful! 🎉",
@@ -1497,6 +1506,20 @@ export default function MiniAppShopModern() {
         try { localStorage.setItem("yh_active_user", JSON.stringify(data)); } catch {}
       }
       return data;
+    },
+    initialData: () => {
+      try {
+        if (typeof window !== "undefined") {
+          const saved = localStorage.getItem("yh_active_user");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && (parsed.id || parsed.email) && !parsed.isGuest) {
+              return { ...parsed, isLoggedIn: true };
+            }
+          }
+        }
+      } catch {}
+      return undefined;
     },
   });
 
@@ -1834,7 +1857,7 @@ export default function MiniAppShopModern() {
         (sandromaniaProductsList.find((p: any) => p.id === sandroOrd.sandromaniaProductId || p.externalProductId === sandroOrd.externalProductId)?.title) ||
         "Digital Product";
 
-      const orderNum = `#YOUUHOST-${sandroOrd.externalOrderId || (2000 + sandroOrd.id)}`;
+      const orderNum = `#YOUUHOST - ${sandroOrd.externalOrderId || (2000 + sandroOrd.id)}`;
 
       const matchedProd = sandromaniaProductsList.find((p: any) => 
         p.id === sandroOrd.sandromaniaProductId || 
@@ -1903,7 +1926,8 @@ export default function MiniAppShopModern() {
         (cssxProductsList.find((p: any) => p.id === cssxOrd.cssxProductId || p.serviceId === cssxOrd.serviceId)?.title) ||
         "Digital Product";
 
-      const orderNum = `#YOUUHOST-CSX-${cssxOrd.externalOrderId || (3000 + cssxOrd.id)}`;
+      const cleanExtId = String(cssxOrd.externalOrderId || "").replace(/^API_/i, "");
+      const orderNum = `#YOUUHOST - ${cleanExtId || (3000 + cssxOrd.id)}`;
 
       const matchedProd = cssxProductsList.find((p: any) => 
         p.id === cssxOrd.cssxProductId || 
@@ -1955,13 +1979,17 @@ export default function MiniAppShopModern() {
     const priceLkr = Math.round((ord.priceCents / 100) * lkrRate).toLocaleString();
 
     let credSection = "";
-    if (ord.credentialData) {
-      credSection = `DELIVERED CREDENTIALS / ACCESS:\n----------------------------------------\n${ord.credentialData}\n`;
+    const rawDelivery = ord.credentialData || ord.licenseKey;
+    if (rawDelivery) {
+      const formatted = formatDeliveredCredentialsForCopy(rawDelivery, ord.quantity, ord.title);
+      if (formatted !== rawDelivery) {
+        credSection = `PARSED DETAILS / CREDENTIALS:\n----------------------------------------\n${formatted}\n\nRAW DATA:\n${rawDelivery}\n`;
+      } else {
+        credSection = `DELIVERED CREDENTIALS / ACCESS / CDK:\n----------------------------------------\n${rawDelivery}\n`;
+      }
       if (ord.twoFactorSecret) {
         credSection += `\n2FA SECRET KEY: ${ord.twoFactorSecret}\n`;
       }
-    } else if (ord.licenseKey) {
-      credSection = `DIGITAL LICENSE / CDK / DATA:\n----------------------------------------\n${ord.licenseKey}\n`;
     } else if (ord.smmLink) {
       credSection = `SERVICE TARGET LINK:\n----------------------------------------\n${ord.smmLink}\nQuantity   : ${ord.quantity}\nStart Count: ${ord.startCount || 0}\nRemains    : ${ord.remains || 0}\n`;
     } else {
@@ -2696,6 +2724,7 @@ Support: https://t.me/youuhost_support
     if (isTelegramUser) return true;
     if (user?.isLoggedIn === true) return true;
     if (user?.telegramId && user.telegramId !== "0" && user.telegramId !== "web_guest") return true;
+    if (user?.email && user?.id && user.id !== 0 && !user.isGuest) return true;
     return false;
   }, [user, isTelegramUser]);
 
@@ -2731,6 +2760,7 @@ Support: https://t.me/youuhost_support
       const res = await fetch("/api/auth/customer/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email: authEmail.trim() }),
       });
       const data = await res.json();
@@ -2784,11 +2814,20 @@ Support: https://t.me/youuhost_support
       const res = await fetch("/api/auth/customer/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email: authEmail.trim(), code: codeToVerify }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Verification failed.");
+      }
+
+      if (data.token) {
+        try { localStorage.setItem("yh_auth_token", data.token); } catch {}
+      }
+      if (data.user) {
+        try { localStorage.setItem("yh_active_user", JSON.stringify(data.user)); } catch {}
+        queryClient.setQueryData(["/api/mini/user"], { ...data.user, isLoggedIn: true });
       }
 
       // Satisfying 2.5s delay with custom Lottie animation
@@ -2838,8 +2877,21 @@ Support: https://t.me/youuhost_support
   // Handle Logout
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/customer/logout", { method: "POST" });
-      try { localStorage.removeItem("yh_active_user"); } catch {}
+      await fetch("/api/auth/customer/logout", { method: "POST", credentials: "include" });
+      try { 
+        localStorage.removeItem("yh_active_user"); 
+        localStorage.removeItem("yh_auth_token");
+      } catch {}
+      queryClient.setQueryData(["/api/mini/user"], {
+        id: 0,
+        telegramId: "0",
+        username: "Guest",
+        firstName: "Web Visitor",
+        lastName: "",
+        balance: 0,
+        isLoggedIn: false,
+        isGuest: true
+      });
       toast({
         title: "Signed Out",
         description: "You have been logged out successfully.",
@@ -3818,27 +3870,196 @@ Support: https://t.me/youuhost_support
     }
   };
 
-  const formatDeliveredCredentialsForCopy = (raw: string, qty: number = 1) => {
-    if (!raw) return "";
+  // Universal Smart Credential & Delivery Data Engine (Works for ANY product, format, or delimiter)
+  interface ParsedField {
+    label: string;
+    value: string;
+    isSecret?: boolean;
+    isUrl?: boolean;
+  }
+
+  interface ParsedAccountEntry {
+    index: number;
+    type: "account" | "license" | "url" | "server" | "custom";
+    raw: string;
+    fields: ParsedField[];
+  }
+
+  const parseUniversalCredentials = (raw: string, title?: string): ParsedAccountEntry[] => {
+    if (!raw) return [];
     const clean = raw.trim();
-    // Check if multiple items are delimited by newlines or JSON array
-    let items: string[] = [];
-    if (clean.startsWith("[") && clean.endsWith("]")) {
+
+    // 1. JSON Array or Object check
+    if ((clean.startsWith("{") && clean.endsWith("}")) || (clean.startsWith("[") && clean.endsWith("]"))) {
       try {
         const parsed = JSON.parse(clean);
-        if (Array.isArray(parsed)) items = parsed.map(String).map(s => s.trim()).filter(Boolean);
+        if (Array.isArray(parsed)) {
+          return parsed.flatMap((item, idx) => {
+            if (typeof item === "string") return [parseSingleCredentialLine(item, idx + 1)];
+            if (typeof item === "object" && item !== null) return [parseObjectCredential(item, idx + 1)];
+            return [];
+          });
+        } else if (typeof parsed === "object" && parsed !== null) {
+          return [parseObjectCredential(parsed, 1)];
+        }
       } catch {}
     }
-    if (items.length === 0) {
-      items = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    // 2. Multiline split
+    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      return lines.map((line, idx) => parseSingleCredentialLine(line, idx + 1));
     }
-    if (items.length > 1) {
-      return items.map((line, idx) => {
-        const num = String(idx + 1).padStart(2, "0");
-        return `item ${num} - ${line}`;
-      }).join("\n\n");
+
+    return [];
+  };
+
+  const parseSingleCredentialLine = (line: string, index: number): ParsedAccountEntry => {
+    const trimmed = line.trim();
+
+    // Case A: Pure URL / Activation Link
+    if (/^https?:\/\//i.test(trimmed)) {
+      return {
+        index,
+        type: "url",
+        raw: trimmed,
+        fields: [{ label: "Access / Invite Link", value: trimmed, isUrl: true }]
+      };
     }
-    return clean;
+
+    // Case B: Pipe-delimited (e.g. user|pass, user|pass|token, user|pass|cookie|guid)
+    if (trimmed.includes("|")) {
+      const parts = trimmed.split("|").map(p => p.trim());
+      const fields: ParsedField[] = [];
+
+      const uLabel = parts[0]?.includes("@") ? "Email / Username" : "Username";
+      fields.push({ label: uLabel, value: parts[0] || "" });
+
+      if (parts.length > 1) {
+        fields.push({ label: "Password", value: parts[1] || "", isSecret: true });
+      }
+
+      if (parts.length > 2) {
+        const p2 = parts[2];
+        const isOtp = /^[A-Z0-9]{16,32}$/i.test(p2) || /^\d{6}$/.test(p2);
+        fields.push({
+          label: isOtp ? "2FA / Secret Key" : "Extra / Auth Token",
+          value: p2
+        });
+      }
+
+      if (parts.length > 3) {
+        parts.slice(3).forEach((extraPart, eIdx) => {
+          fields.push({
+            label: parts.length === 4 ? "Security / GUID" : `Extra Part ${eIdx + 1}`,
+            value: extraPart
+          });
+        });
+      }
+
+      return {
+        index,
+        type: "account",
+        raw: trimmed,
+        fields
+      };
+    }
+
+    // Case C: Colon-delimited without protocol (e.g. user:pass or host:port:user:pass)
+    if (trimmed.includes(":") && !trimmed.startsWith("http")) {
+      const parts = trimmed.split(":").map(p => p.trim());
+      if (parts.length === 4 && /^\d+$/.test(parts[1])) {
+        return {
+          index,
+          type: "server",
+          raw: trimmed,
+          fields: [
+            { label: "Host / IP", value: parts[0] },
+            { label: "Port", value: parts[1] },
+            { label: "Username", value: parts[2] },
+            { label: "Password", value: parts[3], isSecret: true }
+          ]
+        };
+      }
+      if (parts.length >= 2) {
+        const uLabel = parts[0]?.includes("@") ? "Email / Username" : "Username";
+        const fields: ParsedField[] = [
+          { label: uLabel, value: parts[0] },
+          { label: "Password", value: parts[1], isSecret: true }
+        ];
+        if (parts.length > 2) {
+          fields.push({ label: "2FA / PIN / Code", value: parts.slice(2).join(":") });
+        }
+        return {
+          index,
+          type: "account",
+          raw: trimmed,
+          fields
+        };
+      }
+    }
+
+    // Case D: License Key / Activation CDK / Code
+    const isKey = /^[A-Z0-9]{4,5}(-[A-Z0-9]{4,5}){3,7}$/i.test(trimmed) || trimmed.length > 15;
+    return {
+      index,
+      type: isKey ? "license" : "custom",
+      raw: trimmed,
+      fields: [{ label: isKey ? "License Key / Activation CDK" : "Digital Credential", value: trimmed }]
+    };
+  };
+
+  const parseObjectCredential = (obj: any, index: number): ParsedAccountEntry => {
+    const fields: ParsedField[] = [];
+    const username = obj.username || obj.email || obj.user || obj.login;
+    const password = obj.password || obj.pass;
+    const token = obj.token || obj.auth || obj.cookie || obj.session;
+    const key = obj.key || obj.license || obj.cdk || obj.code;
+    const url = obj.url || obj.link || obj.invite;
+
+    if (username) fields.push({ label: String(username).includes("@") ? "Email / Username" : "Username", value: String(username) });
+    if (password) fields.push({ label: "Password", value: String(password), isSecret: true });
+    if (token) fields.push({ label: "Auth Token / Cookie", value: typeof token === "object" ? JSON.stringify(token) : String(token) });
+    if (key) fields.push({ label: "Activation Key / CDK", value: String(key) });
+    if (url) fields.push({ label: "Access / Invite Link", value: String(url), isUrl: true });
+
+    Object.keys(obj).forEach(k => {
+      if (!["username", "email", "user", "login", "password", "pass", "token", "auth", "cookie", "session", "key", "license", "cdk", "code", "url", "link", "invite"].includes(k.toLowerCase())) {
+        fields.push({ label: k.charAt(0).toUpperCase() + k.slice(1), value: typeof obj[k] === "object" ? JSON.stringify(obj[k]) : String(obj[k]) });
+      }
+    });
+
+    return {
+      index,
+      type: username && password ? "account" : (key ? "license" : (url ? "url" : "custom")),
+      raw: typeof obj === "string" ? obj : JSON.stringify(obj),
+      fields
+    };
+  };
+
+  const formatDeliveredCredentialsForCopy = (raw: string, qty: number = 1, title: string = "") => {
+    if (!raw) return "";
+    const clean = raw.trim();
+    const accounts = parseUniversalCredentials(clean, title);
+    if (accounts.length === 0) return clean;
+
+    const hasStructured = accounts.some(a => a.fields.length > 1 || a.fields[0]?.isUrl);
+    if (!hasStructured) {
+      if (accounts.length > 1) {
+        return accounts.map(a => `item ${String(a.index).padStart(2, "0")} - ${a.raw}`).join("\n\n");
+      }
+      return clean;
+    }
+
+    if (accounts.length === 1) {
+      return accounts[0].fields.map(f => `${f.label}: ${f.value}`).join("\n");
+    }
+
+    return accounts.map(acc => {
+      const num = String(acc.index).padStart(2, "0");
+      const lines = acc.fields.map(f => `${f.label}: ${f.value}`).join("\n");
+      return `[Account / Item ${num}]\n${lines}`;
+    }).join("\n\n");
   };
 
   const copyToClipboard = (text: string, title = "Copied to Clipboard") => {
@@ -5045,24 +5266,96 @@ Support: https://t.me/youuhost_support
                       )}
 
                       {/* Unified Digital Credentials / CDK Box for Account & Partner Orders */}
-                      {(ord.credentialData || ord.licenseKey) && (
-                        <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Digital Credentials / CDK:
-                            </span>
-                            <button
-                              onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.credentialData || ord.licenseKey, ord.quantity), "Credentials Copied! 📋")}
-                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform"
-                            >
-                              <Copy className="w-2.5 h-2.5" /> Copy
-                            </button>
+                      {(ord.credentialData || ord.licenseKey) && (() => {
+                        const rawCreds = ord.credentialData || ord.licenseKey;
+                        const accounts = parseUniversalCredentials(rawCreds, ord.title);
+                        const hasStructured = accounts.length > 0 && accounts.some(a => a.fields.length > 1 || a.fields[0]?.isUrl);
+
+                        return (
+                          <div className="bg-[#F0FDF4] p-2.5 rounded-2xl border border-emerald-200" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[9.5px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                {hasStructured ? "Parsed Credentials / Access:" : "Digital Credentials / CDK:"}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {hasStructured && (
+                                  <button
+                                    onClick={() => copyToClipboard(rawCreds, "Raw Data Copied! 📋")}
+                                    className="text-[9.5px] font-bold text-[#7E7998] hover:text-[#181432] bg-white px-1.5 py-0.5 rounded-md border border-slate-200 shadow-2xs active:scale-95 transition-transform"
+                                    title="Copy Original Raw Data"
+                                  >
+                                    Raw
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(rawCreds, ord.quantity, ord.title), "Credentials Copied! 📋")}
+                                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 shadow-2xs active:scale-95 transition-transform"
+                                >
+                                  <Copy className="w-2.5 h-2.5" /> Copy All
+                                </button>
+                              </div>
+                            </div>
+
+                            {hasStructured ? (
+                              <div className="space-y-2">
+                                {accounts.map((acc, aIdx) => (
+                                  <div key={aIdx} className="bg-white/95 p-2.5 rounded-xl border border-emerald-100 shadow-2xs space-y-1.5 text-[11px]">
+                                    {accounts.length > 1 && (
+                                      <div className="text-[9.5px] font-black text-emerald-800 uppercase border-b border-emerald-50 pb-0.5">
+                                        Account / Item #{acc.index}
+                                      </div>
+                                    )}
+                                    {acc.fields.map((f, fIdx) => (
+                                      <div key={fIdx} className={`flex items-center justify-between gap-1.5 py-0.5 ${fIdx < acc.fields.length - 1 ? "border-b border-slate-100" : ""}`}>
+                                        <span className="text-[#7E7998] font-bold text-[10px] shrink-0">{f.label}:</span>
+                                        <div className="flex items-center gap-1 min-w-0 flex-1 justify-end">
+                                          {f.isUrl ? (
+                                            <a
+                                              href={f.value}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-[10.5px] text-[#5B42F3] hover:underline font-mono truncate max-w-[170px]"
+                                            >
+                                              {f.value}
+                                            </a>
+                                          ) : (
+                                            <span className={`font-mono text-[10.5px] truncate select-all ${f.isSecret ? "font-bold text-emerald-700" : "font-bold text-[#181432]"}`}>
+                                              {f.value}
+                                            </span>
+                                          )}
+                                          <button
+                                            onClick={() => copyToClipboard(f.value, `${f.label} Copied`)}
+                                            className="text-[#5B42F3] hover:text-[#4A32D6] p-0.5 hover:bg-purple-50 rounded shrink-0"
+                                            title={`Copy ${f.label}`}
+                                          >
+                                            <Copy className="w-2.5 h-2.5" />
+                                          </button>
+                                          {f.isUrl && (
+                                            <a
+                                              href={f.value}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-emerald-600 hover:text-emerald-700 p-0.5 hover:bg-emerald-50 rounded shrink-0"
+                                              title="Open Link"
+                                            >
+                                              <ExternalLink className="w-2.5 h-2.5" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
+                                {rawCreds}
+                              </div>
+                            )}
                           </div>
-                          <div className="font-mono text-[10.5px] text-emerald-950 font-bold bg-white/90 p-2 rounded-xl border border-emerald-100 max-h-20 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner">
-                            {ord.credentialData || ord.licenseKey}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Footer: Qty, Paid Amount, Formatted Date & View Details Prompt */}
                       <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-[#F5F4FC]">
@@ -6710,7 +7003,7 @@ Support: https://t.me/youuhost_support
                         </span>
                         <button
                           onClick={() => {
-                            copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent), "Account Info Copied! 📋");
+                            copyToClipboard(formatDeliveredCredentialsForCopy(selectedTxDetail.deliveredContent, 1, selectedTxDetail.description || ""), "Account Info Copied! 📋");
                           }}
                           className="text-[10px] font-bold text-[#5B42F3] hover:underline flex items-center gap-1 bg-[#F8F7FD] px-2 py-0.5 rounded-lg border border-[#ECEEF8] active:scale-95"
                         >
@@ -8076,27 +8369,97 @@ Support: https://t.me/youuhost_support
                   </div>
                 )}
 
-                {/* Delivered Digital License / CDK (Sandromania) */}
-                {ord.licenseKey && (
-                  <div className="bg-[#F0FDF4] rounded-3xl p-3 sm:p-4 border border-emerald-200 shadow-xs space-y-2 w-full overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-emerald-800">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        Digital License / Activation CDK
-                      </div>
-                      <button
-                        onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(ord.licenseKey, ord.quantity), "License Copied! 📋")}
-                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform"
-                      >
-                        <Copy className="w-3 h-3" /> Copy
-                      </button>
-                    </div>
+                {/* Delivered Digital License / CDK / Accounts (Universal Smart Display) */}
+                {ord.licenseKey && (() => {
+                  const rawCreds = ord.licenseKey;
+                  const accounts = parseUniversalCredentials(rawCreds, ord.title);
+                  const hasStructured = accounts.length > 0 && accounts.some(a => a.fields.length > 1 || a.fields[0]?.isUrl);
 
-                    <div className="bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold">
-                      {ord.licenseKey}
+                  return (
+                    <div className="bg-[#F0FDF4] rounded-3xl p-3 sm:p-4 border border-emerald-200 shadow-xs space-y-2 w-full overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-800">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          {hasStructured ? "Parsed Credentials / Access:" : "Digital License / Activation CDK"}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {hasStructured && (
+                            <button
+                              onClick={() => copyToClipboard(rawCreds, "Raw Data Copied! 📋")}
+                              className="text-[10px] font-bold text-[#7E7998] hover:text-[#181432] bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs active:scale-95 transition-transform"
+                              title="Copy Original Raw Data"
+                            >
+                              Raw
+                            </button>
+                          )}
+                          <button
+                            onClick={() => copyToClipboard(formatDeliveredCredentialsForCopy(rawCreds, ord.quantity, ord.title), "Credentials Copied! 📋")}
+                            className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs active:scale-95 transition-transform"
+                          >
+                            <Copy className="w-3 h-3" /> Copy All
+                          </button>
+                        </div>
+                      </div>
+
+                      {hasStructured ? (
+                        <div className="space-y-2.5">
+                          {accounts.map((acc, aIdx) => (
+                            <div key={aIdx} className="bg-white p-3 rounded-2xl border border-emerald-100 shadow-2xs space-y-2 text-[11px]">
+                              {accounts.length > 1 && (
+                                <div className="text-[10px] font-black text-emerald-800 uppercase border-b border-emerald-50 pb-1">
+                                  Account / Item #{acc.index}
+                                </div>
+                              )}
+                              {acc.fields.map((f, fIdx) => (
+                                <div key={fIdx} className={`flex items-center justify-between gap-2 py-1 ${fIdx < acc.fields.length - 1 ? "border-b border-slate-100" : ""}`}>
+                                  <span className="text-[#7E7998] font-bold text-xs shrink-0">{f.label}:</span>
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+                                    {f.isUrl ? (
+                                      <a
+                                        href={f.value}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] text-[#5B42F3] hover:underline font-mono truncate max-w-[220px]"
+                                      >
+                                        {f.value}
+                                      </a>
+                                    ) : (
+                                      <span className={`font-mono text-xs truncate select-all ${f.isSecret ? "font-bold text-emerald-700" : "font-bold text-[#181432]"}`}>
+                                        {f.value}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={() => copyToClipboard(f.value, `${f.label} Copied`)}
+                                      className="text-[#5B42F3] hover:text-[#4A32D6] p-1 hover:bg-purple-50 rounded shrink-0"
+                                      title={`Copy ${f.label}`}
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                    {f.isUrl && (
+                                      <a
+                                        href={f.value}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-600 hover:text-emerald-700 p-1 hover:bg-emerald-50 rounded shrink-0"
+                                        title="Open Link"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-white text-emerald-950 font-mono text-[10.5px] sm:text-[11px] p-2.5 sm:p-3 rounded-2xl border border-emerald-100 max-h-36 overflow-y-auto break-all select-all whitespace-pre-wrap leading-relaxed shadow-inner font-bold">
+                          {rawCreds}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* SMM Social Boost Details */}
                 {ord.orderType === "smm" && (
