@@ -10059,13 +10059,13 @@ const getPersistentBottomKeyboard = () => {
 const dismissKeyboardIfDisabled = async (targetBot: TelegramBot, chatId: number | string) => {
   if (!ENABLE_BOTTOM_KEYBOARD) {
     try {
-      const msg = await targetBot.sendMessage(chatId, '‎', { reply_markup: { remove_keyboard: true } });
+      const msg = await targetBot.sendMessage(chatId, '⚙️', { reply_markup: { remove_keyboard: true } });
       if (msg?.message_id) {
-        setTimeout(() => {
-          targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
-        }, 100);
+        targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
       }
-    } catch {}
+    } catch (err: any) {
+      console.error('dismissKeyboardIfDisabled error:', err?.message || err);
+    }
   }
 };
 
