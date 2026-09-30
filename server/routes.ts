@@ -9882,7 +9882,59 @@ async function initBot() {
     console.error('Telegram bot init failed:', err);
   }
 };
-const bannerFileIdCache: Record<string, string> = {};
+const bannerFileIdsPath = fs.existsSync(path.join(process.cwd(), 'server', 'banner_file_ids.json'))
+  ? path.join(process.cwd(), 'server', 'banner_file_ids.json')
+  : path.join(__dirname, 'banner_file_ids.json');
+
+let bannerFileIdCache: Record<string, string> = {};
+try {
+  if (fs.existsSync(bannerFileIdsPath)) {
+    bannerFileIdCache = JSON.parse(fs.readFileSync(bannerFileIdsPath, 'utf8'));
+    console.log(`[Bot Cache] Loaded ${Object.keys(bannerFileIdCache).length} pre-warmed banner file_ids from disk!`);
+  }
+} catch (e) {
+  console.warn('[Bot Cache] Failed to load banner_file_ids.json:', e);
+}
+
+const getCachedBannerFileId = (p: string): string | undefined => {
+  if (!p) return undefined;
+  return bannerFileIdCache[p] || bannerFileIdCache[path.basename(p)];
+};
+
+const saveBannerFileId = (bannerKey: string, fileId: string) => {
+  bannerFileIdCache[bannerKey] = fileId;
+  const basename = path.basename(bannerKey);
+  bannerFileIdCache[basename] = fileId;
+  try {
+    fs.writeFileSync(bannerFileIdsPath, JSON.stringify(bannerFileIdCache, null, 2), 'utf8');
+  } catch (e) {}
+};
+
+// Tracks the current banner attached to a given message to allow instant in-place caption editing
+const messageBannerTrackMap = new Map<string, string>();
+
+const setBotReaction = async (targetBot: TelegramBot, chatId: number | string, messageId: number, emoji: string = '🎉') => {
+  const token = (targetBot as any)?.token || (await getBotToken());
+  if (!token) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${token}/setMessageReaction`, {
+      chat_id: chatId,
+      message_id: messageId,
+      reaction: [{ type: 'emoji', emoji }],
+      is_big: true
+    }, { timeout: 3000 });
+  } catch (err: any) {
+    try {
+      await axios.post(`https://api.telegram.org/bot${token}/setMessageReaction`, {
+        chat_id: chatId,
+        message_id: messageId,
+        reaction: [{ type: 'emoji', emoji }]
+      }, { timeout: 3000 });
+    } catch (e: any) {
+      console.warn('[Bot Reaction Error]:', e?.response?.data?.description || e?.message);
+    }
+  }
+};
 
 const getPersistentBottomKeyboard = () => ({
   keyboard: [
@@ -9929,11 +9981,32 @@ const sendOrEditScreenWithPhoto = async (
   forceMediaEdit: boolean = false
 ) => {
   const token = (targetBot as any)?.token;
+  const targetBannerName = path.basename(bannerPath);
+  const cachedFileId = getCachedBannerFileId(bannerPath);
 
   if (messageId) {
-    if (fs.existsSync(bannerPath)) {
-      // 1. Try editing media using cached Telegram file_id (Super fast, ~20ms in-place edit)
-      const cachedFileId = bannerFileIdCache[bannerPath];
+    const msgKey = `${chatId}_${messageId}`;
+    const currentBannerName = messageBannerTrackMap.get(msgKey);
+
+    // 1. Ultra-fast in-place caption update (<20ms) if banner image has not changed
+    if (currentBannerName && currentBannerName === targetBannerName && !forceMediaEdit) {
+      try {
+        await targetBot.editMessageCaption(caption, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup
+        });
+        return;
+      } catch (captionErr: any) {
+        if (captionErr?.message?.includes('message is not modified')) {
+          return;
+        }
+      }
+    }
+
+    if (cachedFileId || fs.existsSync(bannerPath)) {
+      // 2. High-speed media edit using cached Telegram file_id (~30ms, no network upload)
       if (cachedFileId) {
         try {
           const res = await targetBot.editMessageMedia(
@@ -9949,7 +10022,10 @@ const sendOrEditScreenWithPhoto = async (
               reply_markup: replyMarkup
             } as any
           );
-          if (res) return;
+          if (res) {
+            messageBannerTrackMap.set(msgKey, targetBannerName);
+            return;
+          }
         } catch (errMediaCached: any) {
           if (errMediaCached?.message?.includes('message is not modified')) {
             return;
@@ -9957,8 +10033,8 @@ const sendOrEditScreenWithPhoto = async (
         }
       }
 
-      // 2. If no cached file_id or cached edit failed, upload buffer via editMessageMedia endpoint
-      if (token) {
+      // 3. Fallback: upload buffer if no cached file_id or cached edit failed
+      if (token && fs.existsSync(bannerPath)) {
         try {
           const fileBuffer = fs.readFileSync(bannerPath);
           const dynamicFilename = `banner_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
@@ -9983,14 +10059,16 @@ const sendOrEditScreenWithPhoto = async (
           });
 
           const res = await axios.post(`https://api.telegram.org/bot${token}/editMessageMedia`, form, {
-            headers: form.getHeaders()
+            headers: form.getHeaders(),
+            timeout: 10000
           });
           if (res.data?.ok) {
             const photos = res.data?.result?.photo;
             if (photos && photos.length > 0) {
               const newFileId = photos[photos.length - 1].file_id;
-              if (newFileId) bannerFileIdCache[bannerPath] = newFileId;
+              if (newFileId) saveBannerFileId(bannerPath, newFileId);
             }
+            messageBannerTrackMap.set(msgKey, targetBannerName);
             return;
           }
         } catch (errMediaUpload: any) {
@@ -10001,23 +10079,28 @@ const sendOrEditScreenWithPhoto = async (
       }
     }
 
-    // 3. Fallback: If media editing failed (e.g. text message or deleted message), delete old message cleanly
+    // 4. Fallback: If media editing failed, delete old message cleanly
     try {
       await targetBot.deleteMessage(chatId, messageId);
+      messageBannerTrackMap.delete(msgKey);
     } catch (errDel: any) {}
   }
 
-  // 4. Send fresh photo message if messageId wasn't editable or message didn't exist
-  if (bannerFileIdCache[bannerPath]) {
+  // 5. Send fresh photo message using cached file_id if messageId wasn't editable or message didn't exist
+  if (cachedFileId) {
     try {
-      await targetBot.sendPhoto(chatId, bannerFileIdCache[bannerPath], {
+      const sent = await targetBot.sendPhoto(chatId, cachedFileId, {
         caption,
         parse_mode: 'HTML',
         reply_markup: replyMarkup
       });
+      if (sent?.message_id) {
+        messageBannerTrackMap.set(`${chatId}_${sent.message_id}`, targetBannerName);
+      }
       return;
     } catch (errCached: any) {
       delete bannerFileIdCache[bannerPath];
+      delete bannerFileIdCache[targetBannerName];
     }
   }
 
@@ -10041,7 +10124,10 @@ const sendOrEditScreenWithPhoto = async (
       if (sent && (sent as any).photo && (sent as any).photo.length > 0) {
         const photos = (sent as any).photo;
         const fileId = photos[photos.length - 1].file_id;
-        bannerFileIdCache[bannerPath] = fileId;
+        saveBannerFileId(bannerPath, fileId);
+        if (sent?.message_id) {
+          messageBannerTrackMap.set(`${chatId}_${sent.message_id}`, targetBannerName);
+        }
       }
       return;
     } catch (err: any) {
@@ -10155,12 +10241,22 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
   const products = await storage.getProducts();
 
+  // Batch query all available credentials in a single round-trip for blazing fast response (<5ms)
+  const allAvailableCreds = await db.select({ productId: credentials.productId })
+    .from(credentials)
+    .where(eq(credentials.status, 'available'));
+
+  const credCountByProduct = new Map<number, number>();
+  for (const c of allAvailableCreds) {
+    credCountByProduct.set(c.productId, (credCountByProduct.get(c.productId) || 0) + 1);
+  }
+
   // Group products by category
   const categoryMap = new Map<string, { stock: number; hasPreorder: boolean; maxPreorderQuota: number; iconEmojiId?: string }>();
 
   for (const p of products) {
     if (p.status !== 'available') continue;
-    const stock = (await storage.getCredentialsByProduct(p.id)).filter(c => c.status === 'available').length;
+    const stock = credCountByProduct.get(p.id) || 0;
 
     let availableQuota = 0;
     if (p.isPreorderEnabled) {
@@ -12476,14 +12572,9 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         setTimeout(() => actionLocks.delete(actionLockKey), 4000);
       }
 
-      // 1. Immediately answer the callback query to clear client spinner (except for check_payment_, cryptobot & pay_bal_ where custom alert popup is shown)
+      // 1. Immediately acknowledge callback query asynchronously (non-blocking) to clear button spinner in <5ms
       if (!data.startsWith('check_payment_') && !data.includes('cryptobot') && !data.startsWith('pay_bal_')) {
-        try {
-          console.log(`[Bot Callback] Answering callback query: ${callbackId}`);
-          await targetBot.answerCallbackQuery(query.id);
-        } catch (err: any) {
-          console.error(`[Bot Callback] Failed to answer callback query:`, err.message);
-        }
+        targetBot.answerCallbackQuery(query.id).catch(() => {});
       }
 
       // Only handle actions on the main bot
@@ -15780,27 +15871,46 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
       const sendWelcomeBanner = async () => {
         const bottomKeyboard = getPersistentBottomKeyboard();
+        const bannerFileId = getCachedBannerFileId(bannerPath);
 
-        if (fs.existsSync(bannerPath)) {
+        if (bannerFileId || fs.existsSync(bannerPath)) {
           try {
-            await targetBot.sendPhoto(chatId, bannerPath, {
+            const photoToSend = bannerFileId || bannerPath;
+            const welcomeMsg = await targetBot.sendPhoto(chatId, photoToSend, {
               caption: welcomeCaption,
               parse_mode: 'HTML',
               reply_markup: startInlineMarkup
             });
-            await targetBot.sendMessage(chatId, '<tg-emoji emoji-id="5938185976307258461">👇</tg-emoji> <b>Quick Menu</b>', {
-              parse_mode: 'HTML',
-              reply_markup: bottomKeyboard
-            });
+
+            // Second issue fix: Attach congratulations celebration reaction (🎉) with full animated confetti
+            if (welcomeMsg?.message_id) {
+              setBotReaction(targetBot, chatId, welcomeMsg.message_id, '🎉').catch(() => {});
+              messageBannerTrackMap.set(`${chatId}_${welcomeMsg.message_id}`, path.basename(bannerPath));
+            }
+
+            // First issue fix: Activate persistent bottom keyboard without leaving any 'Quick Menu' text bubble in chat
+            try {
+              const tempKb = await targetBot.sendMessage(chatId, '.', {
+                reply_markup: bottomKeyboard
+              });
+              if (tempKb?.message_id) {
+                targetBot.deleteMessage(chatId, tempKb.message_id).catch(() => {});
+              }
+            } catch (kbErr: any) {
+              console.warn('[Welcome Keyboard Warning]:', kbErr?.message);
+            }
             return;
           } catch (err: any) {
             console.error('Failed to send banner photo, falling back to text:', err.message);
           }
         }
-        await targetBot.sendMessage(chatId, welcomeCaption, {
+        const fallbackMsg = await targetBot.sendMessage(chatId, welcomeCaption, {
           parse_mode: 'HTML',
           reply_markup: bottomKeyboard
         });
+        if (fallbackMsg?.message_id) {
+          setBotReaction(targetBot, chatId, fallbackMsg.message_id, '🎉').catch(() => {});
+        }
       };
 
       if (!parameter) {
