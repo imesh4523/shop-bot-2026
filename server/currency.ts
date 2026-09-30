@@ -31,6 +31,7 @@ let cachedRates: Record<string, number> = {
 };
 
 let isRefreshingRates = false;
+let lastFetchTime = 0;
 
 export async function fetchLiveExchangeRates(): Promise<Record<string, number>> {
   const now = Date.now();
