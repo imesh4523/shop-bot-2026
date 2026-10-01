@@ -60,6 +60,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/imeshadmindashbord', icon: LayoutDashboard },
+    { name: '🛠️ Maintenance Mode', href: '/imeshadmindashbord/maintenance', icon: ShieldAlert, highlight: true },
     { name: '⚡ API Store Tracker', href: '/imeshadmindashbord/connected-stores', icon: Network, highlight: true },
     { name: 'Email Hub & Receipts', href: '/imeshadmindashbord/email-hub', icon: Mail },
     { name: 'All Orders', href: '/imeshadmindashbord/all-orders', icon: Layers },

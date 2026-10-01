@@ -280,8 +280,21 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       const approxLkrRate = 305.50;
       const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
 
-      // Support dual-currency balance verification (USD cents or LKR)
-      const hasEnough = (lockedUser.balance >= finalCost) || (lockedUser.balanceLkr != null && lockedUser.balanceLkr >= deductLkr);
+      // Support dual-currency balance verification (USD cents or LKR), checking linked account if needed
+      let payingUser = lockedUser;
+      let hasEnough = (payingUser.balance >= finalCost) || (payingUser.balanceLkr != null && payingUser.balanceLkr >= deductLkr);
+
+      if (!hasEnough && lockedUser.linkedUserId) {
+        const [lockedLinkedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, lockedUser.linkedUserId)).for('update');
+        if (lockedLinkedUser) {
+          const linkedHasEnough = (lockedLinkedUser.balance >= finalCost) || (lockedLinkedUser.balanceLkr != null && lockedLinkedUser.balanceLkr >= deductLkr);
+          if (linkedHasEnough) {
+            payingUser = lockedLinkedUser;
+            hasEnough = true;
+          }
+        }
+      }
+
       if (!hasEnough) {
         throw new Error("insufficient_balance");
       }
@@ -291,7 +304,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
           .from(promoCodeRedemptions)
           .where(and(
-            eq(promoCodeRedemptions.telegramUserId, lockedUser.id),
+            eq(promoCodeRedemptions.telegramUserId, payingUser.id),
             eq(promoCodeRedemptions.promoCodeId, appliedPromo.id)
           )).limit(1);
 
@@ -300,7 +313,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         }
 
         await tx.insert(promoCodeRedemptions).values({
-          telegramUserId: lockedUser.id,
+          telegramUserId: payingUser.id,
           promoCodeId: appliedPromo.id,
         });
 
@@ -317,11 +330,10 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         .for('update', { skipLocked: true });
 
       if (lockedCreds.length >= qtyInt) {
-        const deductLkr = Math.round((finalCost / 100) * approxLkrRate);
         const [updatedUser] = await tx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} - ${finalCost}`,
+          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${finalCost})`,
           balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
-        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, finalCost))).returning();
+        }).where(and(eq(telegramUsers.id, payingUser.id), or(gte(telegramUsers.balance, finalCost), gte(telegramUsers.balanceLkr, deductLkr)))).returning();
 
         if (!updatedUser) {
           throw new Error("insufficient_balance");
@@ -336,7 +348,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           const [newOrder] = await tx.insert(orders).values({
             productId: prod.id,
             credentialId: cred.id,
-            telegramUserId: lockedUser.id,
+            telegramUserId: payingUser.id,
             apiKeyId: req.apiKey!.id,
             status: "completed"
           }).returning();
@@ -356,7 +368,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         const [updatedUser] = await tx.update(telegramUsers).set({
           balance: sql`GREATEST(0, ${telegramUsers.balance} - ${finalCost})`,
           balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
-        }).where(and(eq(telegramUsers.id, lockedUser.id), or(gte(telegramUsers.balance, finalCost), gte(telegramUsers.balanceLkr, deductLkr)))).returning();
+        }).where(and(eq(telegramUsers.id, payingUser.id), or(gte(telegramUsers.balance, finalCost), gte(telegramUsers.balanceLkr, deductLkr)))).returning();
 
         if (!updatedUser) {
           throw new Error("insufficient_balance");
@@ -364,7 +376,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
 
         const [preorderItem] = await tx.insert(preorders).values({
           productId: prod.id,
-          telegramUserId: lockedUser.id,
+          telegramUserId: payingUser.id,
           quantity: qtyInt,
           totalPrice: finalCost,
           status: "pending_fulfillment"

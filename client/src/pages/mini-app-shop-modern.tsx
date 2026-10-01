@@ -6281,7 +6281,7 @@ Support: https://t.me/youuhost_support
 
                   <h3 className="text-base font-black text-[#181432]">{displayName}</h3>
                   <div className="flex items-center justify-center gap-1.5 mt-1">
-                    {user?.telegramId && !user.telegramId.startsWith("google:") && !user.telegramId.startsWith("email:") && user.telegramId !== "0" && user.telegramId !== "web_guest" ? (
+                    {user?.telegramId && /^\d+$/.test(user.telegramId) ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#24A1DE] bg-sky-50 px-2.5 py-0.5 rounded-full">
                         <FaTelegramPlane className="w-3 h-3" /> Telegram ID: {user.telegramId}
                       </span>
@@ -6294,16 +6294,16 @@ Support: https://t.me/youuhost_support
                         <Mail className="w-3 h-3 text-[#059669]" /> Email Verified
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#24A1DE] bg-sky-50 px-2.5 py-0.5 rounded-full">
-                        <FaTelegramPlane className="w-3 h-3" /> Telegram Account
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4285F4] bg-[#E8F0FE] px-2.5 py-0.5 rounded-full">
+                        <GoogleIcon className="w-3 h-3" /> Web Account
                       </span>
                     )}
                   </div>
                   <span className="text-xs text-[#7E7998] block mt-1">
-                    {user?.telegramId && !user.telegramId.startsWith("google:") && !user.telegramId.startsWith("email:") && user.telegramId !== "0" && user.telegramId !== "web_guest" ? (
+                    {user?.telegramId && /^\d+$/.test(user.telegramId) ? (
                       user?.username ? `@${user.username}` : `Telegram ID: ${user.telegramId}`
                     ) : (
-                      user?.email || (user?.username ? `@${user.username}` : `ID: ${user?.telegramId}`)
+                      user?.email || (user?.username ? `@${user.username}` : "")
                     )}
                   </span>
 

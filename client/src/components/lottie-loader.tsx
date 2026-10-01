@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import lottie from "lottie-web/build/player/lottie_light";
 import animation404Data from "@/assets/animation-404.json";
 import animationPaymentData from "@/assets/animation-payment.json";
+import animationMaintenanceData from "@/assets/animation-maintenance.json";
 
 interface LottiePlayerProps {
   animationData: any;
@@ -58,6 +59,11 @@ export function Lottie404({ size = 280, className = "" }: { size?: number | stri
 /** Payment / Checkout Processing Animation Component */
 export function LottiePayment({ size = 180, className = "" }: { size?: number | string; className?: string }) {
   return <LottiePlayer animationData={animationPaymentData} size={size} className={className} />;
+}
+
+/** Maintenance Mode Animation Component */
+export function LottieMaintenance({ size = 280, className = "" }: { size?: number | string; className?: string }) {
+  return <LottiePlayer animationData={animationMaintenanceData} size={size} className={className} />;
 }
 
 /** Fullscreen Payment Processing Modal Overlay with ~3s animation */

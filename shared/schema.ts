@@ -67,6 +67,8 @@ export const telegramUsers = pgTable("telegram_users", {
   avatarUrl: text("avatar_url"),
   referralBalance: integer("referral_balance").default(0),
   referredBy: text("referred_by"),
+  linkedUserId: integer("linked_user_id"),
+  linkedTelegramId: text("linked_telegram_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

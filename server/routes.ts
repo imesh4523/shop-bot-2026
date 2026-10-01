@@ -56,6 +56,13 @@ import {
   clearTraceHistory, 
   deleteTraceRecord 
 } from "./telegram-inspector";
+import { 
+  maintenanceShieldMiddleware, 
+  getMaintenanceConfig, 
+  setMaintenanceConfig, 
+  isRequestWhitelisted, 
+  isTelegramUserWhitelisted 
+} from "./maintenance-service";
 
 let autoFulfillFn: ((targetProductId?: number) => Promise<void>) | null = null;
 
@@ -1061,6 +1068,44 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Not found" });
     }
     next();
+  });
+
+  // Global Maintenance Shield: Blocks unauthorized store & API access when active
+  app.use(maintenanceShieldMiddleware);
+
+  // --- Maintenance Mode System Endpoints ---
+  app.get("/api/system/maintenance-status", async (req: Request, res: Response) => {
+    try {
+      const config = await getMaintenanceConfig();
+      const isWhitelisted = await isRequestWhitelisted(req);
+      res.json({
+        enabled: config.enabled,
+        title: config.title,
+        message: config.message,
+        estimatedEndTime: config.estimatedEnd,
+        isWhitelisted,
+      });
+    } catch (err: any) {
+      res.status(500).json({ enabled: false, error: err.message });
+    }
+  });
+
+  app.get("/api/admin/maintenance/settings", isAuth, async (req: Request, res: Response) => {
+    try {
+      const config = await getMaintenanceConfig(true);
+      res.json(config);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/maintenance/settings", isAuth, async (req: Request, res: Response) => {
+    try {
+      const updated = await setMaintenanceConfig(req.body);
+      res.json({ success: true, config: updated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   const CUSTOMER_AUTH_SECRET = process.env.SESSION_SECRET || "youuhost_customer_jwt_secret_2026";
@@ -13113,6 +13158,22 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
       }
 
+      // Maintenance Mode Check for Telegram Bot Callbacks
+      const maintConf = await getMaintenanceConfig();
+      if (maintConf.enabled) {
+        const isWhitelisted = await isTelegramUserWhitelisted(userId, query.from?.username);
+        const isAdmin = await isAuthorizedAdmin(userId);
+        if (!isWhitelisted && !isAdmin) {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, {
+              text: `🛠️ ${maintConf.title}\n${maintConf.message}`,
+              show_alert: true
+            }).catch(() => {});
+          }
+          return;
+        }
+      }
+
       let tgUser = await getFastTelegramUser(userId);
       if (!tgUser && query.from) {
         tgUser = await storage.createTelegramUser({
@@ -16425,6 +16486,21 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
   targetBot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
       const chatId = msg.chat.id;
       const parameter = match ? match[1] : null;
+      const userIdStr = msg.from?.id.toString() || chatId.toString();
+
+      const maintConf = await getMaintenanceConfig();
+      if (maintConf.enabled) {
+        const isWhitelisted = await isTelegramUserWhitelisted(userIdStr, msg.from?.username);
+        const isAdmin = await isAuthorizedAdmin(userIdStr);
+        if (!isWhitelisted && !isAdmin) {
+          await targetBot.sendMessage(
+            chatId,
+            `🛠️ <b>${maintConf.title}</b>\n\n${maintConf.message}\n\n⏳ <b>Estimated Duration:</b> ${maintConf.estimatedEnd}\n\n<i>We apologize for any inconvenience. Services will resume shortly!</i>`,
+            { parse_mode: 'HTML' }
+          ).catch(() => {});
+          return;
+        }
+      }
 
       if (parameter && parameter.startsWith('ref_')) {
         const referrerId = parameter.split('ref_')[1]?.trim();

@@ -70,7 +70,7 @@ import {
   type CustomerErrorLog,
   type InsertCustomerErrorLog
 } from "@shared/schema";
-import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Admin Login
@@ -1046,9 +1046,15 @@ export class DatabaseStorage implements IStorage {
 
   // Developer API Keys Implementation
   async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+    const user = await this.getTelegramUserById(telegramUserId);
+    const userIds = [telegramUserId];
+    if (user?.linkedUserId) {
+      userIds.push(user.linkedUserId);
+    }
+
     await db.update(apiKeys)
       .set({ status: "revoked" })
-      .where(and(eq(apiKeys.telegramUserId, telegramUserId), eq(apiKeys.status, "active")));
+      .where(and(inArray(apiKeys.telegramUserId, userIds), eq(apiKeys.status, "active")));
 
     const [inserted] = await db.insert(apiKeys)
       .values({
@@ -1066,9 +1072,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined> {
+    const user = await this.getTelegramUserById(telegramUserId);
+    const userIds = [telegramUserId];
+    if (user?.linkedUserId) {
+      userIds.push(user.linkedUserId);
+    }
+
     const activeKeys = await db.select()
       .from(apiKeys)
-      .where(and(eq(apiKeys.telegramUserId, telegramUserId), eq(apiKeys.status, "active")))
+      .where(and(inArray(apiKeys.telegramUserId, userIds), eq(apiKeys.status, "active")))
       .orderBy(desc(apiKeys.createdAt))
       .limit(1);
 
@@ -1076,7 +1088,7 @@ export class DatabaseStorage implements IStorage {
 
     const anyKeys = await db.select()
       .from(apiKeys)
-      .where(eq(apiKeys.telegramUserId, telegramUserId))
+      .where(inArray(apiKeys.telegramUserId, userIds))
       .orderBy(desc(apiKeys.createdAt))
       .limit(1);
 
@@ -1084,9 +1096,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserApiKeys(telegramUserId: number): Promise<ApiKey[]> {
+    const user = await this.getTelegramUserById(telegramUserId);
+    const userIds = [telegramUserId];
+    if (user?.linkedUserId) {
+      userIds.push(user.linkedUserId);
+    }
+
     return await db.select()
       .from(apiKeys)
-      .where(eq(apiKeys.telegramUserId, telegramUserId))
+      .where(inArray(apiKeys.telegramUserId, userIds))
       .orderBy(desc(apiKeys.createdAt));
   }
 

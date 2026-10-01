@@ -1,6 +1,6 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
@@ -47,6 +47,8 @@ import CategoriesManagerPage from "@/pages/categories-manager-page";
 import ConnectedStoresTrackerPage from "@/pages/connected-stores-tracker-page";
 import HeroBannersPage from "@/pages/hero-banners-page";
 import BestSellersPage from "@/pages/best-sellers-page";
+import AdminMaintenancePage from "@/pages/admin-maintenance-page";
+import MaintenancePage from "@/pages/maintenance-page";
 import TermsPage from "@/pages/terms-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -127,6 +129,30 @@ function RootRouteHandler() {
 }
 
 function Router() {
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith("/imeshadmindashbord") || location === "/login";
+
+  const { data: maintStatus } = useQuery<{
+    enabled: boolean;
+    title?: string;
+    message?: string;
+    estimatedEndTime?: string;
+    isWhitelisted?: boolean;
+  }>({
+    queryKey: ["/api/system/maintenance-status"],
+    refetchInterval: 15000,
+  });
+
+  if (maintStatus?.enabled && !maintStatus.isWhitelisted && !isAdminRoute) {
+    return (
+      <MaintenancePage
+        title={maintStatus.title}
+        message={maintStatus.message}
+        estimatedEnd={maintStatus.estimatedEndTime}
+      />
+    );
+  }
+
   return (
     <Switch>
       {/* Public Pages */}
@@ -153,6 +179,10 @@ function Router() {
       {/* Secret Admin Routes (/imeshadmindashbord/*) */}
       <Route path="/imeshadmindashbord">
         <ProtectedRoute component={Dashboard} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/maintenance">
+        <ProtectedRoute component={AdminMaintenancePage} />
       </Route>
 
       <Route path="/imeshadmindashbord/email-hub">

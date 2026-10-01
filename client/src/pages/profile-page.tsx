@@ -512,8 +512,16 @@ export default function ProfilePage() {
                   <span className="text-white font-mono font-bold">#{currentUser?.id || "1"}</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-white/5 text-xs">
-                  <span className="text-white/50 font-medium">Telegram ID</span>
-                  <span className="text-white font-mono font-bold">{currentUser?.telegramId || "Linked"}</span>
+                  <span className="text-white/50 font-medium">
+                    {currentUser?.telegramId && /^\d+$/.test(currentUser.telegramId) ? "Telegram ID" : "Account Identity"}
+                  </span>
+                  <span className="text-white font-mono font-bold">
+                    {currentUser?.telegramId && /^\d+$/.test(currentUser.telegramId)
+                      ? currentUser.telegramId
+                      : currentUser?.authProvider === 'google' || currentUser?.telegramId?.startsWith('google:')
+                        ? "Google OAuth"
+                        : currentUser?.telegramId || "Verified"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-white/5 text-xs">
                   <span className="text-white/50 font-medium">Account Status</span>
