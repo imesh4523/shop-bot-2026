@@ -937,7 +937,18 @@ const storage_disk = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storage_disk });
+const upload = multer({
+  storage: storage_disk,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req: any, file: any, cb: any) => {
+    const allowedExts = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+    const allowedMime = /^image\/(jpeg|png|gif|webp|svg\+xml)$/i;
+    if (allowedExts.test(file.originalname) && allowedMime.test(file.mimetype)) {
+      return cb(null, true);
+    }
+    return cb(new Error("Only safe image files (JPG, PNG, GIF, WEBP, SVG) are allowed"));
+  }
+});
 
 export async function registerRoutes(
   httpServer: HttpServer,
@@ -1414,12 +1425,21 @@ export async function registerRoutes(
         .sort()
         .join('\n');
 
-      // 3. Verify hash
+      // 3. Verify hash using timing-safe comparison
       const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
       const calculatedHash = crypto.createHmac('sha256', secretKey).update(sortedParams).digest('hex');
 
-      if (calculatedHash !== hash) {
+      const hashBuf = Buffer.from(hash || '', 'hex');
+      const calcBuf = Buffer.from(calculatedHash, 'hex');
+      if (hashBuf.length !== calcBuf.length || !crypto.timingSafeEqual(hashBuf, calcBuf)) {
         return res.status(401).json({ message: "Invalid Telegram authentication hash" });
+      }
+
+      // Check auth_date to protect against Replay Attacks (max 24 hours)
+      const authDate = parseInt(urlParams.get('auth_date') || '0', 10);
+      const currentTimeSec = Math.floor(Date.now() / 1000);
+      if (authDate && (currentTimeSec - authDate > 86400)) {
+        return res.status(401).json({ message: "Telegram authentication session expired. Please reopen the app." });
       }
 
       // 4. Extract user info and attach to request
@@ -2053,11 +2073,26 @@ export async function registerRoutes(
     }
   });
 
+  const aiChatRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
   /**
    * AI Chat Proxy
    * Proxies support chat messages to the Google AI Studio Gemini API with full shop context.
    */
   app.post("/api/support/chat", async (req, res) => {
+    // IP-based rate limiting (Max 25 queries per 5 minutes per IP)
+    const clientIp = (req.headers["cf-connecting-ip"] as string) || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    const rateRecord = aiChatRateLimitMap.get(clientIp);
+    if (rateRecord && now < rateRecord.resetAt) {
+      if (rateRecord.count >= 25) {
+        return res.status(429).json({ answer: "⚠️ Rate limit exceeded. Please wait a few minutes before sending more messages." });
+      }
+      rateRecord.count++;
+    } else {
+      aiChatRateLimitMap.set(clientIp, { count: 1, resetAt: now + 5 * 60 * 1000 });
+    }
+
     const { messages, message } = req.body;
     
     let incomingMessages: Array<{ role: string; content: string }> = [];
