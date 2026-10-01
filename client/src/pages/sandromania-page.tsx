@@ -100,6 +100,7 @@ export default function SandromaniaPage() {
   const [editSellingPriceUsd, setEditSellingPriceUsd] = useState<string>("");
   const [editSellingPriceLkr, setEditSellingPriceLkr] = useState<string>("");
   const [editCategory, setEditCategory] = useState<string>("general");
+  const [editDescription, setEditDescription] = useState<string>("");
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [editShowOnTelegram, setEditShowOnTelegram] = useState<boolean>(false);
   const [editTelegramPriceUsd, setEditTelegramPriceUsd] = useState<string>("");
@@ -318,6 +319,7 @@ export default function SandromaniaPage() {
     setEditSellingPriceUsd(((prod.sellingPriceUsd || 0) / 100).toFixed(2));
     setEditSellingPriceLkr(prod.sellingPriceLkr ? String(prod.sellingPriceLkr) : String(Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)));
     setEditCategory(prod.category || "general");
+    setEditDescription(prod.description || "");
     setEditIsActive(prod.isActive !== false);
     setEditShowOnTelegram(Boolean(prod.showOnTelegram));
     setEditTelegramPriceUsd(prod.telegramPriceUsd ? ((prod.telegramPriceUsd / 100).toFixed(2)) : ((prod.sellingPriceUsd || 0) / 100).toFixed(2));
@@ -358,6 +360,7 @@ export default function SandromaniaPage() {
         sellingPriceUsd: Math.round(usdVal * 100),
         sellingPriceLkr: Math.round(lkrVal),
         category: editCategory.trim(),
+        description: editDescription.trim() || null,
         isActive: editIsActive,
         showOnTelegram: editShowOnTelegram,
         telegramPriceUsd: tgPriceCents,
@@ -1105,6 +1108,23 @@ export default function SandromaniaPage() {
                 placeholder="Or type custom category (e.g. gemini, chatgpt, aws, telegram)"
                 className="text-xs rounded-xl"
               />
+            </div>
+
+            {/* Product Description */}
+            <div>
+              <label className="text-xs font-bold text-muted-foreground block mb-1">
+                Product Description (Shown on YouuHost Web Store)
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Enter item description, warranty details, features, or instructions..."
+                rows={3}
+                className="w-full text-xs rounded-xl p-2.5 bg-background border border-border/80 text-foreground resize-y focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                This description will be displayed directly in the product sheet on YouuHost web store.
+              </span>
             </div>
 
             {/* Pricing USD & LKR */}

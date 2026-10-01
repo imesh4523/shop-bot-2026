@@ -84,6 +84,32 @@ export default function PromoCodesPage() {
     }
   });
 
+  // Query Sandromania Partner Products
+  const { data: sandromaniaList = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/sandromania/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/admin/sandromania/products");
+        return res.ok ? await res.json() : [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // Query CSxStore Partner Products
+  const { data: cssxList = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/cssx/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/admin/cssx/products");
+        return res.ok ? await res.json() : [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
   // Query Promo Codes
   const { data: promoCodes = [], isLoading: isCodesLoading, refetch: refetchCodes } = useQuery<PromoCode[]>({
     queryKey: ["/api/promo-codes"],
@@ -397,19 +423,52 @@ export default function PromoCodesPage() {
                       setApplicableProduct(selVal);
                       if (selVal === "all") {
                         setApplicableProductName("All Items & Services");
+                      } else if (selVal.startsWith("sandro-")) {
+                        const sId = parseInt(selVal.replace("sandro-", ""));
+                        const found = sandromaniaList.find((p: any) => p.id === sId);
+                        setApplicableProductName(found ? `🛍️ ${found.title}` : `Sandromania #${sId}`);
+                      } else if (selVal.startsWith("cssx-")) {
+                        const cId = parseInt(selVal.replace("cssx-", ""));
+                        const found = cssxList.find((p: any) => p.id === cId);
+                        setApplicableProductName(found ? `⚡ ${found.title}` : `CSxStore #${cId}`);
                       } else {
                         const found = productsList.find((p: any) => String(p.id) === selVal);
-                        setApplicableProductName(found ? found.name : `Item #${selVal}`);
+                        setApplicableProductName(found ? `📦 ${found.name}` : `Item #${selVal}`);
                       }
                     }}
-                    className="w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="w-full bg-slate-950 border border-white/10 rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500 max-h-48"
                   >
                     <option value="all">🌐 All Products & Services (No restriction)</option>
-                    {productsList.map((prod: any) => (
-                      <option key={prod.id} value={String(prod.id)}>
-                        📦 {prod.name} (${(prod.price / 100).toFixed(2)})
-                      </option>
-                    ))}
+
+                    {productsList.length > 0 && (
+                      <optgroup label="📦 Internal Products">
+                        {productsList.map((prod: any) => (
+                          <option key={`prod-${prod.id}`} value={String(prod.id)}>
+                            📦 {prod.name} (${(prod.price / 100).toFixed(2)})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    {sandromaniaList.length > 0 && (
+                      <optgroup label="🛍️ Sandromania Partner Goods">
+                        {sandromaniaList.map((prod: any) => (
+                          <option key={`sandro-${prod.id}`} value={`sandro-${prod.id}`}>
+                            🛍️ {prod.title} (Rs. {prod.sellingPriceLkr || Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)} / ${((prod.sellingPriceUsd || 0) / 100).toFixed(2)})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    {cssxList.length > 0 && (
+                      <optgroup label="⚡ CSxStore Partner Services">
+                        {cssxList.map((prod: any) => (
+                          <option key={`cssx-${prod.id}`} value={`cssx-${prod.id}`}>
+                            ⚡ {prod.title} (Rs. {prod.sellingPriceLkr || Math.round(((prod.sellingPriceUsd || 0) / 100) * 305.5)} / ${((prod.sellingPriceUsd || 0) / 100).toFixed(2)})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                   <p className="text-[11px] text-muted-foreground">
                     {applicableProduct === "all" ? "Coupon can be used on any product purchase." : `Restricted to "${applicableProductName}" only.`}

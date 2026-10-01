@@ -957,6 +957,38 @@ export async function registerRoutes(
 ): Promise<HttpServer> {
   let lastAutoDetectedAppUrl: string = 'https://monkfish-app-isiw9.ondigitalocean.app';
 
+  // Helper to record customer errors across the entire platform (Advanced Error Checker)
+  const recordCustomerError = async (options: {
+    customerIdentifier: string;
+    telegramUserId?: number | null;
+    severity: "critical" | "warning" | "info";
+    category: "order" | "payment" | "delivery" | "wallet" | "auth" | "api" | "general";
+    actionContext?: string;
+    errorMessage: string;
+    errorDetails?: any;
+  }) => {
+    try {
+      const detailsStr = typeof options.errorDetails === 'object'
+        ? JSON.stringify(options.errorDetails)
+        : String(options.errorDetails || '');
+
+      await storage.createCustomerErrorLog({
+        customerIdentifier: options.customerIdentifier,
+        telegramUserId: options.telegramUserId || null,
+        severity: options.severity,
+        category: options.category,
+        actionContext: options.actionContext || null,
+        errorMessage: options.errorMessage,
+        errorDetails: detailsStr || null,
+        status: 'unresolved',
+        adminNotes: null,
+        resolvedAt: null
+      });
+    } catch (err) {
+      console.error('[RECORD_CUSTOMER_ERROR_FAILED]', err);
+    }
+  };
+
   async function getAppBaseUrl(req?: any): Promise<string> {
     const customUrl = (await storage.getSetting('APP_URL'))?.value;
     if (customUrl && customUrl.trim()) {
@@ -3708,7 +3740,7 @@ export async function registerRoutes(
   // Mini App Binance Pay Submission & Verification
   app.post("/api/mini/deposit/binance", verifyMiniAppAuth, async (req, res) => {
     try {
-      const { amount, txId, orderId } = req.body;
+      const { amount, txId, orderId, originalLkr, currency } = req.body;
       const numAmount = parseFloat(amount);
       const cleanTx = (orderId || txId || '').trim();
 
@@ -3751,6 +3783,16 @@ export async function registerRoutes(
         .limit(1);
 
       if (duplicate) {
+        const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");
+        recordCustomerError({
+          customerIdentifier: custId,
+          telegramUserId: userId,
+          severity: "critical",
+          category: "payment",
+          actionContext: "Binance Pay Verification",
+          errorMessage: `Attempted reuse of Binance Order ID: ${cleanTx}`,
+          errorDetails: { cleanTx, numAmount, duplicateId: duplicate.id }
+        }).catch(() => {});
         return res.status(400).json({
           success: false,
           message: `This Binance Order ID (${cleanTx}) has already been used or redeemed. Each transaction can only be used once.`
@@ -3760,6 +3802,16 @@ export async function registerRoutes(
       // 2. Strict Live Verification against Binance Read-Only APIs
       const verifyResult = await verifyBinancePaymentLive(cleanTx, numAmount);
       if (!verifyResult.verified) {
+        const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");
+        recordCustomerError({
+          customerIdentifier: custId,
+          telegramUserId: userId,
+          severity: "critical",
+          category: "payment",
+          actionContext: `Binance Pay Verification: Order ID ${cleanTx} ($${numAmount})`,
+          errorMessage: verifyResult.message || `Binance payment could not be verified for Order ID ${cleanTx}.`,
+          errorDetails: { cleanTx, numAmount, verifyResult }
+        }).catch(() => {});
         return res.status(400).json({
           success: false,
           message: verifyResult.message || `Binance payment not found. We could not verify Order ID (${cleanTx}) on Binance Pay.`
@@ -3769,22 +3821,24 @@ export async function registerRoutes(
       // 3. Payment is 100% verified on Binance! Credit balance instantly.
       const creditAmount = verifyResult.actualAmount && verifyResult.actualAmount > 0 ? verifyResult.actualAmount : numAmount;
       const amountInCents = Math.round(creditAmount * 100);
+      const numOriginalLkr = originalLkr && !isNaN(Number(originalLkr)) ? Math.round(Number(originalLkr)) : null;
 
       const newPayment = await storage.createPayment({
         telegramUserId: userId,
         amount: amountInCents,
-        currency: 'USD',
+        currency: (currency || 'USD').toUpperCase(),
         paymentMethod: 'binance_pay',
         status: 'completed',
         txid: cleanTx,
-        externalId: cleanTx
-      });
+        externalId: cleanTx,
+        originalLkr: numOriginalLkr
+      } as any);
 
       const user = await storage.getTelegramUser(userId.toString());
       if (user) {
         const rates = await fetchLiveExchangeRates();
         const lkrRate = rates.LKR || 305.50;
-        const creditLkr = Math.round((amountInCents / 100) * lkrRate);
+        const creditLkr = numOriginalLkr || Math.round((amountInCents / 100) * lkrRate);
 
         await db.update(telegramUsers).set({
           balance: sql`balance + ${amountInCents}`,
@@ -3834,7 +3888,7 @@ export async function registerRoutes(
 
   app.post("/api/mini/deposit/cryptomus", verifyMiniAppAuth, async (req, res) => {
     try {
-      const { amount } = req.body;
+      const { amount, originalLkr, currency } = req.body;
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount) || numAmount < 1) {
         return res.status(400).json({ message: "Invalid amount. Minimum is $1." });
@@ -3887,14 +3941,17 @@ export async function registerRoutes(
 
       if (response.data && response.data.result) {
         const paymentData = response.data.result;
+        const numOriginalLkr = originalLkr && !isNaN(Number(originalLkr)) ? Math.round(Number(originalLkr)) : null;
         await storage.createPayment({
           telegramUserId: userId,
           amount: Math.round(numAmount * 100),
+          currency: (currency || 'USD').toUpperCase(),
           paymentMethod: 'cryptomus',
           status: 'pending',
           cryptomusUuid: paymentData.uuid,
-          externalId: orderId
-        });
+          externalId: orderId,
+          originalLkr: numOriginalLkr
+        } as any);
 
         return res.json({ url: paymentData.url, uuid: paymentData.uuid });
       }
@@ -4619,11 +4676,13 @@ export async function registerRoutes(
 
       // Check item-specific restriction if applicable
       if (promo.applicableProduct && promo.applicableProduct !== "all") {
-        const reqProdId = productId ? String(productId).trim() : "";
+        const reqProdId = productId ? String(productId).trim().toLowerCase() : "";
         const reqProdName = productName ? String(productName).toLowerCase().trim() : "";
         const targetProd = String(promo.applicableProduct).toLowerCase().trim();
+        const targetProdName = String(promo.applicableProductName || "").toLowerCase().trim();
 
-        const isMatch = (reqProdId && reqProdId === targetProd) ||
+        const isMatch = (reqProdId && (reqProdId === targetProd || targetProd.includes(reqProdId) || reqProdId.includes(targetProd))) ||
+          (reqProdName && targetProdName && (reqProdName.includes(targetProdName) || targetProdName.includes(reqProdName))) ||
           (reqProdName && targetProd && (reqProdName.includes(targetProd) || targetProd.includes(reqProdName)));
 
         if (!isMatch) {
@@ -5412,6 +5471,17 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Purchase error:", err);
       const message = err.message || "Failed to process purchase";
+      const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");
+      const isBalance = message.includes("balance") || message.includes("Insufficient") || message.includes("coupon");
+      recordCustomerError({
+        customerIdentifier: custId,
+        telegramUserId: tgUser?.dbUser?.id || (tgUser?.id && !isNaN(Number(tgUser.id)) ? Number(tgUser.id) : null),
+        severity: isBalance ? "warning" : "critical",
+        category: "order",
+        actionContext: `Shop Purchase (Product ID: ${req.body.productId}, Qty: ${req.body.quantity || 1})`,
+        errorMessage: message,
+        errorDetails: { body: req.body, error: err.stack || err.message }
+      }).catch(() => {});
       res.status(400).json({ message });
     }
   });
@@ -7746,6 +7816,10 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
     if (tgUser.dbUser?.id) targetUserId = tgUser.dbUser.id;
     else if (tgUser.id && !isNaN(Number(tgUser.id))) targetUserId = Number(tgUser.id);
 
+    let appliedPromo: any = null;
+    let finalCents = totalCents;
+    let finalLkr = totalLkr;
+
     // Fast Phase 1: Lock user row, deduct balance, decrement stock in an atomic DB transaction (duration: <5ms)
     const holdResult = await db.transaction(async (tx) => {
       let [u] = targetUserId
@@ -7753,22 +7827,76 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         : await tx.select().from(telegramUsers).where(eq(telegramUsers.telegramId, tgUser.id.toString())).for('update');
 
       if (!u) throw new Error("User account not found.");
+
+      // Check and apply coupon code if provided
+      const couponCode = req.body.couponCode;
+      if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+        const cleanCode = couponCode.trim().toUpperCase();
+        const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode)).for('update');
+        if (!promo || promo.status !== "active" || promo.usesCount >= promo.maxUses) {
+          throw new Error("Invalid or expired coupon code.");
+        }
+
+        const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
+          .from(promoCodeRedemptions)
+          .where(and(
+            eq(promoCodeRedemptions.telegramUserId, u.id),
+            eq(promoCodeRedemptions.promoCodeId, promo.id)
+          ))
+          .limit(1);
+
+        if (alreadyRedeemed) {
+          throw new Error("You have already used this coupon code.");
+        }
+
+        if (promo.applicableProduct && promo.applicableProduct !== 'all') {
+          const targetProd = String(promo.applicableProduct).toLowerCase();
+          const targetName = String(promo.applicableProductName || '').toLowerCase();
+          const prodTitle = String(product.title || '').toLowerCase();
+          const isMatch = targetProd === String(product.id) || targetProd === `sandro-${product.id}` || (targetName && prodTitle.includes(targetName)) || (prodTitle && targetProd && prodTitle.includes(targetProd));
+          if (!isMatch) {
+            throw new Error(`This coupon is only valid for ${promo.applicableProductName || 'specific products'}.`);
+          }
+        }
+
+        let discount = 0;
+        if (promo.discountType === "percentage") {
+          const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+          discount = Math.round((totalCents * pct) / 100);
+        } else {
+          discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
+        }
+        finalCents = Math.max(0, totalCents - discount);
+        finalLkr = Math.max(0, Math.round((finalCents / 100) * lkrRate));
+        appliedPromo = promo;
+
+        await tx.update(promoCodes).set({
+          usesCount: sql`${promoCodes.usesCount} + 1`,
+          status: sql`CASE WHEN ${promoCodes.usesCount} + 1 >= ${promoCodes.maxUses} THEN 'expired' ELSE ${promoCodes.status} END`
+        }).where(eq(promoCodes.id, promo.id));
+
+        await tx.insert(promoCodeRedemptions).values({
+          telegramUserId: u.id,
+          promoCodeId: promo.id,
+        });
+      }
+
       const effBalCents = u.balance != null ? u.balance : (u.balanceLkr ? Math.round((u.balanceLkr / lkrRate) * 100) : 0);
       const effBalLkr = u.balanceLkr != null && u.balanceLkr >= 0 ? u.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
 
       const isUsdOrder = req.body.platform === 'telegram' || req.body.currency === 'USD' || Boolean(req.headers['x-telegram-init-data']);
       const hasEnough = isUsdOrder
-        ? effBalCents >= totalCents
-        : (effBalLkr >= totalLkr || effBalCents >= totalCents);
+        ? effBalCents >= finalCents
+        : (effBalLkr >= finalLkr || effBalCents >= finalCents);
 
-      if (!hasEnough || effBalCents < totalCents) {
+      if (!hasEnough || effBalCents < finalCents) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient wallet balance. Total required: Rs. ${finalLkr.toLocaleString()} ($${(finalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
       // Deduct balance and ensure 100% synchronization
-      const remainingCents = Math.max(0, effBalCents - totalCents);
+      const remainingCents = Math.max(0, effBalCents - finalCents);
       const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
 
       const [updatedUser] = await tx
@@ -7781,8 +7909,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           and(
             eq(telegramUsers.id, u.id),
             or(
-              gte(telegramUsers.balance, totalCents),
-              gte(telegramUsers.balanceLkr, totalLkr)
+              gte(telegramUsers.balance, finalCents),
+              gte(telegramUsers.balanceLkr, finalLkr)
             )
           )
         )
@@ -7820,8 +7948,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       // Compensating Transaction: Refund user balance and restore local stock atomically
       await db.transaction(async (refundTx) => {
         await refundTx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} + ${totalCents}`,
-          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${totalLkr}`
+          balance: sql`${telegramUsers.balance} + ${finalCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${finalLkr}`
         }).where(eq(telegramUsers.id, user.id));
 
         await refundTx.update(sandromaniaProducts).set({
@@ -7988,6 +8116,17 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       newBalance: result.newBalance,
     });
   } catch (err: any) {
+    const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");
+    const isBalance = err.message?.includes("Insufficient") || err.message?.includes("balance");
+    recordCustomerError({
+      customerIdentifier: custId,
+      telegramUserId: tgUser?.dbUser?.id || (tgUser?.id && !isNaN(Number(tgUser.id)) ? Number(tgUser.id) : null),
+      severity: isBalance ? "warning" : "critical",
+      category: "order",
+      actionContext: "Sandromania Purchase",
+      errorMessage: err.message || "Failed to process Sandromania purchase.",
+      errorDetails: { body: req.body, error: err.stack || err.message }
+    }).catch(() => {});
     res.status(400).json({ message: err.message || "Failed to process Sandromania purchase." });
   }
 });
@@ -8124,6 +8263,12 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
 
     const totalCents = effectiveUsdCents * qty;
 
+    let appliedPromo: any = null;
+    let finalCents = totalCents;
+    let rates = await fetchLiveExchangeRates();
+    let lkrRate = rates.LKR || 305.50;
+    let finalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
+
     const result = await db.transaction(async (tx) => {
       let user = (
         await tx
@@ -8145,25 +8290,74 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         throw new Error("User account not found. Please log in first.");
       }
 
-      const rates = await fetchLiveExchangeRates();
-      const lkrRate = rates.LKR || 305.50;
-      const totalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
+      // Check and apply coupon code if provided
+      const couponCode = req.body.couponCode;
+      if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+        const cleanCode = couponCode.trim().toUpperCase();
+        const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode)).for('update');
+        if (!promo || promo.status !== "active" || promo.usesCount >= promo.maxUses) {
+          throw new Error("Invalid or expired coupon code.");
+        }
+
+        const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
+          .from(promoCodeRedemptions)
+          .where(and(
+            eq(promoCodeRedemptions.telegramUserId, user.id),
+            eq(promoCodeRedemptions.promoCodeId, promo.id)
+          ))
+          .limit(1);
+
+        if (alreadyRedeemed) {
+          throw new Error("You have already used this coupon code.");
+        }
+
+        if (promo.applicableProduct && promo.applicableProduct !== 'all') {
+          const targetProd = String(promo.applicableProduct).toLowerCase();
+          const targetName = String(promo.applicableProductName || '').toLowerCase();
+          const prodTitle = String(product.title || '').toLowerCase();
+          const isMatch = targetProd === String(product.id) || targetProd === `cssx-${product.id}` || (targetName && prodTitle.includes(targetName)) || (prodTitle && targetProd && prodTitle.includes(targetProd));
+          if (!isMatch) {
+            throw new Error(`This coupon is only valid for ${promo.applicableProductName || 'specific products'}.`);
+          }
+        }
+
+        let discount = 0;
+        if (promo.discountType === "percentage") {
+          const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+          discount = Math.round((totalCents * pct) / 100);
+        } else {
+          discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
+        }
+        finalCents = Math.max(0, totalCents - discount);
+        finalLkr = Math.max(0, Math.round((finalCents / 100) * lkrRate));
+        appliedPromo = promo;
+
+        await tx.update(promoCodes).set({
+          usesCount: sql`${promoCodes.usesCount} + 1`,
+          status: sql`CASE WHEN ${promoCodes.usesCount} + 1 >= ${promoCodes.maxUses} THEN 'expired' ELSE ${promoCodes.status} END`
+        }).where(eq(promoCodes.id, promo.id));
+
+        await tx.insert(promoCodeRedemptions).values({
+          telegramUserId: user.id,
+          promoCodeId: promo.id,
+        });
+      }
 
       const effBalCents = user.balance != null ? user.balance : (user.balanceLkr ? Math.round((user.balanceLkr / lkrRate) * 100) : 0);
       const effBalLkr = user.balanceLkr != null && user.balanceLkr >= 0 ? user.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
 
       const hasEnough = isTelegramOrder
-        ? effBalCents >= totalCents
-        : (effBalLkr >= totalLkr || effBalCents >= totalCents);
+        ? effBalCents >= finalCents
+        : (effBalLkr >= finalLkr || effBalCents >= finalCents);
 
-      if (!hasEnough || effBalCents < totalCents) {
+      if (!hasEnough || effBalCents < finalCents) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${totalLkr.toLocaleString()} ($${(totalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient wallet balance. Total required: Rs. ${finalLkr.toLocaleString()} ($${(finalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
       // Deduct balance and ensure 100% synchronization
-      const remainingCents = Math.max(0, effBalCents - totalCents);
+      const remainingCents = Math.max(0, effBalCents - finalCents);
       const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
 
       const [updatedUser] = await tx
@@ -8176,8 +8370,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
           and(
             eq(telegramUsers.id, user.id),
             or(
-              gte(telegramUsers.balance, totalCents),
-              gte(telegramUsers.balanceLkr, totalLkr)
+              gte(telegramUsers.balance, finalCents),
+              gte(telegramUsers.balanceLkr, finalLkr)
             )
           )
         )
@@ -8262,6 +8456,17 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       deliveryText: result.deliveryText,
     });
   } catch (err: any) {
+    const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");
+    const isBalance = err.message?.includes("Insufficient") || err.message?.includes("balance");
+    recordCustomerError({
+      customerIdentifier: custId,
+      telegramUserId: tgUser?.dbUser?.id || (tgUser?.id && !isNaN(Number(tgUser.id)) ? Number(tgUser.id) : null),
+      severity: isBalance ? "warning" : "critical",
+      category: "order",
+      actionContext: "CSxStore Purchase",
+      errorMessage: err.message || "Failed to process CSxStore purchase.",
+      errorDetails: { body: req.body, error: err.stack || err.message }
+    }).catch(() => {});
     res.status(400).json({ message: err.message || "Purchase failed" });
   }
 });
@@ -9413,6 +9618,36 @@ app.get("/api/admin/software-updates/:version/users", isAuth, async (req, res) =
   }
 });
 
+  // Advanced Customer Errors API
+  app.get("/api/admin/customer-errors", isAuth, async (req, res) => {
+    try {
+      const { customer, severity, status, limit } = req.query;
+      const logs = await storage.getCustomerErrorLogs({
+        customer: customer as string,
+        severity: severity as string,
+        status: status as string,
+        limit: limit ? parseInt(limit as string, 10) : 200
+      });
+      const stats = await storage.getCustomerErrorStats();
+      res.json({ logs, stats });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch customer errors" });
+    }
+  });
+
+  app.patch("/api/admin/customer-errors/:id", isAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { status, adminNotes } = req.body;
+      const updated = await storage.updateCustomerErrorLogStatus(id, status, adminNotes);
+      if (!updated) {
+        return res.status(404).json({ message: "Error log not found" });
+      }
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to update error log" });
+    }
+  });
 
 app.post("/api/settings", isAuth, async (req, res) => {
   try {
@@ -18658,7 +18893,7 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
 
           const rates = await fetchLiveExchangeRates();
           const lkrRate = rates.LKR || 305.50;
-          const creditLkr = Math.round((payment.amount / 100) * lkrRate);
+          const creditLkr = (payment as any).originalLkr || Math.round((payment.amount / 100) * lkrRate);
 
           await tx.update(telegramUsers).set({
             balance: user.balance + payment.amount,

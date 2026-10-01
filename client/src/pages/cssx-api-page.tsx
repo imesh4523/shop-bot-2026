@@ -1195,6 +1195,23 @@ export default function CssxApiPage() {
                 />
               </div>
 
+              {/* Product Description */}
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">
+                  Product Description (Shown on YouuHost Web Store)
+                </label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Enter item description, warranty details, features, or instructions..."
+                  rows={3}
+                  className="w-full text-xs rounded-xl p-2.5 bg-background border border-border/80 text-foreground resize-y focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  This description will be displayed directly in the product sheet on YouuHost web store.
+                </span>
+              </div>
+
               {/* Pricing USD & LKR */}
               <div className="grid grid-cols-2 gap-3">
                 <div>

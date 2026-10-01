@@ -88,6 +88,7 @@ export const payments = pgTable("payments", {
   cryptomusUuid: text("cryptomus_uuid"),
   txid: text("txid"),
   expectedCryptoAmount: text("expected_crypto_amount"),
+  originalLkr: integer("original_lkr"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -769,4 +770,25 @@ export const softwareUpdateInteractions = pgTable("software_update_interactions"
 export const insertSoftwareUpdateInteractionSchema = createInsertSchema(softwareUpdateInteractions).omit({ id: true, updatedAt: true });
 export type SoftwareUpdateInteraction = typeof softwareUpdateInteractions.$inferSelect;
 export type InsertSoftwareUpdateInteraction = z.infer<typeof insertSoftwareUpdateInteractionSchema>;
+
+// Customer Error Logs (Advanced Error Checker)
+export const customerErrorLogs = pgTable("customer_error_logs", {
+  id: serial("id").primaryKey(),
+  customerIdentifier: text("customer_identifier").notNull(),
+  telegramUserId: integer("telegram_user_id"),
+  severity: text("severity").notNull().default("warning"), // 'critical' | 'warning' | 'info'
+  category: text("category").notNull().default("general"), // 'order' | 'payment' | 'delivery' | 'wallet' | 'auth' | 'api'
+  actionContext: text("action_context"),
+  errorMessage: text("error_message").notNull(),
+  errorDetails: text("error_details"),
+  status: text("status").notNull().default("unresolved"), // 'unresolved' | 'investigating' | 'resolved'
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertCustomerErrorLogSchema = createInsertSchema(customerErrorLogs).omit({ id: true, createdAt: true });
+export type CustomerErrorLog = typeof customerErrorLogs.$inferSelect;
+export type InsertCustomerErrorLog = z.infer<typeof insertCustomerErrorLogSchema>;
+
 

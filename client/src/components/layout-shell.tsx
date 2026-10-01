@@ -31,6 +31,7 @@ import {
   Mail,
   Sparkles,
   Flame,
+  AlertOctagon,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Store Mesh Connect', href: '/imeshadmindashbord/store-mesh', icon: Network },
     { name: 'Pre-Orders', href: '/imeshadmindashbord/preorders', icon: Clock },
     { name: 'Customer Audit & Fix', href: '/imeshadmindashbord/customer-tracker', icon: ShieldCheck },
+    { name: '🚨 Advanced Error Checker', href: '/imeshadmindashbord/error-checker', icon: AlertOctagon, highlight: true },
     { name: 'Update Reports & Trace', href: '/imeshadmindashbord/software-updates', icon: Sparkles, highlight: true },
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },

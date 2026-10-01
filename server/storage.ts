@@ -65,7 +65,10 @@ import {
   type SoftwareUpdateLog,
   type InsertSoftwareUpdateLog,
   type SoftwareUpdateInteraction,
-  type InsertSoftwareUpdateInteraction
+  type InsertSoftwareUpdateInteraction,
+  customerErrorLogs,
+  type CustomerErrorLog,
+  type InsertCustomerErrorLog
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -210,6 +213,10 @@ export interface IStorage {
   getLatestSoftwareUpdateVersion(): Promise<string | null>;
   recordSoftwareUpdateInteraction(interaction: InsertSoftwareUpdateInteraction): Promise<SoftwareUpdateInteraction>;
   getSoftwareUpdateInteractions(version?: string): Promise<SoftwareUpdateInteraction[]>;
+  createCustomerErrorLog(log: InsertCustomerErrorLog): Promise<CustomerErrorLog>;
+  getCustomerErrorLogs(filter?: { customer?: string; severity?: string; status?: string; limit?: number }): Promise<CustomerErrorLog[]>;
+  updateCustomerErrorLogStatus(id: number, status: string, notes?: string): Promise<CustomerErrorLog | null>;
+  getCustomerErrorStats(): Promise<{ total: number; critical: number; unresolved: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1194,6 +1201,68 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(softwareUpdateInteractions)
       .orderBy(desc(softwareUpdateInteractions.updatedAt));
+  }
+
+  async createCustomerErrorLog(log: InsertCustomerErrorLog): Promise<CustomerErrorLog> {
+    const [created] = await db.insert(customerErrorLogs).values(log).returning();
+    return created;
+  }
+
+  async getCustomerErrorLogs(filter?: { customer?: string; severity?: string; status?: string; limit?: number }): Promise<CustomerErrorLog[]> {
+    const conditions: any[] = [];
+    if (filter?.customer && filter.customer.trim()) {
+      const q = `%${filter.customer.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          sql`LOWER(${customerErrorLogs.customerIdentifier}) LIKE ${q}`,
+          sql`LOWER(${customerErrorLogs.errorMessage}) LIKE ${q}`,
+          sql`LOWER(COALESCE(${customerErrorLogs.actionContext}, '')) LIKE ${q}`
+        )
+      );
+    }
+    if (filter?.severity && filter.severity !== 'all') {
+      conditions.push(eq(customerErrorLogs.severity, filter.severity));
+    }
+    if (filter?.status && filter.status !== 'all') {
+      conditions.push(eq(customerErrorLogs.status, filter.status));
+    }
+
+    let query = db.select().from(customerErrorLogs);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    const maxLimit = filter?.limit || 200;
+    return await query.orderBy(desc(customerErrorLogs.id)).limit(maxLimit);
+  }
+
+  async updateCustomerErrorLogStatus(id: number, status: string, notes?: string): Promise<CustomerErrorLog | null> {
+    const updateData: any = { status };
+    if (status === 'resolved') {
+      updateData.resolvedAt = new Date();
+    }
+    if (notes !== undefined) {
+      updateData.adminNotes = notes;
+    }
+    const [updated] = await db.update(customerErrorLogs)
+      .set(updateData)
+      .where(eq(customerErrorLogs.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async getCustomerErrorStats(): Promise<{ total: number; critical: number; unresolved: number }> {
+    const all = await db.select({
+      severity: customerErrorLogs.severity,
+      status: customerErrorLogs.status
+    }).from(customerErrorLogs);
+    
+    let critical = 0;
+    let unresolved = 0;
+    for (const row of all) {
+      if (row.severity === 'critical') critical++;
+      if (row.status !== 'resolved') unresolved++;
+    }
+    return { total: all.length, critical, unresolved };
   }
 }
 

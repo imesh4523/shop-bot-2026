@@ -2638,6 +2638,8 @@ Support: https://t.me/youuhost_support
     try {
       const res = await miniApiRequest("POST", "/api/mini/deposit/cryptomus", {
         amount: effectiveUsd,
+        currency: selectedCurrency,
+        originalLkr: selectedCurrency === "LKR" ? parseFloat(cryptomusAmount || "0") : null,
       });
       const data = await res.json();
       if (res.ok && data.url) {
@@ -2708,6 +2710,8 @@ Support: https://t.me/youuhost_support
         amount: usdNum,
         orderId: binanceTxId.trim(),
         txId: binanceTxId.trim(),
+        currency: selectedCurrency,
+        originalLkr: selectedCurrency === "LKR" ? parseFloat(binanceAmount || "0") : null,
       });
       const data = await res.json();
       const elapsed = Date.now() - startTime;
@@ -3454,6 +3458,7 @@ Support: https://t.me/youuhost_support
         quantity: sandromaniaOrderQty,
         currency: isTelegram ? "USD" : selectedCurrency,
         platform: isTelegram ? "telegram" : "web",
+        couponCode: appliedCoupon?.code || undefined,
       });
       await res.json();
       recordPurchasedDelta(`sandromania_${detailSandromaniaProduct.id}`, sandromaniaOrderQty);
@@ -3567,6 +3572,7 @@ Support: https://t.me/youuhost_support
         quantity: cssxOrderQty,
         currency: isTelegram ? "USD" : selectedCurrency,
         platform: isTelegram ? "telegram" : "web",
+        couponCode: appliedCoupon?.code || undefined,
       });
       await res.json();
       recordPurchasedDelta(`cssx_${detailCssxProduct.id}`, cssxOrderQty);
@@ -3596,15 +3602,34 @@ Support: https://t.me/youuhost_support
 
   // Coupon Code Handlers
   const handleApplyCoupon = async () => {
-    if (!detailProduct || !couponCodeInput.trim()) return;
+    if (!couponCodeInput.trim()) return;
+    let targetPriceCents = 0;
+    let targetProdId: any = null;
+    let targetProdName = "";
+
+    if (detailProduct) {
+      targetPriceCents = detailProduct.price * quantity;
+      targetProdId = detailProduct.id;
+      targetProdName = detailProduct.name;
+    } else if (detailSandromaniaProduct) {
+      targetPriceCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+      targetProdId = `sandro-${detailSandromaniaProduct.id}`;
+      targetProdName = detailSandromaniaProduct.title;
+    } else if (detailCssxProduct) {
+      targetPriceCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+      targetProdId = `cssx-${detailCssxProduct.id}`;
+      targetProdName = detailCssxProduct.title;
+    } else {
+      return;
+    }
+
     setIsValidatingCoupon(true);
     try {
-      const totalPriceCents = detailProduct.price * quantity;
       const res = await miniApiRequest("POST", "/api/mini/validate-coupon", {
         code: couponCodeInput.trim(),
-        amountCents: totalPriceCents,
-        productId: detailProduct.id,
-        productName: detailProduct.name
+        amountCents: targetPriceCents,
+        productId: targetProdId,
+        productName: targetProdName
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -7797,18 +7822,92 @@ Support: https://t.me/youuhost_support
                   <div className="text-right">
                     <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
                     <span className="text-sm font-black text-[#181432]">
-                      {formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)}
+                      {appliedCoupon ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="line-through text-xs text-slate-400 font-bold">
+                            {formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)}
+                          </span>
+                          <span className="text-emerald-600 font-black">
+                            {formatCouponPrice(appliedCoupon)}
+                          </span>
+                        </span>
+                      ) : (
+                        formatSandromaniaPrice(detailSandromaniaProduct, sandromaniaOrderQty)
+                      )}
                     </span>
                   </div>
                 </div>
 
-                {/* Instant Auto-Delivery Note */}
-                <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs">
+                {/* Product Description / Instant Auto-Delivery Note */}
+                <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-3 flex items-start gap-2.5 shadow-xs">
                   <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-emerald-950">
-                    <span className="font-extrabold block">Instant Auto-Fulfillment</span>
-                    Your license key / digital CDK will be generated immediately and stored in your <b>Orders</b> tab with 1-click copy.
+                  <div className="text-[11px] text-emerald-950 flex-1">
+                    <span className="font-extrabold block">
+                      {detailSandromaniaProduct.description ? "Product Description & Details" : "Instant Auto-Fulfillment"}
+                    </span>
+                    {detailSandromaniaProduct.description ? (
+                      <p className="whitespace-pre-line leading-relaxed text-[#2D2A4A] mt-1 font-medium text-[11px]">
+                        {detailSandromaniaProduct.description}
+                      </p>
+                    ) : (
+                      <span>Your license key / digital CDK will be generated immediately and stored in your <b>Orders</b> tab with 1-click copy.</span>
+                    )}
                   </div>
+                </div>
+
+                {/* Promo / Coupon Code Section */}
+                <div className="bg-[#FAF9FE] rounded-2xl p-2.5 border border-[#ECEEF8] mb-3">
+                  {!appliedCoupon ? (
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="w-3.5 h-3.5 text-[#6C5CE7] absolute left-2.5 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Add Coupon Code..."
+                          value={couponCodeInput}
+                          onChange={(e) => setCouponCodeInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                          className="w-full bg-white border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono uppercase text-[#181432] placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-[#6C5CE7]"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={isValidatingCoupon || !couponCodeInput.trim()}
+                        className="px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5B42F3] text-white rounded-xl text-xs font-bold shrink-0 disabled:opacity-50 transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        {isValidatingCoupon ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          "Apply"
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
+                          <span className="text-emerald-700 font-semibold ml-1.5">
+                            (-{formatCouponDiscount(appliedCoupon)})
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-xs font-bold text-emerald-700 hover:text-red-600 underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Balance Check Notice */}
@@ -7880,7 +7979,7 @@ Support: https://t.me/youuhost_support
                       </>
                     ) : (
                       <>
-                        <ShopBagIcon className="w-4 h-4" /> Buy Now (Auto Delivery) 🚀
+                        <ShopBagIcon className="w-4 h-4" /> Buy Now {appliedCoupon ? `• ${formatCouponPrice(appliedCoupon)}` : `(Auto Delivery)`} 🚀
                       </>
                     )}
                   </button>
@@ -8027,18 +8126,92 @@ Support: https://t.me/youuhost_support
                   <div className="text-right">
                     <span className="text-xs font-bold text-[#7E7998] mr-1.5">Total:</span>
                     <span className="text-sm font-black text-[#181432]">
-                      {formatCssxPrice(detailCssxProduct, cssxOrderQty)}
+                      {appliedCoupon ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="line-through text-xs text-slate-400 font-bold">
+                            {formatCssxPrice(detailCssxProduct, cssxOrderQty)}
+                          </span>
+                          <span className="text-purple-600 font-black">
+                            {formatCouponPrice(appliedCoupon)}
+                          </span>
+                        </span>
+                      ) : (
+                        formatCssxPrice(detailCssxProduct, cssxOrderQty)
+                      )}
                     </span>
                   </div>
                 </div>
 
-                {/* Instant Auto-Delivery Note */}
-                <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-3 mb-4 flex items-start gap-2.5 shadow-xs">
+                {/* Product Description / Instant Auto-Delivery Note */}
+                <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-3 mb-3 flex items-start gap-2.5 shadow-xs">
                   <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-purple-950">
-                    <span className="font-extrabold block">Instant Auto-Fulfillment</span>
-                    Your license key / digital CDK will be generated immediately and stored in your <b>Orders</b> tab with 1-click copy.
+                  <div className="text-[11px] text-purple-950 flex-1">
+                    <span className="font-extrabold block">
+                      {detailCssxProduct.description ? "Product Description & Details" : "Instant Auto-Fulfillment"}
+                    </span>
+                    {detailCssxProduct.description ? (
+                      <p className="whitespace-pre-line leading-relaxed text-[#2D2A4A] mt-1 font-medium text-[11px]">
+                        {detailCssxProduct.description}
+                      </p>
+                    ) : (
+                      <span>Your license key / digital CDK will be generated immediately and stored in your <b>Orders</b> tab with 1-click copy.</span>
+                    )}
                   </div>
+                </div>
+
+                {/* Promo / Coupon Code Section */}
+                <div className="bg-[#FAF9FE] rounded-2xl p-2.5 border border-[#ECEEF8] mb-3">
+                  {!appliedCoupon ? (
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="w-3.5 h-3.5 text-[#6C5CE7] absolute left-2.5 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Add Coupon Code..."
+                          value={couponCodeInput}
+                          onChange={(e) => setCouponCodeInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                          className="w-full bg-white border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono uppercase text-[#181432] placeholder:text-slate-400 placeholder:normal-case focus:outline-none focus:border-[#6C5CE7]"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={isValidatingCoupon || !couponCodeInput.trim()}
+                        className="px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5B42F3] text-white rounded-xl text-xs font-bold shrink-0 disabled:opacity-50 transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        {isValidatingCoupon ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          "Apply"
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-mono font-bold text-emerald-800">{appliedCoupon.code}</span>
+                          <span className="text-emerald-700 font-semibold ml-1.5">
+                            (-{formatCouponDiscount(appliedCoupon)})
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-xs font-bold text-emerald-700 hover:text-red-600 underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Balance Check Notice */}
@@ -8110,7 +8283,7 @@ Support: https://t.me/youuhost_support
                       </>
                     ) : (
                       <>
-                        <ShopBagIcon className="w-4 h-4" /> Buy Now (Auto Delivery) 🚀
+                        <ShopBagIcon className="w-4 h-4" /> Buy Now {appliedCoupon ? `• ${formatCouponPrice(appliedCoupon)}` : `(Auto Delivery)`} 🚀
                       </>
                     )}
                   </button>

@@ -37,6 +37,7 @@ import N1PanelPage from "@/pages/n1panel-page";
 import SandromaniaPage from "@/pages/sandromania-page";
 import CssxApiPage from "@/pages/cssx-api-page";
 import SoftwareUpdatesPage from "@/pages/software-updates-page";
+import AdvancedErrorCheckerPage from "@/pages/advanced-error-checker-page";
 import DomainAutomationPage from "@/pages/domain-automation-page";
 import StoreMeshPage from "@/pages/store-mesh-page";
 import PayHereGatewayPage from "@/pages/payhere-gateway-page";
@@ -236,6 +237,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/cssx-api">
         <ProtectedRoute component={CssxApiPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/error-checker">
+        <ProtectedRoute component={AdvancedErrorCheckerPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/software-updates">
