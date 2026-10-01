@@ -237,28 +237,20 @@ export function AdminMaintenancePage() {
 
       {/* Live Preview Box when toggled */}
       {isPreviewMode && (
-        <Card className="border border-cyan-500/30 bg-slate-950/90 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <CardHeader className="bg-cyan-500/10 border-b border-cyan-500/20 py-2.5 px-4 flex flex-row items-center justify-between">
-            <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5" /> Live Preview: What non-whitelisted users see right now
+        <Card className="border border-border/40 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <CardHeader className="bg-slate-100/80 border-b border-slate-200 py-2.5 px-4 flex flex-row items-center justify-between">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-cyan-600" /> Live Preview: What visitors see when maintenance is active
             </span>
             <button
               onClick={() => setIsPreviewMode(false)}
-              className="text-xs text-muted-foreground hover:text-white"
+              className="text-xs text-slate-500 hover:text-slate-800 font-medium"
             >
               Close
             </button>
           </CardHeader>
-          <CardContent className="p-8 flex flex-col items-center text-center">
-            <LottieMaintenance size={220} />
-            <h2 className="text-2xl font-black text-white mt-2">{title || "Scheduled Maintenance"}</h2>
-            <p className="text-sm text-slate-300 max-w-md mt-2">{message}</p>
-            {estimatedEnd && (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300 mt-4">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                Estimated: {estimatedEnd}
-              </div>
-            )}
+          <CardContent className="p-10 flex flex-col items-center justify-center text-center bg-white min-h-[360px]">
+            <LottieMaintenance size={280} className="max-w-full" />
           </CardContent>
         </Card>
       )}
