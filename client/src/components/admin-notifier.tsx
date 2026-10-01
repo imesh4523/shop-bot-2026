@@ -48,21 +48,40 @@ export function AdminNotifier() {
     });
 
     // 2. Native Web Push (VAPID) for background notifications
-    const setupNativePush = async () => {
+    const setupNativePush = async (promptUser: boolean = false) => {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push notifications not supported by browser');
         return;
       }
 
       try {
+        if (!window.Notification) return;
+
+        let perm = window.Notification.permission;
+        if (perm !== 'granted') {
+          if (!promptUser) return;
+          perm = await window.Notification.requestPermission();
+        }
+
+        if (perm !== 'granted') {
+          console.warn('[PUSH] Notification permission not granted:', perm);
+          if (promptUser) {
+            toast({
+              title: "Permission Denied",
+              description: "Please allow notifications in your browser settings to receive order alerts.",
+              variant: "destructive"
+            });
+          }
+          return;
+        }
+
         // Register Service Worker
         const registration = await navigator.serviceWorker.register('/sw.js');
-        
-        // Wait for it to be active
         await navigator.serviceWorker.ready;
 
         // Get Public VAPID Key
         const res = await fetch('/api/admin/push-key');
+        if (!res.ok) return;
         const { publicKey } = await res.json();
         if (!publicKey) return;
 
@@ -79,15 +98,10 @@ export function AdminNotifier() {
             userVisibleOnly: true,
             applicationServerKey
           });
-          console.log('User subscribed to push');
-          
-          toast({
-            title: "Notifications Enabled",
-            description: "You will now receive native push notifications for orders.",
-          });
+          console.log('[PUSH] User subscribed to push');
         }
 
-        // Send subscription to backend
+        // Always sync subscription to backend
         console.log('[PUSH] Sending subscription to server...');
         const subRes = await fetch('/api/admin/subscribe', {
           method: 'POST',
@@ -97,27 +111,35 @@ export function AdminNotifier() {
 
         if (subRes.ok) {
           console.log('[PUSH] Server acknowledged subscription');
+          if (promptUser) {
+            toast({
+              title: "Push Notifications Enabled ✅",
+              description: "You will now receive native push notifications for orders, deposits, and tickets.",
+            });
+          }
         } else {
           console.error('[PUSH] Server failed to save subscription:', await subRes.text());
         }
 
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to setup native push:', err);
-        toast({
-          title: "Push Setup Failed",
-          description: "Check browser console for details.",
-          variant: "destructive"
-        });
+        if (promptUser) {
+          toast({
+            title: "Push Setup Failed",
+            description: err?.message || "Check browser notification permissions.",
+            variant: "destructive"
+          });
+        }
       }
     };
 
     // Listen for manual trigger
-    const handleTrigger = () => setupNativePush();
+    const handleTrigger = () => setupNativePush(true);
     window.addEventListener('trigger-push-setup', handleTrigger);
 
-    // Initial attempt (might fail if permission not granted yet)
+    // Initial attempt if permission is already granted
     if (window.Notification && window.Notification.permission === 'granted') {
-      setupNativePush();
+      setupNativePush(false);
     }
 
     return () => {

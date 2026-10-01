@@ -4134,8 +4134,13 @@ export async function registerRoutes(
   app.post("/api/internal/payment-success", async (req, res) => {
     try {
       const { paymentId, secret, method, cardNo, cardHolderName } = req.body;
-      const expectedSecret = process.env.INTERNAL_WEBHOOK_SECRET || "youuhost_internal_secret_2026";
-      if (!secret || typeof secret !== "string" || secret !== expectedSecret) {
+      const expectedSecret = process.env.INTERNAL_WEBHOOK_SECRET;
+      if (!expectedSecret || !secret || typeof secret !== "string") {
+        return res.status(403).json({ message: "Invalid internal secret configuration" });
+      }
+      const secretBuf = Buffer.from(secret);
+      const expectedBuf = Buffer.from(expectedSecret);
+      if (secretBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(secretBuf, expectedBuf)) {
         return res.status(403).json({ message: "Invalid internal secret" });
       }
       const numId = parseInt(paymentId, 10);
@@ -5919,8 +5924,10 @@ const getBotToken = async () => {
 };
 
 const getInspectorBotToken = async () => {
+  const adminSetting = await storage.getSetting("ADMIN_BOT_TOKEN");
+  if (adminSetting?.value && adminSetting.value.trim()) return adminSetting.value.trim();
   const setting = await storage.getSetting("INSPECTOR_BOT_TOKEN");
-  return setting?.value || process.env.INSPECTOR_BOT_TOKEN || "8597932397:AAEweM3gKQpDKFx0OJzdHdtIBbQ2ZVLR448";
+  return setting?.value || process.env.ADMIN_BOT_TOKEN || process.env.INSPECTOR_BOT_TOKEN || "8597932397:AAEweM3gKQpDKFx0OJzdHdtIBbQ2ZVLR448";
 };
 
 const getBroadcastBot = async () => {
@@ -9278,14 +9285,119 @@ app.post("/api/broadcast/availability", isAuth, async (req, res) => {
   }
 });
 
+app.post("/api/admin/broadcast-software-update", isAuth, async (req, res) => {
+  try {
+    const { version = "4.1v" } = req.body;
+    const broadcastBot = await getBroadcastBot() || bot;
+    if (!broadcastBot) {
+      return res.status(400).json({ message: "Bot not initialized" });
+    }
+
+    const updateMsg = `<b>New software update available</b> <tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>\n\n` +
+      `<blockquote><b>${version}</b> <tg-emoji emoji-id="5904258298764334001">⚙️</tg-emoji><tg-emoji emoji-id="6267008582294705964">✅</tg-emoji></blockquote>\n\n` +
+      `<tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji>`;
+
+    const updateKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: 'Update now',
+            callback_data: 'update_now_start',
+            style: 'success',
+            icon_custom_emoji_id: '5904258298764334001'
+          }
+        ]
+      ]
+    };
+
+    const users = await storage.getAllTelegramUsers();
+    const targets = users.map(u => u.telegramId).filter(Boolean);
+
+    let countSent = 0;
+    for (const targetId of targets) {
+      try {
+        await broadcastBot.sendMessage(targetId, updateMsg, {
+          parse_mode: 'HTML',
+          reply_markup: updateKeyboard,
+          message_effect_id: '5046509860389126442'
+        });
+        countSent++;
+      } catch (err: any) {
+        // Silently continue if user blocked bot
+      }
+    }
+
+    try {
+      await storage.createSoftwareUpdateLog({
+        version,
+        title: `Software Update ${version}`,
+        description: `Broadcasted to ${countSent} users via Admin Dashboard`,
+        recipientCount: countSent,
+        adminChatId: 'admin_dashboard',
+      });
+    } catch (logErr) {
+      console.error("Failed to log software update broadcast:", logErr);
+    }
+
+    res.json({ success: true, count: countSent, version });
+  } catch (err: any) {
+    console.error('Software update broadcast error:', err);
+    res.status(500).json({ message: err.message || "Failed to broadcast software update" });
+  }
+});
+
+// Admin Software Update Reports Endpoints
+app.get("/api/admin/software-updates", isAuth, async (_req, res) => {
+  try {
+    const logs = await storage.getSoftwareUpdateLogs();
+    const allInteractions = await storage.getSoftwareUpdateInteractions();
+    
+    const countsByVersion: Record<string, number> = {};
+    allInteractions.forEach(i => {
+      countsByVersion[i.version] = (countsByVersion[i.version] || 0) + 1;
+    });
+
+    const enriched = logs.map(l => ({
+      ...l,
+      updatedCount: countsByVersion[l.version] || 0
+    }));
+
+    res.json(enriched);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch software update logs" });
+  }
+});
+
+app.get("/api/admin/software-updates/:version/users", isAuth, async (req, res) => {
+  try {
+    const { version } = req.params;
+    const interactions = await storage.getSoftwareUpdateInteractions(version);
+    res.json(interactions);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch updated users" });
+  }
+});
+
+
 app.post("/api/settings", isAuth, async (req, res) => {
   try {
     const { key, value } = req.body;
     const updated = await storage.updateSetting(key, value);
 
     // Re-initialize bot if token changed
-    if (key === "TELEGRAM_BOT_TOKEN" || key === "BROADCAST_BOT_TOKEN" || key === "INSPECTOR_BOT_TOKEN") {
+    if (key === "TELEGRAM_BOT_TOKEN" || key === "BROADCAST_BOT_TOKEN" || key === "INSPECTOR_BOT_TOKEN" || key === "ADMIN_BOT_TOKEN") {
       await initBot();
+    }
+    if (key === "ADMIN_BOT_TOKEN" || key === "INSPECTOR_BOT_TOKEN") {
+      console.log(`[SETTINGS] ${key} updated, syncing and re-initializing Admin Bot Controller...`);
+      await storage.updateSetting("INSPECTOR_BOT_TOKEN", value).catch(() => {});
+      await storage.updateSetting("ADMIN_BOT_TOKEN", value).catch(() => {});
+      try {
+        const { initAdminBotController } = await import("./admin-bot-controller");
+        await initAdminBotController(true);
+      } catch (e) {
+        console.error("[SETTINGS] Error re-initializing admin bot controller:", e);
+      }
     } else if (key === "VAPID_PUBLIC_KEY" || key === "VAPID_PRIVATE_KEY" || key === "VAPID_SUBJECT") {
       const { initPushNotifications } = await import("./push-notifications");
       await initPushNotifications();
@@ -9314,7 +9426,8 @@ app.get("/api/settings/:key", async (req, res, next) => {
     'MINI_APP_URL', 'BOT_ABOUT_TEXT', 'BOT_DESCRIPTION_TEXT', 'REVIEWS_CHANNEL_URL',
     'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME', 'HERO_BANNERS_CONFIG', 'TERMS_AND_CONDITIONS'
   ];
-  if (!publicKeys.includes(req.params.key) && !req.isAuthenticated()) {
+  const isAuthorized = !!req.session?.userId || (typeof req.isAuthenticated === 'function' && req.isAuthenticated());
+  if (!publicKeys.includes(req.params.key) && !isAuthorized) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   try {
@@ -10097,7 +10210,10 @@ async function initBot() {
       broadcastBot = null;
     }
 
-    if (inspectorToken && inspectorToken !== token) {
+    const adminTokenSetting = await storage.getSetting("ADMIN_BOT_TOKEN");
+    const adminToken = adminTokenSetting?.value?.trim();
+
+    if (inspectorToken && inspectorToken !== token && inspectorToken !== adminToken) {
       if (inspectorBot) {
         console.log('Stopping existing inspector bot...');
         await inspectorBot.stopPolling().catch(() => {});
@@ -10124,12 +10240,15 @@ async function initBot() {
       patchBotMethods(inspectorBot);
       setupInspectorBotHandlers(inspectorBot);
       console.log(`Dedicated Inspector bot initialized successfully (Token hash: ${inspectorToken.substring(0, 10)}...)`);
-    } else if (bot && inspectorToken === token) {
-      setupInspectorBotHandlers(bot);
-      console.log(`Main bot also attached with Inspector handlers (Shared token: ${token.substring(0, 10)}...)`);
-    } else if (inspectorBot) {
-      await inspectorBot.stopPolling().catch(() => {});
-      inspectorBot = null;
+    } else {
+      if (inspectorBot) {
+        await inspectorBot.stopPolling().catch(() => {});
+        inspectorBot = null;
+      }
+      if (bot && inspectorToken === token) {
+        setupInspectorBotHandlers(bot);
+        console.log(`Main bot also attached with Inspector handlers (Shared token: ${token.substring(0, 10)}...)`);
+      }
     }
   } catch (err) {
     console.error('Telegram bot init failed:', err);
@@ -10263,7 +10382,7 @@ const getPersistentBottomKeyboard = () => {
     return {
       keyboard: [
         [{ text: 'Catalog', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-        [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+        [{ text: 'Profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }],
         [
           { text: 'Useful links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
           { text: 'Support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
@@ -10279,17 +10398,8 @@ const getPersistentBottomKeyboard = () => {
   };
 };
 
-const dismissKeyboardIfDisabled = async (targetBot: TelegramBot, chatId: number | string) => {
-  if (!ENABLE_BOTTOM_KEYBOARD) {
-    try {
-      const msg = await targetBot.sendMessage(chatId, '⚙️', { reply_markup: { remove_keyboard: true } });
-      if (msg?.message_id) {
-        targetBot.deleteMessage(chatId, msg.message_id).catch(() => {});
-      }
-    } catch (err: any) {
-      console.error('dismissKeyboardIfDisabled error:', err?.message || err);
-    }
-  }
+const dismissKeyboardIfDisabled = async (_targetBot: TelegramBot, _chatId: number | string) => {
+  // No-op: Do not send dummy '⚙️' message that flashes and deletes on user screen
 };
 
 const sendAutoDeleteError = async (
@@ -10568,7 +10678,7 @@ const sendUserProfileCard = async (targetBot: TelegramBot, chatId: number, userI
   const { formatted: convertedBal } = formatPriceInCurrency(userBalNum, currCurrency);
   const balanceText = currCurrency === 'USD' ? `${balanceUSD} USD` : `${balanceUSD} USD (${convertedBal})`;
 
-  const profileCaption = `👤 <b>Profile</b>\n\n` +
+  const profileCaption = `<tg-emoji emoji-id="6032693626394382504">💠</tg-emoji> <b>Profile</b>\n\n` +
     `ID: <code>${userToDisplay.telegramId}</code>\n` +
     `<tg-emoji emoji-id="5424746623462823358">🏅</tg-emoji> Status: ${statusText}\n` +
     `<tg-emoji emoji-id="5429518319243775957">📊</tg-emoji> Balance: <b>${balanceText} </b><tg-emoji emoji-id="5409048419211682843">💲</tg-emoji>\n` +
@@ -10957,27 +11067,75 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     userPreorders = tgUser ? allPreorders.filter(po => po.telegramUserId === tgUser.id) : [];
   } catch (e) {}
 
-  const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id || String(o.telegramUserId) === tgUser.telegramId || String(o.telegramUserId) === userId) : [];
-  userOrders.sort((a, b) => (b.id || 0) - (a.id || 0));
+  let userSandroOrders: any[] = [];
+  try {
+    userSandroOrders = tgUser ? await db.select({
+      id: sandromaniaOrders.id,
+      productTitle: sandromaniaOrders.productTitle,
+      quantity: sandromaniaOrders.quantity,
+      deliveryText: sandromaniaOrders.deliveryText,
+      createdAt: sandromaniaOrders.createdAt,
+      customEmojiId: sandromaniaProducts.customEmojiId
+    })
+    .from(sandromaniaOrders)
+    .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
+    .where(eq(sandromaniaOrders.telegramUserId, tgUser.id)) : [];
+  } catch (e) {
+    console.error('[sendMyPurchasesScreen sandro error]:', e);
+  }
 
-  const itemsList: { id: number; productId: number; quantity: number; isPreorder: boolean; createdAt: Date }[] = [];
+  let userCssxOrders: any[] = [];
+  try {
+    userCssxOrders = tgUser ? await db.select({
+      id: cssxOrders.id,
+      productTitle: cssxOrders.productTitle,
+      quantity: cssxOrders.quantity,
+      deliveryText: cssxOrders.deliveryText,
+      createdAt: cssxOrders.createdAt,
+      customEmojiId: cssxProducts.customEmojiId
+    })
+    .from(cssxOrders)
+    .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
+    .where(eq(cssxOrders.telegramUserId, tgUser.id)) : [];
+  } catch (e) {
+    console.error('[sendMyPurchasesScreen cssx error]:', e);
+  }
+
+  interface PurchaseListItem {
+    id: number;
+    type: 'standard' | 'sandromania' | 'cssx' | 'preorder';
+    productId?: number;
+    name: string;
+    quantity: number;
+    isPreorder: boolean;
+    customEmojiId?: string | null;
+    createdAt: Date;
+  }
+
+  const itemsList: PurchaseListItem[] = [];
 
   for (const po of userPreorders) {
     if (po.status === 'pending_fulfillment') {
+      const prod = await storage.getProduct(po.productId);
       itemsList.push({
         id: po.id,
+        type: 'preorder',
         productId: po.productId,
+        name: prod?.name || `Product #${po.productId}`,
         quantity: po.quantity,
         isPreorder: true,
+        customEmojiId: prod?.customEmojiId || null,
         createdAt: po.createdAt ? new Date(po.createdAt) : new Date()
       });
     }
   }
 
+  const userOrders = tgUser ? allOrders.filter(o => o.telegramUserId === tgUser.id || String(o.telegramUserId) === tgUser.telegramId || String(o.telegramUserId) === userId) : [];
+
   for (const order of userOrders) {
     const orderTime = order.createdAt ? new Date(order.createdAt).getTime() : 0;
     const existingBatch = itemsList.find(b =>
-      !b.isPreorder &&
+      b.type === 'standard' &&
       b.productId === order.productId &&
       orderTime > 0 &&
       Math.abs(b.createdAt.getTime() - orderTime) <= 60000
@@ -10986,17 +11144,45 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     if (existingBatch) {
       existingBatch.quantity += 1;
     } else {
+      const prod = await storage.getProduct(order.productId);
       itemsList.push({
         id: order.id,
+        type: 'standard',
         productId: order.productId,
+        name: prod?.name || `Product #${order.productId}`,
         quantity: 1,
         isPreorder: false,
+        customEmojiId: prod?.customEmojiId || null,
         createdAt: order.createdAt ? new Date(order.createdAt) : new Date()
       });
     }
   }
 
-  itemsList.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+  for (const sOrder of userSandroOrders) {
+    itemsList.push({
+      id: sOrder.id,
+      type: 'sandromania',
+      name: sOrder.productTitle,
+      quantity: sOrder.quantity || 1,
+      isPreorder: false,
+      customEmojiId: sOrder.customEmojiId || null,
+      createdAt: sOrder.createdAt ? new Date(sOrder.createdAt) : new Date()
+    });
+  }
+
+  for (const cOrder of userCssxOrders) {
+    itemsList.push({
+      id: cOrder.id,
+      type: 'cssx',
+      name: cOrder.productTitle,
+      quantity: cOrder.quantity || 1,
+      isPreorder: false,
+      customEmojiId: cOrder.customEmojiId || null,
+      createdAt: cOrder.createdAt ? new Date(cOrder.createdAt) : new Date()
+    });
+  }
+
+  itemsList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const inline_keyboard: any[] = [];
   const pageSize = 10;
@@ -11008,18 +11194,16 @@ const sendMyPurchasesScreen = async (targetBot: TelegramBot, chatId: number, use
     const pageItems = itemsList.slice(startIndex, startIndex + pageSize);
 
     for (const item of pageItems) {
-      const product = await storage.getProduct(item.productId);
-      const baseName = product ? product.name : `Product #${item.productId}`;
       const qtyStr = item.quantity > 1 ? ` (${item.quantity} Pcs)` : '';
       const preorderTag = item.isPreorder ? ' [Pre-Order]' : '';
-      const name = `${baseName}${qtyStr}${preorderTag}`;
-      const productEmoji = (product as any)?.customEmojiId || (product as any)?.custom_emoji_id || '5854908544712707500';
+      const name = `${item.name}${qtyStr}${preorderTag}`;
+      const productEmoji = item.customEmojiId || '5854908544712707500';
       const timeStr = formatSriLankaTime(item.createdAt, 'short');
 
       inline_keyboard.push([
         {
           text: `${name} (${timeStr})`,
-          callback_data: item.isPreorder ? 'noop_purchases_page' : `view_order_${item.id}`,
+          callback_data: item.isPreorder ? 'noop_purchases_page' : `view_order_${item.type}_${item.id}`,
           style: item.isPreorder ? 'primary' : 'success',
           icon_custom_emoji_id: productEmoji
         }
@@ -11553,7 +11737,7 @@ const sendAddFundsScreen = async (targetBot: TelegramBot, chatId: number, messag
       { text: 'USDT • TRC20', callback_data: 'payment_trc20', style: 'success', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [
-      { text: 'Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' },
+      { text: 'Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '6032693626394382504' },
       { text: 'Cancel', callback_data: 'profile', style: 'danger', icon_custom_emoji_id: '5976535107933050770' }
     ]
   ] as any;
@@ -11657,7 +11841,7 @@ const sendDepositSuccessNotification = async (
   const inline_keyboard = [
     [
       { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' },
-      { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' }
+      { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '6032693626394382504' }
     ]
   ] as any;
 
@@ -12976,6 +13160,62 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
       }
 
+      if (data === 'update_now_start') {
+        await targetBot.answerCallbackQuery(query.id, { text: "✅ Software updated to latest version!", show_alert: false }).catch(() => {});
+        
+        try {
+          const fromUser = query.from;
+          const tgId = fromUser?.id ? fromUser.id.toString() : (chatId ? chatId.toString() : "");
+          const username = fromUser?.username || null;
+          const firstName = fromUser?.first_name || null;
+          const lastName = fromUser?.last_name || null;
+          
+          if (tgId) {
+            const latestVersion = (await storage.getLatestSoftwareUpdateVersion()) || "4.1v";
+            await storage.recordSoftwareUpdateInteraction({
+              version: latestVersion,
+              telegramId: tgId,
+              username,
+              firstName,
+              lastName,
+            });
+          }
+        } catch (trackErr) {
+          console.error("Failed to track software update user interaction:", trackErr);
+        }
+
+        const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_banner.png");
+        const welcomeCaption = `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Welcome to</b>\n<b>@Imesh_cloud_bot</b> !\n\nChoose a section from the menu below.`;
+        const startInlineMarkup = {
+          inline_keyboard: [
+            [{ text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
+            [{ text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }],
+            [
+              { text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
+              { text: 'Support', callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
+            ]
+          ]
+        };
+        const bannerFileId = getCachedBannerFileId(bannerPath);
+        if (bannerFileId || fs.existsSync(bannerPath)) {
+          try {
+            await targetBot.sendPhoto(chatId, bannerFileId || bannerPath, {
+              caption: welcomeCaption,
+              parse_mode: 'HTML',
+              reply_markup: startInlineMarkup,
+              message_effect_id: '5046509860389126442'
+            });
+            return;
+          } catch (e) {}
+        }
+        await targetBot.sendMessage(chatId, welcomeCaption, {
+          parse_mode: 'HTML',
+          reply_markup: startInlineMarkup,
+          message_effect_id: '5046509860389126442'
+        });
+        return;
+      }
+
       // --- LOGIC FROM LISTENER 1 & 2 ---
       if (data === 'buy' || data === 'catalog') {
         await sendCatalogMenu(targetBot, chatId, msgId);
@@ -13032,60 +13272,102 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       }
 
       if (data.startsWith('view_demo_order_') || data.startsWith('view_order_')) {
-        const orderIdStr = data.replace('view_demo_order_', '').replace('view_order_', '');
-        const orderId = parseInt(orderIdStr, 10);
-
         let productName = 'Digital Account';
         let credsList: string[] = [];
         let orderDateStr = formatSriLankaTime(new Date(), 'full');
+        let orderCustomEmoji = '5854908544712707500';
+        let displayOrderId = '';
 
-        if (data.startsWith('view_order_') && !isNaN(orderId)) {
-          const allOrders = await storage.getOrders();
-          const targetOrder = allOrders.find(o => o.id === orderId);
-          if (targetOrder) {
-            if (targetOrder.createdAt) {
-              orderDateStr = formatSriLankaTime(targetOrder.createdAt, 'full');
-            }
-            if (targetOrder.product) {
-              productName = targetOrder.product.name;
-            } else {
-              const product = await storage.getProduct(targetOrder.productId);
-              if (product) productName = product.name;
-            }
+        if (data.startsWith('view_order_sandromania_')) {
+          const sOrderId = parseInt(data.replace('view_order_sandromania_', ''), 10);
+          displayOrderId = ` #${sOrderId}`;
+          const [sOrder] = await db.select({
+            id: sandromaniaOrders.id,
+            productTitle: sandromaniaOrders.productTitle,
+            deliveryText: sandromaniaOrders.deliveryText,
+            createdAt: sandromaniaOrders.createdAt,
+            customEmojiId: sandromaniaProducts.customEmojiId
+          })
+          .from(sandromaniaOrders)
+          .leftJoin(sandromaniaProducts, eq(sandromaniaOrders.sandromaniaProductId, sandromaniaProducts.id))
+          .where(eq(sandromaniaOrders.id, sOrderId));
 
-            if ((targetOrder as any).credential?.content) {
-              credsList.push((targetOrder as any).credential.content);
-            } else if (targetOrder.credentialId) {
+          if (sOrder) {
+            productName = sOrder.productTitle;
+            if (sOrder.customEmojiId) orderCustomEmoji = sOrder.customEmojiId;
+            if (sOrder.createdAt) orderDateStr = formatSriLankaTime(sOrder.createdAt, 'full');
+            if (sOrder.deliveryText) {
+              credsList = sOrder.deliveryText.split(/\r?\n/).filter(Boolean);
+            }
+          }
+        } else if (data.startsWith('view_order_cssx_')) {
+          const cOrderId = parseInt(data.replace('view_order_cssx_', ''), 10);
+          displayOrderId = ` #${cOrderId}`;
+          const [cOrder] = await db.select({
+            id: cssxOrders.id,
+            productTitle: cssxOrders.productTitle,
+            deliveryText: cssxOrders.deliveryText,
+            createdAt: cssxOrders.createdAt,
+            customEmojiId: cssxProducts.customEmojiId
+          })
+          .from(cssxOrders)
+          .leftJoin(cssxProducts, eq(cssxOrders.cssxProductId, cssxProducts.id))
+          .where(eq(cssxOrders.id, cOrderId));
+
+          if (cOrder) {
+            productName = cOrder.productTitle;
+            if (cOrder.customEmojiId) orderCustomEmoji = cOrder.customEmojiId;
+            if (cOrder.createdAt) orderDateStr = formatSriLankaTime(cOrder.createdAt, 'full');
+            if (cOrder.deliveryText) {
+              credsList = cOrder.deliveryText.split(/\r?\n/).filter(Boolean);
+            }
+          }
+        } else {
+          // Standard catalog order
+          const cleanIdStr = data.replace('view_order_standard_', '').replace('view_order_', '').replace('view_demo_order_', '');
+          const orderId = parseInt(cleanIdStr, 10);
+          if (!isNaN(orderId)) {
+            displayOrderId = ` #${orderId}`;
+            const allOrders = await storage.getOrders();
+            const targetOrder = allOrders.find(o => o.id === orderId);
+            if (targetOrder) {
+              if (targetOrder.createdAt) orderDateStr = formatSriLankaTime(targetOrder.createdAt, 'full');
+              const product = targetOrder.product || await storage.getProduct(targetOrder.productId);
+              if (product) {
+                productName = product.name;
+                if ((product as any).customEmojiId) orderCustomEmoji = (product as any).customEmojiId;
+              }
+              if ((targetOrder as any).credential?.content) {
+                credsList.push((targetOrder as any).credential.content);
+              } else if (targetOrder.credentialId) {
+                try {
+                  const [cred] = await db.select().from(credentials).where(eq(credentials.id, targetOrder.credentialId));
+                  if (cred && cred.content) credsList.push(cred.content);
+                } catch (e) {}
+              }
+              // Batch orders
               try {
-                const [cred] = await db.select().from(credentials).where(eq(credentials.id, targetOrder.credentialId));
-                if (cred && cred.content) credsList.push(cred.content);
-              } catch (e) {}
-            }
-
-            try {
-              const targetTime = targetOrder.createdAt ? new Date(targetOrder.createdAt).getTime() : 0;
-              if (targetTime > 0) {
-                const batchOrders = allOrders.filter(o =>
-                  o.telegramUserId === targetOrder.telegramUserId &&
-                  o.productId === targetOrder.productId &&
-                  o.createdAt &&
-                  Math.abs(new Date(o.createdAt).getTime() - targetTime) <= 60000
-                );
-
-                for (const bOrder of batchOrders) {
-                  const content = (bOrder as any).credential?.content;
-                  if (content && !credsList.includes(content)) {
-                    credsList.push(content);
-                  } else if (bOrder.credentialId) {
-                    const [bCred] = await db.select().from(credentials).where(eq(credentials.id, bOrder.credentialId));
-                    if (bCred && bCred.content && !credsList.includes(bCred.content)) {
-                      credsList.push(bCred.content);
+                const targetTime = targetOrder.createdAt ? new Date(targetOrder.createdAt).getTime() : 0;
+                if (targetTime > 0) {
+                  const batchOrders = allOrders.filter(o =>
+                    o.telegramUserId === targetOrder.telegramUserId &&
+                    o.productId === targetOrder.productId &&
+                    o.createdAt &&
+                    Math.abs(new Date(o.createdAt).getTime() - targetTime) <= 60000
+                  );
+                  for (const bOrder of batchOrders) {
+                    const content = (bOrder as any).credential?.content;
+                    if (content && !credsList.includes(content)) {
+                      credsList.push(content);
+                    } else if (bOrder.credentialId) {
+                      const [bCred] = await db.select().from(credentials).where(eq(credentials.id, bOrder.credentialId));
+                      if (bCred && bCred.content && !credsList.includes(bCred.content)) {
+                        credsList.push(bCred.content);
+                      }
                     }
                   }
                 }
-              }
-            } catch (batchErr) {
-              console.error("[view_order batch error]:", batchErr);
+              } catch (e) {}
             }
           }
         }
@@ -13104,7 +13386,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           copyTextFull += (copyTextFull ? '\n' : '') + cred;
         });
 
-        const orderMsg = `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <b>Order Details${isNaN(orderId) ? '' : ` #${orderId}`}</b>\n\n` +
+        const orderMsg = `<tg-emoji emoji-id="${orderCustomEmoji}">📦</tg-emoji> <b>Order Details${displayOrderId}</b>\n\n` +
           `Product: <b>${escapeHTML(productName)}</b>\n` +
           `Status: <b>Completed</b> <tg-emoji emoji-id="5404617696589390973">✨</tg-emoji>\n` +
           `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Purchase Time: <b>${orderDateStr}</b>\n\n` +
@@ -13163,7 +13445,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
         const okKeyboard = {
           inline_keyboard: [
-            [{ text: 'Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '5260399854500191689' }]
+            [{ text: 'Profile', callback_data: 'profile', style: 'primary', icon_custom_emoji_id: '6032693626394382504' }]
           ] as any
         };
         await targetBot.sendMessage(chatId, successMsg, { parse_mode: 'HTML', reply_markup: okKeyboard });
@@ -13241,7 +13523,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               { text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
             ],
             [
-              { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+              { text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }
             ],
             [
               { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
@@ -16190,7 +16472,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             { text: 'Catalog', callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }
           ],
           [
-            { text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }
+            { text: 'Profile', callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }
           ],
           [
             { text: 'Useful links', callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
@@ -16381,7 +16663,7 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             const startInlineMarkup = {
               inline_keyboard: [
                 [{ text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-                [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+                [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }],
                 [
                   { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
                   { text: t(userLang, 'btn_support'), callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }
@@ -16538,7 +16820,7 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
           const startInlineMarkup = {
             inline_keyboard: [
               [{ text: t(userLang, 'btn_catalog'), callback_data: 'buy', style: 'success', icon_custom_emoji_id: '5377660214096974712' }],
-              [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '5260399854500191689' }],
+              [{ text: t(userLang, 'btn_profile'), callback_data: 'profile', style: 'success', icon_custom_emoji_id: '6032693626394382504' }],
               [
                 { text: t(userLang, 'btn_useful_links'), callback_data: 'useful_links', style: 'primary', icon_custom_emoji_id: '5271604874419647061' },
                 { text: t(userLang, 'btn_support'), callback_data: 'support', style: 'primary', icon_custom_emoji_id: '5260535596941582167' }

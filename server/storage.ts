@@ -59,7 +59,13 @@ import {
   type ApiKey,
   type InsertApiKey,
   sandromaniaOrders,
-  smmOrders
+  smmOrders,
+  softwareUpdateLogs,
+  softwareUpdateInteractions,
+  type SoftwareUpdateLog,
+  type InsertSoftwareUpdateLog,
+  type SoftwareUpdateInteraction,
+  type InsertSoftwareUpdateInteraction
 } from "@shared/schema";
 import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull } from "drizzle-orm";
 
@@ -199,6 +205,11 @@ export interface IStorage {
   deleteApiKey(id: number): Promise<boolean>;
   updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey>;
   getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]>;
+  createSoftwareUpdateLog(log: InsertSoftwareUpdateLog): Promise<SoftwareUpdateLog>;
+  getSoftwareUpdateLogs(): Promise<SoftwareUpdateLog[]>;
+  getLatestSoftwareUpdateVersion(): Promise<string | null>;
+  recordSoftwareUpdateInteraction(interaction: InsertSoftwareUpdateInteraction): Promise<SoftwareUpdateInteraction>;
+  getSoftwareUpdateInteractions(version?: string): Promise<SoftwareUpdateInteraction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1131,6 +1142,58 @@ export class DatabaseStorage implements IStorage {
       ...r.orders,
       product: r.products,
     }));
+  }
+
+  async createSoftwareUpdateLog(log: InsertSoftwareUpdateLog): Promise<SoftwareUpdateLog> {
+    const [created] = await db.insert(softwareUpdateLogs).values(log).returning();
+    return created;
+  }
+
+  async getSoftwareUpdateLogs(): Promise<SoftwareUpdateLog[]> {
+    return await db.select().from(softwareUpdateLogs).orderBy(desc(softwareUpdateLogs.id));
+  }
+
+  async getLatestSoftwareUpdateVersion(): Promise<string | null> {
+    const [latest] = await db.select().from(softwareUpdateLogs).orderBy(desc(softwareUpdateLogs.id)).limit(1);
+    return latest?.version || null;
+  }
+
+  async recordSoftwareUpdateInteraction(interaction: InsertSoftwareUpdateInteraction): Promise<SoftwareUpdateInteraction> {
+    const [existing] = await db.select()
+      .from(softwareUpdateInteractions)
+      .where(and(
+        eq(softwareUpdateInteractions.version, interaction.version),
+        eq(softwareUpdateInteractions.telegramId, interaction.telegramId)
+      ))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db.update(softwareUpdateInteractions)
+        .set({
+          username: interaction.username || existing.username,
+          firstName: interaction.firstName || existing.firstName,
+          lastName: interaction.lastName || existing.lastName,
+          updatedAt: new Date()
+        })
+        .where(eq(softwareUpdateInteractions.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(softwareUpdateInteractions).values(interaction).returning();
+    return created;
+  }
+
+  async getSoftwareUpdateInteractions(version?: string): Promise<SoftwareUpdateInteraction[]> {
+    if (version) {
+      return await db.select()
+        .from(softwareUpdateInteractions)
+        .where(eq(softwareUpdateInteractions.version, version))
+        .orderBy(desc(softwareUpdateInteractions.updatedAt));
+    }
+    return await db.select()
+      .from(softwareUpdateInteractions)
+      .orderBy(desc(softwareUpdateInteractions.updatedAt));
   }
 }
 

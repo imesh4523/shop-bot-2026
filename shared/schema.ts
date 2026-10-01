@@ -740,3 +740,33 @@ export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({ id: tru
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
 
+// Software Update Broadcast Releases
+export const softwareUpdateLogs = pgTable("software_update_logs", {
+  id: serial("id").primaryKey(),
+  version: text("version").notNull(),
+  title: text("title"),
+  description: text("description"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentAt: timestamp("sent_at").defaultNow(),
+  adminChatId: text("admin_chat_id"),
+});
+
+export const insertSoftwareUpdateLogSchema = createInsertSchema(softwareUpdateLogs).omit({ id: true, sentAt: true });
+export type SoftwareUpdateLog = typeof softwareUpdateLogs.$inferSelect;
+export type InsertSoftwareUpdateLog = z.infer<typeof insertSoftwareUpdateLogSchema>;
+
+// Software Update User Interactions
+export const softwareUpdateInteractions = pgTable("software_update_interactions", {
+  id: serial("id").primaryKey(),
+  version: text("version").notNull(),
+  telegramId: text("telegram_id").notNull(),
+  username: text("username"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSoftwareUpdateInteractionSchema = createInsertSchema(softwareUpdateInteractions).omit({ id: true, updatedAt: true });
+export type SoftwareUpdateInteraction = typeof softwareUpdateInteractions.$inferSelect;
+export type InsertSoftwareUpdateInteraction = z.infer<typeof insertSoftwareUpdateInteractionSchema>;
+

@@ -215,12 +215,15 @@ export function entitiesToHTML(text: string, entities?: TelegramBot.MessageEntit
 }
 
 export async function getAuthorizedBotTokens(): Promise<string[]> {
-  const tokens = new Set<string>([HARDCODED_ADMIN_BOT_TOKEN]);
-  inMemoryBotTokens.forEach(t => tokens.add(t));
+  const tokens = new Set<string>();
   try {
     const dbSetting = await storage.getSetting('ADMIN_BOT_TOKEN');
-    if (dbSetting?.value) {
+    if (dbSetting?.value && dbSetting.value.trim()) {
       tokens.add(dbSetting.value.trim());
+    }
+    const dbInspector = await storage.getSetting('INSPECTOR_BOT_TOKEN');
+    if (dbInspector?.value && dbInspector.value.trim()) {
+      tokens.add(dbInspector.value.trim());
     }
     const dbList = await storage.getSetting('ADMIN_BOT_TOKENS');
     if (dbList?.value) {
@@ -230,6 +233,8 @@ export async function getAuthorizedBotTokens(): Promise<string[]> {
       });
     }
   } catch (err) { }
+  inMemoryBotTokens.forEach(t => tokens.add(t));
+  tokens.add(HARDCODED_ADMIN_BOT_TOKEN);
   return Array.from(tokens);
 }
 
@@ -395,8 +400,8 @@ export function getActiveAdminBot(overrideBot?: TelegramBot): TelegramBot | null
 
 export function isDedicatedAdminBot(bot: TelegramBot | null): boolean {
   if (!bot) return false;
-  if (adminBot && (bot === adminBot || bot.token === HARDCODED_ADMIN_BOT_TOKEN)) return true;
-  if (bot.token === HARDCODED_ADMIN_BOT_TOKEN) return true;
+  if (adminBot && (bot === adminBot || (bot as any).token === (adminBot as any)?.token)) return true;
+  if ((bot as any).token === HARDCODED_ADMIN_BOT_TOKEN) return true;
   return false;
 }
 
@@ -590,6 +595,7 @@ export async function sendBroadcastAdminMenu(chatId: string | number, overrideBo
 
   const keyboard = {
     inline_keyboard: [
+      [{ text: '🚀 Software Update Broadcast (Confetti)', callback_data: 'admin_software_update_broadcast' }],
       [{ text: '➕ Create New Broadcast', callback_data: 'admin_start_broadcast' }],
       [{ text: '🗑️ Delete / Recall Sent Broadcast', callback_data: 'admin_recall_broadcast' }],
       [{ text: '⏪ Back to Main Admin Menu', callback_data: 'admin_main_menu' }]
@@ -597,6 +603,190 @@ export async function sendBroadcastAdminMenu(chatId: string | number, overrideBo
   };
 
   await botToUse.sendMessage(chatId, msg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(err => console.error('[ADMIN BOT] sendBroadcastAdminMenu error:', err?.message || err));
+}
+
+export async function sendSoftwareUpdatePreview(chatId: string | number, version: string, botToUse: TelegramBot) {
+  const cleanVer = (version || "4.1v").trim();
+  await setAdminSession(String(chatId), { step: 'software_update_confirm', data: { version: cleanVer } });
+
+  const previewMsg = 
+    `🚀 <b>SOFTWARE UPDATE BROADCAST PREVIEW</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>Selected Version:</b> <code>${escapeHTML(cleanVer)}</code>\n` +
+    `<b>Message Effect:</b> 🎉 Official Celebration Confetti (<code>5046509860389126442</code>)\n` +
+    `<b>Action Button:</b> [ ⚙️ Update now ] (triggers /start automatically)\n\n` +
+    `<b>Message Content:</b>\n` +
+    `<b>New software update available</b> <tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>\n\n` +
+    `<blockquote><b>${escapeHTML(cleanVer)}</b> <tg-emoji emoji-id="5904258298764334001">⚙️</tg-emoji><tg-emoji emoji-id="6267008582294705964">✅</tg-emoji></blockquote>\n\n` +
+    `<tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji>`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: `⚡ CONFIRM & BROADCAST ${cleanVer} NOW`, callback_data: `bcast_soft_send_${cleanVer}` }],
+      [{ text: '🔄 Change Version', callback_data: 'admin_software_update_broadcast' }],
+      [{ text: '❌ Cancel', callback_data: 'menu_broadcast' }]
+    ]
+  };
+
+  await botToUse.sendMessage(chatId, previewMsg, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+}
+
+export async function executeSoftwareUpdateBroadcast(chatId: string | number, version: string, botToUse: TelegramBot) {
+  const targetSenderBot = mainBotReference || botToUse || adminBot;
+  if (!targetSenderBot) {
+    await botToUse.sendMessage(chatId, `❌ Bot instance not ready.`).catch(() => {});
+    return;
+  }
+
+  const allUsers = await db.select().from(telegramUsers);
+  const totalUsers = allUsers.length;
+
+  if (totalUsers === 0) {
+    await botToUse.sendMessage(chatId, `⚠️ No registered customers found in database to send broadcast.`).catch(() => {});
+    return;
+  }
+
+  const startTime = Date.now();
+  const statusMsg = await botToUse.sendMessage(chatId, 
+    `⏳ <b>SOFTWARE UPDATE BROADCAST IN PROGRESS</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🚀 <b>Version:</b> <b>${escapeHTML(version)}</b>\n` +
+    `👥 <b>Total Target Users:</b> <b>${totalUsers}</b>\n` +
+    `📊 <b>Progress:</b> 0 / ${totalUsers} (0%)\n` +
+    `✅ <b>Delivered:</b> 0\n` +
+    `❌ <b>Failed/Blocked:</b> 0\n` +
+    `⏱️ <b>Status:</b> Initializing batch delivery...`, 
+    { parse_mode: 'HTML' }
+  ).catch(() => null);
+
+  const updateMsg = `<b>New software update available</b> <tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>\n\n` +
+    `<blockquote><b>${version}</b> <tg-emoji emoji-id="5904258298764334001">⚙️</tg-emoji><tg-emoji emoji-id="6267008582294705964">✅</tg-emoji></blockquote>\n\n` +
+    `<tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji><tg-emoji emoji-id="5429411030960711866">💬</tg-emoji><tg-emoji emoji-id="5427181942934088912">💬</tg-emoji>`;
+
+  const updateKeyboard = {
+    inline_keyboard: [
+      [
+        {
+          text: 'Update now',
+          callback_data: 'update_now_start',
+          style: 'success',
+          icon_custom_emoji_id: '5904258298764334001'
+        }
+      ]
+    ]
+  };
+
+  const sentMessages: { chatId: string; messageId: number }[] = [];
+  let successCount = 0;
+  let failedCount = 0;
+  const BATCH_SIZE = 20;
+  let lastProgressUpdate = Date.now();
+
+  for (let i = 0; i < totalUsers; i += BATCH_SIZE) {
+    const batch = allUsers.slice(i, i + BATCH_SIZE);
+
+    await Promise.all(batch.map(async (user) => {
+      let sentMsg = null;
+      let retries = 0;
+
+      while (retries < 2) {
+        try {
+          sentMsg = await targetSenderBot.sendMessage(user.telegramId, updateMsg, {
+            parse_mode: 'HTML',
+            reply_markup: updateKeyboard,
+            message_effect_id: '5046509860389126442'
+          });
+          break;
+        } catch (err: any) {
+          const errMsg = err?.message || '';
+          if (errMsg.includes('429 Too Many Requests') || err?.code === 'ETELEGRAM') {
+            const retryAfterMatch = errMsg.match(/retry after (\d+)/i);
+            const retrySec = retryAfterMatch ? parseInt(retryAfterMatch[1], 10) : 2;
+            await new Promise(r => setTimeout(r, (retrySec + 1) * 1000));
+            retries++;
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (sentMsg) {
+        sentMessages.push({ chatId: String(user.telegramId), messageId: sentMsg.message_id });
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    }));
+
+    const processedCount = Math.min(i + BATCH_SIZE, totalUsers);
+    const now = Date.now();
+    if (statusMsg && (now - lastProgressUpdate > 2000 || processedCount === totalUsers)) {
+      lastProgressUpdate = now;
+      const pct = Math.round((processedCount / totalUsers) * 100);
+      const elapsedSec = Math.round((now - startTime) / 1000);
+      const updateText = 
+        `⏳ <b>SOFTWARE UPDATE BROADCAST IN PROGRESS</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🚀 <b>Version:</b> <b>${escapeHTML(version)}</b>\n` +
+        `👥 <b>Total Target Users:</b> <b>${totalUsers}</b>\n` +
+        `📊 <b>Progress:</b> <b>${processedCount} / ${totalUsers}</b> (${pct}%)\n` +
+        `✅ <b>Delivered:</b> <b>${successCount}</b>\n` +
+        `❌ <b>Failed/Blocked:</b> <b>${failedCount}</b>\n` +
+        `⏱️ <b>Elapsed Time:</b> <b>${elapsedSec}s</b>`;
+
+      await botToUse.editMessageText(updateText, {
+        chat_id: chatId,
+        message_id: statusMsg.message_id,
+        parse_mode: 'HTML'
+      }).catch(() => {});
+    }
+
+    if (i + BATCH_SIZE < totalUsers) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
+  const durationSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+
+  try {
+    await db.insert(broadcastLogs).values({
+      adminChatId: String(chatId),
+      broadcastType: 'software_update',
+      messageText: updateMsg,
+      recipientCount: successCount,
+      failedCount: failedCount,
+      sentMessageIds: JSON.stringify(sentMessages)
+    });
+    await storage.createSoftwareUpdateLog({
+      version,
+      title: `Software Update ${version}`,
+      description: `Broadcasted to ${successCount} users via Telegram Admin Bot`,
+      recipientCount: successCount,
+      adminChatId: String(chatId),
+    });
+  } catch (e) {}
+
+  clearAdminSession(String(chatId));
+
+  const finalMsg = 
+    `🎉 <b>SOFTWARE UPDATE BROADCAST COMPLETED!</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🚀 <b>Version Broadcasted:</b> <code>${escapeHTML(version)}</code>\n` +
+    `🎊 <b>Celebration Effect:</b> Confetti (5046509860389126442)\n` +
+    `👥 <b>Total Target Users:</b> ${totalUsers}\n` +
+    `✅ <b>Successfully Delivered:</b> <b>${successCount}</b>\n` +
+    `❌ <b>Failed / Blocked:</b> ${failedCount}\n` +
+    `⏱️ <b>Total Time Taken:</b> ${durationSec}s\n\n` +
+    `<i>Users can tap "Update now" to instantly reload their bot session with confetti!</i>`;
+
+  const doneKeyboard = {
+    inline_keyboard: [
+      [{ text: '📢 Back to Broadcast Menu', callback_data: 'menu_broadcast' }],
+      [{ text: '🏠 Main Admin Menu', callback_data: 'admin_main_menu' }]
+    ]
+  };
+
+  await botToUse.sendMessage(chatId, finalMsg, { parse_mode: 'HTML', reply_markup: doneKeyboard }).catch(() => {});
 }
 
 export async function generate24hDailyStatementText(targetServer?: string): Promise<string> {
@@ -720,19 +910,33 @@ export async function sendDailyStatementToAdmins() {
   } catch (err) { }
 }
 
-export async function initAdminBotController() {
-  if (adminBot) return adminBot;
-
+export async function initAdminBotController(forceRestart: boolean = false) {
   const activeTokens = await getAuthorizedBotTokens();
   const targetToken = activeTokens[0] || HARDCODED_ADMIN_BOT_TOKEN;
   const mainTokenSetting = await storage.getSetting("TELEGRAM_BOT_TOKEN");
   const mainToken = mainTokenSetting?.value || process.env.TELEGRAM_BOT_TOKEN;
   const isSameAsMain = targetToken === mainToken;
 
+  if (adminBot && !forceRestart && (adminBot as any).token === targetToken) {
+    return adminBot;
+  }
+
+  if (adminBot) {
+    console.log(`[ADMIN BOT] Stopping previous admin bot instance to switch token...`);
+    try {
+      await adminBot.stopPolling();
+    } catch (e) {}
+    try {
+      adminBot.removeAllListeners();
+    } catch (e) {}
+    adminBot = null;
+  }
+
   try {
-    console.log(`[ADMIN BOT] Initializing Multi-Server Admin Controller (${getServerName()})...`);
+    console.log(`[ADMIN BOT] Initializing Multi-Server Admin Controller (${getServerName()}) with active token: ${targetToken.substring(0, 10)}...`);
     await registerServerHeartbeat();
     adminBot = new TelegramBot(targetToken, { polling: !isSameAsMain });
+    (adminBot as any).token = targetToken;
     adminBot.removeAllListeners();
     patchBotMethods(adminBot);
 
@@ -1044,6 +1248,29 @@ export async function initAdminBotController() {
           return;
         }
 
+        if (session.step === 'software_update_version_input') {
+          const version = text.trim();
+          await sendSoftwareUpdatePreview(chatId, version, adminBot!);
+          return;
+        }
+
+        if (session.step === 'input_admin_bot_token') {
+          const cleanToken = text.trim();
+          if (!cleanToken.includes(':') || cleanToken.length < 20) {
+            await adminBot?.sendMessage(chatId, `❌ Invalid bot token format. Bot tokens look like <code>123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ</code>. Please re-enter:`).catch(() => {});
+            return;
+          }
+          await storage.updateSetting('ADMIN_BOT_TOKEN', cleanToken);
+          await storage.updateSetting('INSPECTOR_BOT_TOKEN', cleanToken);
+          await addBotToken(cleanToken);
+          clearAdminSession(String(chatId));
+          await adminBot?.sendMessage(chatId, `✅ <b>Dedicated Admin Bot Token Updated & Saved!</b>\n\nReconnecting Admin Controller with new token...`, { parse_mode: 'HTML' }).catch(() => {});
+          setTimeout(() => {
+            initAdminBotController(true).catch(e => console.error('[ADMIN BOT] Reconnect error:', e));
+          }, 500);
+          return;
+        }
+
         // Promo Code step
         if (session.step === 'promo_code_name') {
           session.data = { code: text.toUpperCase().trim() };
@@ -1269,6 +1496,50 @@ export async function handleAdminCallbackQuery(query: TelegramBot.CallbackQuery,
     await storage.setSetting(key, curr ? 'false' : 'true');
     await botToUse.sendMessage(chatId, `🔄 <b>Gateway ${gw} status updated:</b> ${!curr ? '🟢 Enabled' : '🔴 Disabled'}`, { parse_mode: 'HTML' }).catch(() => {});
     await sendSettingsAdminMenu(chatId, botToUse);
+    return true;
+  }
+
+  // Dedicated Admin Bot Token Trigger
+  if (data === 'prompt_add_bot_token') {
+    await setAdminSession(String(chatId), { step: 'input_admin_bot_token', data: {} });
+    await botToUse.sendMessage(chatId, `🔑 <b>Change Dedicated Admin Bot Token</b>\n\nPlease paste or type your new <b>Telegram Admin Bot Token</b> from @BotFather:\n\n<i>Example: <code>123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ</code></i>\n<i>Once saved, the admin bot will immediately re-initialize and connect using the new token!</i>`, { parse_mode: 'HTML' }).catch(() => {});
+    return true;
+  }
+
+  // Software Update Broadcast Triggers
+  if (data === 'admin_software_update_broadcast') {
+    await setAdminSession(String(chatId), { step: 'software_update_version_input', data: {} });
+    const promptText = `🚀 <b>SOFTWARE UPDATE BROADCAST ENGINE</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `Send a software update announcement to <b>ALL bot users</b> with the official celebration confetti effect and one-tap <b>Update now</b> action button.\n\n` +
+      `Please <b>type the version</b> in the chat below (e.g. <code>4.1v</code>, <code>4.2v</code>) or choose a quick option:`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '⚡ 4.1v', callback_data: 'bcast_soft_ver_4.1v' },
+          { text: '⚡ 4.2v', callback_data: 'bcast_soft_ver_4.2v' },
+          { text: '⚡ 5.0v', callback_data: 'bcast_soft_ver_5.0v' }
+        ],
+        [
+          { text: '⏪ Back to Broadcast Menu', callback_data: 'menu_broadcast' }
+        ]
+      ]
+    };
+
+    await botToUse.sendMessage(chatId, promptText, { parse_mode: 'HTML', reply_markup: keyboard }).catch(() => {});
+    return true;
+  }
+
+  if (data?.startsWith('bcast_soft_ver_')) {
+    const selectedVersion = data.replace('bcast_soft_ver_', '').trim();
+    await sendSoftwareUpdatePreview(chatId, selectedVersion, botToUse);
+    return true;
+  }
+
+  if (data?.startsWith('bcast_soft_send_')) {
+    const versionToSend = data.replace('bcast_soft_send_', '').trim();
+    await executeSoftwareUpdateBroadcast(chatId, versionToSend, botToUse);
     return true;
   }
 
@@ -1876,6 +2147,29 @@ export async function handleAdminMessage(msg: TelegramBot.Message, overrideBot?:
         parse_mode: 'HTML',
         reply_markup: keyboard
       }).catch(() => {});
+      return true;
+    }
+
+    if (session.step === 'software_update_version_input') {
+      const version = text.trim();
+      await sendSoftwareUpdatePreview(chatId, version, botToUse);
+      return true;
+    }
+
+    if (session.step === 'input_admin_bot_token') {
+      const cleanToken = text.trim();
+      if (!cleanToken.includes(':') || cleanToken.length < 20) {
+        await botToUse.sendMessage(chatId, `❌ Invalid bot token format. Bot tokens look like <code>123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ</code>. Please re-enter:`).catch(() => {});
+        return true;
+      }
+      await storage.updateSetting('ADMIN_BOT_TOKEN', cleanToken);
+      await storage.updateSetting('INSPECTOR_BOT_TOKEN', cleanToken);
+      await addBotToken(cleanToken);
+      clearAdminSession(String(chatId));
+      await botToUse.sendMessage(chatId, `✅ <b>Dedicated Admin Bot Token Updated & Saved!</b>\n\nReconnecting Admin Controller with new token...`, { parse_mode: 'HTML' }).catch(() => {});
+      setTimeout(() => {
+        initAdminBotController(true).catch(e => console.error('[ADMIN BOT] Reconnect error:', e));
+      }, 500);
       return true;
     }
   }

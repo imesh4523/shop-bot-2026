@@ -1179,6 +1179,29 @@ type TabType = "home" | "categories" | "orders" | "wallet" | "profile";
 export default function MiniAppShopModern() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("home");
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+
+  const switchTabWithRefresh = async (tab: TabType) => {
+    setActiveTab(tab);
+    if (tab === "home" || tab === "categories") {
+      setIsTabTransitioning(true);
+      try {
+        await Promise.allSettled([
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/products"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/sandromania/products"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/cssx/products"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/mini/smm/services"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/categories/config"] }),
+          queryClient.invalidateQueries({ queryKey: ["/api/currency/rates"] }),
+          refetchUser(),
+        ]);
+      } catch (e) {}
+      setTimeout(() => {
+        setIsTabTransitioning(false);
+      }, 450);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [favorites, setFavorites] = useState<number[]>(() => {
@@ -4227,6 +4250,12 @@ Support: https://t.me/youuhost_support
 
         {/* MAIN TAB CONTENT */}
         {activeTab === "home" && (
+          isTabTransitioning ? (
+            <div className="flex flex-col items-center justify-center py-28 min-h-[400px] animate-in fade-in duration-300">
+              <LottiePayment size={140} />
+              <span className="text-xs font-bold text-[#7E7998] mt-3 animate-pulse">Syncing live prices & wallet...</span>
+            </div>
+          ) : (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             
             {/* Real Brand Icons Category Badges */}
@@ -5063,10 +5092,17 @@ Support: https://t.me/youuhost_support
               </div>
             )}
           </motion.div>
+          )
         )}
 
         {/* CATEGORIES FULL TAB */}
         {activeTab === "categories" && (
+          isTabTransitioning ? (
+            <div className="flex flex-col items-center justify-center py-28 min-h-[400px] animate-in fade-in duration-300">
+              <LottiePayment size={140} />
+              <span className="text-xs font-bold text-[#7E7998] mt-3 animate-pulse">Syncing live catalog & wallet...</span>
+            </div>
+          ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <h2 className="text-lg font-black text-[#181432] mb-4">All Product Categories</h2>
             <div className="grid grid-cols-2 gap-3.5">
@@ -5088,7 +5124,7 @@ Support: https://t.me/youuhost_support
                           return;
                         }
                         setSelectedCategory(cat.id);
-                        setActiveTab("home");
+                        switchTabWithRefresh("home");
                       }}
                       className={`rounded-3xl p-4 shadow-sm flex flex-col items-center text-center transition-all group relative overflow-hidden ${
                         isOutOfStock
@@ -5117,6 +5153,7 @@ Support: https://t.me/youuhost_support
                 })}
             </div>
           </motion.div>
+          )
         )}
 
         {/* ORDERS TAB - UNIFIED & HARMONIOUS CHRONOLOGICAL LAYOUT */}
@@ -5620,25 +5657,42 @@ Support: https://t.me/youuhost_support
                       </span>
                     )}
                   </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-6" : "grid-cols-5"} gap-1.5 mb-2`}>
-                    {(selectedCurrency === "LKR" ? ["50", "100", "150", "250", "500", "1000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
-                      const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
-                      return (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setPayhereAmount(amt)}
-                          className={`py-2 rounded-xl text-xs font-black transition-all ${
-                            isSelected
-                              ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
-                              : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
-                          }`}
-                        >
-                          {selectedCurrency === "LKR" ? `Rs. ${parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}k` : amt}` : `$${amt}`}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {(() => {
+                    const baseLkr = [50, 100, 150, 250, 500, 1000];
+                    const baseUsd = [5, 10, 20, 50, 100];
+                    let chips = selectedCurrency === "LKR" ? [...baseLkr] : [...baseUsd];
+                    const effVal = parseInt(selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : (payhereAmount || "0"));
+                    if (!isNaN(effVal) && effVal > 0 && !chips.includes(effVal)) {
+                      chips.push(effVal);
+                      chips.sort((a, b) => a - b);
+                    }
+                    const colsClass = chips.length <= 5 ? "grid-cols-5" : chips.length === 6 ? "grid-cols-6" : chips.length === 7 ? "grid-cols-7" : "grid-cols-4";
+
+                    return (
+                      <div className={`grid ${colsClass} gap-1.5 mb-2`}>
+                        {chips.map((val) => {
+                          const amt = val.toString();
+                          const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
+                          return (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setPayhereAmount(amt)}
+                              className={`py-2 rounded-xl text-xs font-black transition-all ${
+                                isSelected
+                                  ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
+                                  : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
+                              }`}
+                            >
+                              {selectedCurrency === "LKR"
+                                ? `Rs. ${parseInt(amt) >= 1000 && parseInt(amt) % 1000 === 0 ? `${parseInt(amt) / 1000}k` : amt}`
+                                : `$${amt}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#7E7998]">
                       {selectedCurrency === "LKR" ? "Rs." : "$"}
@@ -7769,6 +7823,38 @@ Support: https://t.me/youuhost_support
                     <button
                       type="button"
                       onClick={() => {
+                        const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+                        const totalPriceUsd = totalCents / 100;
+                        const userBalanceUsd = userBalCents / 100;
+                        const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
+                        const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(cardSuggestedLkr.toString());
+                          setBinanceAmount(shortfallLkr.toString());
+                          setCryptomusAmount(shortfallLkr.toString());
+                        } else {
+                          const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
+                          setPayhereAmount(cardSuggestedUsd.toString());
+                          setBinanceAmount(shortfallUsd.toString());
+                          setCryptomusAmount(shortfallUsd.toString());
+                        }
+
+                        setShortfallContext({
+                          productName: cleanTitle || "Item",
+                          shortfallLkr,
+                          shortfallUsd,
+                          cardSuggestedLkr,
+                          neededLkr: totalLkr,
+                          neededUsd: totalPriceUsd,
+                        });
+
+                        const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+                        toast({
+                          title: "⚡ Insufficient Balance - Auto Top-up Ready",
+                          description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+                        });
+
                         setDetailSandromaniaProduct(null);
                         setActiveTab("wallet");
                       }}
@@ -7967,6 +8053,38 @@ Support: https://t.me/youuhost_support
                     <button
                       type="button"
                       onClick={() => {
+                        const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+                        const totalPriceUsd = totalCents / 100;
+                        const userBalanceUsd = userBalCents / 100;
+                        const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
+                        const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(cardSuggestedLkr.toString());
+                          setBinanceAmount(shortfallLkr.toString());
+                          setCryptomusAmount(shortfallLkr.toString());
+                        } else {
+                          const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
+                          setPayhereAmount(cardSuggestedUsd.toString());
+                          setBinanceAmount(shortfallUsd.toString());
+                          setCryptomusAmount(shortfallUsd.toString());
+                        }
+
+                        setShortfallContext({
+                          productName: cleanTitle || "Item",
+                          shortfallLkr,
+                          shortfallUsd,
+                          cardSuggestedLkr,
+                          neededLkr: totalLkr,
+                          neededUsd: totalPriceUsd,
+                        });
+
+                        const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+                        toast({
+                          title: "⚡ Insufficient Balance - Auto Top-up Ready",
+                          description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+                        });
+
                         setDetailCssxProduct(null);
                         setActiveTab("wallet");
                       }}
@@ -8007,7 +8125,7 @@ Support: https://t.me/youuhost_support
       <nav className="fixed bottom-4 inset-x-0 max-w-md mx-auto px-5 z-40">
         <div className="bg-white/95 backdrop-blur-md rounded-full px-5 py-3 shadow-xl border border-[#ECEEF8] flex items-center justify-between">
           <button
-            onClick={() => setActiveTab("home")}
+            onClick={() => switchTabWithRefresh("home")}
             className={`flex flex-col items-center gap-0.5 transition-all ${
               activeTab === "home" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
@@ -8021,7 +8139,7 @@ Support: https://t.me/youuhost_support
           </button>
 
           <button
-            onClick={() => setActiveTab("categories")}
+            onClick={() => switchTabWithRefresh("categories")}
             className={`flex flex-col items-center gap-0.5 transition-all ${
               activeTab === "categories" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
@@ -8032,7 +8150,7 @@ Support: https://t.me/youuhost_support
           </button>
 
           <button
-            onClick={() => setActiveTab("orders")}
+            onClick={() => switchTabWithRefresh("orders")}
             className={`flex flex-col items-center gap-0.5 transition-all ${
               activeTab === "orders" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
@@ -8056,7 +8174,7 @@ Support: https://t.me/youuhost_support
           </button>
 
           <button
-            onClick={() => setActiveTab("wallet")}
+            onClick={() => switchTabWithRefresh("wallet")}
             className={`flex flex-col items-center gap-0.5 transition-all ${
               activeTab === "wallet" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
@@ -8067,7 +8185,7 @@ Support: https://t.me/youuhost_support
           </button>
 
           <button
-            onClick={() => setActiveTab("profile")}
+            onClick={() => switchTabWithRefresh("profile")}
             className={`flex flex-col items-center gap-0.5 transition-all ${
               activeTab === "profile" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}

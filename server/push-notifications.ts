@@ -107,9 +107,10 @@ export async function sendAdminPushNotification(titleOrOpts: string | { title: s
 
     const promises = subscriptions.map(sub => 
       webpush.sendNotification(sub.subscription, payload)
-        .catch((err: any) => {
+        .catch(async (err: any) => {
           if (err.statusCode === 410 || err.statusCode === 404) {
-            console.log(`[PUSH] Removing invalid subscription (Status: ${err.statusCode})`);
+            console.log(`[PUSH] Removing invalid subscription #${sub.id} (Status: ${err.statusCode})`);
+            await db.execute(sql`DELETE FROM push_subscriptions WHERE id = ${sub.id}`).catch(() => {});
           } else {
             console.error('[PUSH] Error sending to subscriber:', err.endpoint, err.message);
           }

@@ -172,8 +172,36 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings/ADMIN_BOT_TOKEN"] });
       toast({
-        title: "Admin Bot Token Saved",
-        description: "Dedicated Telegram Admin Bot Token updated successfully.",
+        title: "Admin Bot Token Saved & Activated! 🚀",
+        description: "Dedicated Telegram Admin Bot has been reconnected and is actively running with the new token.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Save Admin Bot Token",
+        description: err.message || "Could not save admin bot token.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const [softwareUpdateVersion, setSoftwareUpdateVersion] = useState("4.1v");
+  const softwareUpdateMutation = useMutation({
+    mutationFn: async (version: string) => {
+      const res = await apiRequest("POST", "/api/admin/broadcast-software-update", { version });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Software Update Broadcast Sent! 🚀",
+        description: `Successfully broadcasted version ${data.version || softwareUpdateVersion} to ${data.count ?? 0} users with celebration confetti!`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Broadcast Failed",
+        description: err.message || "Could not broadcast software update.",
+        variant: "destructive"
       });
     }
   });
@@ -1286,6 +1314,69 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-white/40">
                 This token controls the dedicated Admin Bot for managing products, customers, promo codes, gateways, and mass broadcasts.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background to-emerald-950/20 border border-emerald-500/20 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2 text-white">
+              <Sparkles className="w-6 h-6 text-emerald-400" />
+              Software Update Broadcast (With Celebration Confetti)
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Notify all bot users about new software updates. When users tap <b>"Update now"</b>, the bot automatically executes <code>/start</code> and triggers the full-screen celebration confetti animation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-500/20 space-y-2">
+              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider block">Message Live Preview</span>
+              <div className="text-sm text-white/90 space-y-2 font-mono bg-black/40 p-3 rounded-lg border border-white/5">
+                <p className="font-bold text-white">New software update available ✨</p>
+                <div className="pl-3 border-l-2 border-emerald-500 text-white/90">
+                  <span className="font-bold">{softwareUpdateVersion}</span> ⚙️✅
+                </div>
+                <p className="text-sm">💬💬💬💬💬💬</p>
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600/80 text-white text-xs font-bold border border-emerald-400/40 shadow-sm">
+                    ⚙️ Update now
+                  </span>
+                  <span className="text-[11px] text-white/50">🎉 Official Telegram Confetti Effect (5046509860389126442)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="update-version" className="text-sm font-bold text-white/70 uppercase tracking-widest">
+                Software Version
+              </Label>
+              <div className="flex gap-3">
+                <Input
+                  id="update-version"
+                  type="text"
+                  placeholder="e.g. 4.1v"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-emerald-500/50 transition-all font-mono"
+                  value={softwareUpdateVersion}
+                  onChange={(e) => setSoftwareUpdateVersion(e.target.value)}
+                />
+                <Button
+                  onClick={() => softwareUpdateMutation.mutate(softwareUpdateVersion)}
+                  disabled={softwareUpdateMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  {softwareUpdateMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 text-emerald-200" />
+                      <span>Broadcast Update</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                Sends instant notification to all active Telegram bot users with the one-click Update Now action button.
               </p>
             </div>
           </CardContent>

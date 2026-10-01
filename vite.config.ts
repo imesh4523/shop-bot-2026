@@ -14,9 +14,10 @@ export default defineConfig({
     },
   },
   root: path.resolve(process.cwd(), "client"),
+  publicDir: path.resolve(process.cwd(), "public"),
   build: {
     outDir: path.resolve(process.cwd(), "dist/public"),
-    emptyOutDir: true,
+    emptyOutDir: false,
     minify: false,
     chunkSizeWarningLimit: 3000,
   },
