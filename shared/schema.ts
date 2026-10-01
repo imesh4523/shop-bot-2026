@@ -559,6 +559,7 @@ export const sandromaniaProducts = pgTable("sandromania_products", {
   category: text("category").default("general"),
   bulkPrices: text("bulk_prices"),
   description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -621,6 +622,7 @@ export const cssxProducts = pgTable("cssx_products", {
   telegramPriceUsd: integer("telegram_price_usd"), // in cents
   category: text("category").default("general"),
   description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

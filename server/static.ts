@@ -22,7 +22,22 @@ export function serveStatic(app: Express) {
     app.use(express.static(distPath));
   }
 
-  // Do NOT serve index.html for missing assets (/assets/*.js, .css, etc.)
+  // Mount static uploads directory candidates directly
+  const uploadsCandidates = [
+    path.resolve(distPath, "uploads"),
+    path.resolve(process.cwd(), "public", "uploads"),
+    path.resolve(process.cwd(), "uploads"),
+  ];
+  for (const up of uploadsCandidates) {
+    if (fs.existsSync(up)) {
+      app.use("/uploads", express.static(up, { maxAge: "1d" }));
+    }
+  }
+
+  // Do NOT serve index.html for missing /uploads or /assets
+  app.use("/uploads", (_req, res) => {
+    res.status(404).send("Upload not found");
+  });
   app.use("/assets", (_req, res) => {
     res.status(404).send("Asset not found");
   });

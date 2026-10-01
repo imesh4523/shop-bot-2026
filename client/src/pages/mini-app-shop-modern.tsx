@@ -1531,7 +1531,15 @@ export default function MiniAppShopModern() {
     },
   });
 
-  const effectiveAvatarUrl = user?.avatarUrl || telegramPhotoUrl || null;
+  const effectiveAvatarUrl = useMemo(() => {
+    let url = user?.avatarUrl || telegramPhotoUrl || null;
+    if (url && typeof url === "string" && url.startsWith("/uploads/")) {
+      return `${url}?v=20261001`;
+    }
+    return url;
+  }, [user?.avatarUrl, telegramPhotoUrl]);
+
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
 
   const { data: products = [], isLoading: productsLoading } = useQuery<(Product & { stockCount?: number })[]>({
     queryKey: ["/api/mini/products"],
@@ -3154,8 +3162,8 @@ Support: https://t.me/youuhost_support
   const filteredSandromaniaProducts = useMemo(() => {
     return sandromaniaProductsList.filter((p: any) => {
       if (p.isActive === false) return false;
-      // In Telegram mode, only show if showOnTelegram toggle is turned ON
-      if (isTelegram && !p.showOnTelegram) return false;
+      // In Telegram mode, only hide if explicitly turned OFF (showOnTelegram === false)
+      if (isTelegram && p.showOnTelegram === false) return false;
       const title = cleanSandromaniaText(p.title || "").toLowerCase();
       const cat = cleanSandromaniaText(p.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -3179,8 +3187,8 @@ Support: https://t.me/youuhost_support
   const filteredCssxProducts = useMemo(() => {
     return cssxProductsList.filter((p: any) => {
       if (p.isActive === false) return false;
-      // In Telegram mode, only show if showOnTelegram toggle is turned ON
-      if (isTelegram && !p.showOnTelegram) return false;
+      // In Telegram mode, only hide if explicitly turned OFF (showOnTelegram === false)
+      if (isTelegram && p.showOnTelegram === false) return false;
       const title = (p.title || "").toLowerCase();
       const cat = (p.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -3257,7 +3265,20 @@ Support: https://t.me/youuhost_support
     // Sort: In-Stock items FIRST (orderScore: 0), Out-of-Stock items LAST (orderScore: 1)
     list.sort((a, b) => a.orderScore - b.orderScore);
 
-    return list;
+    // Strict deduplication by normalized product name: guarantees only 1 card ever appears
+    const seenNames = new Set<string>();
+    const deduplicatedList: typeof list = [];
+    for (const item of list) {
+      const rawName = item.data.title || item.data.name || "";
+      const normName = cleanSandromaniaText(rawName).toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normName) {
+        if (seenNames.has(normName)) continue;
+        seenNames.add(normName);
+      }
+      deduplicatedList.push(item);
+    }
+
+    return deduplicatedList;
   }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredProducts]);
 
   // Format Sandromania price helper
@@ -5981,7 +6002,7 @@ Support: https://t.me/youuhost_support
                         className="bg-white rounded-2xl p-3.5 shadow-sm border border-[#ECEEF8] flex items-center justify-between"
                       >
                         <div>
-                          <span className="text-xs font-bold text-[#181432] block">{p.method.toUpperCase()} Top-Up</span>
+                          <span className="text-xs font-bold text-[#181432] block">{String(p?.method || "Wallet").toUpperCase()} Top-Up</span>
                           <span className="text-[10px] text-[#7E7998]">
                             {p.createdAt ? format(new Date(p.createdAt), "MMM d, HH:mm") : "Recent"}
                           </span>
@@ -6166,11 +6187,12 @@ Support: https://t.me/youuhost_support
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" />
 
                   {/* Avatar */}
-                  {effectiveAvatarUrl ? (
+                  {effectiveAvatarUrl && !avatarLoadError ? (
                     <img
                       src={effectiveAvatarUrl}
                       alt={displayName}
                       className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3"
+                      onError={() => setAvatarLoadError(true)}
                     />
                   ) : (
                     <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white text-2xl font-black flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/30">

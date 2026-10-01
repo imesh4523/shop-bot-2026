@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions } from "@shared/schema";
 import { eq, and, desc, sql, gte } from "drizzle-orm";
+import { sendAdminPushNotification } from "../push-notifications";
 
 export const apiV1Router = Router();
 
@@ -419,6 +420,14 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
 
     if (txResult.type === "instant") {
       await storage.updateApiKeyStats(req.apiKey!.id, true, txResult.finalCost);
+
+      const userDisplay = user.username ? `@${user.username}` : (user.firstName || `User #${user.id}`);
+      sendAdminPushNotification({
+        title: `⚡ [API RESELLER ORDER] ${prod.name}`,
+        body: `Order placed via Developer API (Key #${req.apiKey!.id})\nReseller: ${userDisplay}\nQty: ${qtyInt}x | Total: $${(txResult.finalCost / 100).toFixed(2)}\nSource: Through API`,
+        url: "/orders"
+      }).catch(console.error);
+
       return res.json({
         success: true,
         type: "instant",
@@ -438,6 +447,14 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
 
     if (txResult.type === "preorder") {
       await storage.updateApiKeyStats(req.apiKey!.id, true, txResult.totalCost);
+
+      const userDisplay = user.username ? `@${user.username}` : (user.firstName || `User #${user.id}`);
+      sendAdminPushNotification({
+        title: `📦 [API RESELLER PRE-ORDER] ${prod.name}`,
+        body: `Pre-order placed via Developer API (Key #${req.apiKey!.id})\nReseller: ${userDisplay}\nQty: ${qtyInt}x | Total: $${(txResult.totalCost / 100).toFixed(2)}\nSource: Through API`,
+        url: "/preorders"
+      }).catch(console.error);
+
       return res.json({
         success: true,
         type: "preorder",
@@ -560,6 +577,13 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
 
     if (grandTotalCents > 0) {
       await storage.updateApiKeyStats(req.apiKey!.id, true, grandTotalCents);
+      const successfulCount = results.filter(r => r.success).length;
+      const userDisplay = req.telegramUser?.username ? `@${req.telegramUser.username}` : (req.telegramUser?.firstName || `User #${req.telegramUser?.id}`);
+      sendAdminPushNotification({
+        title: `⚡ [API RESELLER BATCH ORDER]`,
+        body: `Batch order completed via Developer API (Key #${req.apiKey!.id})\nReseller: ${userDisplay}\nProcessed: ${successfulCount} items | Total: $${(grandTotalCents / 100).toFixed(2)}\nSource: Through API`,
+        url: "/orders"
+      }).catch(console.error);
     } else {
       await storage.updateApiKeyStats(req.apiKey!.id, false, 0);
     }

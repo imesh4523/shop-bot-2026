@@ -2338,7 +2338,7 @@ export async function registerRoutes(
         updatedAt: new Date(),
       }).returning();
 
-      // Notify Admin via WebSocket
+      // Notify Admin via WebSocket & Native Push Notification
       io.emit("admin_notification", {
         type: "support_ticket",
         title: "New Support Ticket Opened",
@@ -2346,6 +2346,12 @@ export async function registerRoutes(
         ticketId: newTicket.id,
         createdAt: new Date()
       });
+
+      sendAdminPushNotification({
+        title: `🎫 New Support Ticket #${newTicket.id}`,
+        body: `From: ${dbUser.firstName || dbUser.username || dbUser.email || "Customer"}\nSubject: ${ticketSubject}`,
+        url: `/support`
+      }).catch(console.error);
 
       res.json(newTicket);
     } catch (err: any) {
@@ -2407,6 +2413,12 @@ export async function registerRoutes(
         ticketId,
         createdAt: new Date()
       });
+
+      sendAdminPushNotification({
+        title: `💬 Support Ticket Reply #${ticketId}`,
+        body: `${dbUser.firstName || dbUser.username || dbUser.email || "Customer"}: ${(message || "Sent an attachment").trim()}`,
+        url: `/support`
+      }).catch(console.error);
 
       res.json(updated);
     } catch (err: any) {
@@ -7913,6 +7925,19 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       }
     })();
 
+    sendAdminPushNotification({
+      title: `🛍️ Sandromania Order: ${product.title}`,
+      body: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
+      url: `/orders`
+    }).catch(console.error);
+
+    io.emit('admin_notification', {
+      type: 'purchase',
+      title: 'Sandromania Purchase',
+      message: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
+      data: result
+    });
+
     res.json({
       success: true,
       message: "🎉 Purchase successful! Your digital license / account credentials have been delivered.",
@@ -8172,6 +8197,19 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         deliveryText,
         user,
       };
+    });
+
+    sendAdminPushNotification({
+      title: `⚡ CSxStore Order: ${product.title}`,
+      body: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
+      url: `/orders`
+    }).catch(console.error);
+
+    io.emit('admin_notification', {
+      type: 'purchase',
+      title: 'CSxStore Purchase',
+      message: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
+      data: result
     });
 
     res.json({

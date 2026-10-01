@@ -75333,7 +75333,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-C1Neiagg.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-CTCa8rTh.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -107164,7 +107164,14 @@ function MiniAppShopModern() {
       return void 0;
     }
   });
-  const effectiveAvatarUrl = user?.avatarUrl || telegramPhotoUrl || null;
+  const effectiveAvatarUrl = reactExports.useMemo(() => {
+    let url2 = user?.avatarUrl || telegramPhotoUrl || null;
+    if (url2 && typeof url2 === "string" && url2.startsWith("/uploads/")) {
+      return `${url2}?v=20261001`;
+    }
+    return url2;
+  }, [user?.avatarUrl, telegramPhotoUrl]);
+  const [avatarLoadError, setAvatarLoadError] = reactExports.useState(false);
   const { data: products2 = [], isLoading: productsLoading } = useQuery({
     queryKey: ["/api/mini/products"],
     queryFn: async () => {
@@ -108520,7 +108527,7 @@ ${finalDetails}`;
   const filteredSandromaniaProducts = reactExports.useMemo(() => {
     return sandromaniaProductsList.filter((p2) => {
       if (p2.isActive === false) return false;
-      if (isTelegram && !p2.showOnTelegram) return false;
+      if (isTelegram && p2.showOnTelegram === false) return false;
       const title = cleanSandromaniaText(p2.title || "").toLowerCase();
       const cat = cleanSandromaniaText(p2.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -108532,7 +108539,7 @@ ${finalDetails}`;
   const filteredCssxProducts = reactExports.useMemo(() => {
     return cssxProductsList.filter((p2) => {
       if (p2.isActive === false) return false;
-      if (isTelegram && !p2.showOnTelegram) return false;
+      if (isTelegram && p2.showOnTelegram === false) return false;
       const title = (p2.title || "").toLowerCase();
       const cat = (p2.category || "").toLowerCase();
       const targetCat = selectedCategory.toLowerCase();
@@ -108581,7 +108588,18 @@ ${finalDetails}`;
       });
     });
     list.sort((a2, b2) => a2.orderScore - b2.orderScore);
-    return list;
+    const seenNames = /* @__PURE__ */ new Set();
+    const deduplicatedList = [];
+    for (const item of list) {
+      const rawName = item.data.title || item.data.name || "";
+      const normName = cleanSandromaniaText(rawName).toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normName) {
+        if (seenNames.has(normName)) continue;
+        seenNames.add(normName);
+      }
+      deduplicatedList.push(item);
+    }
+    return deduplicatedList;
   }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredProducts]);
   const formatSandromaniaPrice = (sandProdOrPriceCents, qty = 1) => {
     if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
@@ -110848,7 +110866,7 @@ ${lines}`;
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-bold text-[#181432] block", children: [
-                    p2.method.toUpperCase(),
+                    String(p2?.method || "Wallet").toUpperCase(),
                     " Top-Up"
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-[#7E7998]", children: p2.createdAt ? format(new Date(p2.createdAt), "MMM d, HH:mm") : "Recent" })
@@ -110996,12 +111014,13 @@ ${lines}`;
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white rounded-3xl p-6 text-center shadow-sm border border-[#ECEEF8] relative overflow-hidden", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#6C5CE7]/10 to-[#5B42F3]/10 blur-2xl rounded-full pointer-events-none" }),
-            effectiveAvatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            effectiveAvatarUrl && !avatarLoadError ? /* @__PURE__ */ jsxRuntimeExports.jsx(
               "img",
               {
                 src: effectiveAvatarUrl,
                 alt: displayName,
-                className: "w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3"
+                className: "w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg mx-auto mb-3",
+                onError: () => setAvatarLoadError(true)
               }
             ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-16 rounded-full bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white text-2xl font-black flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#6C5CE7]/30", children: displayName.charAt(0).toUpperCase() }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-black text-[#181432]", children: displayName }),
