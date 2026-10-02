@@ -5822,10 +5822,10 @@ const getBotToken = async () => {
 };
 
 const getInspectorBotToken = async () => {
-  const adminSetting = await storage.getSetting("ADMIN_BOT_TOKEN");
-  if (adminSetting?.value && adminSetting.value.trim()) return adminSetting.value.trim();
   const setting = await storage.getSetting("INSPECTOR_BOT_TOKEN");
-  return setting?.value || process.env.ADMIN_BOT_TOKEN || process.env.INSPECTOR_BOT_TOKEN || "8597932397:AAEweM3gKQpDKFx0OJzdHdtIBbQ2ZVLR448";
+  if (setting?.value && setting.value.trim()) return setting.value.trim();
+  if (process.env.INSPECTOR_BOT_TOKEN && process.env.INSPECTOR_BOT_TOKEN.trim()) return process.env.INSPECTOR_BOT_TOKEN.trim();
+  return null;
 };
 
 const getBroadcastBot = async () => {
@@ -9480,15 +9480,20 @@ app.post("/api/settings", isAuth, async (req, res) => {
     if (key === "TELEGRAM_BOT_TOKEN" || key === "BROADCAST_BOT_TOKEN" || key === "INSPECTOR_BOT_TOKEN" || key === "ADMIN_BOT_TOKEN") {
       await initBot();
     }
-    if (key === "ADMIN_BOT_TOKEN" || key === "INSPECTOR_BOT_TOKEN") {
-      console.log(`[SETTINGS] ${key} updated, syncing and re-initializing Admin Bot Controller...`);
-      await storage.updateSetting("INSPECTOR_BOT_TOKEN", value).catch(() => {});
-      await storage.updateSetting("ADMIN_BOT_TOKEN", value).catch(() => {});
+    if (key === "ADMIN_BOT_TOKEN") {
+      console.log(`[SETTINGS] ${key} updated, re-initializing Admin Bot Controller...`);
       try {
         const { initAdminBotController } = await import("./admin-bot-controller");
         await initAdminBotController(true);
       } catch (e) {
         console.error("[SETTINGS] Error re-initializing admin bot controller:", e);
+      }
+    } else if (key === "INSPECTOR_BOT_TOKEN") {
+      console.log(`[SETTINGS] ${key} updated, re-initializing Inspector Bot...`);
+      try {
+        await startInspectorBotInstance(value);
+      } catch (e) {
+        console.error("[SETTINGS] Error re-initializing inspector bot:", e);
       }
     } else if (key === "VAPID_PUBLIC_KEY" || key === "VAPID_PRIVATE_KEY" || key === "VAPID_SUBJECT") {
       const { initPushNotifications } = await import("./push-notifications");
@@ -9636,6 +9641,113 @@ app.delete("/api/telegram-inspector/traces/:id", isAuth, (req, res) => {
   } catch (err) {
     console.error('Failed to delete trace record:', err);
     res.status(500).json({ message: "Failed to delete trace" });
+  }
+});
+
+// Telegram Inspector Bot Configuration API
+app.get("/api/telegram-inspector/bot-config", isAuth, async (req, res) => {
+  try {
+    const rawToken = (await storage.getSetting("INSPECTOR_BOT_TOKEN"))?.value?.trim() || "";
+    let isRunning = !!inspectorBot;
+    let botInfo = inspectorBotInfo;
+
+    if (rawToken && !botInfo) {
+      try {
+        const testBot = new TelegramBot(rawToken, { polling: false });
+        const me = await testBot.getMe();
+        botInfo = {
+          id: me.id,
+          username: me.username || '',
+          firstName: me.first_name || '',
+          canJoinGroups: me.can_join_groups
+        };
+        inspectorBotInfo = botInfo;
+      } catch (e: any) {
+        console.warn('[INSPECTOR BOT] Failed to query getMe for stored token:', e.message);
+      }
+    }
+
+    let mainBotMe = null;
+    if (bot) {
+      try {
+        mainBotMe = await bot.getMe();
+      } catch (e) {}
+    }
+
+    const maskedToken = rawToken
+      ? (rawToken.length > 15 ? `${rawToken.substring(0, 8)}...${rawToken.substring(rawToken.length - 6)}` : '••••••••••••')
+      : "";
+
+    res.json({
+      hasCustomToken: !!rawToken,
+      token: rawToken,
+      maskedToken,
+      isRunning,
+      botInfo,
+      mainBotUsername: mainBotMe?.username || null
+    });
+  } catch (err: any) {
+    console.error('Failed to get inspector bot config:', err);
+    res.status(500).json({ message: "Failed to get inspector bot config" });
+  }
+});
+
+app.post("/api/telegram-inspector/bot-config", isAuth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      return res.status(400).json({ message: "Telegram Bot Token is required." });
+    }
+
+    const cleanToken = token.trim();
+    if (!cleanToken.includes(':')) {
+      return res.status(400).json({ message: "Invalid Telegram Bot Token format. Tokens look like 123456789:ABCdefGhI..." });
+    }
+
+    // Verify token with Telegram API
+    let botMe;
+    try {
+      const testBot = new TelegramBot(cleanToken, { polling: false });
+      botMe = await testBot.getMe();
+    } catch (testErr: any) {
+      return res.status(400).json({ 
+        message: `Telegram API verification failed: ${testErr.message || 'Invalid or revoked bot token'}` 
+      });
+    }
+
+    // Save token to settings
+    await storage.updateSetting("INSPECTOR_BOT_TOKEN", cleanToken);
+
+    // Stop and restart inspector bot with new token
+    const info = await startInspectorBotInstance(cleanToken);
+
+    res.json({
+      success: true,
+      message: `Inspector bot connected successfully as @${botMe.username}!`,
+      botInfo: info || {
+        id: botMe.id,
+        username: botMe.username,
+        firstName: botMe.first_name
+      }
+    });
+  } catch (err: any) {
+    console.error('Failed to update inspector bot config:', err);
+    res.status(500).json({ message: err.message || "Failed to update inspector bot config" });
+  }
+});
+
+app.delete("/api/telegram-inspector/bot-config", isAuth, async (req, res) => {
+  try {
+    await storage.updateSetting("INSPECTOR_BOT_TOKEN", "");
+    await startInspectorBotInstance("");
+
+    res.json({
+      success: true,
+      message: "Custom inspector bot token removed. Inspector bot stopped."
+    });
+  } catch (err: any) {
+    console.error('Failed to remove inspector bot config:', err);
+    res.status(500).json({ message: err.message || "Failed to remove inspector bot config" });
   }
 });
 
@@ -10133,8 +10245,12 @@ const patchBotMethods = (targetBot: TelegramBot) => {
 let bot: TelegramBot | null = null;
 let broadcastBot: TelegramBot | null = null;
 let inspectorBot: TelegramBot | null = null;
+let inspectorBotInfo: { id: number; username: string; firstName: string; canJoinGroups?: boolean } | null = null;
 
 const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
+  if ((targetBot as any).__inspectorHandlersAttached) return;
+  (targetBot as any).__inspectorHandlersAttached = true;
+
   targetBot.on('polling_error', (error: any) => {
     if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
       console.warn(`[Inspector Bot Polling Warning] 409 Conflict. Another bot instance is polling or webhook is set.`);
@@ -10151,7 +10267,58 @@ const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
       console.error('Failed to process Telegram inspector bot trace:', err);
     }
   });
+
+  targetBot.on('channel_post', async (msg) => {
+    try {
+      await processTelegramInspectorTrace(targetBot, msg, { isExplicitCommand: true, io });
+    } catch (err) {}
+  });
+
+  targetBot.on('edited_message', async (msg) => {
+    try {
+      await processTelegramInspectorTrace(targetBot, msg, { isExplicitCommand: true, io });
+    } catch (err) {}
+  });
 };
+
+async function startInspectorBotInstance(token: string | null | undefined): Promise<any> {
+  if (inspectorBot) {
+    console.log('[INSPECTOR BOT] Stopping current inspector bot instance...');
+    try {
+      await inspectorBot.stopPolling();
+    } catch (e) {}
+    try {
+      inspectorBot.removeAllListeners();
+    } catch (e) {}
+    inspectorBot = null;
+  }
+  inspectorBotInfo = null;
+
+  if (!token || !token.trim()) {
+    console.log('[INSPECTOR BOT] No inspector bot token provided; inspector bot stopped.');
+    return null;
+  }
+
+  const cleanToken = token.trim();
+  const testBot = new TelegramBot(cleanToken, { polling: false });
+  const me = await testBot.getMe();
+  inspectorBotInfo = {
+    id: me.id,
+    username: me.username || '',
+    firstName: me.first_name || '',
+    canJoinGroups: me.can_join_groups
+  };
+
+  inspectorBot = new TelegramBot(cleanToken, { polling: false });
+  (inspectorBot as any).token = cleanToken;
+  (inspectorBot as any).isMainBot = false;
+  await inspectorBot.deleteWebHook().catch(() => {});
+  patchBotMethods(inspectorBot);
+  setupInspectorBotHandlers(inspectorBot);
+  await inspectorBot.startPolling();
+  console.log(`[INSPECTOR BOT] Dedicated Inspector bot initialized & polling as @${me.username} (ID: ${me.id})`);
+  return inspectorBotInfo;
+}
 
 async function initBot() {
   console.log('[INIT BOT] Starting initBot execution...');
@@ -10303,41 +10470,18 @@ async function initBot() {
       broadcastBot = null;
     }
 
-    const adminTokenSetting = await storage.getSetting("ADMIN_BOT_TOKEN");
-    const adminToken = adminTokenSetting?.value?.trim();
-
-    if (inspectorToken && inspectorToken !== token && inspectorToken !== adminToken) {
-      if (inspectorBot) {
-        console.log('Stopping existing inspector bot...');
-        await inspectorBot.stopPolling().catch(() => {});
+    if (inspectorToken && inspectorToken !== token) {
+      try {
+        await startInspectorBotInstance(inspectorToken);
+      } catch (err: any) {
+        console.error('[INSPECTOR BOT] Failed to initialize inspector bot:', err.message || err);
       }
-      inspectorBot = new TelegramBot(inspectorToken, { polling: false });
-      (inspectorBot as any).token = inspectorToken;
-      (inspectorBot as any).isMainBot = false;
-      await inspectorBot.deleteWebHook().catch(() => {});
-      await inspectorBot.startPolling();
-      inspectorBot.on('polling_error', (err: any) => {
-        if (err?.code === 'ETELEGRAM' && err?.message?.includes('409 Conflict')) {
-          console.warn('[INSPECTOR BOT] 409 Conflict: another instance is polling. Retrying polling in 10s...');
-          inspectorBot?.stopPolling().catch(() => {});
-          setTimeout(() => {
-            inspectorBot?.startPolling().catch(() => {});
-          }, 10000);
-        } else {
-          console.error('[INSPECTOR BOT] Polling error:', err?.message || err);
-        }
-      });
-      inspectorBot.on('error', (err: any) => {
-        console.warn('[INSPECTOR BOT] General error:', err?.message || err);
-      });
-      patchBotMethods(inspectorBot);
-      setupInspectorBotHandlers(inspectorBot);
-      console.log(`Dedicated Inspector bot initialized successfully (Token hash: ${inspectorToken.substring(0, 10)}...)`);
     } else {
       if (inspectorBot) {
         await inspectorBot.stopPolling().catch(() => {});
         inspectorBot = null;
       }
+      inspectorBotInfo = null;
       if (bot && inspectorToken === token) {
         setupInspectorBotHandlers(bot);
         console.log(`Main bot also attached with Inspector handlers (Shared token: ${token.substring(0, 10)}...)`);

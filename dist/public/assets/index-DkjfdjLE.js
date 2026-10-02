@@ -75570,7 +75570,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-C4VJz_BV.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-ClCOIDI-.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -89880,11 +89880,22 @@ function TelegramInspectorPage() {
   const { toast: toast2 } = useToast();
   const [searchTerm, setSearchTerm] = reactExports.useState("");
   const [copiedId, setCopiedId] = reactExports.useState(null);
+  const [tokenInput, setTokenInput] = reactExports.useState("");
+  const [showToken, setShowToken] = reactExports.useState(false);
+  const [isConfigOpen, setIsConfigOpen] = reactExports.useState(true);
   const { data: traces = [], isLoading, refetch } = useQuery({
     queryKey: ["/api/telegram-inspector/traces"],
     refetchInterval: 3e3
     // Poll every 3 seconds
   });
+  const { data: botConfig, isLoading: isConfigLoading, refetch: refetchBotConfig } = useQuery({
+    queryKey: ["/api/telegram-inspector/bot-config"]
+  });
+  reactExports.useEffect(() => {
+    if (botConfig?.token && !tokenInput) {
+      setTokenInput(botConfig.token);
+    }
+  }, [botConfig?.token]);
   reactExports.useEffect(() => {
     const socket = lookup$4();
     socket.on("telegram_inspector_new_trace", () => {
@@ -89894,6 +89905,45 @@ function TelegramInspectorPage() {
       socket.disconnect();
     };
   }, []);
+  const saveTokenMutation = useMutation({
+    mutationFn: async (tokenToSave) => {
+      return await apiRequest("POST", "/api/telegram-inspector/bot-config", { token: tokenToSave });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast2({
+        title: "Inspector Bot Connected! 🚀",
+        description: data?.message || "Bot connected successfully and is now listening for traces."
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Connection Failed",
+        description: err.message || "Failed to verify or connect bot token.",
+        variant: "destructive"
+      });
+    }
+  });
+  const removeTokenMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/telegram-inspector/bot-config");
+    },
+    onSuccess: () => {
+      setTokenInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast2({
+        title: "Bot Token Removed",
+        description: "Custom inspector bot token removed. Dedicated inspector bot stopped."
+      });
+    },
+    onError: (err) => {
+      toast2({
+        title: "Failed to Remove Token",
+        description: err.message || "Failed to delete token.",
+        variant: "destructive"
+      });
+    }
+  });
   const clearAllMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("DELETE", "/api/telegram-inspector/traces");
@@ -89957,7 +90007,22 @@ function TelegramInspectorPage() {
           Button,
           {
             variant: "outline",
-            onClick: () => refetch(),
+            onClick: () => setIsConfigOpen(!isConfigOpen),
+            className: "rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold gap-2",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-4 h-4 text-purple-400" }),
+              isConfigOpen ? "Hide Bot Config" : "Bot Token Config"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          Button,
+          {
+            variant: "outline",
+            onClick: () => {
+              refetch();
+              refetchBotConfig();
+            },
             className: "rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold gap-2",
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: `w-4 h-4 ${isLoading ? "animate-spin" : ""}` }),
@@ -89978,6 +90043,152 @@ function TelegramInspectorPage() {
             ]
           }
         )
+      ] })
+    ] }),
+    isConfigOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs(Card, { className: "bg-gradient-to-br from-purple-950/20 via-black/40 to-slate-950/40 border border-purple-500/25 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[90px] pointer-events-none" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-xl font-bold text-white flex items-center gap-2.5", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 bg-purple-500/20 rounded-xl border border-purple-500/30 text-purple-300", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-5 h-5" }) }),
+            "Telegram Inspector Bot Configuration"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/50", children: "Connect any custom Telegram Bot Token (from @BotFather). Forward or send messages to that bot on Telegram to extract Custom Emoji IDs and HTML codes." })
+        ] }),
+        botConfig?.botInfo?.username ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-400 animate-ping" }),
+          "Connected as @",
+          botConfig.botInfo.username
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-amber-400" }),
+          "No Custom Bot Connected"
+        ] })
+      ] }),
+      botConfig?.isRunning && botConfig?.botInfo && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-emerald-500/[0.07] border border-emerald-500/20", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-lg", children: botConfig.botInfo.firstName ? botConfig.botInfo.firstName[0].toUpperCase() : /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-5 h-5" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-white text-base", children: botConfig.botInfo.firstName || "Telegram Bot" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "a",
+                {
+                  href: `https://t.me/${botConfig.botInfo.username}`,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-bold rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 flex items-center gap-1 transition-colors",
+                  children: [
+                    "@",
+                    botConfig.botInfo.username,
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3 h-3" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs px-2 py-0.5 bg-white/5 text-white/50 rounded-md border border-white/10 font-mono", children: [
+                "ID: ",
+                botConfig.botInfo.id
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-emerald-300/80 font-medium flex items-center gap-1.5 mt-0.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" }),
+              "Active Polling & Ready to Inspect messages! (Active Token: ",
+              botConfig.maskedToken || "Configured",
+              ")"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2 shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "a",
+          {
+            href: `https://t.me/${botConfig.botInfo.username}`,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            className: "inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition-colors",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-4 h-4" }),
+              "Open in Telegram",
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { className: "w-3.5 h-3.5" })
+            ]
+          }
+        ) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "text-xs font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Key, { className: "w-3.5 h-3.5 text-purple-400" }),
+          "Custom Telegram Bot Token / Key"
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative flex-1 w-full", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Input,
+              {
+                type: showToken ? "text" : "password",
+                placeholder: "Paste Telegram Bot Token here (e.g. 123456789:ABCdefGhI_...)",
+                value: tokenInput,
+                onChange: (e3) => setTokenInput(e3.target.value),
+                className: "pr-10 bg-white/5 border-white/10 rounded-2xl text-white font-mono placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowToken(!showToken),
+                className: "absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors",
+                children: showToken ? /* @__PURE__ */ jsxRuntimeExports.jsx(EyeOff, { className: "w-4 h-4" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "w-4 h-4" })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 w-full sm:w-auto shrink-0", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                onClick: () => saveTokenMutation.mutate(tokenInput.trim()),
+                disabled: saveTokenMutation.isPending || !tokenInput.trim(),
+                className: "flex-1 sm:flex-initial rounded-2xl font-bold gap-2 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 h-12 px-6",
+                children: saveTokenMutation.isPending ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-4 h-4 animate-spin" }),
+                  "Verifying & Connecting..."
+                ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-4 h-4" }),
+                  "Save & Connect Bot"
+                ] })
+              }
+            ),
+            botConfig?.hasCustomToken && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              Button,
+              {
+                variant: "outline",
+                onClick: () => removeTokenMutation.mutate(),
+                disabled: removeTokenMutation.isPending,
+                className: "rounded-2xl border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold h-12 px-4 gap-1.5",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "w-4 h-4" }),
+                  "Disconnect"
+                ]
+              }
+            )
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/10 text-xs text-white/60", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Info, { className: "w-4 h-4 text-purple-400 shrink-0 mt-0.5" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-bold text-white/80", children: "How to use any custom bot for inspection:" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+            "1. Open Telegram, search for ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "@BotFather" }),
+            ", and create a bot using ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "/newbot" }),
+            "."
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+            "2. Copy the bot token, paste it in the field above, and click ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("b", { children: "Save & Connect Bot" }),
+            "."
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "3. Open your bot in Telegram and send or forward any message with custom emojis, quotes, or formatting. The bot will automatically reply with the extracted Custom Emoji IDs and reconstructed Telegram HTML!" })
+        ] })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6", children: [
@@ -90004,11 +90215,14 @@ function TelegramInspectorPage() {
       ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Card, { className: "bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-emerald-500/40 transition-all duration-300", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-white/40 uppercase tracking-widest", children: "Bot Status" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("h3", { className: "text-xl font-black text-emerald-400 flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold text-white/40 uppercase tracking-widest", children: "Inspector Bot" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xl font-black text-emerald-400 flex items-center gap-2", children: botConfig?.isRunning ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-3 h-3 rounded-full bg-emerald-400 animate-ping" }),
-            "Active Polling"
-          ] })
+            botConfig?.botInfo?.username ? `@${botConfig.botInfo.username}` : "Active"
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-3 h-3 rounded-full bg-amber-400" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-amber-400 text-base", children: "Not Connected" })
+          ] }) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Bot, { className: "w-6 h-6" }) })
       ] }) })

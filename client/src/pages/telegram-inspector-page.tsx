@@ -22,9 +22,31 @@ import {
   Layers,
   Calendar,
   User,
-  ArrowRight
+  ArrowRight,
+  Key,
+  ExternalLink,
+  ShieldCheck,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Settings2,
+  Info
 } from "lucide-react";
 import { io } from "socket.io-client";
+
+interface BotConfigResponse {
+  hasCustomToken: boolean;
+  token?: string;
+  maskedToken?: string;
+  isRunning: boolean;
+  botInfo?: {
+    id: number;
+    username: string;
+    firstName: string;
+    canJoinGroups?: boolean;
+  } | null;
+  mainBotUsername?: string | null;
+}
 
 interface InspectionTrace {
   id: string;
@@ -63,11 +85,24 @@ export default function TelegramInspectorPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [tokenInput, setTokenInput] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(true);
 
   const { data: traces = [], isLoading, refetch } = useQuery<InspectionTrace[]>({
     queryKey: ["/api/telegram-inspector/traces"],
     refetchInterval: 3000, // Poll every 3 seconds
   });
+
+  const { data: botConfig, isLoading: isConfigLoading, refetch: refetchBotConfig } = useQuery<BotConfigResponse>({
+    queryKey: ["/api/telegram-inspector/bot-config"],
+  });
+
+  useEffect(() => {
+    if (botConfig?.token && !tokenInput) {
+      setTokenInput(botConfig.token);
+    }
+  }, [botConfig?.token]);
 
   // Socket.io for real-time live updates
   useEffect(() => {
@@ -79,6 +114,47 @@ export default function TelegramInspectorPage() {
       socket.disconnect();
     };
   }, []);
+
+  const saveTokenMutation = useMutation({
+    mutationFn: async (tokenToSave: string) => {
+      return await apiRequest("POST", "/api/telegram-inspector/bot-config", { token: tokenToSave });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast({
+        title: "Inspector Bot Connected! 🚀",
+        description: data?.message || "Bot connected successfully and is now listening for traces.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Connection Failed",
+        description: err.message || "Failed to verify or connect bot token.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeTokenMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/telegram-inspector/bot-config");
+    },
+    onSuccess: () => {
+      setTokenInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast({
+        title: "Bot Token Removed",
+        description: "Custom inspector bot token removed. Dedicated inspector bot stopped.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Remove Token",
+        description: err.message || "Failed to delete token.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const clearAllMutation = useMutation({
     mutationFn: async () => {
@@ -159,7 +235,16 @@ export default function TelegramInspectorPage() {
         <div className="flex items-center gap-3 shrink-0">
           <Button
             variant="outline"
-            onClick={() => refetch()}
+            onClick={() => setIsConfigOpen(!isConfigOpen)}
+            className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold gap-2"
+          >
+            <Key className="w-4 h-4 text-purple-400" />
+            {isConfigOpen ? "Hide Bot Config" : "Bot Token Config"}
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => { refetch(); refetchBotConfig(); }}
             className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -177,6 +262,162 @@ export default function TelegramInspectorPage() {
           </Button>
         </div>
       </div>
+
+      {/* Custom Bot Token Configuration Card */}
+      {isConfigOpen && (
+        <Card className="bg-gradient-to-br from-purple-950/20 via-black/40 to-slate-950/40 border border-purple-500/25 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[90px] pointer-events-none" />
+
+          {/* Title & Status Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-500/30 text-purple-300">
+                  <Bot className="w-5 h-5" />
+                </div>
+                Telegram Inspector Bot Configuration
+              </h2>
+              <p className="text-xs text-white/50">
+                Connect any custom Telegram Bot Token (from @BotFather). Forward or send messages to that bot on Telegram to extract Custom Emoji IDs and HTML codes.
+              </p>
+            </div>
+
+            {botConfig?.botInfo?.username ? (
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                Connected as @{botConfig.botInfo.username}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                No Custom Bot Connected
+              </span>
+            )}
+          </div>
+
+          {/* Active Bot Info Banner */}
+          {botConfig?.isRunning && botConfig?.botInfo && (
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-emerald-500/[0.07] border border-emerald-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-lg">
+                  {botConfig.botInfo.firstName ? botConfig.botInfo.firstName[0].toUpperCase() : <Bot className="w-5 h-5" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-base">
+                      {botConfig.botInfo.firstName || "Telegram Bot"}
+                    </span>
+                    <a
+                      href={`https://t.me/${botConfig.botInfo.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-bold rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 flex items-center gap-1 transition-colors"
+                    >
+                      @{botConfig.botInfo.username}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <span className="text-xs px-2 py-0.5 bg-white/5 text-white/50 rounded-md border border-white/10 font-mono">
+                      ID: {botConfig.botInfo.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-300/80 font-medium flex items-center gap-1.5 mt-0.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                    Active Polling & Ready to Inspect messages! (Active Token: {botConfig.maskedToken || 'Configured'})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`https://t.me/${botConfig.botInfo.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition-colors"
+                >
+                  <Bot className="w-4 h-4" />
+                  Open in Telegram
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Token Input Form */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-purple-400" />
+              Custom Telegram Bot Token / Key
+            </label>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  placeholder="Paste Telegram Bot Token here (e.g. 123456789:ABCdefGhI_...)"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  className="pr-10 bg-white/5 border-white/10 rounded-2xl text-white font-mono placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <Button
+                  onClick={() => saveTokenMutation.mutate(tokenInput.trim())}
+                  disabled={saveTokenMutation.isPending || !tokenInput.trim()}
+                  className="flex-1 sm:flex-initial rounded-2xl font-bold gap-2 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 h-12 px-6"
+                >
+                  {saveTokenMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Verifying & Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Save & Connect Bot
+                    </>
+                  )}
+                </Button>
+
+                {botConfig?.hasCustomToken && (
+                  <Button
+                    variant="outline"
+                    onClick={() => removeTokenMutation.mutate()}
+                    disabled={removeTokenMutation.isPending}
+                    className="rounded-2xl border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold h-12 px-4 gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Guide Callout */}
+          <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/10 text-xs text-white/60">
+            <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold text-white/80">How to use any custom bot for inspection:</p>
+              <p>
+                1. Open Telegram, search for <b>@BotFather</b>, and create a bot using <code>/newbot</code>.
+              </p>
+              <p>
+                2. Copy the bot token, paste it in the field above, and click <b>Save & Connect Bot</b>.
+              </p>
+              <p>
+                3. Open your bot in Telegram and send or forward any message with custom emojis, quotes, or formatting. The bot will automatically reply with the extracted Custom Emoji IDs and reconstructed Telegram HTML!
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -219,10 +460,19 @@ export default function TelegramInspectorPage() {
         <Card className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-emerald-500/40 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Bot Status</p>
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Inspector Bot</p>
               <h3 className="text-xl font-black text-emerald-400 flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
-                Active Polling
+                {botConfig?.isRunning ? (
+                  <>
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
+                    {botConfig?.botInfo?.username ? `@${botConfig.botInfo.username}` : "Active"}
+                  </>
+                ) : (
+                  <>
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span className="text-amber-400 text-base">Not Connected</span>
+                  </>
+                )}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
