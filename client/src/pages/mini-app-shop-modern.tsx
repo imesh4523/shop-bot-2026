@@ -3453,12 +3453,12 @@ Support: https://t.me/youuhost_support
     setIsSandromaniaPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Generating Credentials...",
-      subtitle: "Preparing your digital license keys...",
+      title: "Preparing Credentials...",
+      subtitle: "Connecting to digital license provider & securing your access...",
     });
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2400));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
@@ -3481,10 +3481,13 @@ Support: https://t.me/youuhost_support
       setActiveTab("orders");
     } catch (err: any) {
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      refetchUser();
+      const isRefunded = String(err.message || "").toLowerCase().includes("refund");
       toast({
-        title: "Order Failed",
+        title: isRefunded ? "🛡️ YouuHost Team: Money Refunded" : "Order Failed",
         description: err.message || "Failed to process partner purchase.",
-        variant: "destructive",
+        variant: isRefunded ? "default" : "destructive",
       });
     } finally {
       setIsSandromaniaPurchasing(false);
@@ -3567,12 +3570,12 @@ Support: https://t.me/youuhost_support
     setIsCssxPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Generating Credentials...",
-      subtitle: "Preparing your digital license keys...",
+      title: "Preparing Credentials...",
+      subtitle: "Connecting to digital license provider & securing your access...",
     });
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2400));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
         productId: detailCssxProduct.id,
         quantity: cssxOrderQty,
@@ -3595,10 +3598,13 @@ Support: https://t.me/youuhost_support
       setActiveTab("orders");
     } catch (err: any) {
       setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      refetchUser();
+      const isRefunded = String(err.message || "").toLowerCase().includes("refund");
       toast({
-        title: "Order Failed",
+        title: isRefunded ? "🛡️ YouuHost Team: Money Refunded" : "Order Failed",
         description: err.message || "Failed to process digital license purchase.",
-        variant: "destructive",
+        variant: isRefunded ? "default" : "destructive",
       });
     } finally {
       setIsCssxPurchasing(false);
@@ -3768,7 +3774,7 @@ Support: https://t.me/youuhost_support
     setIsPurchasing(true);
     setPaymentModal({
       isOpen: true,
-      title: "Generating Credentials...",
+      title: "Preparing Credentials...",
       subtitle: appliedCoupon 
         ? `Applying coupon ${appliedCoupon.code} & preparing access...` 
         : "Preparing your secure credentials...",

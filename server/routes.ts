@@ -8047,7 +8047,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
     let lkrRate = rates.LKR || 305.50;
     let finalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
 
-    const result = await db.transaction(async (tx) => {
+    // Phase 1: Fast Balance Check & Atomic Deduction in Database
+    const holdResult = await db.transaction(async (tx) => {
       let user = (
         await tx
           .select()
@@ -8134,7 +8135,7 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         );
       }
 
-      // Deduct balance and ensure 100% synchronization
+      // Deduct balance cleanly and return updated user
       const remainingCents = Math.max(0, effBalCents - finalCents);
       const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
 
@@ -8159,79 +8160,107 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         throw new Error("Transaction conflict or insufficient wallet balance.");
       }
 
-      // Place order via CSxStore API
-      let orderRes: any = null;
-      try {
-        orderRes = await CssxService.createOrder({
-          service_id: product.serviceId,
-          quantity: qty,
-        });
-      } catch (apiErr: any) {
-        console.error("[CSxStore Fulfillment Error]:", apiErr);
-        const errMsg = String(apiErr?.message || "").toLowerCase();
-        if (errMsg.includes("stock") || errMsg.includes("out of stock") || errMsg.includes("unavailable") || errMsg.includes("409")) {
-          throw new Error("This digital item is currently restocking or temporarily out of stock. Please try again shortly.");
-        }
-        throw new Error("Digital license provider is currently processing high volume. Please retry in a moment.");
-      }
-
-      const orderData = orderRes?.order || orderRes?.data || orderRes || {};
-      const rawExtId = orderData.internal_order_id || orderData.id || orderData.order_id || "";
-      const externalId = String(rawExtId).replace(/^API_/i, "");
-
-      let deliveryText = extractUniversalDelivery(orderData);
-      if (!deliveryText || deliveryText === "{}" || deliveryText === "Provisioned successfully.") {
-        deliveryText = externalId
-          ? `Order submitted to fulfillment provider. Provider Order ID: #${externalId}`
-          : "Provisioned successfully.";
-      }
-
-      const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round(((totalCents / qty) / 100) * lkrRate);
-      const [newOrder] = await tx
-        .insert(cssxOrders)
-        .values({
-          telegramUserId: user.id,
-          cssxProductId: product.id,
-          externalOrderId: externalId || String(Date.now()),
-          serviceId: product.serviceId,
-          productTitle: product.title,
-          quantity: qty,
-          costPriceUsd: product.costPriceUsd * qty,
-          amountPaid: totalCents,
-          amountPaidLkr: totalLkr,
-          unitPriceLkr: unitLkr,
-          status: "completed",
-          deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
-        })
-        .returning();
-
-      return {
-        order: newOrder,
-        newBalance: user.balance - totalCents,
-        deliveryText,
-        user,
-      };
+      return { user: updatedUser, remainingCents, remainingLkr };
     });
+
+    const user = holdResult.user;
+
+    // Phase 2: Call External CSxStore API OUTSIDE Database Transaction
+    let orderRes: any = null;
+    let partnerError: string | null = null;
+    try {
+      orderRes = await CssxService.createOrder({
+        service_id: product.serviceId,
+        quantity: qty,
+      });
+    } catch (apiErr: any) {
+      console.error("[CSxStore Fulfillment Error]:", apiErr);
+      partnerError = apiErr?.message || "Provider communication error";
+    }
+
+    // Phase 3: Check If Partner Fulfillment Succeeded Or Needs Instant Auto-Refund
+    if (partnerError || !orderRes || orderRes.success === false) {
+      console.warn(`[CSxStore Auto-Refund]: Partner failed for user ${user.id}. Refunding Rs. ${finalLkr} ($${(finalCents / 100).toFixed(2)})`);
+      
+      // Auto-Refund user wallet balance immediately
+      await db.transaction(async (refundTx) => {
+        await refundTx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} + ${finalCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${finalLkr}`
+        }).where(eq(telegramUsers.id, user.id));
+
+        // Record refund payment entry
+        await refundTx.insert(payments).values({
+          telegramUserId: user.id,
+          amount: finalCents,
+          amountLkr: finalLkr,
+          status: "completed",
+          paymentMethod: "wallet_refund",
+          payherePaymentId: `REFUND_${Date.now()}`,
+          notes: `YouuHost Team: Money Refunded (${product.title})`,
+        });
+      });
+
+      return res.status(400).json({
+        success: false,
+        refunded: true,
+        message: "This digital item is currently restocking from our provider. YouuHost Team has refunded your wallet balance instantly.",
+        error: partnerError,
+      });
+    }
+
+    // Phase 4: Order Successful! Extract credentials & save order
+    const orderData = orderRes?.order || orderRes?.data || orderRes || {};
+    const rawExtId = orderData.internal_order_id || orderData.id || orderData.order_id || "";
+    const externalId = String(rawExtId).replace(/^API_/i, "");
+
+    let deliveryText = extractUniversalDelivery(orderData);
+    if (!deliveryText || deliveryText === "{}" || deliveryText === "Provisioned successfully.") {
+      deliveryText = externalId
+        ? `Order submitted to fulfillment provider. Provider Order ID: #${externalId}`
+        : "Provisioned successfully.";
+    }
+
+    const unitLkr = product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round(((totalCents / qty) / 100) * lkrRate);
+    
+    // Save order into cssx_orders
+    const [newOrder] = await db
+      .insert(cssxOrders)
+      .values({
+        telegramUserId: user.id,
+        cssxProductId: product.id,
+        externalOrderId: externalId || String(Date.now()),
+        serviceId: product.serviceId,
+        productTitle: product.title,
+        quantity: qty,
+        costPriceUsd: product.costPriceUsd * qty,
+        amountPaid: finalCents,
+        amountPaidLkr: finalLkr,
+        unitPriceLkr: unitLkr,
+        status: "completed",
+        deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
+      })
+      .returning();
 
     sendAdminPushNotification({
       title: `⚡ CSxStore Order: ${product.title}`,
-      body: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
+      body: `${tgUser.first_name || user.username || "Customer"} bought ${qty}x ${product.title} ($${(finalCents / 100).toFixed(2)})`,
       url: `/orders`
     }).catch(console.error);
 
     io.emit('admin_notification', {
       type: 'purchase',
       title: 'CSxStore Purchase',
-      message: `${tgUser.first_name || result.user?.username || "Customer"} bought ${qty}x ${product.title} ($${(totalCents / 100).toFixed(2)})`,
-      data: result
+      message: `${tgUser.first_name || user.username || "Customer"} bought ${qty}x ${product.title} ($${(finalCents / 100).toFixed(2)})`,
+      data: { order: newOrder, user }
     });
 
     res.json({
       success: true,
       message: "Order completed successfully!",
-      order: result.order,
-      newBalance: result.newBalance,
-      deliveryText: result.deliveryText,
+      order: newOrder,
+      newBalance: holdResult.remainingCents,
+      deliveryText,
     });
   } catch (err: any) {
     const custId = tgUser?.email || tgUser?.username || (tgUser?.id ? String(tgUser.id) : "Unknown Customer");

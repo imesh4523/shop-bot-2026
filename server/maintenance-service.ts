@@ -120,7 +120,8 @@ export async function isRequestWhitelisted(req: Request): Promise<boolean> {
   // 1. Authenticated Admin Session: ONLY bypasses admin dashboard routes!
   // If requesting public customer store, admin session does NOT bypass unless their email/telegram is whitelisted.
   const path = req.path || "";
-  if (path.startsWith("/imeshadmindashbord") || path.startsWith("/api/admin")) {
+  const referer = String(req.headers["referer"] || "").toLowerCase();
+  if (path.startsWith("/imeshadmindashbord") || path.startsWith("/api/admin") || referer.includes("/imeshadmindashbord")) {
     if ((req.session as any)?.userId || (req.session as any)?.passport?.user) {
       return true;
     }
@@ -238,10 +239,20 @@ export async function maintenanceShieldMiddleware(req: Request, res: Response, n
 
     const path = req.path;
 
+    // Authenticated admin accessing admin dashboard or admin endpoints is ALWAYS allowed
+    const isAdmin = Boolean((req.session as any)?.userId || (req.session as any)?.passport?.user);
+    const referer = String(req.headers["referer"] || "").toLowerCase();
+    const host = String((req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "").split(":")[0].toLowerCase().trim();
+    const isAdminDomain = ["imeshmain2.youuhost.com", "localhost", "127.0.0.1"].includes(host) || host.endsWith(".localhost");
+
+    if (isAdmin && (isAdminDomain || referer.includes("/imeshadmindashbord"))) {
+      return next();
+    }
+
     // Allowed paths during maintenance (auth, admin, status, static assets)
     const isAlwaysAllowed =
       path.startsWith("/api/system/maintenance-status") ||
-      path.startsWith("/api/admin/maintenance") ||
+      path.startsWith("/api/admin/") ||
       path.startsWith("/api/auth/login") ||
       path.startsWith("/api/auth/logout") ||
       path.startsWith("/api/auth/user") ||
