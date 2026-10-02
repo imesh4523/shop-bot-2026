@@ -26,6 +26,7 @@ export const products = pgTable("products", {
   priceLkr: integer("price_lkr"), // In LKR (Rupees) - optional override
   customEmojiId: text("custom_emoji_id"),
   status: text("status").notNull().default("available"),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(true),
   isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
   preorderQuota: integer("preorder_quota").notNull().default(50),
   termsAndConditions: text("terms_and_conditions"),

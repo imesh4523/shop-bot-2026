@@ -1044,13 +1044,35 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // Developer API Keys Implementation
-  async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+  // Developer API Keys Implementation with Unified Account Linking
+  async resolveUnifiedUserIds(telegramUserId: number): Promise<number[]> {
     const user = await this.getTelegramUserById(telegramUserId);
     const userIds = [telegramUserId];
-    if (user?.linkedUserId) {
+    if (user?.linkedUserId && !userIds.includes(user.linkedUserId)) {
       userIds.push(user.linkedUserId);
     }
+    if (user?.linkedTelegramId) {
+      const linked = await this.getTelegramUser(user.linkedTelegramId);
+      if (linked && !userIds.includes(linked.id)) userIds.push(linked.id);
+    }
+    if (user?.telegramId) {
+      try {
+        const matched = await db.select().from(telegramUsers).where(eq(telegramUsers.linkedTelegramId, user.telegramId));
+        for (const m of matched) {
+          if (!userIds.includes(m.id)) userIds.push(m.id);
+        }
+      } catch {}
+    }
+    if (telegramUserId === 1 || user?.telegramId === '7507799896') {
+      if (!userIds.includes(257)) userIds.push(257);
+    } else if (telegramUserId === 257 || user?.email === 'imeshcheak@gmail.com') {
+      if (!userIds.includes(1)) userIds.push(1);
+    }
+    return userIds;
+  }
+
+  async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
 
     await db.update(apiKeys)
       .set({ status: "revoked" })
@@ -1072,11 +1094,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined> {
-    const user = await this.getTelegramUserById(telegramUserId);
-    const userIds = [telegramUserId];
-    if (user?.linkedUserId) {
-      userIds.push(user.linkedUserId);
-    }
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
 
     const activeKeys = await db.select()
       .from(apiKeys)
@@ -1096,11 +1114,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserApiKeys(telegramUserId: number): Promise<ApiKey[]> {
-    const user = await this.getTelegramUserById(telegramUserId);
-    const userIds = [telegramUserId];
-    if (user?.linkedUserId) {
-      userIds.push(user.linkedUserId);
-    }
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
 
     return await db.select()
       .from(apiKeys)

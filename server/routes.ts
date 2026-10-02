@@ -5565,14 +5565,29 @@ app.put(api.products.update.path, isAuth, async (req, res) => {
   try {
     const input = api.products.update.input.parse(req.body);
     const product = await storage.updateProduct(Number(req.params.id), input);
+    invalidateCatalogCache();
     res.json(product);
   } catch (err) {
     res.status(400).json({ message: "Invalid input" });
   }
 });
 
+// Quick toggle endpoint for Telegram Bot visibility
+app.patch("/api/products/:id/toggle-telegram", isAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { showOnTelegram } = req.body;
+    const product = await storage.updateProduct(id, { showOnTelegram: Boolean(showOnTelegram) });
+    invalidateCatalogCache();
+    res.json(product);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update Telegram visibility" });
+  }
+});
+
 app.delete(api.products.delete.path, isAuth, async (req, res) => {
   await storage.deleteProduct(Number(req.params.id));
+  invalidateCatalogCache();
   res.status(204).send();
 });
 
@@ -9268,7 +9283,7 @@ app.post("/api/broadcast/custom", isAuth, async (req, res) => {
 app.post("/api/broadcast/availability", isAuth, async (req, res) => {
   try {
     const products = await storage.getProducts();
-    const availableProducts = products.filter(p => p.status === 'available');
+    const availableProducts = products.filter(p => p.status === 'available' && (p as any).showOnTelegram !== false);
 
     const groupedProducts: Record<string, any[]> = {};
     for (const p of availableProducts) {
@@ -10218,6 +10233,7 @@ async function initBot() {
         ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT false;
         ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;
         ALTER TABLE products ADD COLUMN IF NOT EXISTS terms_and_conditions TEXT;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS show_on_telegram BOOLEAN DEFAULT true;
       `);
       console.log('[DB] Complete schema columns verified/migrated successfully!');
     } catch (e) {
@@ -13181,6 +13197,23 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       // Only handle actions on the main bot
       const isMainBot = (targetBot as any).isMainBot || targetBot === bot || ((targetBot as any).token && (targetBot as any).token === (bot as any)?.token) || (targetBot !== broadcastBot && targetBot !== inspectorBot);
       if (!isMainBot) return;
+
+      // Maintenance Mode Shield for Telegram Callback Queries
+      try {
+        const maintConfig = await getMaintenanceConfig();
+        if (maintConfig.enabled) {
+          const isWhitelisted = await isTelegramUserWhitelisted(userId, query.from?.username);
+          if (!isWhitelisted) {
+            if (query.id) {
+              await targetBot.answerCallbackQuery(query.id, {
+                text: `🛠️ ${maintConfig.title || 'Maintenance Mode'}: Bot services are temporarily paused for routine upgrades.`,
+                show_alert: true
+              }).catch(() => {});
+            }
+            return;
+          }
+        }
+      } catch (mErr) {}
 
       // Delegate admin callbacks to admin controller only for administrative commands
       if (data.startsWith('admin_') || data.startsWith('menu_') || data.startsWith('prompt_') || data === 'get_statement') {
@@ -16746,6 +16779,22 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
         console.log(`[BOT UPDATE RECEIVED] ChatId: ${chatId}, User: ${msg.from?.username || msg.from?.first_name} (${userId}), Text: "${msg.text}"`);
         if (!userId) return;
         if (isDuplicateMessage(msg.message_id, chatId)) return;
+
+        // Maintenance Mode Shield for Telegram Messages
+        try {
+          const maintConfig = await getMaintenanceConfig();
+          if (maintConfig.enabled) {
+            const isWhitelisted = await isTelegramUserWhitelisted(userId, msg.from?.username);
+            if (!isWhitelisted) {
+              const maintMsg = `🛠️ <b>${maintConfig.title || 'Scheduled Maintenance in Progress'}</b>\n\n` +
+                `${maintConfig.message || 'We are currently performing routine upgrades to improve service quality. Our services and bot orders are temporarily unavailable.'}\n\n` +
+                (maintConfig.estimatedEnd ? `⏳ <b>Estimated Restoration:</b> ${maintConfig.estimatedEnd}\n\n` : '') +
+                `<i>Thank you for your patience and understanding.</i>`;
+              await targetBot.sendMessage(chatId, maintMsg, { parse_mode: 'HTML' }).catch(() => {});
+              return;
+            }
+          }
+        } catch (mErr) {}
 
         let tgUser = await storage.getTelegramUser(userId);
         if (!tgUser) {

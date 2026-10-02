@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreHorizontal, Trash, Search, Server, Cloud, Shield, Copy, Key, Loader2, Trash2, Edit2, Megaphone, MessageSquare, RefreshCw, Sparkles } from "lucide-react";
+import { Plus, MoreHorizontal, Trash, Search, Server, Cloud, Shield, Copy, Key, Loader2, Trash2, Edit2, Megaphone, MessageSquare, RefreshCw, Sparkles, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -194,6 +194,7 @@ const productFormSchema = insertProductSchema.extend({
   isPreorderEnabled: z.boolean().default(false),
   preorderQuota: z.coerce.number().default(50),
   termsAndConditions: z.string().optional().nullable(),
+  showOnTelegram: z.boolean().default(true),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -345,6 +346,11 @@ export default function ProductsPage() {
                               Emoji: {product.customEmojiId}
                             </Badge>
                           )}
+                          {(product as any).showOnTelegram === false && (
+                            <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded text-[9px] font-semibold">
+                              Web Only
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-[10px] text-white/30 font-medium truncate max-w-[200px] leading-tight">
                           {product.description}
@@ -478,6 +484,7 @@ function EditProductDialog({
       isPreorderEnabled: (product as any).isPreorderEnabled ?? false,
       preorderQuota: (product as any).preorderQuota ?? 50,
       termsAndConditions: (product as any).termsAndConditions || "",
+      showOnTelegram: (product as any).showOnTelegram !== false,
     },
   });
 
@@ -658,6 +665,30 @@ function EditProductDialog({
 
             <FormField
               control={form.control}
+              name="showOnTelegram"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <div>
+                    <FormLabel className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-blue-400" />
+                      Show on Telegram Bot
+                    </FormLabel>
+                    <FormDescription className="text-[9px] text-slate-400">Display this product on Telegram bot and mini app</FormDescription>
+                  </div>
+                  <FormControl>
+                    <input 
+                      type="checkbox" 
+                      checked={field.value ?? true} 
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
@@ -809,6 +840,7 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
       isPreorderEnabled: false,
       preorderQuota: 50,
       termsAndConditions: "",
+      showOnTelegram: true,
     },
   });
 
@@ -996,6 +1028,30 @@ function CreateProductDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="showOnTelegram"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <div>
+                    <FormLabel className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-blue-400" />
+                      Show on Telegram Bot
+                    </FormLabel>
+                    <FormDescription className="text-[9px] text-slate-400">Display this product on Telegram bot and mini app</FormDescription>
+                  </div>
+                  <FormControl>
+                    <input 
+                      type="checkbox" 
+                      checked={field.value ?? true} 
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
