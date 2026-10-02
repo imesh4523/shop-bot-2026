@@ -133,6 +133,38 @@ function escapeHTML(str: string): string {
     .replace(/>/g, '&gt;');
 }
 
+function formatTicketMessageThread(displayTicketId: number, status: string, messagesList: Array<{ sender: string; text: string }>) {
+  const statusFormatted = status === 'resolved' 
+    ? '<b>Resolved</b>' 
+    : (status === 'closed' ? '<b>Closed</b>' : (status === 'in_progress' ? '<b>In Progress</b>' : '<b>Open &amp; Received</b>'));
+
+  let threadContent = '';
+  if (messagesList && messagesList.length > 0) {
+    let userMsgCount = 0;
+    threadContent = messagesList.map(msg => {
+      if (msg.sender === 'user' || msg.sender === 'customer') {
+        userMsgCount++;
+        if (userMsgCount === 1) {
+          return `<blockquote>${escapeHTML(msg.text)}</blockquote>`;
+        }
+        return `<blockquote><b>User:</b> ${escapeHTML(msg.text)}</blockquote>`;
+      } else {
+        return `<blockquote><b>Youuhost team:</b> ${escapeHTML(msg.text)}</blockquote>`;
+      }
+    }).join('\n');
+  } else {
+    threadContent = `<blockquote>Details submitted</blockquote>`;
+  }
+
+  return `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
+    `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${displayTicketId}</code>\n` +
+    `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Status:</b> ${statusFormatted}\n\n` +
+    `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji>\n` +
+    `<b>Submitted Message:</b>\n` +
+    `${threadContent}\n\n` +
+    `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;
+}
+
 function normalizeAptosAddress(addr: string): string {
   if (!addr) return '';
   let clean = addr.toLowerCase().trim();
@@ -2359,6 +2391,43 @@ export async function registerRoutes(
         })
         .where(eq(supportTickets.id, ticketId))
         .returning();
+
+      // Send formatted Telegram notification with custom emojis & thread blockquotes
+      try {
+        const targetBot = getBotInstance();
+        if (targetBot && updated.userTelegramId) {
+          const chatId = parseInt(updated.userTelegramId, 10);
+          if (!isNaN(chatId)) {
+            const displayTicketId = updated.id < 2000 ? updated.id + 2000 : updated.id;
+            const formattedThreadMsg = formatTicketMessageThread(displayTicketId, updated.status, messagesList);
+
+            const keyboard = {
+              inline_keyboard: [
+                [
+                  {
+                    text: 'Reply',
+                    callback_data: `reply_ticket_${updated.id}`,
+                    style: 'success',
+                    icon_custom_emoji_id: '5260535596941582167'
+                  }
+                ]
+              ] as any
+            };
+
+            await targetBot.sendMessage(chatId, formattedThreadMsg, {
+              parse_mode: 'HTML',
+              reply_markup: keyboard
+            }).catch(err => console.error("Error sending admin reply to telegram user:", err));
+
+            // Set user lastAction so they can reply back directly
+            await storage.updateTelegramUserByChatId(updated.userTelegramId, {
+              lastAction: `awaiting_support_details_${updated.id}`
+            }).catch(() => {});
+          }
+        }
+      } catch (tgErr) {
+        console.error("Error dispatching telegram message for ticket reply:", tgErr);
+      }
 
       io.emit("ticket_reply", { ticketId, replyText, attachmentUrl });
 
@@ -6787,6 +6856,7 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
       return text
         .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
         .replace(/\{ce:\d+\}/g, "")
+        .replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, "")
         .replace(/\s+/g, " ")
         .trim();
     };
@@ -6891,6 +6961,7 @@ async function autoSyncSandromaniaProductsInternal() {
       return text
         .replace(/\{ce:\d+:?(.*?)\}/g, "$1")
         .replace(/\{ce:\d+\}/g, "")
+        .replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, "")
         .replace(/\s+/g, " ")
         .trim();
     };
@@ -10247,6 +10318,10 @@ let broadcastBot: TelegramBot | null = null;
 let inspectorBot: TelegramBot | null = null;
 let inspectorBotInfo: { id: number; username: string; firstName: string; canJoinGroups?: boolean } | null = null;
 
+function getBotInstance(): TelegramBot | null {
+  return bot;
+}
+
 const setupInspectorBotHandlers = (targetBot: TelegramBot) => {
   if ((targetBot as any).__inspectorHandlersAttached) return;
   (targetBot as any).__inspectorHandlersAttached = true;
@@ -11253,12 +11328,15 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     else productEmojiId = '5854908544712707500';
   }
 
-  const productCaption = `<tg-emoji emoji-id="${productEmojiId}">📦</tg-emoji> <b>${product.name}</b>\n\n` +
-    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> <b>Price:</b> <b>${priceDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
-    `<tg-emoji emoji-id="5253742260054409879">✉️</tg-emoji> <b>Description</b>\n` +
-    `${product.description || 'Instant automated delivery 24/7 after purchase. Full activation warranty guaranteed.'}\n\n` +
-    `<tg-emoji emoji-id="5274099962655816924">❗️</tg-emoji> <b>Delivery:</b> automatic\n\n` +
-    `<tg-emoji emoji-id="5456258317477230911">😎</tg-emoji> <b>Stock:</b> ${typeof stockCount === 'number' && !isNaN(stockCount) ? stockCount : 0} pcs`;
+  const cleanName = (product.name || '').replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, '').trim();
+  const cleanDesc = (product.description || 'Instant automated delivery 24/7 after purchase. Full activation warranty guaranteed.').replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, '').trim();
+
+  const productCaption = `<tg-emoji emoji-id="${productEmojiId}">💎</tg-emoji> <b>${cleanName}</b>\n\n` +
+    `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Price:</b> <b>${priceDisplay}</b>\n\n` +
+    `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Description</b>\n` +
+    `${cleanDesc}\n\n` +
+    `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Delivery:</b> <b>Instant Automated</b>\n\n` +
+    `<tg-emoji emoji-id="5850383023572259486">📦</tg-emoji> <b>Stock:</b> <b>${typeof stockCount === 'number' && !isNaN(stockCount) ? stockCount : 0} pcs</b>`;
 
   const inline_keyboard: any[] = [];
 
@@ -11283,13 +11361,13 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   // Row 3: Other quantity (only if stockCount > 1)
   if (stockCount > 1) {
     inline_keyboard.push([
-      { text: 'Other quantity', callback_data: `qty_other_${product.id}`, icon_custom_emoji_id: '6050684909389880647' }
+      { text: 'Other quantity', callback_data: `qty_other_${product.id}`, style: 'primary' }
     ]);
   }
 
   // Row 4: Back button
   inline_keyboard.push([
-    { text: 'Back to Category', callback_data: `cat_${product.type}`, style: 'primary', icon_custom_emoji_id: '5976535107933050770' }
+    { text: 'Back to Category', callback_data: `cat_${product.type}`, style: 'primary' }
   ]);
 
   const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
@@ -11339,10 +11417,12 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
   const { formatted: totalFormatted } = formatPriceInCurrency(totalUSDNum, userCurrency);
   const totalDisplay = userCurrency === 'USD' ? `$${totalUSDNum.toFixed(2)} USD` : `${totalFormatted} ($${totalUSDNum.toFixed(2)} USD)`;
 
-  const orderCaption = `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> <b>Order calculation</b>\n\n` +
-    `Product: <b>${productName}</b>\n` +
-    `<tg-emoji emoji-id="5332440771180116150">🟢</tg-emoji> Quantity: <b>${qty}</b>\n` +
-    `<tg-emoji emoji-id="5429518319243775957">📉</tg-emoji> Product total: <b>${totalDisplay}</b> <tg-emoji emoji-id="5409048419211682843">💵</tg-emoji>\n\n` +
+  const cleanOrderProdName = productName.replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, '').trim();
+
+  const orderCaption = `<tg-emoji emoji-id="5850383023572259486">🧾</tg-emoji> <b>Order calculation</b>\n\n` +
+    `<tg-emoji emoji-id="5850383023572259486">📦</tg-emoji> <b>Product:</b> <b>${cleanOrderProdName}</b>\n` +
+    `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> <b>Quantity:</b> <b>${qty} pcs</b>\n` +
+    `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> <b>Product total:</b> <b>${totalDisplay}</b>\n\n` +
     `Choose payment method:`;
 
   const inline_keyboard = [
@@ -11354,7 +11434,7 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
       { text: 'USDT • TRC20', callback_data: `pay_trc20_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5936189134342199863' }
     ],
     [{ text: 'Pay from balance', callback_data: `pay_bal_${productId}_${qty}`, style: 'success', icon_custom_emoji_id: '5409048419211682843' }],
-    [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger', icon_custom_emoji_id: '5976535107933050770' }]
+    [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger' }]
   ] as any;
 
   const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
@@ -12067,6 +12147,14 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
   const inline_keyboard = [
     [
       {
+        text: 'Opened Support Tickets',
+        callback_data: 'my_support_tickets',
+        style: 'success',
+        icon_custom_emoji_id: '5850383023572259486'
+      }
+    ],
+    [
+      {
         text: t(userLang, 'issue_payment_not_approved'),
         callback_data: 'supp_payment',
         style: 'primary',
@@ -12117,6 +12205,171 @@ const sendSupportScreen = async (targetBot: TelegramBot, chatId: number, message
 
   const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
   await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, caption, { inline_keyboard }, messageId);
+};
+
+const sendUserSupportTicketsScreen = async (targetBot: TelegramBot, chatId: number, userId: string, messageId?: number) => {
+  const tgUser = await storage.getTelegramUser(userId) || await storage.getTelegramUserByChatId(chatId.toString());
+
+  const userTickets = await db
+    .select()
+    .from(supportTickets)
+    .where(
+      or(
+        tgUser?.id ? eq(supportTickets.telegramUserId, tgUser.id) : sql`false`,
+        eq(supportTickets.userTelegramId, userId),
+        eq(supportTickets.userTelegramId, chatId.toString())
+      )
+    )
+    .orderBy(desc(supportTickets.id));
+
+  const validTickets = userTickets.filter(t => (t.details && t.details.trim().length > 0) || (t.messages && t.messages.trim().length > 0));
+
+  if (validTickets.length === 0) {
+    const emptyCaption = `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Support Tickets</b>\n\n` +
+      `You do not have any submitted support tickets yet.\n\n` +
+      `If you have an issue with an order, payment, or account, tap <b>Back to Support</b> and select an issue type to open a ticket.`;
+
+    const inline_keyboard = [
+      [
+        {
+          text: 'Back to Support',
+          callback_data: 'support',
+          style: 'primary',
+          icon_custom_emoji_id: '5976535107933050770'
+        },
+        {
+          text: 'Main Menu',
+          callback_data: 'main_menu',
+          style: 'danger',
+          icon_custom_emoji_id: '5271604874419647061'
+        }
+      ]
+    ] as any;
+
+    const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, emptyCaption, { inline_keyboard }, messageId);
+    return;
+  }
+
+  const caption = `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your Support Tickets</b>\n\n` +
+    `Found <b>${validTickets.length}</b> support ticket(s). Select a ticket below to view conversation history, admin replies, or send a new reply:`;
+
+  const inline_keyboard: any[] = [];
+
+  for (const t of validTickets.slice(0, 15)) {
+    const displayTicketId = t.id < 2000 ? t.id + 2000 : t.id;
+    let statusLabel = 'Open';
+    if (t.status === 'in_progress') statusLabel = 'In Progress';
+    else if (t.status === 'resolved') statusLabel = 'Resolved';
+    else if (t.status === 'closed') statusLabel = 'Closed';
+
+    const shortSubject = (t.subject || t.issueType || 'Ticket').replace(/[⭐️⭐🌟🛒🛍️📦✨🔥⚡💎👠😎📊💲]/g, '').trim().slice(0, 18);
+    inline_keyboard.push([
+      {
+        text: `#${displayTicketId} • ${statusLabel} (${shortSubject})`,
+        callback_data: `view_ticket_${t.id}`,
+        style: t.status === 'open' || t.status === 'in_progress' ? 'success' : 'primary',
+        icon_custom_emoji_id: '5850383023572259486'
+      }
+    ]);
+  }
+
+  inline_keyboard.push([
+    {
+      text: 'Back to Support',
+      callback_data: 'support',
+      style: 'primary',
+      icon_custom_emoji_id: '5976535107933050770'
+    },
+    {
+      text: 'Main Menu',
+      callback_data: 'main_menu',
+      style: 'danger',
+      icon_custom_emoji_id: '5271604874419647061'
+    }
+  ]);
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, caption, { inline_keyboard }, messageId);
+};
+
+const sendSingleTicketViewScreen = async (targetBot: TelegramBot, chatId: number, userId: string, ticketId: number, messageId?: number) => {
+  const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, ticketId));
+  if (!ticket) {
+    await sendUserSupportTicketsScreen(targetBot, chatId, userId, messageId);
+    return;
+  }
+
+  const displayTicketId = ticket.id < 2000 ? ticket.id + 2000 : ticket.id;
+
+  let messagesList: Array<{ sender: string; text: string; timestamp?: string }> = [];
+  if (ticket.messages) {
+    try {
+      messagesList = JSON.parse(ticket.messages);
+    } catch (e) {
+      messagesList = [];
+    }
+  }
+  if (messagesList.length === 0 && ticket.details) {
+    messagesList.push({
+      sender: 'user',
+      text: ticket.details,
+      timestamp: ticket.createdAt ? new Date(ticket.createdAt).toISOString() : new Date().toISOString()
+    });
+  }
+
+  const formattedMsg = formatTicketMessageThread(displayTicketId, ticket.status, messagesList);
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Reply',
+        callback_data: `reply_ticket_${ticket.id}`,
+        style: 'success',
+        icon_custom_emoji_id: '5260535596941582167'
+      }
+    ],
+    [
+      {
+        text: 'Back to Tickets',
+        callback_data: 'my_support_tickets',
+        style: 'primary',
+        icon_custom_emoji_id: '5976535107933050770'
+      },
+      {
+        text: 'Main Menu',
+        callback_data: 'main_menu',
+        style: 'danger',
+        icon_custom_emoji_id: '5271604874419647061'
+      }
+    ]
+  ] as any;
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, formattedMsg, { inline_keyboard }, messageId);
+};
+
+const handleUserReplyPrompt = async (targetBot: TelegramBot, chatId: number, userId: string, ticketId: number, messageId?: number) => {
+  await storage.updateTelegramUserByChatId(userId, { lastAction: `awaiting_support_details_${ticketId}` });
+  const displayTicketId = ticketId < 2000 ? ticketId + 2000 : ticketId;
+
+  const promptMsg = `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji> <b>Reply to Ticket #${displayTicketId}</b>\n\n` +
+    `Please type your reply message below in this chat (or send a photo/screenshot).\n\n` +
+    `Our customer support team will receive it immediately!`;
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Cancel',
+        callback_data: `view_ticket_${ticketId}`,
+        style: 'danger',
+        icon_custom_emoji_id: '5976535107933050770'
+      }
+    ]
+  ] as any;
+
+  const infoBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_info_banner.png");
+  await sendOrEditScreenWithPhoto(targetBot, chatId, infoBannerPath, promptMsg, { inline_keyboard }, messageId);
 };
 
 const DEPOSIT_SUCCESS_STICKER_FILE_ID = "CAACAgEAAxkBAAFTGmpqlGQ8wZBqct5LNz0nvcL6uOKAlwACBAADC9xoT_EZ7u4B_LCcPQQ";
@@ -12254,13 +12507,13 @@ const handleSupportIssue = async (
     ],
     [
       {
-        text: '◀ Back',
+        text: 'Back',
         callback_data: 'support',
         style: 'primary',
         icon_custom_emoji_id: '5976535107933050770'
       },
       {
-        text: '🏠 Main Menu',
+        text: 'Main Menu',
         callback_data: 'main_menu',
         style: 'danger',
         icon_custom_emoji_id: '5271604874419647061'
@@ -14065,6 +14318,27 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         return;
       }
 
+      if (data === 'my_support_tickets') {
+        await sendUserSupportTicketsScreen(targetBot, chatId, userId, query.message?.message_id);
+        return;
+      }
+
+      if (data.startsWith('view_ticket_')) {
+        const ticketId = parseInt(data.replace('view_ticket_', ''), 10);
+        if (!isNaN(ticketId)) {
+          await sendSingleTicketViewScreen(targetBot, chatId, userId, ticketId, query.message?.message_id);
+        }
+        return;
+      }
+
+      if (data.startsWith('reply_ticket_')) {
+        const ticketId = parseInt(data.replace('reply_ticket_', ''), 10);
+        if (!isNaN(ticketId)) {
+          await handleUserReplyPrompt(targetBot, chatId, userId, ticketId, query.message?.message_id);
+        }
+        return;
+      }
+
       if (data.startsWith('supp_')) {
         await handleSupportIssue(targetBot, chatId, userId, data, query.message?.message_id);
         return;
@@ -15159,14 +15433,17 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                 telegramUserId: tgUser.id,
                 sandromaniaProductId: partnerInfo.partner.id,
                 externalOrderId: extId,
+                externalProductId: partnerInfo.partner.externalProductId || partnerInfo.partner.id || 0,
                 productTitle: partnerInfo.partner.title,
                 quantity: qty,
+                costPriceUsd: Math.round(partnerInfo.partner.costPriceUsd || 0),
                 amountPaid: costCents,
-                amountPaidLkr: deductLkr.toString(),
+                amountPaidLkr: Math.round(deductLkr),
+                unitPriceLkr: partnerInfo.partner.sellingPriceLkr ? Math.round(partnerInfo.partner.sellingPriceLkr) : null,
                 deliveryText: deliveredText,
                 status: 'approved',
-                partnerCostUsd: (partnerInfo.partner.costPriceUsd || 44) * qty / 100
-              }).returning();
+                idempotencyKey: idempotencyKey,
+              } as any).returning();
 
               if (sandroOrd?.id) targetOrderId = 2000 + sandroOrd.id;
 
@@ -16711,8 +16988,13 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
   targetBot.onText(/\/help/, async (msg) => {
     const chatId = msg.chat.id;
+    await sendSupportScreen(targetBot, chatId);
+  });
+
+  targetBot.onText(/\/tickets/, async (msg) => {
+    const chatId = msg.chat.id;
     const userId = msg.from?.id.toString() || chatId.toString();
-    await sendSupportScreen(targetBot, chatId, userId);
+    await sendUserSupportTicketsScreen(targetBot, chatId, userId);
   });
 
   targetBot.onText(/\/info/, async (msg) => {
@@ -17082,32 +17364,6 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       setTimeout(() => processedMessages.delete(key), 60000); // 60s cache
       return false;
     };
-
-function formatTicketMessageThread(displayTicketId: number, status: string, messagesList: Array<{ sender: string; text: string }>) {
-  const statusFormatted = status === 'resolved' 
-    ? '<b>Resolved</b>' 
-    : (status === 'closed' ? '<b>Closed</b>' : '<b>Open & Received</b>');
-
-  let threadContent = '';
-  if (messagesList && messagesList.length > 0) {
-    threadContent = messagesList.map(msg => {
-      if (msg.sender === 'user') {
-        return `<blockquote><b>Submitted Message:</b>\n${escapeHTML(msg.text)}</blockquote>`;
-      } else {
-        return `<blockquote><b>Admin message:</b>\n${escapeHTML(msg.text)}</blockquote>`;
-      }
-    }).join('\n');
-  } else {
-    threadContent = `<blockquote><b>Submitted Message:</b>\nDetails submitted</blockquote>`;
-  }
-
-  return `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>Your Ticket Has Been Submitted!</b>\n\n` +
-    `<tg-emoji emoji-id="5850383023572259486">🎫</tg-emoji> <b>Your ticket ID is:</b> <code>#${displayTicketId}</code>\n` +
-    `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> <b>Status:</b> ${statusFormatted}\n\n` +
-    `<tg-emoji emoji-id="5260535596941582167">💬</tg-emoji>\n` +
-    `${threadContent}\n\n` +
-    `<tg-emoji emoji-id="5404617696589390973">✨</tg-emoji> Our customer support team has received your ticket and will respond to you shortly!`;
-}
 
     targetBot.on('message', async (msg) => {
       try {
@@ -17522,8 +17778,16 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
             const keyboard = {
               inline_keyboard: [
                 [
-                  { text: '🏠 Main Menu', callback_data: 'main_menu', style: 'primary' },
-                  { text: '🛒 Catalog', callback_data: 'buy', style: 'success' }
+                  {
+                    text: 'Reply',
+                    callback_data: `reply_ticket_${ticketId}`,
+                    style: 'success',
+                    icon_custom_emoji_id: '5260535596941582167'
+                  }
+                ],
+                [
+                  { text: 'Opened Support Tickets', callback_data: 'my_support_tickets', style: 'primary', icon_custom_emoji_id: '5850383023572259486' },
+                  { text: 'Main Menu', callback_data: 'main_menu', style: 'danger', icon_custom_emoji_id: '5271604874419647061' }
                 ]
               ] as any
             };
@@ -19763,8 +20027,15 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
           
           const keyboard = {
             inline_keyboard: [
-              [{ text: '🏠 Main Menu', callback_data: 'main_menu' }]
-            ]
+              [
+                {
+                  text: 'Reply',
+                  callback_data: `reply_ticket_${updatedTicket.id}`,
+                  style: 'success',
+                  icon_custom_emoji_id: '5260535596941582167'
+                }
+              ]
+            ] as any
           };
 
           await targetBot.sendMessage(chatId, formattedThreadMsg, {

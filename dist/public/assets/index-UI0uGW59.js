@@ -30999,7 +30999,7 @@ const sandromaniaOrders = pgTable("sandromania_orders", {
   telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
   sandromaniaProductId: integer("sandromania_product_id").references(() => sandromaniaProducts.id),
   externalOrderId: integer("external_order_id"),
-  externalProductId: integer("external_product_id").notNull(),
+  externalProductId: integer("external_product_id"),
   productTitle: text("product_title").notNull(),
   quantity: integer("quantity").notNull().default(1),
   costPriceUsd: integer("cost_price_usd").notNull().default(0),
@@ -31010,7 +31010,7 @@ const sandromaniaOrders = pgTable("sandromania_orders", {
   unitPriceLkr: integer("unit_price_lkr"),
   status: text("status").notNull().default("approved"),
   deliveryText: text("delivery_text"),
-  idempotencyKey: text("idempotency_key").notNull(),
+  idempotencyKey: text("idempotency_key"),
   createdAt: timestamp("created_at").defaultNow()
 });
 createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
@@ -75570,7 +75570,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-ClCOIDI-.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BPBVrRBu.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;

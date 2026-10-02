@@ -575,7 +575,7 @@ export const sandromaniaOrders = pgTable("sandromania_orders", {
   telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
   sandromaniaProductId: integer("sandromania_product_id").references(() => sandromaniaProducts.id),
   externalOrderId: integer("external_order_id"),
-  externalProductId: integer("external_product_id").notNull(),
+  externalProductId: integer("external_product_id"),
   productTitle: text("product_title").notNull(),
   quantity: integer("quantity").notNull().default(1),
   costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
@@ -584,7 +584,7 @@ export const sandromaniaOrders = pgTable("sandromania_orders", {
   unitPriceLkr: integer("unit_price_lkr"),
   status: text("status").notNull().default("approved"),
   deliveryText: text("delivery_text"),
-  idempotencyKey: text("idempotency_key").notNull(),
+  idempotencyKey: text("idempotency_key"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
