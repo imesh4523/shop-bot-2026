@@ -3155,6 +3155,8 @@ Support: https://t.me/youuhost_support
   // Filtered Products
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      // In Telegram mode, respect showOnTelegram setting (preserves web store for email/direct web users)
+      if (isTelegram && (p as any).showOnTelegram === false) return false;
       const conf = getProviderConfig(p.name, p.type);
       const matchesCategory =
         selectedCategory === "all" ||
@@ -3168,7 +3170,7 @@ Support: https://t.me/youuhost_support
         (p.description || "").toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, isTelegram]);
 
   // Filtered SMM Services (Facebook, TikTok, Instagram, Telegram, etc.)
   const filteredSmmServices = useMemo(() => {
@@ -6661,7 +6663,7 @@ Support: https://t.me/youuhost_support
                                   if (k) {
                                     navigator.clipboard.writeText(k);
                                     setCopiedApiKey(true);
-                                    toast({ title: "API Key Copied! 📋" });
+                                    toast({ title: "API Key Copied! 📋", description: k });
                                     setTimeout(() => setCopiedApiKey(false), 2000);
                                   }
                                 }}
@@ -6673,13 +6675,31 @@ Support: https://t.me/youuhost_support
                             </div>
                           </div>
 
-                          <div className="relative">
-                            <input
-                              readOnly
-                              type={showApiKeySecret ? "text" : "password"}
-                              value={apiKeysData?.activeKey?.key || ""}
-                              className="w-full px-3 py-2.5 bg-white border border-[#ECEEF8] rounded-xl text-xs font-mono font-bold text-[#181432]"
-                            />
+                          <div className="relative space-y-1.5">
+                            <div
+                              onClick={() => {
+                                const k = apiKeysData?.activeKey?.key;
+                                if (k) {
+                                  navigator.clipboard.writeText(k);
+                                  setCopiedApiKey(true);
+                                  toast({ title: "API Key Copied! 📋", description: k });
+                                  setTimeout(() => setCopiedApiKey(false), 2000);
+                                }
+                              }}
+                              className="w-full px-3.5 py-3 bg-white border border-[#ECEEF8] rounded-xl text-xs font-mono font-bold text-[#181432] break-all select-all leading-relaxed tracking-tight cursor-pointer hover:border-[#5B42F3]/40 transition-colors shadow-2xs"
+                            >
+                              {showApiKeySecret ? (
+                                <span className="text-[#181432]">{apiKeysData?.activeKey?.key}</span>
+                              ) : (
+                                <span className="tracking-widest text-[#7E7998]">
+                                  {"•".repeat(Math.min(43, apiKeysData?.activeKey?.key?.length || 43))}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-[#7E7998] px-1 font-semibold">
+                              <span>Full Key ({apiKeysData?.activeKey?.key?.length || 43} chars)</span>
+                              <span className="text-emerald-600 font-bold">✓ Synced with Telegram Bot</span>
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between text-[11px] pt-1">

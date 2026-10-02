@@ -10440,26 +10440,81 @@ const getActiveOffersFast = async () => {
   return offers;
 };
 
+const findPartnerForProduct = (p: any, sandroList: any[], cssxList: any[]): { type: 'sandromania' | 'cssx'; partner: any } | null => {
+  const pName = (p.name || '').toLowerCase().trim();
+  const pType = (p.type || '').toLowerCase().trim();
+  const pDesc = (p.description || '').toLowerCase().trim();
+
+  // 1. Match Sandromania
+  const sandroMatch = sandroList.find(s => {
+    const sTitle = (s.title || '').toLowerCase().trim();
+    const sCat = (s.category || '').toLowerCase().trim();
+    const sId = s.externalProductId ? `sandro-${s.externalProductId}` : '';
+    return (
+      (sId && pDesc.includes(sId)) ||
+      (sTitle && (sTitle === pName || sTitle === pDesc || pName.includes(sTitle) || pDesc.includes(sTitle))) ||
+      (sCat && (sCat === pType || pType.includes(sCat) || sCat.includes(pType)))
+    );
+  });
+  if (sandroMatch) {
+    return { type: 'sandromania', partner: sandroMatch };
+  }
+
+  // 2. Match CSxStore
+  const cssxMatch = cssxList.find(c => {
+    const cTitle = (c.title || '').toLowerCase().trim();
+    const cCat = (c.category || '').toLowerCase().trim();
+    const cId = c.serviceId ? `csx-${c.serviceId}` : '';
+    return (
+      (cId && pDesc.includes(cId)) ||
+      (cTitle && (cTitle === pName || pName.includes(cTitle) || pDesc.includes(cTitle))) ||
+      (cCat && (cCat === pType || pType.includes(cCat) || cCat.includes(pType)))
+    );
+  });
+  if (cssxMatch) {
+    return { type: 'cssx', partner: cssxMatch };
+  }
+
+  return null;
+};
+
 let catalogDataCache: {
   products: any[];
   credCounts: Map<number, number>;
+  partnerMap: Map<number, { type: 'sandromania' | 'cssx'; partner: any }>;
   cachedAt: number;
-} = { products: [], credCounts: new Map(), cachedAt: 0 };
+} = { products: [], credCounts: new Map(), partnerMap: new Map(), cachedAt: 0 };
 
 const getCatalogDataFast = async (forceFresh: boolean = false) => {
   const now = Date.now();
   if (!forceFresh && now - catalogDataCache.cachedAt < 20000 && catalogDataCache.products.length > 0) {
     return catalogDataCache;
   }
-  const [allProds, allAvailableCreds] = await Promise.all([
+  const [allProds, allAvailableCreds, sandroList, cssxList] = await Promise.all([
     storage.getProducts(),
-    db.select({ productId: credentials.productId }).from(credentials).where(eq(credentials.status, 'available'))
+    db.select({ productId: credentials.productId }).from(credentials).where(eq(credentials.status, 'available')),
+    db.select().from(sandromaniaProducts).where(eq(sandromaniaProducts.isActive, true)),
+    db.select().from(cssxProducts).where(eq(cssxProducts.isActive, true))
   ]);
   const credCounts = new Map<number, number>();
+  const partnerMap = new Map<number, { type: 'sandromania' | 'cssx'; partner: any }>();
+
   for (const c of allAvailableCreds) {
     credCounts.set(c.productId, (credCounts.get(c.productId) || 0) + 1);
   }
-  catalogDataCache = { products: allProds, credCounts, cachedAt: now };
+
+  for (const p of allProds) {
+    const localStock = credCounts.get(p.id) || 0;
+    const partner = findPartnerForProduct(p, sandroList, cssxList);
+    if (partner) {
+      partnerMap.set(p.id, partner);
+      if (localStock === 0) {
+        credCounts.set(p.id, Math.max(0, partner.partner.stock || 0));
+      }
+    }
+  }
+
+  catalogDataCache = { products: allProds, credCounts, partnerMap, cachedAt: now };
   return catalogDataCache;
 };
 
@@ -10813,22 +10868,25 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
   for (const p of products) {
     if (p.status !== 'available') continue;
+    // Hide if explicitly disabled for Telegram bot
+    if ((p as any).showOnTelegram === false) continue;
+
     const stock = credCounts.get(p.id) || 0;
 
     let availableQuota = 0;
-    if (p.isPreorderEnabled) {
+    if (p.isPreorderEnabled || (p.preorderQuota && p.preorderQuota > 0)) {
       availableQuota = Math.max(0, p.preorderQuota || 0);
     }
 
-    // Skip product if stock is 0, pre-orders are disabled for this product, and showOutOfStock is false
-    if (stock === 0 && !p.isPreorderEnabled && !showOutOfStock) {
+    // Skip product ONLY if stock is 0, no preorder quota, showOutOfStock is false, and showOnTelegram is not explicitly enabled
+    if (stock === 0 && availableQuota === 0 && !p.isPreorderEnabled && !showOutOfStock && (p as any).showOnTelegram !== true) {
       continue;
     }
 
     if (!categoryMap.has(p.type)) {
       categoryMap.set(p.type, {
         stock,
-        hasPreorder: !!p.isPreorderEnabled,
+        hasPreorder: !!(p.isPreorderEnabled || availableQuota > 0),
         maxPreorderQuota: availableQuota,
         iconEmojiId: p.customEmojiId || undefined
       });
@@ -10836,7 +10894,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
       const current = categoryMap.get(p.type)!;
       categoryMap.set(p.type, {
         stock: current.stock + stock,
-        hasPreorder: current.hasPreorder || !!p.isPreorderEnabled,
+        hasPreorder: current.hasPreorder || !!(p.isPreorderEnabled || availableQuota > 0),
         maxPreorderQuota: Math.max(current.maxPreorderQuota, availableQuota),
         iconEmojiId: current.iconEmojiId || p.customEmojiId || undefined
       });
@@ -10907,6 +10965,10 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     if (product) {
       const stock = await storage.getCredentialsByProduct(product.id);
       stockCount = stock.filter(c => c.status === 'available').length;
+      if (stockCount === 0) {
+        const { credCounts } = await getCatalogDataFast();
+        stockCount = credCounts.get(product.id) || 0;
+      }
     }
   }
 
@@ -10919,6 +10981,10 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
       product = match;
       const stock = await storage.getCredentialsByProduct(match.id);
       stockCount = stock.filter(c => c.status === 'available').length;
+      if (stockCount === 0) {
+        const { credCounts } = await getCatalogDataFast();
+        stockCount = credCounts.get(match.id) || 0;
+      }
     }
   }
 
@@ -10958,7 +11024,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const priceDisplay = userCurrency === 'USD' ? `$${priceUSDNum.toFixed(2)}` : `${priceFormatted} ($${priceUSDNum.toFixed(2)} USD)`;
 
   if (stockCount === 0) {
-    if (product.isPreorderEnabled) {
+    if (product.isPreorderEnabled || (product.preorderQuota && product.preorderQuota > 0)) {
       const availableQuota = Math.max(0, product.preorderQuota || 0);
 
       if (availableQuota > 0) {
@@ -14500,8 +14566,8 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
         const showOutOfStock = showOutOfStockSetting?.value === "true";
 
-        const products = await storage.getProducts();
-        const categoryProducts = products.filter(p => p.type === category && p.status === 'available');
+        const { products, credCounts } = await getCatalogDataFast();
+        const categoryProducts = products.filter(p => p.type === category && p.status === 'available' && (p as any).showOnTelegram !== false);
 
         const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
         const keyboard: any[] = [];
@@ -14509,11 +14575,13 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
         if (categoryProducts.length > 0) {
           for (const p of categoryProducts) {
-            const stock = await storage.getCredentialsByProduct(p.id);
-            const availableStock = Array.isArray(stock) ? stock.filter(c => c.status === 'available').length : 0;
+            const availableStock = credCounts.get(p.id) || 0;
+            const availableQuota = (p.isPreorderEnabled || (p.preorderQuota && p.preorderQuota > 0))
+              ? Math.max(0, p.preorderQuota || 0)
+              : 0;
 
-            // Skip product if stock is 0, pre-orders are disabled, and showOutOfStock is false
-            if (availableStock === 0 && !p.isPreorderEnabled && !showOutOfStock) {
+            // Skip product ONLY if stock is 0, no preorder quota, showOutOfStock is false, and showOnTelegram is not explicitly true
+            if (availableStock === 0 && availableQuota === 0 && !p.isPreorderEnabled && !showOutOfStock && (p as any).showOnTelegram !== true) {
               continue;
             }
 
@@ -14523,15 +14591,9 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             let stockText = `${availableStock} Pcs`;
 
             if (availableStock === 0) {
-              if (p.isPreorderEnabled) {
-                const availableQuota = Math.max(0, p.preorderQuota || 0);
-                if (availableQuota > 0) {
-                  buttonStyle = 'primary';
-                  stockText = `Pre-Order Available: ${availableQuota} Pcs`;
-                } else {
-                  buttonStyle = 'danger';
-                  stockText = `Out of Stock`;
-                }
+              if (availableQuota > 0 || p.isPreorderEnabled) {
+                buttonStyle = 'primary';
+                stockText = `Pre-Order Available: ${availableQuota || 50} Pcs`;
               } else {
                 buttonStyle = 'danger';
                 stockText = `Out of Stock`;
@@ -14901,9 +14963,139 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           targetProduct = allProds.find(p => p.type === prodId || p.name === prodId || p.name.includes(prodId));
         }
 
+        const { credCounts, partnerMap } = await getCatalogDataFast();
         const availableCreds = targetProduct ? (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available') : [];
+        const partnerInfo = targetProduct ? partnerMap.get(targetProduct.id) : null;
+        const partnerStock = partnerInfo?.partner?.stock || 0;
 
-        if (targetProduct && availableCreds.length < qty && targetProduct.isPreorderEnabled) {
+        // Partner fulfillment (e.g. Gemini, Hotmail, CapCut, Windows OS) when local creds are insufficient
+        if (targetProduct && availableCreds.length < qty && partnerInfo && partnerStock >= qty) {
+          const rates = await fetchLiveExchangeRates();
+          const lkrRate = rates.LKR || 305.50;
+          const costCents = Math.round(qty * unitPriceUSD * 100);
+          const deductLkr = Math.round((costCents / 100) * lkrRate);
+
+          // Atomic balance deduction
+          const holdResult: any = await db.transaction(async (tx) => {
+            const [u] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id)).for('update');
+            if (!u || u.balance < costCents) {
+              throw new Error("Insufficient balance");
+            }
+            const remainingCents = Math.max(0, u.balance - costCents);
+            const remainingLkr = u.balanceLkr != null ? Math.max(0, u.balanceLkr - deductLkr) : null;
+            const [updatedUser] = await tx.update(telegramUsers).set({
+              balance: remainingCents,
+              balanceLkr: remainingLkr
+            }).where(eq(telegramUsers.id, u.id)).returning();
+            return { user: updatedUser };
+          }).catch(err => ({ error: err.message }));
+
+          if (holdResult.error) {
+            await targetBot.sendMessage(chatId, `❌ Balance deduction failed: ${holdResult.error}`);
+            return;
+          }
+
+          let deliveredText = "";
+          let targetOrderId: number | string = Math.floor(2000 + Math.random() * 8000);
+
+          try {
+            if (partnerInfo.type === 'sandromania') {
+              const idempotencyKey = `sandromania-tg-${tgUser.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+              const partnerOrderRes = await SandromaniaService.createOrder(
+                partnerInfo.partner.externalProductId,
+                qty,
+                idempotencyKey
+              );
+              const orderData = partnerOrderRes?.order || partnerOrderRes?.data || partnerOrderRes || {};
+              const rawDelivery = extractUniversalDelivery(orderData);
+              deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : (orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "Delivered successfully"));
+              const extId = orderData.id ? parseInt(orderData.id) : null;
+
+              const [sandroOrd] = await db.insert(sandromaniaOrders).values({
+                telegramUserId: tgUser.id,
+                sandromaniaProductId: partnerInfo.partner.id,
+                externalOrderId: extId,
+                productTitle: partnerInfo.partner.title,
+                quantity: qty,
+                amountPaid: costCents,
+                amountPaidLkr: deductLkr.toString(),
+                deliveryText: deliveredText,
+                status: 'approved',
+                partnerCostUsd: (partnerInfo.partner.costPriceUsd || 44) * qty / 100
+              }).returning();
+
+              if (sandroOrd?.id) targetOrderId = 2000 + sandroOrd.id;
+
+              await db.update(sandromaniaProducts).set({
+                stock: sql`GREATEST(0, ${sandromaniaProducts.stock} - ${qty})`,
+                updatedAt: new Date()
+              }).where(eq(sandromaniaProducts.id, partnerInfo.partner.id));
+
+            } else if (partnerInfo.type === 'cssx') {
+              const orderRes = await CssxService.createOrder({
+                service: partnerInfo.partner.serviceId,
+                quantity: qty,
+                unit_price: (partnerInfo.partner.sellingPriceUsd || 0) / 100,
+                buyer_identifier: tgUser.telegramId || String(tgUser.id)
+              });
+              const orderData = (orderRes as any)?.order || (orderRes as any)?.data || orderRes || {};
+              const rawDelivery = extractUniversalDelivery(orderData);
+              deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : ((orderRes as any)?.account || (orderRes as any)?.delivery_text || "Delivered successfully");
+              const extId = (orderRes as any)?.order_id || orderData.id || null;
+
+              const [cxOrd] = await db.insert(cssxOrders).values({
+                telegramUserId: tgUser.id,
+                cssxProductId: partnerInfo.partner.id,
+                serviceId: partnerInfo.partner.serviceId,
+                externalOrderId: extId ? String(extId) : null,
+                productTitle: partnerInfo.partner.title,
+                quantity: qty,
+                amountPaid: costCents,
+                amountPaidLkr: deductLkr.toString(),
+                deliveryText: deliveredText,
+                status: 'completed',
+                partnerCostUsd: (partnerInfo.partner.costPriceUsd || 0) * qty / 100
+              }).returning();
+
+              if (cxOrd?.id) targetOrderId = 3000 + cxOrd.id;
+
+              await db.update(cssxProducts).set({
+                stock: sql`GREATEST(0, ${cssxProducts.stock} - ${qty})`,
+                updatedAt: new Date()
+              }).where(eq(cssxProducts.id, partnerInfo.partner.id));
+            }
+
+            invalidateCatalogCache();
+
+            await db.insert(orders).values({
+              telegramUserId: tgUser.id,
+              productId: targetProduct.id,
+              credentialId: null,
+              status: 'completed'
+            }).catch(() => {});
+
+            sendAdminPushNotification(
+              `🛒 New Partner Order Completed (#${targetOrderId})`,
+              `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} purchased ${qty}x ${productName} ($${totalUSD})`,
+              '/orders'
+            ).catch(console.error);
+
+            await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredText);
+            return;
+          } catch (partErr: any) {
+            console.error("Partner order fulfillment error in bot:", partErr);
+            // Compensating refund
+            await db.update(telegramUsers).set({
+              balance: sql`${telegramUsers.balance} + ${costCents}`,
+              balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${deductLkr}`
+            }).where(eq(telegramUsers.id, tgUser.id));
+
+            await targetBot.sendMessage(chatId, `⚠️ Partner fulfillment temporary issue: ${partErr.message || "Please try again shortly."}\nYour balance was not charged.`);
+            return;
+          }
+        }
+
+        if (targetProduct && availableCreds.length < qty && (targetProduct.isPreorderEnabled || (targetProduct.preorderQuota && targetProduct.preorderQuota > 0))) {
           const availableQuota = Math.max(0, targetProduct.preorderQuota || 0);
 
           if (qty > availableQuota) {
@@ -14995,9 +15187,10 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
 
         if (!targetProduct || availableCreds.length < qty) {
+          const totalStockFound = availableCreds.length + partnerStock;
           await targetBot.sendMessage(chatId,
             `❌ <b>Out of Stock!</b>\n\n` +
-            `This product currently only has <b>${availableCreds.length}</b> item(s) in stock, but you requested <b>${qty}</b>.\n` +
+            `This product currently only has <b>${totalStockFound}</b> item(s) in stock, but you requested <b>${qty}</b>.\n` +
             `Please choose a lower quantity or check back soon!`,
             { parse_mode: 'HTML' }
           );
@@ -17013,6 +17206,49 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
           return;
         }
 
+        // Search Catalog query handler
+        if (tgUser?.lastAction === 'awaiting_search_catalog' && normalizedText) {
+          await storage.updateTelegramUserByChatId(userId, { lastAction: null });
+          const { products, credCounts } = await getCatalogDataFast();
+          const q = normalizedText.toLowerCase();
+          const matches = products.filter(p => 
+            p.status === 'available' && 
+            (p as any).showOnTelegram !== false &&
+            (p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
+          );
+
+          if (matches.length === 0) {
+            await targetBot.sendMessage(chatId, `🔍 No products found matching "<b>${escapeHTML(normalizedText)}</b>".`, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary' }]
+                ]
+              }
+            });
+            return;
+          }
+
+          const userCurrency = (tgUser as any)?.selectedCurrency || "USD";
+          const kb: any[] = [];
+          for (const p of matches) {
+            const stock = credCounts.get(p.id) || 0;
+            const { formatted: pPrice } = formatPriceInCurrency(p.price / 100, userCurrency);
+            kb.push([{
+              text: `${p.name} - ${pPrice} | ${stock > 0 ? `${stock} Pcs` : 'Pre-Order / Out of stock'}`,
+              callback_data: `prod_${p.id}`,
+              style: stock > 0 ? 'success' : 'primary'
+            }]);
+          }
+          kb.push([{ text: 'Back to Catalog', callback_data: 'buy', style: 'primary' }]);
+
+          await targetBot.sendMessage(chatId, `🔍 Found <b>${matches.length}</b> product(s) matching "<b>${escapeHTML(normalizedText)}</b>":`, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: kb }
+          });
+          return;
+        }
+
         // Customer Support Ticket Message Handler
         if (tgUser?.lastAction?.startsWith('awaiting_support_')) {
           let ticketId = 0;
@@ -17500,14 +17736,14 @@ function formatTicketMessageThread(displayTicketId: number, status: string, mess
       if (normalizedText === '📋 Availability') {
         const showOutOfStockSetting = await storage.getSetting("SHOW_OUT_OF_STOCK_PRODUCTS");
         const showOutOfStock = showOutOfStockSetting?.value === "true";
-        const products = await storage.getProducts();
+        const { products, credCounts } = await getCatalogDataFast();
         const availableProducts = [];
         for (const p of products) {
-          if (p.status !== 'available') continue;
-          const stock = (await storage.getCredentialsByProduct(p.id)).filter(c => c.status === 'available');
-          const isPreorder = p.isPreorderEnabled && (p.preorderQuota || 0) > 0;
-          if (stock.length > 0 || isPreorder || showOutOfStock) {
-            availableProducts.push({ ...p, stockCount: stock.length });
+          if (p.status !== 'available' || (p as any).showOnTelegram === false) continue;
+          const stockCount = credCounts.get(p.id) || 0;
+          const isPreorder = (p.isPreorderEnabled || (p.preorderQuota && p.preorderQuota > 0));
+          if (stockCount > 0 || isPreorder || showOutOfStock || (p as any).showOnTelegram === true) {
+            availableProducts.push({ ...p, stockCount });
           }
         }
 
