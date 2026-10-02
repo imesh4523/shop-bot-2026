@@ -78,6 +78,7 @@ export function AdminMaintenancePage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/maintenance/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/system/maintenance-status"] });
+      queryClient.refetchQueries({ queryKey: ["/api/system/maintenance-status"] });
       refetch();
     },
     onError: (err: any) => {

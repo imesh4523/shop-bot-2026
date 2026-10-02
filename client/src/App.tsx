@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -132,7 +133,7 @@ function Router() {
   const [location] = useLocation();
   const isAdminRoute = location.startsWith("/imeshadmindashbord") || location === "/login";
 
-  const { data: maintStatus } = useQuery<{
+  const { data: maintStatus, refetch: refetchMaintStatus } = useQuery<{
     enabled: boolean;
     title?: string;
     message?: string;
@@ -140,8 +141,30 @@ function Router() {
     isWhitelisted?: boolean;
   }>({
     queryKey: ["/api/system/maintenance-status"],
-    refetchInterval: 15000,
+    refetchInterval: 2500,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
+
+  // Instant recheck whenever user clicks any link or navigates to any page
+  useEffect(() => {
+    refetchMaintStatus();
+  }, [location, refetchMaintStatus]);
+
+  // Instant recheck when user switches back to this browser tab or window
+  useEffect(() => {
+    const handleRecheck = () => {
+      refetchMaintStatus();
+    };
+    window.addEventListener("focus", handleRecheck);
+    document.addEventListener("visibilitychange", handleRecheck);
+    return () => {
+      window.removeEventListener("focus", handleRecheck);
+      document.removeEventListener("visibilitychange", handleRecheck);
+    };
+  }, [refetchMaintStatus]);
 
   if (maintStatus?.enabled && !maintStatus.isWhitelisted && !isAdminRoute) {
     return (
@@ -149,6 +172,7 @@ function Router() {
         title={maintStatus.title}
         message={maintStatus.message}
         estimatedEnd={maintStatus.estimatedEndTime}
+        onRefresh={() => refetchMaintStatus()}
       />
     );
   }

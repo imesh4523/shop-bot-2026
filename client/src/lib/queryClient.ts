@@ -2,6 +2,12 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    if (res.status === 503) {
+      try {
+        queryClient.invalidateQueries({ queryKey: ["/api/system/maintenance-status"] });
+        queryClient.refetchQueries({ queryKey: ["/api/system/maintenance-status"] });
+      } catch {}
+    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }

@@ -219,6 +219,12 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
+    if (res.status === 503) {
+      try {
+        queryClient.invalidateQueries({ queryKey: ["/api/system/maintenance-status"] });
+        queryClient.refetchQueries({ queryKey: ["/api/system/maintenance-status"] });
+      } catch {}
+    }
     const error = await res.json().catch(() => ({}));
     throw new Error(error.message || "Request failed");
   }

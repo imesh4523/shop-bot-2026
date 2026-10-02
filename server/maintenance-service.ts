@@ -20,7 +20,7 @@ interface MaintenanceConfig {
 
 let cachedConfig: MaintenanceConfig | null = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 5000;
+const CACHE_TTL_MS = 1000;
 
 export async function getMaintenanceConfig(forceFresh = false): Promise<MaintenanceConfig> {
   const now = Date.now();
@@ -35,7 +35,7 @@ export async function getMaintenanceConfig(forceFresh = false): Promise<Maintena
   const emailsSetting = await storage.getSetting("MAINTENANCE_WHITELIST_EMAILS");
   const telegramSetting = await storage.getSetting("MAINTENANCE_WHITELIST_TELEGRAM");
 
-  let whitelistEmails: string[] = ["rochanaimeah@gmail.com", "imeshcheak@gmail.com"];
+  let whitelistEmails: string[] = [];
   try {
     if (emailsSetting?.value) {
       whitelistEmails = JSON.parse(emailsSetting.value);
@@ -44,7 +44,7 @@ export async function getMaintenanceConfig(forceFresh = false): Promise<Maintena
     whitelistEmails = (emailsSetting?.value || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
   }
 
-  let whitelistTelegram: string[] = ["7507799896", "rochana_imesh", "cheak_imesh"];
+  let whitelistTelegram: string[] = [];
   try {
     if (telegramSetting?.value) {
       whitelistTelegram = JSON.parse(telegramSetting.value);
@@ -66,6 +66,8 @@ export async function getMaintenanceConfig(forceFresh = false): Promise<Maintena
 }
 
 export async function setMaintenanceConfig(config: Partial<MaintenanceConfig>): Promise<MaintenanceConfig> {
+  cachedConfig = null;
+  lastCacheTime = 0;
   if (typeof config.enabled === "boolean") {
     await storage.setSetting("MAINTENANCE_MODE", config.enabled ? "true" : "false");
   }
@@ -87,6 +89,8 @@ export async function setMaintenanceConfig(config: Partial<MaintenanceConfig>): 
     await storage.setSetting("MAINTENANCE_WHITELIST_TELEGRAM", JSON.stringify(cleanTg));
   }
 
+  cachedConfig = null;
+  lastCacheTime = 0;
   return await getMaintenanceConfig(true);
 }
 
@@ -99,9 +103,6 @@ export async function isTelegramUserWhitelisted(userId: string | number, usernam
 
   const idStr = String(userId).trim().toLowerCase();
   const unameStr = (username || "").trim().replace(/^@/, "").toLowerCase();
-
-  // Primary owner/admin Telegram ID is permanently whitelisted
-  if (idStr === "7507799896" || idStr === "8420861243") return true;
 
   const inIdList = config.whitelistTelegram.some(t => t.toLowerCase() === idStr);
   const inUnameList = unameStr ? config.whitelistTelegram.some(t => t.toLowerCase() === unameStr) : false;
@@ -116,12 +117,25 @@ export async function isRequestWhitelisted(req: Request): Promise<boolean> {
   const config = await getMaintenanceConfig();
   if (!config.enabled) return true;
 
-  // 1. Authenticated Admin Session
-  if ((req.session as any)?.userId || (req.session as any)?.passport?.user) {
-    return true;
+  // 1. Authenticated Admin Session: ONLY bypasses admin dashboard routes!
+  // If requesting public customer store, admin session does NOT bypass unless their email/telegram is whitelisted.
+  const path = req.path || "";
+  if (path.startsWith("/imeshadmindashbord") || path.startsWith("/api/admin")) {
+    if ((req.session as any)?.userId || (req.session as any)?.passport?.user) {
+      return true;
+    }
   }
 
-  // 2. Check Customer Session / Token
+  // 2. Direct Header Check (x-customer-email)
+  const rawEmailHeader = req.headers["x-customer-email"] as string;
+  if (rawEmailHeader) {
+    const cleanHeaderEmail = rawEmailHeader.toLowerCase().trim();
+    if (config.whitelistEmails.some(e => e.toLowerCase().trim() === cleanHeaderEmail)) {
+      return true;
+    }
+  }
+
+  // 3. Check Customer Session / Token
   let customerUserId = (req.session as any)?.customerUserId;
   if (!customerUserId) {
     const rawAuth = (req.headers["authorization"] as string) || (req.headers["x-customer-auth-token"] as string);
@@ -135,24 +149,39 @@ export async function isRequestWhitelisted(req: Request): Promise<boolean> {
   if (customerUserId) {
     const user = await storage.getTelegramUserById(customerUserId);
     if (user) {
-      // Check email
+      // Check customer email
       if (user.email) {
         const uEmail = user.email.toLowerCase().trim();
-        if (config.whitelistEmails.some(e => e.toLowerCase() === uEmail)) return true;
+        if (config.whitelistEmails.some(e => e.toLowerCase().trim() === uEmail)) return true;
       }
-      // Check telegramId or username
+      // Check customer telegramId or username
       if (user.telegramId) {
         const uTgId = user.telegramId.toLowerCase().trim();
-        if (config.whitelistTelegram.some(t => t.toLowerCase() === uTgId)) return true;
+        if (config.whitelistTelegram.some(t => t.toLowerCase().trim() === uTgId)) return true;
       }
       if (user.username) {
         const uName = user.username.toLowerCase().trim();
-        if (config.whitelistTelegram.some(t => t.toLowerCase() === uName)) return true;
+        if (config.whitelistTelegram.some(t => t.toLowerCase().trim() === uName)) return true;
+      }
+      // Check linked account
+      if (user.linkedUserId) {
+        const linked = await storage.getTelegramUserById(user.linkedUserId);
+        if (linked) {
+          if (linked.email && config.whitelistEmails.some(e => e.toLowerCase().trim() === linked.email?.toLowerCase().trim())) {
+            return true;
+          }
+          if (linked.telegramId && config.whitelistTelegram.some(t => t.toLowerCase().trim() === linked.telegramId?.toLowerCase().trim())) {
+            return true;
+          }
+          if (linked.username && config.whitelistTelegram.some(t => t.toLowerCase().trim() === linked.username?.toLowerCase().trim())) {
+            return true;
+          }
+        }
       }
     }
   }
 
-  // 3. Check Telegram Mini App InitData
+  // 4. Check Telegram Mini App InitData
   const initData = req.headers["x-telegram-init-data"] as string;
   if (initData) {
     try {
@@ -167,7 +196,7 @@ export async function isRequestWhitelisted(req: Request): Promise<boolean> {
     } catch {}
   }
 
-  // 4. Check Developer API Key (Header: X-API-Key or Authorization: Bearer yh_...)
+  // 5. Check Developer API Key (Header: X-API-Key or Authorization: Bearer yh_...)
   const apiKeyHeader = (req.headers["x-api-key"] as string) || (req.headers["authorization"] as string);
   if (apiKeyHeader) {
     const cleanKey = apiKeyHeader.replace(/^Bearer\s+/i, "").trim();
@@ -181,13 +210,13 @@ export async function isRequestWhitelisted(req: Request): Promise<boolean> {
 
       if (keyRecord && keyRecord.api_keys?.status === "active" && keyRecord.telegram_users) {
         const user = keyRecord.telegram_users;
-        if (user.email && config.whitelistEmails.some(e => e.toLowerCase() === user.email?.toLowerCase())) {
+        if (user.email && config.whitelistEmails.some(e => e.toLowerCase().trim() === user.email?.toLowerCase().trim())) {
           return true;
         }
-        if (user.telegramId && config.whitelistTelegram.some(t => t.toLowerCase() === user.telegramId?.toLowerCase())) {
+        if (user.telegramId && config.whitelistTelegram.some(t => t.toLowerCase().trim() === user.telegramId?.toLowerCase().trim())) {
           return true;
         }
-        if (user.username && config.whitelistTelegram.some(t => t.toLowerCase() === user.username?.toLowerCase())) {
+        if (user.username && config.whitelistTelegram.some(t => t.toLowerCase().trim() === user.username?.toLowerCase().trim())) {
           return true;
         }
       }

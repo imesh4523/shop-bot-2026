@@ -1048,10 +1048,13 @@ export async function registerRoutes(
     const host = getRequestHost(req);
     const allowed = [
       "imeshmain2.youuhost.com",
+      "youuhost.com",
+      "www.youuhost.com",
+      "18.141.224.63",
       "localhost",
       "127.0.0.1",
     ];
-    return allowed.includes(host) || host.endsWith(".localhost");
+    return allowed.includes(host) || host.endsWith(".localhost") || !!(req.session as any)?.userId;
   };
 
   const isAuth = (req: Request, res: Response, next: NextFunction) => {
