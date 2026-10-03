@@ -145,6 +145,11 @@ async function startServer() {
     const { initMeshDatabase } = await import("./mesh-service");
     await initMeshDatabase();
 
+    // Pre-initialize Rclone binary for Google Drive backups
+    import("./rclone-service").then(({ RcloneService }) => {
+      RcloneService.ensureBinary().catch(e => console.warn("[RCLONE] Startup ensure binary notice:", e.message));
+    }).catch(() => {});
+
     if (process.env.NODE_ENV === "production") {
       console.log("[SERVER] Serving static assets...");
       serveStatic(app);

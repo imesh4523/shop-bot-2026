@@ -24,3 +24,5 @@ server_crash_log.txt
 *.tgz
 script/input.txt
 keyboard_fix_*.txt
+bin/
+tmp/

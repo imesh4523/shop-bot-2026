@@ -28,28 +28,75 @@ export class RcloneService {
   private static currentSession: RcloneAuthSession | null = null;
 
   static getBinaryPath(): string {
+    const isWin = process.platform === "win32";
+    const binName = isWin ? "rclone.exe" : "rclone";
+
     const candidates = [
+      path.join(process.cwd(), "bin", binName),
+      path.join(process.cwd(), "tmp", binName),
+      "/usr/bin/rclone",
+      "/usr/local/bin/rclone",
+      "/bin/rclone",
       "C:\\rclone\\rclone.exe",
       path.join(process.env.ProgramFiles || "C:\\Program Files", "rclone", "rclone.exe"),
-      "rclone.exe",
-      "rclone"
+      binName,
     ];
 
     for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
+      if (fs.existsSync(c)) {
+        if (!isWin) {
+          try { fs.chmodSync(c, 0o755); } catch (e) {}
+        }
+        return c;
+      }
     }
-    return "C:\\rclone\\rclone.exe";
+    return path.join(process.cwd(), "bin", binName);
+  }
+
+  static async ensureBinary(): Promise<string> {
+    const binPath = this.getBinaryPath();
+    if (fs.existsSync(binPath)) {
+      if (process.platform !== "win32") {
+        try { fs.chmodSync(binPath, 0o755); } catch (e) {}
+      }
+      return binPath;
+    }
+
+    try {
+      console.log(`[RCLONE] Binary not found at ${binPath}. Auto-downloading official rclone...`);
+      const { ensureRclone } = require("../script/ensure-rclone.cjs");
+      const installedPath = await ensureRclone();
+      return installedPath;
+    } catch (err: any) {
+      console.error("[RCLONE] Failed to auto-download rclone binary:", err.message);
+      // Fallback check if it was installed in any system path
+      const checkPath = this.getBinaryPath();
+      if (fs.existsSync(checkPath)) return checkPath;
+      throw new Error(`Rclone binary could not be found or downloaded: ${err.message}`);
+    }
   }
 
   static getConfigDir(): string {
-    const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-    const rcloneDir = path.join(appData, "rclone");
-    if (!fs.existsSync(rcloneDir)) {
-      try {
-        fs.mkdirSync(rcloneDir, { recursive: true });
-      } catch (e) {}
+    if (process.platform === "win32") {
+      const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+      const rcloneDir = path.join(appData, "rclone");
+      if (!fs.existsSync(rcloneDir)) {
+        try { fs.mkdirSync(rcloneDir, { recursive: true }); } catch (e) {}
+      }
+      return rcloneDir;
+    } else {
+      const configHome = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
+      const rcloneDir = path.join(configHome, "rclone");
+      if (!fs.existsSync(rcloneDir)) {
+        try { fs.mkdirSync(rcloneDir, { recursive: true }); } catch (e) {
+          // If home directory is not writable in container, fallback to project tmp
+          const fallbackDir = path.join(process.cwd(), "tmp", "rclone");
+          try { fs.mkdirSync(fallbackDir, { recursive: true }); } catch (e2) {}
+          return fallbackDir;
+        }
+      }
+      return rcloneDir;
     }
-    return rcloneDir;
   }
 
   static getConfigPath(): string {
@@ -83,11 +130,13 @@ token = ${tokenStr}
   static async getLiveStatus(): Promise<RcloneStatus> {
     const bin = this.getBinaryPath();
     if (!fs.existsSync(bin)) {
+      // Trigger background download so it's ready when user clicks
+      this.ensureBinary().catch(() => {});
       return {
         installed: false,
         configured: false,
         status: "not_configured",
-        message: "Rclone binary not installed at C:\\rclone\\rclone.exe",
+        message: "Google Drive is ready to connect. Click 'Generate Google Login URL' to start.",
         lastChecked: new Date().toISOString(),
       };
     }
@@ -98,7 +147,7 @@ token = ${tokenStr}
         installed: true,
         configured: false,
         status: "not_configured",
-        message: "Google Drive is not configured in rclone.conf. Click 'Generate Login Link' to configure.",
+        message: "Google Drive is not configured in rclone.conf. Click 'Generate Google Login URL' to configure.",
         lastChecked: new Date().toISOString(),
       };
     }
@@ -148,7 +197,7 @@ token = ${tokenStr}
       this.activeAuthProcess = null;
     }
 
-    const bin = this.getBinaryPath();
+    const bin = await this.ensureBinary();
     if (!fs.existsSync(bin)) {
       throw new Error(`Rclone binary not found at ${bin}`);
     }
@@ -162,7 +211,7 @@ token = ${tokenStr}
       });
 
       this.activeAuthProcess = child;
-      let stdoutBuffer = "";
+      let outputBuffer = "";
 
       const timeout = setTimeout(() => {
         if (!resolved) {
@@ -171,8 +220,10 @@ token = ${tokenStr}
         }
       }, 15000);
 
-      child.stderr.on("data", (data) => {
+      const handleOutput = (data: Buffer) => {
         const text = data.toString();
+        outputBuffer += text;
+
         const match = text.match(/http:\/\/127\.0\.0\.1:53682\/auth\?state=([a-zA-Z0-9_-]+)/);
         if (match && !resolved) {
           const localAuthUrl = match[0];
@@ -205,21 +256,16 @@ token = ${tokenStr}
             reject(new Error(`Failed to query rclone local server: ${err.message}`));
           });
         }
-      });
-
-      child.stdout.on("data", (data) => {
-        const text = data.toString();
-        stdoutBuffer += text;
 
         // Check if token JSON blob is returned
-        if (stdoutBuffer.includes("Paste the following into your remote machine --->")) {
+        if (outputBuffer.includes("Paste the following into your remote machine --->")) {
           const startMarker = "Paste the following into your remote machine --->";
           const endMarker = "<---End paste";
-          const startIndex = stdoutBuffer.indexOf(startMarker) + startMarker.length;
-          const endIndex = stdoutBuffer.indexOf(endMarker);
+          const startIndex = outputBuffer.indexOf(startMarker) + startMarker.length;
+          const endIndex = outputBuffer.indexOf(endMarker);
 
           if (endIndex > startIndex) {
-            const rawJson = stdoutBuffer.substring(startIndex, endIndex).trim();
+            const rawJson = outputBuffer.substring(startIndex, endIndex).trim();
             try {
               const token = JSON.parse(rawJson);
               this.saveTokenToConfig(token);
@@ -233,7 +279,10 @@ token = ${tokenStr}
             }
           }
         }
-      });
+      };
+
+      child.stderr.on("data", handleOutput);
+      child.stdout.on("data", handleOutput);
 
       child.on("close", (code) => {
         this.activeAuthProcess = null;
@@ -289,9 +338,9 @@ token = ${tokenStr}
    * Lists all Google Drive folders using rclone lsf --dirs-only
    */
   static async listFolders(): Promise<string[]> {
-    const bin = this.getBinaryPath();
+    const bin = await this.ensureBinary();
     return new Promise((resolve, reject) => {
-      execFile(bin, ["lsf", "--dirs-only", "--max-depth", "2", "gdrive:"], { timeout: 15000 }, (error, stdout, stderr) => {
+      execFile(bin, ["lsf", "--config", this.getConfigPath(), "--dirs-only", "--max-depth", "2", "gdrive:"], { timeout: 15000 }, (error, stdout, stderr) => {
         if (error) {
           return reject(new Error(stderr || error.message));
         }
@@ -310,11 +359,11 @@ token = ${tokenStr}
    * Lists backup files in a remote folder using rclone lsf --files-only
    */
   static async listBackupFiles(remoteFolderName: string = "youuhost backups"): Promise<string[]> {
-    const bin = this.getBinaryPath();
+    const bin = await this.ensureBinary();
     const folder = remoteFolderName.trim().replace(/^\/+|\/+$/g, "");
     const target = folder ? `gdrive:${folder}/` : "gdrive:";
     return new Promise((resolve) => {
-      execFile(bin, ["lsf", "--files-only", target], { timeout: 15000 }, (error, stdout) => {
+      execFile(bin, ["lsf", "--config", this.getConfigPath(), "--files-only", target], { timeout: 15000 }, (error, stdout) => {
         if (error || !stdout) return resolve([]);
         const files = stdout.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
         resolve(files);
@@ -326,7 +375,7 @@ token = ${tokenStr}
    * Uploads database backup to Google Drive folder using rclone copy
    */
   static async uploadBackup(filePath: string, remoteFolderName: string): Promise<string> {
-    const bin = this.getBinaryPath();
+    const bin = await this.ensureBinary();
     if (!fs.existsSync(filePath)) {
       throw new Error(`Local file not found for upload: ${filePath}`);
     }
@@ -335,8 +384,8 @@ token = ${tokenStr}
     const target = folder ? `gdrive:${folder}/` : "gdrive:";
 
     return new Promise((resolve, reject) => {
-      console.log(`[RCLONE] Executing: ${bin} copy "${filePath}" "${target}"`);
-      execFile(bin, ["copy", filePath, target, "--fast-list", "--stats", "1s"], { timeout: 300000 }, (error, stdout, stderr) => {
+      console.log(`[RCLONE] Executing: ${bin} copy --config "${this.getConfigPath()}" "${filePath}" "${target}"`);
+      execFile(bin, ["copy", "--config", this.getConfigPath(), filePath, target, "--fast-list", "--stats", "1s"], { timeout: 300000 }, (error, stdout, stderr) => {
         if (error) {
           return reject(new Error(`Rclone upload failed: ${stderr || error.message}`));
         }
@@ -350,12 +399,12 @@ token = ${tokenStr}
    */
   static async cleanOldBackups(remoteFolderName: string, retentionDays: number = 49): Promise<string> {
     if (!retentionDays || retentionDays <= 0) return "Retention cleanup skipped (0 days)";
-    const bin = this.getBinaryPath();
+    const bin = await this.ensureBinary();
     const folder = remoteFolderName.trim().replace(/^\/+|\/+$/g, "");
     const target = folder ? `gdrive:${folder}/` : "gdrive:";
 
     return new Promise((resolve, reject) => {
-      execFile(bin, ["delete", target, "--min-age", `${retentionDays}d`], { timeout: 60000 }, (error, stdout, stderr) => {
+      execFile(bin, ["delete", "--config", this.getConfigPath(), target, "--min-age", `${retentionDays}d`], { timeout: 60000 }, (error, stdout, stderr) => {
         if (error) {
           return reject(new Error(`Rclone retention cleanup failed: ${stderr || error.message}`));
         }

@@ -1,6 +1,9 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -34,6 +37,13 @@ const allowlist = [
 ];
 
 async function buildAll() {
+  try {
+    const { ensureRclone } = require("./ensure-rclone.cjs");
+    await ensureRclone();
+  } catch (err: any) {
+    console.warn("[build] Warning ensuring rclone:", err.message);
+  }
+
   console.log("building client...");
   await viteBuild();
 
