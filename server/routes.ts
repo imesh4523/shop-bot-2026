@@ -5217,15 +5217,36 @@ export async function registerRoutes(
         // 3. Check and Deduct balance atomically across both USD and LKR
         const rates = await fetchLiveExchangeRates();
         const lkrRate = rates.LKR || 305.50;
-        const deductLkr = Math.round((finalDeductAmount / 100) * lkrRate);
+        const isLkrOrder = (req.body.currency || "").toUpperCase() === "LKR" || !req.body.currency;
+        
+        let deductLkr: number;
+        let deductCents: number;
+
+        if (isLkrOrder && product.priceLkr && product.priceLkr > 0) {
+          const rawTotalLkr = product.priceLkr * quantity;
+          const discountPct = originalTotal > 0 ? (originalTotal - finalDeductAmount) / originalTotal : 0;
+          deductLkr = Math.max(0, Math.round(rawTotalLkr * (1 - discountPct)));
+          deductCents = Math.round((deductLkr / lkrRate) * 100);
+        } else {
+          deductCents = finalDeductAmount;
+          deductLkr = Math.round((finalDeductAmount / 100) * lkrRate);
+        }
 
         const [updatedUser] = await tx
           .update(telegramUsers)
           .set({
-            balance: sql`${telegramUsers.balance} - ${finalDeductAmount}`,
+            balance: sql`GREATEST(0, ${telegramUsers.balance} - ${deductCents})`,
             balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
           })
-          .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, finalDeductAmount)))
+          .where(
+            and(
+              eq(telegramUsers.id, user.id),
+              or(
+                gte(telegramUsers.balance, deductCents),
+                gte(telegramUsers.balanceLkr, deductLkr)
+              )
+            )
+          )
           .returning();
 
         if (!updatedUser) {
@@ -5484,10 +5505,18 @@ export async function registerRoutes(
         const [updatedUser] = await tx
           .update(telegramUsers)
           .set({
-            balance: sql`${telegramUsers.balance} - ${offer.price}`,
+            balance: sql`GREATEST(0, ${telegramUsers.balance} - ${offer.price})`,
             balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
           })
-          .where(and(eq(telegramUsers.id, user.id), gte(telegramUsers.balance, offer.price)))
+          .where(
+            and(
+              eq(telegramUsers.id, user.id),
+              or(
+                gte(telegramUsers.balance, offer.price),
+                gte(telegramUsers.balanceLkr, deductLkr)
+              )
+            )
+          )
           .returning();
 
         if (!updatedUser) throw new Error("Insufficient balance");
@@ -7893,6 +7922,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
     let appliedPromo: any = null;
     let finalCents = totalCents;
     let finalLkr = totalLkr;
+    let deductCents = totalCents;
+    let deductLkr = totalLkr;
 
     // Fast Phase 1: Lock user row, deduct balance, decrement stock in an atomic DB transaction (duration: <5ms)
     const holdResult = await db.transaction(async (tx) => {
@@ -7946,14 +7977,16 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discount = Math.round((totalCents * pct) / 100);
+          finalLkr = Math.max(0, totalLkr - Math.round((totalLkr * pct) / 100));
         } else if (isLkrPromo) {
           const discLkr = promo.discountValue || promo.reward || 0;
           discount = Math.min(totalCents, Math.round((discLkr / lkrRate) * 100));
+          finalLkr = Math.max(0, totalLkr - discLkr);
         } else {
           discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
+          finalLkr = Math.max(0, totalLkr - Math.round((discount / 100) * lkrRate));
         }
         finalCents = Math.max(0, totalCents - discount);
-        finalLkr = Math.max(0, Math.round((finalCents / 100) * lkrRate));
         appliedPromo = promo;
 
         await tx.update(promoCodes).set({
@@ -7971,19 +8004,28 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       const effBalLkr = u.balanceLkr != null && u.balanceLkr >= 0 ? u.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
 
       const isUsdOrder = req.body.platform === 'telegram' || req.body.currency === 'USD' || Boolean(req.headers['x-telegram-init-data']);
-      const hasEnough = isUsdOrder
-        ? effBalCents >= finalCents
-        : (effBalLkr >= finalLkr || effBalCents >= finalCents);
 
-      if (!hasEnough || effBalCents < finalCents) {
+      if (isUsdOrder) {
+        deductCents = finalCents;
+        deductLkr = Math.round((finalCents / 100) * lkrRate);
+      } else {
+        deductLkr = finalLkr;
+        deductCents = Math.round((finalLkr / lkrRate) * 100);
+      }
+
+      const hasEnough = isUsdOrder
+        ? (effBalCents >= deductCents || effBalLkr >= deductLkr)
+        : (effBalLkr >= deductLkr || effBalCents >= deductCents);
+
+      if (!hasEnough) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${finalLkr.toLocaleString()} ($${(finalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient wallet balance. Total required: Rs. ${deductLkr.toLocaleString()} ($${(deductCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
-      // Deduct balance and ensure 100% synchronization
-      const remainingCents = Math.max(0, effBalCents - finalCents);
-      const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
+      // Deduct exact amounts from each balance without losing fixed price discounts
+      const remainingLkr = Math.max(0, (u.balanceLkr != null ? u.balanceLkr : effBalLkr) - deductLkr);
+      const remainingCents = Math.max(0, (u.balance != null ? u.balance : effBalCents) - deductCents);
 
       const [updatedUser] = await tx
         .update(telegramUsers)
@@ -7995,8 +8037,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           and(
             eq(telegramUsers.id, u.id),
             or(
-              gte(telegramUsers.balance, finalCents),
-              gte(telegramUsers.balanceLkr, finalLkr)
+              gte(telegramUsers.balance, deductCents),
+              gte(telegramUsers.balanceLkr, deductLkr)
             )
           )
         )
@@ -8034,8 +8076,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
       // Compensating Transaction: Refund user balance and restore local stock atomically
       await db.transaction(async (refundTx) => {
         await refundTx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} + ${finalCents}`,
-          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${finalLkr}`
+          balance: sql`${telegramUsers.balance} + ${deductCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${deductLkr}`
         }).where(eq(telegramUsers.id, user.id));
 
         await refundTx.update(sandromaniaProducts).set({
@@ -8087,8 +8129,8 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
         productTitle: product.title,
         quantity: qty,
         costPriceUsd: exactPartnerCostCents,
-        amountPaid: totalCents,
-        amountPaidLkr: totalLkr,
+        amountPaid: deductCents,
+        amountPaidLkr: deductLkr,
         unitPriceLkr: unitLkr,
         status: orderStatus,
         deliveryText: deliveryText || "Delivered successfully",
@@ -8354,6 +8396,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
     let rates = await fetchLiveExchangeRates();
     let lkrRate = rates.LKR || 305.50;
     let finalLkr = (product.sellingPriceLkr ? Number(product.sellingPriceLkr) : Math.round((totalCents / 100) * lkrRate)) * qty;
+    let deductCents = totalCents;
+    let deductLkr = finalLkr;
 
     // Phase 1: Fast Balance Check & Atomic Deduction in Database
     const holdResult = await db.transaction(async (tx) => {
@@ -8421,14 +8465,16 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discount = Math.round((totalCents * pct) / 100);
+          finalLkr = Math.max(0, finalLkr - Math.round((finalLkr * pct) / 100));
         } else if (isLkrPromo) {
           const discLkr = promo.discountValue || promo.reward || 0;
           discount = Math.min(totalCents, Math.round((discLkr / lkrRate) * 100));
+          finalLkr = Math.max(0, finalLkr - discLkr);
         } else {
           discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
+          finalLkr = Math.max(0, finalLkr - Math.round((discount / 100) * lkrRate));
         }
         finalCents = Math.max(0, totalCents - discount);
-        finalLkr = Math.max(0, Math.round((finalCents / 100) * lkrRate));
         appliedPromo = promo;
 
         await tx.update(promoCodes).set({
@@ -8445,19 +8491,27 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       const effBalCents = user.balance != null ? user.balance : (user.balanceLkr ? Math.round((user.balanceLkr / lkrRate) * 100) : 0);
       const effBalLkr = user.balanceLkr != null && user.balanceLkr >= 0 ? user.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
 
-      const hasEnough = isTelegramOrder
-        ? effBalCents >= finalCents
-        : (effBalLkr >= finalLkr || effBalCents >= finalCents);
+      if (isTelegramOrder) {
+        deductCents = finalCents;
+        deductLkr = Math.round((finalCents / 100) * lkrRate);
+      } else {
+        deductLkr = finalLkr;
+        deductCents = Math.round((finalLkr / lkrRate) * 100);
+      }
 
-      if (!hasEnough || effBalCents < finalCents) {
+      const hasEnough = isTelegramOrder
+        ? (effBalCents >= deductCents || effBalLkr >= deductLkr)
+        : (effBalLkr >= deductLkr || effBalCents >= deductCents);
+
+      if (!hasEnough) {
         throw new Error(
-          `Insufficient wallet balance. Total required: Rs. ${finalLkr.toLocaleString()} ($${(finalCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
+          `Insufficient wallet balance. Total required: Rs. ${deductLkr.toLocaleString()} ($${(deductCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
         );
       }
 
       // Deduct balance cleanly and return updated user
-      const remainingCents = Math.max(0, effBalCents - finalCents);
-      const remainingLkr = Math.round((remainingCents / 100) * lkrRate);
+      const remainingLkr = Math.max(0, (user.balanceLkr != null ? user.balanceLkr : effBalLkr) - deductLkr);
+      const remainingCents = Math.max(0, (user.balance != null ? user.balance : effBalCents) - deductCents);
 
       const [updatedUser] = await tx
         .update(telegramUsers)
@@ -8469,8 +8523,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
           and(
             eq(telegramUsers.id, user.id),
             or(
-              gte(telegramUsers.balance, finalCents),
-              gte(telegramUsers.balanceLkr, finalLkr)
+              gte(telegramUsers.balance, deductCents),
+              gte(telegramUsers.balanceLkr, deductLkr)
             )
           )
         )
@@ -8505,15 +8559,15 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
       // Auto-Refund user wallet balance immediately
       await db.transaction(async (refundTx) => {
         await refundTx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} + ${finalCents}`,
-          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${finalLkr}`
+          balance: sql`${telegramUsers.balance} + ${deductCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${deductLkr}`
         }).where(eq(telegramUsers.id, user.id));
 
         // Record refund payment entry
         await refundTx.insert(payments).values({
           telegramUserId: user.id,
-          amount: finalCents,
-          amountLkr: finalLkr,
+          amount: deductCents,
+          amountLkr: deductLkr,
           status: "completed",
           paymentMethod: "wallet_refund",
           payherePaymentId: `REFUND_${Date.now()}`,
@@ -8554,8 +8608,8 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         productTitle: product.title,
         quantity: qty,
         costPriceUsd: product.costPriceUsd * qty,
-        amountPaid: finalCents,
-        amountPaidLkr: finalLkr,
+        amountPaid: deductCents,
+        amountPaidLkr: deductLkr,
         unitPriceLkr: unitLkr,
         status: "completed",
         deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
