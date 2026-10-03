@@ -61,6 +61,7 @@ export const openApiSpec = {
   tags: [
     { name: "Account", description: "Balance & profile information" },
     { name: "Catalog", description: "List products with real-time stock & prices" },
+    { name: "Categories", description: "List product categories and available stock counts" },
     { name: "Orders", description: "Place orders with instant delivery or batch purchase" },
     { name: "Preorders", description: "Track pre-order fulfillment status" },
     { name: "Stats", description: "API Key usage statistics and revenue" }
@@ -97,6 +98,7 @@ export const openApiSpec = {
               first_name: { type: "string", nullable: true, example: "Alex" },
               balance_cents: { type: "integer", example: 2500 },
               balance_usd: { type: "string", example: "25.00" },
+              balance_lkr: { type: "integer", example: 7638 },
               currency: { type: "string", example: "USD" },
               referral_balance_cents: { type: "integer", example: 300 },
               created_at: { type: "string", format: "date-time", example: "2026-08-15T12:00:00Z" }
@@ -113,6 +115,7 @@ export const openApiSpec = {
           category: { type: "string", example: "AWS" },
           price_cents: { type: "integer", example: 6500 },
           price_usd: { type: "string", example: "65.00" },
+          price_lkr: { type: "integer", example: 19858 },
           status: { type: "string", example: "available" },
           stock: { type: "integer", example: 14 },
           is_in_stock: { type: "boolean", example: true },
@@ -128,6 +131,25 @@ export const openApiSpec = {
           data: {
             type: "array",
             items: { $ref: "#/components/schemas/ProductItem" }
+          }
+        }
+      },
+      CategoryItem: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "AWS" },
+          total_products: { type: "integer", example: 4 },
+          in_stock_products: { type: "integer", example: 3 }
+        }
+      },
+      CategoryListResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          count: { type: "integer", example: 5 },
+          data: {
+            type: "array",
+            items: { $ref: "#/components/schemas/CategoryItem" }
           }
         }
       },
@@ -308,6 +330,32 @@ export const openApiSpec = {
         }
       }
     },
+    "/api/v1/balance": {
+      get: {
+        tags: ["Account"],
+        summary: "Get account & wallet balance (alias of /me)",
+        operationId: "getBalance",
+        description: "Returns profile information and dual-currency wallet balances (USD & LKR).",
+        responses: {
+          200: {
+            description: "Profile and balance information retrieved successfully.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserProfile" }
+              }
+            }
+          },
+          401: {
+            description: "Missing or invalid API key.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/products": {
       get: {
         tags: ["Catalog"],
@@ -320,6 +368,32 @@ export const openApiSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ProductListResponse" }
+              }
+            }
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      get: {
+        tags: ["Categories"],
+        summary: "List all product categories with stock statistics",
+        operationId: "listCategories",
+        description: "Returns distinct categories available in the store with total and in-stock product counts.",
+        responses: {
+          200: {
+            description: "Category list",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryListResponse" }
               }
             }
           },
@@ -424,6 +498,22 @@ export const openApiSpec = {
         summary: "Order history for this API key",
         operationId: "listOrders",
         description: "Retrieve all completed purchases placed by this API key, including delivered credentials.",
+        parameters: [
+          {
+            name: "page",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 1 },
+            description: "Page number (default 1)"
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 50 },
+            description: "Items per page (max 100)"
+          }
+        ],
         responses: {
           200: {
             description: "List of orders",

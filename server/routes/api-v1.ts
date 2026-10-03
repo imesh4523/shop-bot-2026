@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
 import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions } from "@shared/schema";
-import { eq, and, desc, sql, gte } from "drizzle-orm";
+import { eq, and, or, desc, sql, gte } from "drizzle-orm";
 import { sendAdminPushNotification } from "../push-notifications";
 
 export const apiV1Router = Router();
@@ -158,13 +158,14 @@ apiV1Router.use(authenticateApiKey as any);
 apiV1Router.use(apiV1RateLimiter as any);
 
 /**
- * GET /api/v1/me
- * User profile & balance information
+ * GET /api/v1/me and GET /api/v1/balance
+ * User profile & balance information (Dual-Currency: USD & LKR)
  */
-apiV1Router.get("/me", async (req: AuthenticatedApiRequest, res: Response) => {
+const handleUserProfile = async (req: AuthenticatedApiRequest, res: Response) => {
   try {
     const user = req.telegramUser!;
     const balanceUsd = (user.balance / 100).toFixed(2);
+    const balanceLkr = user.balanceLkr != null ? user.balanceLkr : Math.round((user.balance / 100) * 305.50);
     
     return res.json({
       success: true,
@@ -175,6 +176,7 @@ apiV1Router.get("/me", async (req: AuthenticatedApiRequest, res: Response) => {
         first_name: user.firstName || null,
         balance_cents: user.balance,
         balance_usd: balanceUsd,
+        balance_lkr: balanceLkr,
         currency: user.selectedCurrency || "USD",
         referral_balance_cents: user.referralBalance || 0,
         created_at: user.createdAt
@@ -183,7 +185,10 @@ apiV1Router.get("/me", async (req: AuthenticatedApiRequest, res: Response) => {
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
+
+apiV1Router.get("/me", handleUserProfile as any);
+apiV1Router.get("/balance", handleUserProfile as any);
 
 /**
  * GET /api/v1/products
@@ -197,6 +202,7 @@ apiV1Router.get("/products", async (req: AuthenticatedApiRequest, res: Response)
       const availCreds = await storage.getCredentialsByProduct(prod.id);
       const stockCount = availCreds.filter(c => c.status === "available").length;
       const priceUsd = (prod.price / 100).toFixed(2);
+      const priceLkr = (prod as any).priceLkr || Math.round((prod.price / 100) * 305.50);
 
       return {
         id: prod.id,
@@ -205,6 +211,7 @@ apiV1Router.get("/products", async (req: AuthenticatedApiRequest, res: Response)
         category: prod.type,
         price_cents: prod.price,
         price_usd: priceUsd,
+        price_lkr: priceLkr,
         status: prod.status,
         stock: stockCount,
         is_in_stock: stockCount > 0,
@@ -217,6 +224,41 @@ apiV1Router.get("/products", async (req: AuthenticatedApiRequest, res: Response)
       success: true,
       count: results.length,
       data: results
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/v1/categories
+ * List product categories with stock counts
+ */
+apiV1Router.get("/categories", async (req: AuthenticatedApiRequest, res: Response) => {
+  try {
+    const allProducts = await storage.getProducts();
+    const categoryMap = new Map<string, { count: number; in_stock_count: number }>();
+
+    for (const prod of allProducts) {
+      const cat = prod.type || "General";
+      const existing = categoryMap.get(cat) || { count: 0, in_stock_count: 0 };
+      existing.count += 1;
+      const availCreds = await storage.getCredentialsByProduct(prod.id);
+      const stockCount = availCreds.filter(c => c.status === "available").length;
+      if (stockCount > 0) existing.in_stock_count += 1;
+      categoryMap.set(cat, existing);
+    }
+
+    const categories = Array.from(categoryMap.entries()).map(([name, stats]) => ({
+      name,
+      total_products: stats.count,
+      in_stock_products: stats.in_stock_count
+    }));
+
+    return res.json({
+      success: true,
+      count: categories.length,
+      data: categories
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -405,9 +447,10 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
           status: "failed"
         });
       } catch (e) {}
-      return res.status(400).json({
+      return res.status(402).json({
         success: false,
         error: "insufficient_balance",
+        statusCode: 402,
         message: `Insufficient balance. Required: $${(finalCost / 100).toFixed(2)}, Available: $${(user.balance / 100).toFixed(2)}.`
       });
     }
@@ -425,12 +468,13 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       return res.status(400).json({
         success: false,
         error: "out_of_stock",
+        statusCode: 400,
         message: `Product is out of stock and pre-orders are disabled.`
       });
     }
 
     if (txResult.error) {
-      return res.status(400).json({ success: false, error: txResult.error });
+      return res.status(400).json({ success: false, error: txResult.error, statusCode: 400 });
     }
 
     if (txResult.type === "instant") {
@@ -485,7 +529,7 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       });
     }
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message, statusCode: 500 });
   }
 });
 
@@ -530,7 +574,28 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
       const itemTxResult: any = await db.transaction(async (tx) => {
         // 1. Lock user row
         const [lockedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, user.id)).for('update');
-        if (!lockedUser || lockedUser.balance < cost) {
+        if (!lockedUser) {
+          throw new Error("user_not_found");
+        }
+
+        const approxLkrRate = 305.50;
+        const deductLkr = Math.round((cost / 100) * approxLkrRate);
+
+        let payingUser = lockedUser;
+        let hasEnough = (payingUser.balance >= cost) || (payingUser.balanceLkr != null && payingUser.balanceLkr >= deductLkr);
+
+        if (!hasEnough && lockedUser.linkedUserId) {
+          const [lockedLinkedUser] = await tx.select().from(telegramUsers).where(eq(telegramUsers.id, lockedUser.linkedUserId)).for('update');
+          if (lockedLinkedUser) {
+            const linkedHasEnough = (lockedLinkedUser.balance >= cost) || (lockedLinkedUser.balanceLkr != null && lockedLinkedUser.balanceLkr >= deductLkr);
+            if (linkedHasEnough) {
+              payingUser = lockedLinkedUser;
+              hasEnough = true;
+            }
+          }
+        }
+
+        if (!hasEnough) {
           throw new Error("insufficient_balance");
         }
 
@@ -545,13 +610,11 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
           throw new Error("out_of_stock");
         }
 
-        // 3. Deduct balance atomically
-        const approxLkrRate = 305.50;
-        const deductLkr = Math.round((cost / 100) * approxLkrRate);
+        // 3. Deduct balance atomically (supporting dual-currency)
         const [updatedUser] = await tx.update(telegramUsers).set({
-          balance: sql`${telegramUsers.balance} - ${cost}`,
+          balance: sql`GREATEST(0, ${telegramUsers.balance} - ${cost})`,
           balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
-        }).where(and(eq(telegramUsers.id, lockedUser.id), gte(telegramUsers.balance, cost))).returning();
+        }).where(and(eq(telegramUsers.id, payingUser.id), or(gte(telegramUsers.balance, cost), gte(telegramUsers.balanceLkr, deductLkr)))).returning();
 
         if (!updatedUser) {
           throw new Error("insufficient_balance");
@@ -564,7 +627,7 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
           await tx.insert(orders).values({
             productId: prod.id,
             credentialId: cred.id,
-            telegramUserId: lockedUser.id,
+            telegramUserId: payingUser.id,
             apiKeyId: req.apiKey!.id,
             status: "completed"
           });
