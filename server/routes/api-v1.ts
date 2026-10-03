@@ -262,6 +262,9 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discountCents = Math.round((totalCost * pct) / 100);
+        } else if (promo.currency === "LKR") {
+          const discLkr = promo.discountValue || promo.reward || 0;
+          discountCents = Math.min(totalCost, Math.round((discLkr / 305.50) * 100));
         } else {
           discountCents = Math.min(totalCost, promo.discountValue || promo.reward || 0);
         }

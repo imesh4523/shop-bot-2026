@@ -403,8 +403,9 @@ export const promoCodes = pgTable("promo_codes", {
   id: serial("id").primaryKey(),
   code: text("code").unique().notNull(),
   reward: integer("reward").notNull(), // reward in cents (e.g. $5.00 is 500)
-  discountType: text("discount_type").notNull().default("fixed"), // "fixed" ($ amount in cents) or "percentage" (% discount)
-  discountValue: integer("discount_value").notNull().default(0), // percentage (e.g. 20 for 20%) or cents
+  discountType: text("discount_type").notNull().default("fixed"), // "fixed" or "percentage"
+  discountValue: integer("discount_value").notNull().default(0), // percentage (e.g. 20 for 20%), cents (USD), or rupees (LKR)
+  currency: text("currency").notNull().default("USD"), // "USD" or "LKR"
   minOrderAmount: integer("min_order_amount").default(0),
   applicableProduct: text("applicable_product").default("all"), // "all" or specific product ID / key
   applicableProductName: text("applicable_product_name").default("All Items"), // display name of target item

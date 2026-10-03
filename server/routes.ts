@@ -4540,33 +4540,58 @@ export async function registerRoutes(
         }
       }
 
-      if (promo.minOrderAmount && promo.minOrderAmount > 0 && amountCents < promo.minOrderAmount) {
-        return res.status(400).json({ success: false, message: `Minimum order of $${(promo.minOrderAmount / 100).toFixed(2)} required for this coupon.` });
+      const rates = await fetchLiveExchangeRates();
+      const lkrRate = rates.LKR || 305.50;
+      const isLkr = promo.currency === "LKR";
+
+      if (promo.minOrderAmount && promo.minOrderAmount > 0) {
+        const minOrderCents = isLkr ? Math.round((promo.minOrderAmount / lkrRate) * 100) : promo.minOrderAmount;
+        if (amountCents < minOrderCents) {
+          const reqMinText = isLkr ? `Rs. ${promo.minOrderAmount.toLocaleString()}` : `$${(promo.minOrderAmount / 100).toFixed(2)}`;
+          return res.status(400).json({ success: false, message: `Minimum order of ${reqMinText} required for this coupon.` });
+        }
       }
 
       let discountCents = 0;
+      let discountLkr = 0;
+
       if (promo.discountType === "percentage") {
         const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
         discountCents = Math.round((amountCents * pct) / 100);
+        discountLkr = Math.round((discountCents / 100) * lkrRate);
+      } else if (isLkr) {
+        discountLkr = promo.discountValue || promo.reward || 0;
+        discountCents = Math.round((discountLkr / lkrRate) * 100);
+        if (discountCents > amountCents) {
+          discountCents = amountCents;
+          discountLkr = Math.round((discountCents / 100) * lkrRate);
+        }
       } else {
         discountCents = Math.min(amountCents, promo.discountValue || promo.reward || 0);
+        discountLkr = Math.round((discountCents / 100) * lkrRate);
       }
 
       const finalAmountCents = Math.max(0, amountCents - discountCents);
-      const rates = await fetchLiveExchangeRates();
-      const lkrRate = rates.LKR || 305.50;
-
       const discountUsd = (discountCents / 100).toFixed(2);
       const finalAmountUsd = (finalAmountCents / 100).toFixed(2);
-      const finalPriceLkr = Math.round((finalAmountCents / 100) * lkrRate);
-      const discountLkr = Math.round((discountCents / 100) * lkrRate);
+      const finalPriceLkr = Math.max(0, Math.round((finalAmountCents / 100) * lkrRate));
+
+      let message = "";
+      if (promo.discountType === "percentage") {
+        message = `🎉 Coupon applied: ${promo.discountValue}% OFF!`;
+      } else if (isLkr) {
+        message = `🎉 Coupon applied: Rs. ${discountLkr.toLocaleString()} OFF!`;
+      } else {
+        message = `🎉 Coupon applied: $${discountUsd} OFF!`;
+      }
 
       return res.json({
         success: true,
         valid: true,
         code: promo.code,
+        currency: promo.currency || "USD",
         discountType: promo.discountType || "fixed",
-        discountValue: promo.discountValue || (promo.reward / 100),
+        discountValue: promo.discountValue || (isLkr ? promo.reward : (promo.reward / 100)),
         discountCents,
         discountUsd,
         discountLkr,
@@ -4577,7 +4602,7 @@ export async function registerRoutes(
         finalPriceLkr,
         applicableProduct: promo.applicableProduct || "all",
         applicableProductName: promo.applicableProductName || "All Items",
-        message: `🎉 Coupon applied: ${promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `$${discountUsd} OFF`}!`
+        message
       });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -5064,9 +5089,17 @@ export async function registerRoutes(
             throw new Error("You have already used this coupon code.");
           }
 
+          const isLkrPromo = promo.currency === "LKR";
+          const promoRates = await fetchLiveExchangeRates();
+          const promoLkrRate = promoRates.LKR || 305.50;
+
           // Check minimum order amount if set
-          if (promo.minOrderAmount && originalTotal < promo.minOrderAmount) {
-            throw new Error(`Minimum order amount of $${(promo.minOrderAmount / 100).toFixed(2)} required for this coupon.`);
+          if (promo.minOrderAmount && promo.minOrderAmount > 0) {
+            const minCents = isLkrPromo ? Math.round((promo.minOrderAmount / promoLkrRate) * 100) : promo.minOrderAmount;
+            if (originalTotal < minCents) {
+              const reqMinText = isLkrPromo ? `Rs. ${promo.minOrderAmount.toLocaleString()}` : `$${(promo.minOrderAmount / 100).toFixed(2)}`;
+              throw new Error(`Minimum order amount of ${reqMinText} required for this coupon.`);
+            }
           }
 
           // Check applicable product
@@ -5078,6 +5111,9 @@ export async function registerRoutes(
           if (promo.discountType === "percentage") {
             const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
             discount = Math.round((originalTotal * pct) / 100);
+          } else if (isLkrPromo) {
+            const discLkr = promo.discountValue || promo.reward || 0;
+            discount = Math.min(originalTotal, Math.round((discLkr / promoLkrRate) * 100));
           } else {
             discount = Math.min(originalTotal, promo.discountValue || promo.reward || 0);
           }
@@ -7727,10 +7763,22 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
           }
         }
 
+        const isLkrPromo = promo.currency === "LKR";
+        if (promo.minOrderAmount && promo.minOrderAmount > 0) {
+          const minCents = isLkrPromo ? Math.round((promo.minOrderAmount / lkrRate) * 100) : promo.minOrderAmount;
+          if (totalCents < minCents) {
+            const reqMinText = isLkrPromo ? `Rs. ${promo.minOrderAmount.toLocaleString()}` : `$${(promo.minOrderAmount / 100).toFixed(2)}`;
+            throw new Error(`Minimum order amount of ${reqMinText} required for this coupon.`);
+          }
+        }
+
         let discount = 0;
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discount = Math.round((totalCents * pct) / 100);
+        } else if (isLkrPromo) {
+          const discLkr = promo.discountValue || promo.reward || 0;
+          discount = Math.min(totalCents, Math.round((discLkr / lkrRate) * 100));
         } else {
           discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
         }
@@ -8190,10 +8238,22 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
           }
         }
 
+        const isLkrPromo = promo.currency === "LKR";
+        if (promo.minOrderAmount && promo.minOrderAmount > 0) {
+          const minCents = isLkrPromo ? Math.round((promo.minOrderAmount / lkrRate) * 100) : promo.minOrderAmount;
+          if (totalCents < minCents) {
+            const reqMinText = isLkrPromo ? `Rs. ${promo.minOrderAmount.toLocaleString()}` : `$${(promo.minOrderAmount / 100).toFixed(2)}`;
+            throw new Error(`Minimum order amount of ${reqMinText} required for this coupon.`);
+          }
+        }
+
         let discount = 0;
         if (promo.discountType === "percentage") {
           const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
           discount = Math.round((totalCents * pct) / 100);
+        } else if (isLkrPromo) {
+          const discLkr = promo.discountValue || promo.reward || 0;
+          discount = Math.min(totalCents, Math.round((discLkr / lkrRate) * 100));
         } else {
           discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
         }
@@ -8955,20 +9015,26 @@ app.post("/api/promo-codes", isAuth, async (req, res) => {
   try {
     const body = { ...req.body };
     const discountType = body.discountType === "percentage" ? "percentage" : "fixed";
+    const currency = body.currency === "LKR" ? "LKR" : "USD";
     body.discountType = discountType;
+    body.currency = currency;
 
     if (discountType === "percentage") {
       const pct = Math.min(100, Math.max(1, parseInt(body.discountValue || body.percentage || body.reward || 10, 10)));
       body.discountValue = pct;
-      body.reward = pct * 100; // placeholder cents representation
+      body.reward = pct;
+    } else if (currency === "LKR") {
+      const valLkr = Math.round(Number(body.discountValue || body.reward || 1));
+      body.discountValue = valLkr;
+      body.reward = valLkr;
     } else {
-      const valCents = Math.round(Number(body.discountValue || body.reward || 1) * 100);
+      const valCents = Math.round(Number(body.discountValue || body.reward || 100));
       body.discountValue = valCents;
       body.reward = valCents;
     }
 
     if (body.minOrderAmount !== undefined) {
-      body.minOrderAmount = Math.round(Number(body.minOrderAmount) * 100);
+      body.minOrderAmount = Math.round(Number(body.minOrderAmount));
     }
     if (body.maxUses !== undefined) {
       body.maxUses = parseInt(body.maxUses, 10) || 1;
@@ -9002,10 +9068,13 @@ app.patch("/api/promo-codes/:id", isAuth, async (req, res) => {
     const id = Number(req.params.id);
     const body = { ...req.body };
     if (body.reward !== undefined) {
-      body.reward = Math.round(Number(body.reward) * 100);
+      body.reward = Math.round(Number(body.reward));
     }
-    if (body.discountValue !== undefined && body.discountType !== "percentage") {
-      body.discountValue = Math.round(Number(body.discountValue) * 100);
+    if (body.discountValue !== undefined) {
+      body.discountValue = Math.round(Number(body.discountValue));
+    }
+    if (body.minOrderAmount !== undefined) {
+      body.minOrderAmount = Math.round(Number(body.minOrderAmount));
     }
     if (body.maxUses !== undefined) {
       body.maxUses = parseInt(body.maxUses, 10);
@@ -18465,10 +18534,16 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             return;
           }
 
-          await storage.redeemPromoCode(tgUser.id, promo.id, promo.reward);
+          await storage.redeemPromoCode(tgUser.id, promo.id, promo.reward, promo.currency || 'USD');
 
-          const rewardUSD = (promo.reward / 100).toFixed(2);
-          await targetBot.sendMessage(chatId, `🎉 <b>Promo Code Redeemed!</b>\n\nSuccessfully applied "${promo.code}".\n<b>$${rewardUSD}</b> has been added to your balance!`, { parse_mode: 'HTML' });
+          let rewardDisplay = '';
+          if (promo.currency === 'LKR') {
+            rewardDisplay = `<b>Rs. ${Number(promo.reward || promo.discountValue || 0).toLocaleString()}</b>`;
+          } else {
+            const rewardUSD = (promo.reward / 100).toFixed(2);
+            rewardDisplay = `<b>$${rewardUSD} USD</b>`;
+          }
+          await targetBot.sendMessage(chatId, `🎉 <b>Promo Code Redeemed!</b>\n\nSuccessfully applied "<code>${promo.code}</code>".\n${rewardDisplay} has been added to your balance!`, { parse_mode: 'HTML' });
 
           await sendUserProfileCard(targetBot, chatId, userId, msg.from);
         } catch (err: any) {

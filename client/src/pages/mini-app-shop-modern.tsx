@@ -3652,7 +3652,9 @@ Support: https://t.me/youuhost_support
       setAppliedCoupon(data);
       toast({
         title: "🎉 Coupon Applied!",
-        description: `You saved $${data.discountUsd} with coupon ${data.code}!`,
+        description: data.message || (selectedCurrency === "LKR" || data.currency === "LKR"
+          ? `You saved Rs. ${Number(data.discountLkr || Math.round(Number(data.discountUsd || 0) * lkrRate)).toLocaleString()} with coupon ${data.code}!`
+          : `You saved $${data.discountUsd} with coupon ${data.code}!`),
       });
     } catch (err: any) {
       setAppliedCoupon(null);

@@ -24,10 +24,11 @@ import { apiRequest } from "@/lib/queryClient";
 interface PromoCode {
   id: number;
   code: string;
-  reward: number; // in cents
+  reward: number; // in cents or rupees
+  currency?: string | null;
   discountType?: string | null;
   discountValue?: number | null;
-  minOrderAmount?: number | null; // in cents
+  minOrderAmount?: number | null; // in cents or rupees
   applicableProduct?: string | null;
   applicableProductName?: string | null;
   maxUses: number;
@@ -52,6 +53,7 @@ interface Redemption {
     id: number;
     code: string;
     reward: number;
+    currency?: string | null;
     discountType?: string | null;
     discountValue?: number | null;
   } | null;
@@ -65,6 +67,7 @@ export default function PromoCodesPage() {
   // Form states
   const [code, setCode] = useState("");
   const [discountType, setDiscountType] = useState<"fixed" | "percentage">("fixed");
+  const [currency, setCurrency] = useState<"USD" | "LKR">("LKR");
   const [discountValue, setDiscountValue] = useState("");
   const [minOrderAmount, setMinOrderAmount] = useState("");
   const [maxUses, setMaxUses] = useState("1");
@@ -132,6 +135,7 @@ export default function PromoCodesPage() {
   const createMutation = useMutation({
     mutationFn: async (newPromo: { 
       code: string; 
+      currency: string;
       reward: number; 
       discountType: string;
       discountValue: number;
@@ -231,13 +235,25 @@ export default function PromoCodesPage() {
     }
 
     const minAmount = minOrderAmount ? parseFloat(minOrderAmount) : 0;
+    const isLkr = currency === "LKR" && discountType === "fixed";
 
     createMutation.mutate({
       code: code.trim().toUpperCase(),
-      reward: discountType === "percentage" ? Math.round(val) : val,
+      currency: discountType === "percentage" ? "USD" : currency,
+      reward: discountType === "percentage" 
+        ? Math.round(val) 
+        : isLkr 
+          ? Math.round(val) 
+          : Math.round(val * 100),
       discountType,
-      discountValue: discountType === "percentage" ? Math.round(val) : Math.round(val * 100),
-      minOrderAmount: Math.round((minAmount || 0) * 100),
+      discountValue: discountType === "percentage" 
+        ? Math.round(val) 
+        : isLkr 
+          ? Math.round(val) 
+          : Math.round(val * 100),
+      minOrderAmount: isLkr 
+        ? Math.round(minAmount || 0) 
+        : Math.round((minAmount || 0) * 100),
       maxUses: parseInt(maxUses) || 1,
       applicableProduct,
       applicableProductName
@@ -252,8 +268,14 @@ export default function PromoCodesPage() {
   // Calculations for dashboard stats
   const activeCodesCount = promoCodes.filter(c => c.status === "active").length;
   const totalRedemptionsCount = redemptions.length;
-  const totalRewardsGivenCents = redemptions.reduce((sum, r) => sum + (r.promoCode?.reward || 0), 0);
-  const totalRewardsGivenUSD = (totalRewardsGivenCents / 100).toFixed(2);
+  const totalRewardsGivenUSD = (
+    redemptions
+      .filter(r => r.promoCode?.currency !== "LKR")
+      .reduce((sum, r) => sum + (r.promoCode?.reward || 0), 0) / 100
+  ).toFixed(2);
+  const totalRewardsGivenLKR = redemptions
+    .filter(r => r.promoCode?.currency === "LKR")
+    .reduce((sum, r) => sum + (r.promoCode?.reward || 0), 0);
 
   const filteredPromoCodes = promoCodes.filter(c => 
     c.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -318,7 +340,12 @@ export default function PromoCodesPage() {
             <DollarSign className="w-5 h-5 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRewardsGivenUSD}</div>
+            <div className="text-xl font-bold flex flex-wrap items-baseline gap-1.5">
+              <span>${totalRewardsGivenUSD}</span>
+              {totalRewardsGivenLKR > 0 && (
+                <span className="text-xs text-cyan-400 font-semibold">| Rs. {totalRewardsGivenLKR.toLocaleString()}</span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">credited to user balances</p>
           </CardContent>
         </Card>
@@ -336,79 +363,113 @@ export default function PromoCodesPage() {
                 Create Promo Code
               </CardTitle>
               <CardDescription>
-                Issue new percentage or fixed discount coupons for Store purchases.
+                Issue new LKR (Rs.), USD ($), or percentage discount coupons for Store purchases.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Coupon Code (e.g. SAVE20 / FLAT5)</Label>
+                  <Label htmlFor="code">Coupon Code (e.g. SAVE500 / FLAT5 / OFF20)</Label>
                   <Input 
                     id="code" 
-                    placeholder="SAVE20" 
+                    placeholder="SAVE500" 
                     value={code} 
                     onChange={e => setCode(e.target.value)} 
                     required
-                    className="font-mono uppercase"
+                    className="font-mono uppercase tracking-wider"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="discountType">Discount Type</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <Label htmlFor="discountType">Discount Type & Currency</Label>
+                  <div className="grid grid-cols-3 gap-2">
                     <Button
                       type="button"
-                      variant={discountType === "percentage" ? "default" : "outline"}
-                      onClick={() => setDiscountType("percentage")}
-                      className={`text-xs ${discountType === "percentage" ? "bg-purple-600 hover:bg-purple-500 text-white" : "border-slate-800"}`}
+                      variant={discountType === "fixed" && currency === "LKR" ? "default" : "outline"}
+                      onClick={() => {
+                        setDiscountType("fixed");
+                        setCurrency("LKR");
+                      }}
+                      className={`text-xs font-bold py-2 ${discountType === "fixed" && currency === "LKR" ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-900/30" : "border-slate-800 hover:bg-slate-900 text-slate-300"}`}
                     >
-                      % Percentage
+                      Rs. LKR Fixed
                     </Button>
                     <Button
                       type="button"
-                      variant={discountType === "fixed" ? "default" : "outline"}
-                      onClick={() => setDiscountType("fixed")}
-                      className={`text-xs ${discountType === "fixed" ? "bg-purple-600 hover:bg-purple-500 text-white" : "border-slate-800"}`}
+                      variant={discountType === "fixed" && currency === "USD" ? "default" : "outline"}
+                      onClick={() => {
+                        setDiscountType("fixed");
+                        setCurrency("USD");
+                      }}
+                      className={`text-xs font-bold py-2 ${discountType === "fixed" && currency === "USD" ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/30" : "border-slate-800 hover:bg-slate-900 text-slate-300"}`}
                     >
-                      $ Fixed Amount
+                      $ USD Fixed
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={discountType === "percentage" ? "default" : "outline"}
+                      onClick={() => {
+                        setDiscountType("percentage");
+                        setCurrency("USD");
+                      }}
+                      className={`text-xs font-bold py-2 ${discountType === "percentage" ? "bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-900/30" : "border-slate-800 hover:bg-slate-900 text-slate-300"}`}
+                    >
+                      % Percentage
                     </Button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="discountValue">
-                    {discountType === "percentage" ? "Percentage Off (%)" : "Discount Amount (USD $)"}
+                    {discountType === "percentage" 
+                      ? "Percentage Off (%)" 
+                      : currency === "LKR" 
+                        ? "Discount Amount (LKR Rs.)" 
+                        : "Discount Amount (USD $)"}
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">
-                      {discountType === "percentage" ? "%" : "$"}
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm font-semibold">
+                      {discountType === "percentage" ? "%" : currency === "LKR" ? "Rs." : "$"}
                     </span>
                     <Input 
                       id="discountValue" 
                       type="number"
-                      step={discountType === "percentage" ? "1" : "0.01"}
+                      step={discountType === "percentage" || currency === "LKR" ? "1" : "0.01"}
                       max={discountType === "percentage" ? "100" : undefined}
-                      placeholder={discountType === "percentage" ? "20" : "5.00"} 
+                      placeholder={discountType === "percentage" ? "20" : currency === "LKR" ? "500" : "5.00"} 
                       value={discountValue} 
                       onChange={e => setDiscountValue(e.target.value)} 
                       required
-                      className="pl-7"
+                      className={currency === "LKR" && discountType === "fixed" ? "pl-11" : "pl-7"}
                     />
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {discountType === "percentage" 
+                      ? "Percentage deducted from order total." 
+                      : currency === "LKR" 
+                        ? "Fixed Sri Lankan Rupees (Rs.) deducted from order total." 
+                        : "Fixed US Dollars ($) deducted from order total."}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="minOrderAmount">Min Order Threshold (USD $ - Optional)</Label>
+                  <Label htmlFor="minOrderAmount">
+                    {currency === "LKR" && discountType === "fixed" 
+                      ? "Min Order Threshold (LKR Rs. - Optional)" 
+                      : "Min Order Threshold (USD $ - Optional)"}
+                  </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm font-semibold">
+                      {currency === "LKR" && discountType === "fixed" ? "Rs." : "$"}
+                    </span>
                     <Input 
                       id="minOrderAmount" 
                       type="number"
-                      step="0.01"
-                      placeholder="0.00 (No minimum)" 
+                      step={currency === "LKR" && discountType === "fixed" ? "1" : "0.01"}
+                      placeholder={currency === "LKR" && discountType === "fixed" ? "0 (No minimum)" : "0.00 (No minimum)"} 
                       value={minOrderAmount} 
                       onChange={e => setMinOrderAmount(e.target.value)} 
-                      className="pl-7"
+                      className={currency === "LKR" && discountType === "fixed" ? "pl-11" : "pl-7"}
                     />
                   </div>
                 </div>
@@ -539,26 +600,47 @@ export default function PromoCodesPage() {
                       {filteredPromoCodes.map(promo => {
                         const isExpired = promo.usesCount >= promo.maxUses;
                         const isPercentage = promo.discountType === "percentage";
+                        const isLkr = promo.currency === "LKR";
+
                         const discountDisplay = isPercentage 
                           ? `${promo.discountValue || promo.reward}% OFF` 
-                          : `$${((promo.discountValue || promo.reward) / 100).toFixed(2)} OFF`;
-                        const minOrderUSD = (promo.minOrderAmount || 0) / 100;
+                          : isLkr
+                            ? `Rs. ${Number(promo.discountValue || promo.reward || 0).toLocaleString()} OFF`
+                            : `$${(((promo.discountValue || promo.reward) || 0) / 100).toFixed(2)} OFF`;
+
+                        const minOrderDisplay = promo.minOrderAmount && promo.minOrderAmount > 0
+                          ? isLkr
+                            ? `Min order: Rs. ${Number(promo.minOrderAmount).toLocaleString()}`
+                            : `Min order: $${((promo.minOrderAmount || 0) / 100).toFixed(2)}`
+                          : null;
+
                         const targetName = promo.applicableProductName || (promo.applicableProduct && promo.applicableProduct !== "all" ? `Item #${promo.applicableProduct}` : "All Items");
 
                         return (
                           <TableRow key={promo.id}>
                             <TableCell>
-                              <div className="font-mono font-bold text-white text-sm">
+                              <div className="font-mono font-bold text-white text-sm flex items-center gap-1.5">
                                 {promo.code}
+                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                                  isPercentage ? 'bg-purple-900/60 text-purple-300' : isLkr ? 'bg-cyan-900/60 text-cyan-300' : 'bg-emerald-900/60 text-emerald-300'
+                                }`}>
+                                  {isPercentage ? '%' : (promo.currency || 'USD')}
+                                </span>
                               </div>
-                              {minOrderUSD > 0 && (
-                                <span className="text-[10px] text-slate-400 block">
-                                  Min order: ${minOrderUSD.toFixed(2)}
+                              {minOrderDisplay && (
+                                <span className="text-[10px] text-slate-400 block mt-0.5">
+                                  {minOrderDisplay}
                                 </span>
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={`font-mono font-bold text-xs ${isPercentage ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40'}`}>
+                              <Badge variant="outline" className={`font-mono font-bold text-xs ${
+                                isPercentage 
+                                  ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' 
+                                  : isLkr
+                                    ? 'border-cyan-500/40 text-cyan-300 bg-cyan-950/40'
+                                    : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40'
+                              }`}>
                                 {discountDisplay}
                               </Badge>
                             </TableCell>
@@ -664,8 +746,12 @@ export default function PromoCodesPage() {
                         {r.telegramUser?.username ? `@${r.telegramUser.username}` : "-"}
                       </TableCell>
                       <TableCell className="font-mono">{r.promoCode?.code || "Deleted Code"}</TableCell>
-                      <TableCell className="text-emerald-400 font-bold">
-                        +${((r.promoCode?.reward || 0) / 100).toFixed(2)}
+                      <TableCell className="font-bold">
+                        {r.promoCode?.currency === "LKR" ? (
+                          <span className="text-cyan-400 font-mono">+Rs. {Number(r.promoCode?.reward || 0).toLocaleString()}</span>
+                        ) : (
+                          <span className="text-emerald-400 font-mono">+${((r.promoCode?.reward || 0) / 100).toFixed(2)}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(r.createdAt).toLocaleString()}
