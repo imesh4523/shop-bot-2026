@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { securityShieldMiddleware } from "./security-shield";
+import { securityShieldMiddleware, clearAllJailedIps } from "./security-shield";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { log } from "./log";
@@ -122,6 +122,7 @@ async function startServer() {
     httpServer.maxHeadersCount = 0;
 
     console.log("[SERVER] Registering routes...");
+    clearAllJailedIps();
     await registerRoutes(httpServer, app, io);
     
     // Initialize Admin and Database Tables

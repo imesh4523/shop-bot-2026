@@ -17,7 +17,7 @@ import { N1PanelService } from "./n1panel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { CssxService } from "./cssx-service";
 import { domainAutomationService } from "./domain-automation-service";
-import { getSecurityShieldStatus, unbanJailedIp } from "./security-shield";
+import { getSecurityShieldStatus, unbanJailedIp, addToWhitelist } from "./security-shield";
 import { 
   generatePairCode, 
   handleIncomingHandshake, 
@@ -8850,6 +8850,18 @@ app.post("/api/admin/security-shield/unban", isAuth, (req, res) => {
     res.json({ success: true, unbanned, message: `IP ${ip} unbanned successfully` });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to unban IP" });
+  }
+});
+
+// Whitelist IP
+app.post("/api/admin/security-shield/whitelist", isAuth, (req, res) => {
+  try {
+    const { ip } = req.body;
+    if (!ip) return res.status(400).json({ message: "IP address is required" });
+    addToWhitelist(ip.trim());
+    res.json({ success: true, message: `IP ${ip} added to whitelist and unbanned successfully` });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to whitelist IP" });
   }
 });
 

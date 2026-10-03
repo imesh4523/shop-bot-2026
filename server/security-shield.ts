@@ -28,6 +28,39 @@ const authRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 // Nonce store to prevent API replay attacks (Nonce -> Expiry timestamp)
 const usedNoncesMap = new Map<string, number>();
 
+// Whitelisted IPs that should never be rate limited or jailed
+const WHITELISTED_IPS = new Set<string>([
+  "127.0.0.1",
+  "::1",
+  "::ffff:127.0.0.1",
+  "100.127.10.209", // Mobile IP
+]);
+
+// Allow environment variable to configure additional whitelisted IPs
+if (process.env.SECURITY_WHITELIST_IPS) {
+  process.env.SECURITY_WHITELIST_IPS.split(",").forEach((item) => {
+    const trimmed = item.trim();
+    if (trimmed) WHITELISTED_IPS.add(trimmed);
+  });
+}
+
+export function addToWhitelist(ip: string) {
+  const trimmed = ip.trim();
+  WHITELISTED_IPS.add(trimmed);
+  ipJailMap.delete(trimmed);
+}
+
+export function removeFromWhitelist(ip: string) {
+  WHITELISTED_IPS.delete(ip.trim());
+}
+
+export function clearAllJailedIps() {
+  ipJailMap.clear();
+  rateLimitMap.clear();
+  authRateLimitMap.clear();
+  console.log("🛡️ [SECURITY SHIELD] All jailed IPs and rate limits have been cleared.");
+}
+
 // Clean up expired nonces and jail entries periodically
 setInterval(() => {
   const now = Date.now();
@@ -84,7 +117,6 @@ const BLOCKED_PATH_PATTERNS = [
   /\/etc\/passwd/i,
   /\/proc\/self/i,
   /\/\.\.\//, // Path traversal ../
-  /\/\.well-known\/security\.txt/i,
 ];
 
 // --- SQL INJECTION / XSS HEURISTIC PATTERNS ---
@@ -106,6 +138,57 @@ const XSS_PATTERNS = [
   /\bonload\s*=\s*/i,
   /\beval\s*\(/i,
 ];
+
+// Helper: Check if path is documentation, health probe, or static asset
+function isExemptPath(url: string, path: string, host: string): boolean {
+  // 1. Health checks
+  if (path === "/health" || path === "/api/health" || path === "/ping") {
+    return true;
+  }
+
+  // 2. API Documentation & OpenAPI specs
+  if (
+    path === "/docs" ||
+    path === "/api-docs" ||
+    path === "/openapi.json" ||
+    path.startsWith("/docs/") ||
+    path.startsWith("/api-docs/") ||
+    path.startsWith("/scalar") ||
+    path.includes("openapi.json")
+  ) {
+    return true;
+  }
+
+  // 3. API Subdomain docs root (api.youuhost.com /)
+  if ((host.startsWith("api.") || host === "api.youuhost.com") && (path === "/" || path === "/docs" || path === "/api-docs")) {
+    return true;
+  }
+
+  // 4. Static frontend assets (images, stylesheets, scripts, fonts)
+  if (
+    path.startsWith("/assets/") ||
+    path.startsWith("/static/") ||
+    path.startsWith("/uploads/") ||
+    path === "/favicon.ico" ||
+    path === "/manifest.json" ||
+    path.endsWith(".css") ||
+    path.endsWith(".js") ||
+    path.endsWith(".png") ||
+    path.endsWith(".jpg") ||
+    path.endsWith(".jpeg") ||
+    path.endsWith(".gif") ||
+    path.endsWith(".svg") ||
+    path.endsWith(".ico") ||
+    path.endsWith(".woff") ||
+    path.endsWith(".woff2") ||
+    path.endsWith(".ttf") ||
+    path.endsWith(".map")
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 // Helper: Extract real client IP securely
 export function getClientIp(req: Request): string {
@@ -154,6 +237,7 @@ function logThreat(req: Request, type: SecurityThreatLog["threatType"], action: 
 
 // Ban IP in Jail
 function jailIp(ip: string, reason: string, durationMinutes: number = 30) {
+  if (WHITELISTED_IPS.has(ip)) return; // Whitelisted IPs are immune to jailing
   const existing = ipJailMap.get(ip);
   const violations = (existing?.violations || 0) + 1;
   const expiresAt = Date.now() + durationMinutes * 60 * 1000;
@@ -172,17 +256,29 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
   const ip = getClientIp(req);
   const now = Date.now();
   const url = req.originalUrl || req.url;
+  const path = req.path || url.split("?")[0];
   const userAgent = (req.headers["user-agent"] as string) || "";
-  const host = (req.headers["host"] as string) || "";
+  const host = ((req.headers["host"] as string) || "").split(":")[0].toLowerCase();
 
   // 1. HARDENED OWASP SECURITY HEADERS
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-  res.removeHeader("X-Powered-By"); // Hide Express tech stack from hackers
+  res.removeHeader("X-Powered-By"); // Hide Express tech stack
 
-  // 2. CHECK IP JAIL (INSTANT DROP)
+  // 2. WHITELISTED IP BYPASS
+  if (WHITELISTED_IPS.has(ip)) {
+    ipJailMap.delete(ip); // Auto-clear if previously recorded
+    return next();
+  }
+
+  // 3. EXEMPTION CHECK (Documentation, Static Assets, Health Checks)
+  if (isExemptPath(url, path, host)) {
+    return next();
+  }
+
+  // 4. CHECK IP JAIL (INSTANT DROP FOR MALICIOUS ATTACKERS)
   const jailRecord = ipJailMap.get(ip);
   if (jailRecord && now < jailRecord.expiresAt) {
     const remainingMins = Math.ceil((jailRecord.expiresAt - now) / 60000);
@@ -193,7 +289,7 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     });
   }
 
-  // 3. MALICIOUS SCANNER USER AGENT DETECTION
+  // 5. MALICIOUS SCANNER USER AGENT DETECTION
   for (const botPattern of MALICIOUS_USER_AGENTS) {
     if (botPattern.test(userAgent)) {
       logThreat(req, "scanner_bot", "jailed");
@@ -202,7 +298,7 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     }
   }
 
-  // 4. PATH TRAVERSAL & EXPLOIT PROBE DETECTION
+  // 6. PATH TRAVERSAL & EXPLOIT PROBE DETECTION
   for (const pathPattern of BLOCKED_PATH_PATTERNS) {
     if (pathPattern.test(url)) {
       logThreat(req, "path_traversal", "jailed");
@@ -211,40 +307,51 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     }
   }
 
-  // 5. SQL INJECTION & XSS HEURISTIC INSPECTION
-  const rawQuery = JSON.stringify(req.query || {});
-  const rawBody = typeof req.body === "object" ? JSON.stringify(req.body) : String(req.body || "");
-  const payloadToInspect = `${url} ${rawQuery} ${rawBody}`;
+  // 7. SQL INJECTION & XSS HEURISTIC INSPECTION (Only on state-modifying requests or queries with parameters)
+  if (req.method !== "GET" || (req.query && Object.keys(req.query).length > 0)) {
+    const rawQuery = JSON.stringify(req.query || {});
+    const rawBody = typeof req.body === "object" ? JSON.stringify(req.body) : String(req.body || "");
+    const payloadToInspect = `${url} ${rawQuery} ${rawBody}`;
 
-  for (const sqliPattern of SQL_INJECTION_PATTERNS) {
-    if (sqliPattern.test(payloadToInspect)) {
-      logThreat(req, "sqli_payload", "blocked");
-      jailIp(ip, `SQL Injection signature detected`, 30);
-      return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Invalid characters or query syntax detected." });
+    for (const sqliPattern of SQL_INJECTION_PATTERNS) {
+      if (sqliPattern.test(payloadToInspect)) {
+        logThreat(req, "sqli_payload", "blocked");
+        jailIp(ip, `SQL Injection signature detected`, 30);
+        return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Invalid characters or query syntax detected." });
+      }
+    }
+
+    for (const xssPattern of XSS_PATTERNS) {
+      if (xssPattern.test(payloadToInspect)) {
+        logThreat(req, "xss_payload", "blocked");
+        return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Script injection tags detected." });
+      }
     }
   }
 
-  for (const xssPattern of XSS_PATTERNS) {
-    if (xssPattern.test(payloadToInspect)) {
-      logThreat(req, "xss_payload", "blocked");
-      return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Script injection tags detected." });
-    }
-  }
+  // 8. ADAPTIVE RATE LIMITING
+  // Auth endpoints (Login / OTP / Token) -> ONLY rate limit actual POST submissions, NEVER GET requests or page loads!
+  const isAuthPost = req.method === "POST" && (
+    url.startsWith("/api/login") ||
+    url.startsWith("/api/admin/login") ||
+    url.startsWith("/api/auth/login") ||
+    url.includes("/verify-otp") ||
+    url.includes("/send-otp")
+  );
 
-  // 6. ADAPTIVE RATE LIMITING
-  // Auth endpoints (Login / OTP / Token) -> 20 requests per minute
-  if (url.includes("/login") || url.includes("/verify-otp") || url.includes("/send-otp")) {
+  if (isAuthPost) {
     const authLimit = authRateLimitMap.get(ip);
     if (!authLimit || now > authLimit.resetAt) {
       authRateLimitMap.set(ip, { count: 1, resetAt: now + 60000 });
     } else {
       authLimit.count += 1;
-      if (authLimit.count > 20) {
-        logThreat(req, "rate_limit_exceeded", "jailed");
-        jailIp(ip, "Exceeded authentication rate limit", 15);
+      // Allow up to 30 POST login attempts per minute before soft-throttling
+      if (authLimit.count > 30) {
+        logThreat(req, "rate_limit_exceeded", "blocked");
+        // DO NOT jail the entire IP from accessing the website! Return 429 on login attempts only:
         return res.status(429).json({
           error: "TOO_MANY_REQUESTS",
-          message: "Too many login attempts. Please wait 15 minutes before retrying.",
+          message: "Too many login attempts. Please wait a minute before retrying.",
         });
       }
     }
