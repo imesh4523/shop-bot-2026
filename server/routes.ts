@@ -1863,6 +1863,10 @@ export async function registerRoutes(
 
   // Get current user balance and info within Mini App
   app.get("/api/mini/user", verifyMiniAppAuth, async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     const tgUser = (req as any).tgUser;
     if (!tgUser || tgUser.isGuest || !tgUser.id) {
       return res.json({
@@ -1872,9 +1876,22 @@ export async function registerRoutes(
         firstName: "Web Visitor",
         lastName: "",
         balance: 0,
+        balanceLkr: 0,
         isLoggedIn: false,
         createdAt: new Date().toISOString()
       });
+    }
+
+    // Always fetch fresh, non-stale database record for real-time balance
+    let currentDbUser = null;
+    if (tgUser.dbUser?.id) {
+      currentDbUser = await storage.getTelegramUserById(tgUser.dbUser.id);
+    }
+    if (!currentDbUser && tgUser.id && tgUser.id !== 0) {
+      currentDbUser = await storage.getTelegramUser(tgUser.id.toString());
+    }
+    if (currentDbUser) {
+      tgUser.dbUser = currentDbUser;
     }
 
     if (tgUser.dbUser) {
@@ -7771,15 +7788,18 @@ app.get("/api/mini/sandromania/products", verifyMiniAppAuth, async (req, res) =>
             for (const local of localProducts) {
               const match = remoteProducts.find((r: any) => parseInt(r.id) === local.externalProductId);
               if (match) {
-                const liveStock = typeof match.stock === 'number' 
+                const rawMatchStock = typeof match.stock === 'number' 
                   ? match.stock 
-                  : (match.stock !== undefined && match.stock !== null && match.stock !== "" ? parseInt(match.stock) : (match.available ? 99 : 0));
+                  : (match.stock !== undefined && match.stock !== null && match.stock !== "" ? parseInt(match.stock) : (match.available ? 10 : 0));
+                const parsedStock = isNaN(rawMatchStock) ? 0 : rawMatchStock;
+                const isItemAvailable = Boolean(match.available !== false && parsedStock > 0);
+                const finalStock = isItemAvailable ? parsedStock : 0;
                 
                 await db
                   .update(sandromaniaProducts)
                   .set({
-                    stock: isNaN(liveStock) ? (match.available ? 99 : 0) : liveStock,
-                    available: Boolean(match.available),
+                    stock: finalStock,
+                    available: isItemAvailable,
                     updatedAt: new Date()
                   })
                   .where(eq(sandromaniaProducts.id, local.id));

@@ -1558,6 +1558,12 @@ export default function MiniAppShopModern() {
       } catch {}
       return undefined;
     },
+    initialDataUpdatedAt: 0,
+    staleTime: 0,
+    refetchInterval: 3000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: "always",
+    refetchOnMount: "always",
   });
 
   const effectiveAvatarUrl = useMemo(() => {
@@ -3265,7 +3271,10 @@ Support: https://t.me/youuhost_support
 
     // 2. Sandromania Partner Products
     filteredSandromaniaProducts.forEach((sandProd: any) => {
-      const isOutOfStock = sandProd.isActive === false;
+      const rawStock = typeof sandProd.stock === "number"
+        ? sandProd.stock
+        : (sandProd.stockCount !== undefined ? Number(sandProd.stockCount) : 0);
+      const isOutOfStock = sandProd.isActive === false || sandProd.available === false || rawStock <= 0;
       list.push({
         type: "sandromania",
         data: sandProd,
@@ -3276,7 +3285,8 @@ Support: https://t.me/youuhost_support
 
     // 3. CSxStore Partner Products
     filteredCssxProducts.forEach((cssxProd: any) => {
-      const isOutOfStock = cssxProd.isActive === false || (cssxProd.stock !== undefined && cssxProd.stock <= 0 && cssxProd.available === false);
+      const rawStock = typeof cssxProd.stock === "number" ? cssxProd.stock : 0;
+      const isOutOfStock = cssxProd.isActive === false || cssxProd.available === false || rawStock <= 0;
       list.push({
         type: "cssx",
         data: cssxProd,
@@ -4798,7 +4808,8 @@ Support: https://t.me/youuhost_support
                     const cleanCat = cleanSandromaniaText(sandProd.category);
                     const conf = getProviderConfig(cleanTitle, cleanCat);
                     const priceFormatted = formatSandromaniaPrice(sandProd, 1);
-                    const availableStock = sandProd.stock ?? sandProd.stockCount ?? 99;
+                    const rawStock = typeof sandProd.stock === "number" ? sandProd.stock : (sandProd.stockCount !== undefined ? Number(sandProd.stockCount) : 0);
+                    const availableStock = (sandProd.available === false || sandProd.isActive === false || rawStock <= 0) ? 0 : rawStock;
                     const stats = getItemStats(sandProd, "sandromania");
 
                     return (
@@ -4910,8 +4921,8 @@ Support: https://t.me/youuhost_support
                     const cleanTitle = cssxProd.title || "Digital Product";
                     const cleanCat = cssxProd.category || "General";
                     const conf = getProviderConfig(cleanTitle, cleanCat);
-                    const priceFormatted = formatCssxPrice(cssxProd, 1);
-                    const availableStock = cssxProd.stock ?? 99;
+                    const rawStock = typeof cssxProd.stock === "number" ? cssxProd.stock : 0;
+                    const availableStock = (cssxProd.available === false || cssxProd.isActive === false || rawStock <= 0) ? 0 : rawStock;
                     const stats = getItemStats(cssxProd, "sandromania");
 
                     return (
@@ -7734,7 +7745,12 @@ Support: https://t.me/youuhost_support
           {detailSandromaniaProduct && (() => {
             const cleanTitle = cleanSandromaniaText(detailSandromaniaProduct.title);
             const cleanCat = cleanSandromaniaText(detailSandromaniaProduct.category);
-            const availableStock = detailSandromaniaProduct.stock || detailSandromaniaProduct.stockCount || 99;
+            const rawStock = typeof detailSandromaniaProduct.stock === "number"
+              ? detailSandromaniaProduct.stock
+              : (detailSandromaniaProduct.stockCount !== undefined ? Number(detailSandromaniaProduct.stockCount) : 0);
+            const isAvail = detailSandromaniaProduct.available !== false && detailSandromaniaProduct.isActive !== false;
+            const availableStock = (!isAvail || rawStock <= 0) ? 0 : rawStock;
+            const isOutOfStock = !isAvail || availableStock <= 0;
             const itemLkr = detailSandromaniaProduct.sellingPriceLkr ? Number(detailSandromaniaProduct.sellingPriceLkr) : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate);
             const totalLkr = itemLkr * sandromaniaOrderQty;
             const totalCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
@@ -7797,10 +7813,17 @@ Support: https://t.me/youuhost_support
 
                 {/* Stock Status & Rating Pill */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>In Stock: {availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"}</span>
-                  </div>
+                  {availableStock > 0 ? (
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>In Stock: {availableStock} available</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>⚠️ Out of Stock</span>
+                    </div>
+                  )}
 
                   {(() => {
                     const sandroStats = getItemStats(detailSandromaniaProduct, "sandromania");
@@ -7843,9 +7866,10 @@ Support: https://t.me/youuhost_support
                       </span>
                       <button
                         onClick={() => {
-                          setSandromaniaOrderQty((q) => q + 1);
+                          setSandromaniaOrderQty((q) => Math.min(Math.max(1, availableStock), q + 1));
                           setAppliedCoupon(null);
                         }}
+                        disabled={isOutOfStock || sandromaniaOrderQty >= availableStock}
                         className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
                       >
                         <Plus className="w-3 h-3" />
@@ -8002,11 +8026,17 @@ Support: https://t.me/youuhost_support
                 <div className="flex gap-2">
                   <button
                     onClick={handleSandromaniaPurchase}
-                    disabled={isSandromaniaPurchasing}
-                    className="flex-1 py-3.5 bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+                    disabled={isSandromaniaPurchasing || isOutOfStock}
+                    className={`flex-1 py-3.5 ${
+                      isOutOfStock
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-gradient-to-r from-[#6C5CE7] to-[#FF5E62] text-white shadow-md shadow-[#6C5CE7]/20 hover:opacity-95 active:scale-98"
+                    } rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all disabled:opacity-50`}
                   >
                     {isSandromaniaPurchasing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isOutOfStock ? (
+                      <span>Out of Stock</span>
                     ) : !isCustomerLoggedIn ? (
                       <>
                         <UserIcon className="w-4 h-4" /> Sign In to Buy
@@ -8038,7 +8068,10 @@ Support: https://t.me/youuhost_support
           {detailCssxProduct && (() => {
             const cleanTitle = detailCssxProduct.title || "Digital Product";
             const cleanCat = detailCssxProduct.category || "General";
-            const availableStock = detailCssxProduct.stock ?? 99;
+            const rawStock = typeof detailCssxProduct.stock === "number" ? detailCssxProduct.stock : 0;
+            const isAvail = detailCssxProduct.available !== false && detailCssxProduct.isActive !== false;
+            const availableStock = (!isAvail || rawStock <= 0) ? 0 : rawStock;
+            const isOutOfStock = !isAvail || availableStock <= 0;
             const itemLkr = detailCssxProduct.sellingPriceLkr ? Number(detailCssxProduct.sellingPriceLkr) : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate);
             const totalLkr = itemLkr * cssxOrderQty;
             const totalCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
@@ -8101,10 +8134,17 @@ Support: https://t.me/youuhost_support
 
                 {/* Stock Status & Rating Pill */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>In Stock: {availableStock > 0 ? `${availableStock} available` : "Instant Keys Ready"}</span>
-                  </div>
+                  {availableStock > 0 ? (
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>In Stock: {availableStock} available</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200/80 px-2.5 py-1 rounded-full shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>⚠️ Out of Stock</span>
+                    </div>
+                  )}
 
                   {(() => {
                     const stats = getItemStats(detailCssxProduct, "sandromania");
@@ -8147,9 +8187,10 @@ Support: https://t.me/youuhost_support
                       </span>
                       <button
                         onClick={() => {
-                          setCssxOrderQty((q) => q + 1);
+                          setCssxOrderQty((q) => Math.min(Math.max(1, availableStock), q + 1));
                           setAppliedCoupon(null);
                         }}
+                        disabled={isOutOfStock || cssxOrderQty >= availableStock}
                         className="w-5 h-5 rounded-full bg-[#F5F4FC] flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-all"
                       >
                         <Plus className="w-3 h-3" />
@@ -8306,11 +8347,17 @@ Support: https://t.me/youuhost_support
                 <div className="flex gap-2">
                   <button
                     onClick={handleCssxPurchase}
-                    disabled={isCssxPurchasing}
-                    className="flex-1 py-3.5 bg-gradient-to-r from-[#8E54E9] via-[#5B42F3] to-[#00C9FF] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+                    disabled={isCssxPurchasing || isOutOfStock}
+                    className={`flex-1 py-3.5 ${
+                      isOutOfStock
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-gradient-to-r from-[#8E54E9] via-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-98"
+                    } rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all disabled:opacity-50`}
                   >
                     {isCssxPurchasing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isOutOfStock ? (
+                      <span>Out of Stock</span>
                     ) : !isCustomerLoggedIn ? (
                       <>
                         <UserIcon className="w-4 h-4" /> Sign In to Buy
