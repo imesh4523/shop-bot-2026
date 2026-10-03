@@ -30930,7 +30930,8 @@ const preorders = pgTable("preorders", {
   fulfilledCredentialIds: text("fulfilled_credential_ids"),
   // JSON array of credential IDs
   createdAt: timestamp("created_at").defaultNow(),
-  fulfilledAt: timestamp("fulfilled_at")
+  fulfilledAt: timestamp("fulfilled_at"),
+  updatedAt: timestamp("updated_at")
 });
 createInsertSchema(preorders).omit({ id: true, createdAt: true, fulfilledAt: true });
 const smmServices = pgTable("smm_services", {
@@ -75570,7 +75571,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BPBVrRBu.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BF890eHF.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;

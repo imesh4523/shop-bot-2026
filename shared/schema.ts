@@ -475,6 +475,7 @@ export const preorders = pgTable("preorders", {
   fulfilledCredentialIds: text("fulfilled_credential_ids"), // JSON array of credential IDs
   createdAt: timestamp("created_at").defaultNow(),
   fulfilledAt: timestamp("fulfilled_at"),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const preordersRelations = relations(preorders, ({ one }) => ({

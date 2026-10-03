@@ -6,7 +6,7 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, cssxProducts, cssxOrders, emailLogs, apiKeys, storeMeshNodes } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, cssxProducts, cssxOrders, emailLogs, apiKeys, storeMeshNodes, preorders } from "@shared/schema";
 import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, generateCredentialsTxt, generatePlainTextEmail, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, gt, inArray } from "drizzle-orm";
 import { startPaymentReconciliationWatchdog } from "./payment-reconciliation-service";
@@ -6191,7 +6191,11 @@ app.patch(api.telegramUsers.update.path, isAuth, async (req, res) => {
       const activeBot = await getBroadcastBot();
       if (activeBot && user.telegramId) {
         const addedAmountUSD = isLkr ? (addedLkr / lkrRate) : (addedCents / 100);
-        await sendDepositSuccessNotification(activeBot, user.telegramId, addedAmountUSD, user.balance / 100, isLkr ? `Admin Added Rs. ${addedLkr.toLocaleString()}` : "Admin Web Top-up").catch(console.error);
+        const newBalanceUSD = (user.balance / 100);
+        const creditMsg = `<tg-emoji emoji-id="5197434882321567830">💰</tg-emoji> <b>Wallet Balance Updated</b>\n\n` +
+          `Amount credited: <b>$${addedAmountUSD.toFixed(2)} </b><tg-emoji emoji-id="6032745346390560408">⬇️</tg-emoji>\n` +
+          `New balance: <b>$${newBalanceUSD.toFixed(2)} </b><tg-emoji emoji-id="6032644646587338669">🎁</tg-emoji>`;
+        await activeBot.sendMessage(Number(user.telegramId), creditMsg, { parse_mode: 'HTML' }).catch(console.error);
       }
     } else if (reducedLkr > 0 || reducedCents > 0) {
       // Log deduction record for the user profile & transaction history in RED
@@ -11094,7 +11098,7 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
 
     let availableQuota = 0;
     if (p.isPreorderEnabled || (p.preorderQuota && p.preorderQuota > 0)) {
-      availableQuota = Math.max(0, p.preorderQuota || 0);
+      availableQuota = (p.preorderQuota && p.preorderQuota > 0) ? p.preorderQuota : 50;
     }
 
     // Skip product ONLY if stock is 0, no preorder quota, showOutOfStock is false, and showOnTelegram is not explicitly enabled
@@ -11173,6 +11177,34 @@ const sendCatalogMenu = async (targetBot: TelegramBot, chatId: number, messageId
   await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, catalogCaption, { inline_keyboard }, messageId);
 };
 
+const getProductBannerPath = (productOrName: any): string => {
+  const publicDir = path.join(process.cwd(), "public");
+  let str = "";
+  if (typeof productOrName === 'string') {
+    str = productOrName.toLowerCase();
+  } else if (productOrName) {
+    str = `${productOrName.name || ""} ${productOrName.type || ""} ${productOrName.description || ""}`.toLowerCase();
+  }
+
+  if (str.includes("duolingo")) return path.join(publicDir, "banner_duolingo.png");
+  if (str.includes("chatgpt") || str.includes("chat gpt") || str.includes("openai")) return path.join(publicDir, "banner_chatgpt.png");
+  if (str.includes("gemini")) return path.join(publicDir, "banner_gemini.png");
+  if (str.includes("spotify")) return path.join(publicDir, "banner_spotify.png");
+  if (str.includes("youtube")) return path.join(publicDir, "banner_youtube.png");
+  if (str.includes("aws")) return path.join(publicDir, "banner_aws.png");
+  if (str.includes("digital ocean") || str.includes("digitalocean")) return path.join(publicDir, "banner_digitalocean.png");
+  if (str.includes("azure")) return path.join(publicDir, "banner_azure.png");
+  if (str.includes("windows")) return path.join(publicDir, "banner_windows.png");
+  if (str.includes("capcut")) return path.join(publicDir, "banner_capcut.png");
+  if (str.includes("hotmail") || str.includes("outlook")) return path.join(publicDir, "banner_hotmail.png");
+  if (str.includes("kamatera")) return path.join(publicDir, "banner_kamatera.png");
+  if (str.includes("oracle")) return path.join(publicDir, "banner_oracle.png");
+  if (str.includes("linode") || str.includes("linod")) return path.join(publicDir, "banner_linode.png");
+  if (str.includes("standoff")) return path.join(publicDir, "banner_standoff2.png");
+
+  return path.join(publicDir, "imesh_cloudbot_catalog_banner.png");
+};
+
 const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, categoryName?: string, messageId?: number) => {
   let product: any = null;
   let stockCount = 0;
@@ -11242,9 +11274,13 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
   const { formatted: priceFormatted } = formatPriceInCurrency(priceUSDNum, userCurrency);
   const priceDisplay = userCurrency === 'USD' ? `$${priceUSDNum.toFixed(2)}` : `${priceFormatted} ($${priceUSDNum.toFixed(2)} USD)`;
 
+  const productBannerPath = getProductBannerPath(product);
+
   if (stockCount === 0) {
     if (product.isPreorderEnabled || (product.preorderQuota && product.preorderQuota > 0)) {
-      const availableQuota = Math.max(0, product.preorderQuota || 0);
+      const availableQuota = (product.preorderQuota && product.preorderQuota > 0)
+        ? product.preorderQuota
+        : (product.isPreorderEnabled ? 50 : 0);
 
       if (availableQuota > 0) {
         // Render Pre-Order Product Screen
@@ -11295,8 +11331,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
           `Place your pre-order now! As soon as stock is added by the admin, your credentials will automatically be sent to you in this chat with priority #1.</blockquote>\n\n` +
           `<b>Select quantity to pre-order:</b>`;
 
-        const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-        await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, preMsg, { inline_keyboard: qtyButtons }, messageId);
+        await sendOrEditScreenWithPhoto(targetBot, chatId, productBannerPath, preMsg, { inline_keyboard: qtyButtons }, messageId);
         return;
       }
     }
@@ -11309,8 +11344,7 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     const outMsg = `<tg-emoji emoji-id="5215570077876756627">❌</tg-emoji> <b>Out of Stock</b>\n\n` +
       `<b>${product.name}</b> is currently out of stock (0 available).\n\n` +
       `Please check back later or choose another product from the catalog!`;
-    const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-    await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, outMsg, outOfStockKb, messageId);
+    await sendOrEditScreenWithPhoto(targetBot, chatId, productBannerPath, outMsg, outOfStockKb, messageId);
     return;
   }
 
@@ -11370,13 +11404,13 @@ const sendProductDetailsScreen = async (targetBot: TelegramBot, chatId: number, 
     { text: 'Back to Category', callback_data: `cat_${product.type}`, style: 'primary' }
   ]);
 
-  const catalogBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
-  await sendOrEditScreenWithPhoto(targetBot, chatId, catalogBannerPath, productCaption, { inline_keyboard }, messageId);
+  await sendOrEditScreenWithPhoto(targetBot, chatId, productBannerPath, productCaption, { inline_keyboard }, messageId);
 };
 
 const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number, productId: number | string, qty: number, messageId?: number) => {
   let productName = "Product Account";
   let unitPriceUSD = 10.00;
+  let targetProductObj: any = null;
 
   const PRESET_PRODUCT_MAP: Record<string, { name: string; price: number }> = {
     'Standoff 2': { name: 'Standoff 2 Account', price: 10.00 },
@@ -11391,6 +11425,7 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
   if (!isNaN(prodIdNum)) {
     const product = await storage.getProduct(prodIdNum);
     if (product) {
+      targetProductObj = product;
       productName = product.name;
       unitPriceUSD = product.price / 100;
     }
@@ -11401,6 +11436,7 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     const allProds = await storage.getProducts();
     const match = allProds.find(p => p.type === name || p.name === name || p.name.includes(name));
     if (match) {
+      targetProductObj = match;
       productName = match.name;
       unitPriceUSD = match.price / 100;
     } else if (PRESET_PRODUCT_MAP[name]) {
@@ -11437,7 +11473,7 @@ const sendOrderCalculationScreen = async (targetBot: TelegramBot, chatId: number
     [{ text: 'Cancel / Back', callback_data: `prod_${productId}`, style: 'danger' }]
   ] as any;
 
-  const paymentBannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_payment_banner.png");
+  const paymentBannerPath = getProductBannerPath(targetProductObj || productName);
   await sendOrEditScreenWithPhoto(targetBot, chatId, paymentBannerPath, orderCaption, { inline_keyboard }, messageId);
 };
 
@@ -14995,7 +15031,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           for (const p of categoryProducts) {
             const availableStock = credCounts.get(p.id) || 0;
             const availableQuota = (p.isPreorderEnabled || (p.preorderQuota && p.preorderQuota > 0))
-              ? Math.max(0, p.preorderQuota || 0)
+              ? ((p.preorderQuota && p.preorderQuota > 0) ? p.preorderQuota : 50)
               : 0;
 
             // Skip product ONLY if stock is 0, no preorder quota, showOutOfStock is false, and showOnTelegram is not explicitly true
@@ -15063,7 +15099,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
 
         const catEmojiTag = catEmojiId ? `<tg-emoji emoji-id="${catEmojiId}">✨</tg-emoji>` : '';
-        const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_catalog_banner.png");
+        const bannerPath = getProductBannerPath(category);
         const caption = `<b>${category}</b> ${catEmojiTag}\n\nSelect the product you need:`;
         await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard: keyboard }, query.message?.message_id);
         return;
@@ -15517,9 +15553,11 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
         }
 
         if (targetProduct && availableCreds.length < qty && (targetProduct.isPreorderEnabled || (targetProduct.preorderQuota && targetProduct.preorderQuota > 0))) {
-          const availableQuota = Math.max(0, targetProduct.preorderQuota || 0);
+          const availableQuota = (targetProduct.preorderQuota && targetProduct.preorderQuota > 0)
+            ? targetProduct.preorderQuota
+            : (targetProduct.isPreorderEnabled ? 50 : 0);
 
-          if (qty > availableQuota) {
+          if (availableQuota > 0 && qty > availableQuota) {
             await targetBot.sendMessage(chatId, `❌ Maximum pre-order quota available is ${availableQuota} Pcs.`);
             return;
           }
@@ -15601,7 +15639,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             ]
           };
 
-          const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+          const bannerPath = getProductBannerPath(targetProduct || productName);
           await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, preorderMsg, keyboard, query.message?.message_id);
           autoFulfillPendingPreorders(targetProduct.id).catch(() => {});
           return;
@@ -16831,7 +16869,10 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               .returning();
 
             if (updatedPayment) {
-              await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount} WHERE id = ${updatedPayment.telegramUserId}`);
+              const rates = await fetchLiveExchangeRates();
+              const lkrRate = rates.LKR || 305.50;
+              const creditLkr = Math.round((updatedPayment.amount / 100) * lkrRate);
+              await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount}, balance_lkr = COALESCE(balance_lkr, 0) + ${creditLkr} WHERE id = ${updatedPayment.telegramUserId}`);
               const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, updatedPayment.telegramUserId));
               const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (updatedPayment.amount / 100);
               await sendDepositSuccessNotification(targetBot, chatId, updatedPayment.amount / 100, newBalUSD, "@CryptoBot Invoice", paymentCheck.externalId);
@@ -16864,8 +16905,13 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                   return { success: false, alreadyCompleted: true };
                 }
 
+                const rates = await fetchLiveExchangeRates();
+                const lkrRate = rates.LKR || 305.50;
+                const creditLkr = Math.round((payment.amount / 100) * lkrRate);
+
                 await tx.update(telegramUsers).set({
-                  balance: sql`balance + ${payment.amount}`
+                  balance: sql`balance + ${payment.amount}`,
+                  balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
                 }).where(eq(telegramUsers.id, payment.telegramUserId));
 
                 await tx.update(payments).set({ status: 'completed', txid: binanceCheck.txid || payment.txid, updatedAt: new Date() }).where(eq(payments.id, payment.id));
@@ -16933,8 +16979,13 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                   return { success: false, alreadyCompleted: true };
                 }
 
+                const rates = await fetchLiveExchangeRates();
+                const lkrRate = rates.LKR || 305.50;
+                const creditLkr = Math.round((payment.amount / 100) * lkrRate);
+
                 await tx.update(telegramUsers).set({
-                  balance: sql`balance + ${payment.amount}`
+                  balance: sql`balance + ${payment.amount}`,
+                  balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
                 }).where(eq(telegramUsers.id, payment.telegramUserId));
 
                 await tx.update(payments).set({ status: 'completed', updatedAt: new Date() }).where(eq(payments.id, payment.id));
@@ -17972,7 +18023,11 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               if (paymentCheck) depositAmountCents = paymentCheck.amount;
             }
 
-            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents} WHERE id = ${tgUser.id}`);
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.50;
+            const creditLkr = Math.round((depositAmountCents / 100) * lkrRate);
+
+            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${depositAmountCents}, balance_lkr = COALESCE(balance_lkr, 0) + ${creditLkr} WHERE id = ${tgUser.id}`);
             const [updatedUser] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, tgUser.id));
             const newBalUSD = updatedUser ? (updatedUser.balance / 100) : (depositAmountCents / 100);
 
@@ -19595,7 +19650,11 @@ BackupService.startBackupScheduler().catch(err => console.error("Backup schedule
             .returning();
 
           if (updatedPayment) {
-            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount} WHERE id = ${updatedPayment.telegramUserId}`);
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.50;
+            const creditLkr = Math.round((updatedPayment.amount / 100) * lkrRate);
+
+            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${updatedPayment.amount}, balance_lkr = COALESCE(balance_lkr, 0) + ${creditLkr} WHERE id = ${updatedPayment.telegramUserId}`);
 
             const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, updatedPayment.telegramUserId));
 
