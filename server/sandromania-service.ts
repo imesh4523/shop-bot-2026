@@ -120,15 +120,19 @@ export class SandromaniaService {
   }
 
   public static async createOrder(
-    productId: number,
+    productId: number | string,
     quantity: number,
     idempotencyKey?: string
   ): Promise<any> {
+    const pId = Number(productId);
+    if (!pId || isNaN(pId)) {
+      throw new Error(`Invalid or missing Sandromania product_id: ${productId}`);
+    }
     const key = idempotencyKey || `shop-${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
     const data = await this.partnerRequest(
       "POST",
       "/api/v1/orders",
-      { product_id: productId, quantity },
+      { product_id: pId, quantity: Math.max(1, Number(quantity) || 1) },
       key
     );
     return data;

@@ -8066,8 +8066,14 @@ app.post("/api/mini/sandromania/purchase", verifyMiniAppAuth, async (req, res) =
     // Fast Phase 2: Call external API OUTSIDE the local database transaction!
     let partnerOrderRes: any = null;
     try {
+      const targetExtProductId = Number(
+        product.externalProductId ??
+        product.external_product_id ??
+        product.id ??
+        0
+      );
       partnerOrderRes = await SandromaniaService.createOrder(
-        product.externalProductId,
+        targetExtProductId,
         qty,
         idempotencyKey
       );
@@ -8543,8 +8549,18 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
     let orderRes: any = null;
     let partnerError: string | null = null;
     try {
+      const targetServiceId = String(
+        product.serviceId ??
+        product.service_id ??
+        product.id ??
+        ""
+      ).trim();
+
       orderRes = await CssxService.createOrder({
-        service_id: product.serviceId,
+        service_id: targetServiceId,
+        service: targetServiceId,
+        serviceId: targetServiceId,
+        product_id: isNaN(Number(targetServiceId)) ? targetServiceId : Number(targetServiceId),
         quantity: qty,
       });
     } catch (apiErr: any) {
@@ -15865,8 +15881,14 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           try {
             if (partnerInfo.type === 'sandromania') {
               const idempotencyKey = `sandromania-tg-${tgUser.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+              const targetExtId = Number(
+                partnerInfo.partner.externalProductId ??
+                partnerInfo.partner.external_product_id ??
+                partnerInfo.partner.id ??
+                0
+              );
               const partnerOrderRes = await SandromaniaService.createOrder(
-                partnerInfo.partner.externalProductId,
+                targetExtId,
                 qty,
                 idempotencyKey
               );
@@ -15879,7 +15901,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                 telegramUserId: tgUser.id,
                 sandromaniaProductId: partnerInfo.partner.id,
                 externalOrderId: extId,
-                externalProductId: partnerInfo.partner.externalProductId || partnerInfo.partner.id || 0,
+                externalProductId: targetExtId,
                 productTitle: partnerInfo.partner.title,
                 quantity: qty,
                 costPriceUsd: Math.round(partnerInfo.partner.costPriceUsd || 0),
@@ -15899,8 +15921,18 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               }).where(eq(sandromaniaProducts.id, partnerInfo.partner.id));
 
             } else if (partnerInfo.type === 'cssx') {
+              const targetServiceId = String(
+                partnerInfo.partner.serviceId ??
+                partnerInfo.partner.service_id ??
+                partnerInfo.partner.id ??
+                ""
+              ).trim();
+
               const orderRes = await CssxService.createOrder({
-                service: partnerInfo.partner.serviceId,
+                service_id: targetServiceId,
+                service: targetServiceId,
+                serviceId: targetServiceId,
+                product_id: isNaN(Number(targetServiceId)) ? targetServiceId : Number(targetServiceId),
                 quantity: qty,
                 unit_price: (partnerInfo.partner.sellingPriceUsd || 0) / 100,
                 buyer_identifier: tgUser.telegramId || String(tgUser.id)
@@ -15913,7 +15945,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               const [cxOrd] = await db.insert(cssxOrders).values({
                 telegramUserId: tgUser.id,
                 cssxProductId: partnerInfo.partner.id,
-                serviceId: partnerInfo.partner.serviceId,
+                serviceId: targetServiceId,
                 externalOrderId: extId ? String(extId) : null,
                 productTitle: partnerInfo.partner.title,
                 quantity: qty,

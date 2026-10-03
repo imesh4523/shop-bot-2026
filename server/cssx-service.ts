@@ -297,20 +297,42 @@ export class CssxService {
   public static async createOrder(orderPayload: {
     service_id?: string | number;
     product_id?: string | number;
+    service?: string | number;
+    serviceId?: string | number;
+    external_id?: string | number;
+    id?: string | number;
     quantity?: number;
     [key: string]: any;
   }): Promise<any> {
-    const sId = String(orderPayload.service_id || orderPayload.product_id || "");
-    const qty = Number(orderPayload.quantity || 1);
+    const sId = String(
+      orderPayload.service_id ??
+      orderPayload.service ??
+      orderPayload.serviceId ??
+      orderPayload.product_id ??
+      orderPayload.productId ??
+      orderPayload.external_id ??
+      orderPayload.id ??
+      ""
+    ).trim();
+    const qty = Math.max(1, Number(orderPayload.quantity || 1));
 
-    if (!sId) {
+    if (!sId || sId === "undefined" || sId === "null") {
       throw new Error("service_id or product_id is required to create CSxStore order.");
     }
 
-    return await this.apiRequest("POST", "/api/v1/order", {
+    const payload: any = {
       service_id: sId,
+      product_id: isNaN(Number(sId)) ? sId : Number(sId),
       quantity: qty,
-    });
+    };
+    if (orderPayload.buyer_identifier) {
+      payload.buyer_identifier = orderPayload.buyer_identifier;
+    }
+    if (orderPayload.unit_price !== undefined) {
+      payload.unit_price = orderPayload.unit_price;
+    }
+
+    return await this.apiRequest("POST", "/api/v1/order", payload);
   }
 
   // POST /api/v1/batch-order
