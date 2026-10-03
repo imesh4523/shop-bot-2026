@@ -991,35 +991,10 @@ ${i}
       width: 100%;
       min-height: 100vh;
     }
-    .scalar-loader {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      color: #a78bfa;
-      gap: 16px;
-    }
-    .scalar-spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(167, 139, 250, 0.2);
-      border-top-color: #a78bfa;
-      border-radius: 50%;
-      animation: scalarSpin 0.8s linear infinite;
-    }
-    @keyframes scalarSpin {
-      100% { transform: rotate(360deg); }
-    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <div class="scalar-loader">
-      <div class="scalar-spinner"></div>
-      <div style="font-size:14px;font-weight:700;letter-spacing:0.5px;">Loading youuhost REST API Reference...</div>
-    </div>
-  </div>
+  <div id="app"></div>
 
   <script id="api-reference" type="application/json">
     ${v}
