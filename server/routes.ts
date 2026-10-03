@@ -4147,7 +4147,8 @@ export async function registerRoutes(
             paymentMethodDetails: methodDetails,
             planTitle: "Wallet Balance Deposit",
             billingCycle: "Instant Credit",
-            notes: `${methodTitle} Top-Up #${payment.id}`
+            notes: `${methodTitle} Top-Up #${payment.id}`,
+            orderId: payment.id
           }).catch(err => console.error("[Payment Receipt Email Error]:", err.message));
         }
       }

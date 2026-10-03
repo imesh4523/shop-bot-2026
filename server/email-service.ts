@@ -297,6 +297,7 @@ export async function sendLuxuryReceiptEmail(props: TransactionEmailProps): Prom
       amount: props.amount,
       secondaryAmount: props.secondaryAmount,
       referenceId: props.referenceId,
+      paymentId: props.orderId || (props.referenceId && props.referenceId.includes('-') ? parseInt(props.referenceId.split('-').pop() || '', 10) : undefined),
       paymentMethod: props.paymentMethod,
       planTitle: props.planTitle,
       billingCycle: props.billingCycle,

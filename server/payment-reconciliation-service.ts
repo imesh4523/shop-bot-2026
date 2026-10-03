@@ -124,23 +124,11 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
       });
 
       if (!alreadySent) {
-        console.log(`[RECONCILIATION ENGINE] Detected missing receipt for Payment #${payment.id}. Syncing balance and dispatching receipt...`);
+        console.log(`[RECONCILIATION ENGINE] Detected missing receipt for Payment #${payment.id}. Dispatching receipt...`);
 
-        // Synchronize wallet balance if payment completed without client redirect
-        if (isLkr && creditLkr > 0) {
-          await db.update(telegramUsers).set({
-            balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`,
-            balance: sql`balance + ${creditCents}`
-          }).where(eq(telegramUsers.id, user.id));
-          console.log(`[RECONCILIATION ENGINE] Balance synced for user #${user.id}: +${creditLkr} LKR (+${creditCents} cents)`);
-        } else if (!isLkr && creditCents > 0) {
-          await db.update(telegramUsers).set({
-            balance: sql`balance + ${creditCents}`,
-            balanceLkr: sql`COALESCE(balance_lkr, 0) + ${creditLkr}`
-          }).where(eq(telegramUsers.id, user.id));
-        }
+        // NOTE: Wallet balance is ALREADY credited atomically when the payment is completed in processPaymentSuccessReceipt.
+        // We do NOT add balance here to prevent double-crediting!
 
-        const refreshedUser = await storage.getTelegramUserById(payment.telegramUserId) || user;
         const recipientEmail = (user.email && user.email.includes("@")) ? user.email : "rochanaimeah@gmail.com";
         const recipientName = user.firstName || user.username || "Valued Customer";
 
@@ -155,7 +143,7 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
           planTitle: "Wallet Balance Deposit",
           billingCycle: "Instant Credit",
           notes: `${methodTitle} Top-Up #${payment.id}`,
-          newBalance: isLkr ? `Rs. ${(refreshedUser.balanceLkr || 0).toLocaleString()} LKR` : `$${((refreshedUser.balance || 0) / 100).toFixed(2)} USD`
+          newBalance: isLkr ? `Rs. ${(user.balanceLkr || 0).toLocaleString()} LKR` : `$${((user.balance || 0) / 100).toFixed(2)} USD`
         }).catch(err => console.error("[RECONCILIATION Email Error]:", err.message));
 
         result.emailsSent++;
@@ -168,24 +156,11 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
         }).catch(() => {});
         result.pushNotificationsSent++;
 
-        // ── Step C: Direct Telegram Notification to Customer ──
-        let targetTelegramChatId: string | null = null;
-        if (user.telegramId && /^\d+$/.test(user.telegramId)) {
-          targetTelegramChatId = user.telegramId;
-        } else {
-          // If user signed in via Google (e.g. google:117...), look for matching user with Telegram ID
-          const matchingTgUser = await db.select().from(telegramUsers).where(
-            eq(telegramUsers.username, user.username)
-          ).limit(1);
-          if (matchingTgUser[0]?.telegramId && /^\d+$/.test(matchingTgUser[0].telegramId)) {
-            targetTelegramChatId = matchingTgUser[0].telegramId;
-          } else {
-            // Default to owner/admin chat if user is owner
-            targetTelegramChatId = "7507799896";
-          }
-        }
+        // ── Step C: Direct Telegram Notification ONLY for authentic Telegram Bot users ──
+        // Web site (youuhost.com) deposits MUST NOT send messages to Telegram users or admin bots!
+        const isTelegramCustomer = user.authProvider === "telegram" && user.telegramId && /^\d+$/.test(user.telegramId);
 
-        if (targetTelegramChatId && botToken) {
+        if (isTelegramCustomer && botToken) {
           const tgMsg = 
             `🎉 <b>Payment Confirmed & Verified!</b>\n\n` +
             `🪙 <b>Method:</b> ${methodTitle}\n` +
@@ -195,7 +170,7 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
             `📧 <i>Official PDF Receipt & Invoice dispatched to ${recipientEmail}</i>`;
 
           await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            chat_id: targetTelegramChatId,
+            chat_id: user.telegramId,
             text: tgMsg,
             parse_mode: "HTML",
             reply_markup: {
@@ -298,15 +273,10 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
             ],
           }).catch(err => console.error("[RECONCILIATION Order Email Error]:", err.message));
 
-          // Send Telegram bot message with credentials
-          let tgChatId: string | null = null;
-          if (user.telegramId && /^\d+$/.test(user.telegramId)) {
-            tgChatId = user.telegramId;
-          } else {
-            tgChatId = "7507799896";
-          }
+          // Send Telegram bot message with credentials ONLY if customer purchased via Telegram
+          const isTelegramCustomer = user.authProvider === "telegram" && user.telegramId && /^\d+$/.test(user.telegramId);
 
-          if (tgChatId && botToken) {
+          if (isTelegramCustomer && botToken) {
             const orderMsg =
               `✅ <b>Order #YOUUHOST-${order.id} Fulfilled!</b>\n\n` +
               `📦 <b>Product:</b> ${product.name}\n` +
@@ -315,7 +285,7 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
               `📧 <i>Backup credentials sent to ${recipientEmail}</i>`;
 
             await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-              chat_id: tgChatId,
+              chat_id: user.telegramId,
               text: orderMsg,
               parse_mode: "HTML"
             }).catch(() => {});
@@ -336,16 +306,66 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
   return result;
 }
 
+/**
+ * One-time self-healing balance adjustment to reverse duplicate 50 LKR credited by reconciliation on FriMi #462.
+ */
+export async function fixDuplicateReconciliationPayments() {
+  try {
+    const existingCorrection = await db.select().from(payments).where(
+      eq(payments.externalId, "REVERSAL-FRIMI-462")
+    ).limit(1);
+
+    if (existingCorrection.length === 0) {
+      const targetUsers = await db.select().from(telegramUsers).where(
+        eq(telegramUsers.email, "imeshcheak@gmail.com")
+      );
+
+      for (const targetUser of targetUsers) {
+        if ((targetUser.balanceLkr || 0) >= 50) {
+          const rates = await fetchLiveExchangeRates().catch(() => ({ LKR: 305.50 } as any));
+          const lkrRate = rates.LKR || 305.50;
+          const deductCents = Math.round((50 / lkrRate) * 100);
+
+          await db.update(telegramUsers).set({
+            balanceLkr: sql`GREATEST(0, COALESCE(balance_lkr, 0) - 50)`,
+            balance: sql`GREATEST(0, balance - ${deductCents})`
+          }).where(eq(telegramUsers.id, targetUser.id));
+
+          await storage.createPayment({
+            telegramUserId: targetUser.id,
+            amount: -5000,
+            currency: "LKR",
+            paymentMethod: "admin_deduction",
+            status: "completed",
+            externalId: "REVERSAL-FRIMI-462",
+            txid: "REVERSAL-FRIMI-462",
+            originalLkr: -50
+          } as any);
+
+          console.log(`[RECONCILIATION FIX] Successfully reversed duplicate 50 LKR on FriMi #462 for user #${targetUser.id} (${targetUser.email}). New balance: ${(targetUser.balanceLkr || 0) - 50} LKR`);
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error("[RECONCILIATION FIX Error]:", err.message);
+  }
+}
+
 export function startPaymentReconciliationWatchdog(io?: any) {
-  console.log("[RECONCILIATION ENGINE] Starting autonomous Payment & Order Watchdog (Interval: 5s)...");
+  console.log("[RECONCILIATION ENGINE] Starting autonomous Payment & Order Watchdog (Interval: 60s)...");
   
-  // Initial run after 2 seconds
+  // Run one-time balance fix on startup
+  setTimeout(() => {
+    fixDuplicateReconciliationPayments().catch(() => {});
+  }, 1000);
+
+  // Initial run after 5 seconds
   setTimeout(() => {
     runPaymentAndOrderReconciliation(io).catch(() => {});
-  }, 2000);
+  }, 5000);
 
-  // Recurring 5-second watchdog
+  // Recurring 60-second watchdog
   setInterval(() => {
     runPaymentAndOrderReconciliation(io).catch(() => {});
-  }, 5000);
+  }, 60000);
 }
