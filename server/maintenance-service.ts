@@ -242,22 +242,40 @@ export async function maintenanceShieldMiddleware(req: Request, res: Response, n
     // Authenticated admin accessing admin dashboard or admin endpoints is ALWAYS allowed
     const isAdmin = Boolean((req.session as any)?.userId || (req.session as any)?.passport?.user);
     const referer = String(req.headers["referer"] || "").toLowerCase();
-    const host = String((req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "").split(":")[0].toLowerCase().trim();
-    const isAdminDomain = ["imeshmain2.youuhost.com", "localhost", "127.0.0.1"].includes(host) || host.endsWith(".localhost");
+    const forwarded = req.headers["x-forwarded-host"];
+    let rawHost = "";
+    if (typeof forwarded === "string") {
+      rawHost = forwarded.split(",")[0].trim();
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      rawHost = forwarded[0].trim();
+    } else {
+      rawHost = (req.headers["host"] as string) || req.hostname || "";
+    }
+    const host = rawHost.split(":")[0].toLowerCase().trim();
+    const isAdminDomain =
+      ["imeshmain2.youuhost.com", "localhost", "127.0.0.1"].includes(host) ||
+      host.startsWith("imeshmain2.") ||
+      host.startsWith("admin.") ||
+      host.endsWith(".ondigitalocean.app") ||
+      host.endsWith(".localhost");
 
     if (isAdmin && (isAdminDomain || referer.includes("/imeshadmindashbord"))) {
       return next();
     }
 
-    // Allowed paths during maintenance (auth, admin, status, static assets)
+    // Allowed paths during maintenance (auth, admin, status, static assets, docs)
     const isAlwaysAllowed =
       path.startsWith("/api/system/maintenance-status") ||
       path.startsWith("/api/admin/") ||
+      path.startsWith("/api/login") ||
       path.startsWith("/api/auth/login") ||
       path.startsWith("/api/auth/logout") ||
       path.startsWith("/api/auth/user") ||
       path.startsWith("/api/auth/customer/") ||
       path.startsWith("/imeshadmindashbord") ||
+      path.startsWith("/docs") ||
+      path.startsWith("/api-docs") ||
+      path.startsWith("/openapi.json") ||
       path.startsWith("/assets/") ||
       path.endsWith(".js") ||
       path.endsWith(".css") ||

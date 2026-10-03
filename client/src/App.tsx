@@ -59,7 +59,13 @@ import { LottiePayment } from "@/components/lottie-loader";
 function PageLoader() {
   return (
     <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200">
-      <LottiePayment size={160} />
+      <div className="relative flex flex-col items-center justify-center">
+        <LottiePayment size={160} />
+        <div className="flex items-center gap-2 mt-4 text-[#6C5CE7] font-semibold text-xs animate-pulse">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Loading YouuHost...</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -69,6 +75,9 @@ function isAdminHost(): boolean {
   const host = window.location.hostname.toLowerCase();
   return (
     host === "imeshmain2.youuhost.com" ||
+    host.startsWith("imeshmain2.") ||
+    host.startsWith("admin.") ||
+    host.endsWith(".ondigitalocean.app") ||
     host === "localhost" ||
     host === "127.0.0.1" ||
     host.endsWith(".localhost")
@@ -104,10 +113,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function RootRouteHandler() {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return <PageLoader />;
-  }
-
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
 
   // 1. Check if accessing via API subdomain (e.g. api.youuhost.com)
@@ -116,13 +121,21 @@ function RootRouteHandler() {
     return <ApiDocsPage />;
   }
 
-  // 2. Check if accessing specifically via dedicated admin subdomain (imeshmain2.youuhost.com)
-  if (host === "imeshmain2.youuhost.com") {
+  // 2. Check if accessing specifically via dedicated admin subdomain (imeshmain2.youuhost.com or admin.*)
+  if (host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.") || host.startsWith("admin.")) {
+    if (isLoading) {
+      return <PageLoader />;
+    }
     if (user) {
       return <Redirect to="/imeshadmindashbord" />;
     } else {
-      return <Redirect to="/imeshadmindashbord/login" />;
+      // Directly render LoginPage without waiting for extra redirect ticks
+      return <LoginPage />;
     }
+  }
+
+  if (isLoading) {
+    return <PageLoader />;
   }
 
   // Main store shop for youuhost.com and all other hosts

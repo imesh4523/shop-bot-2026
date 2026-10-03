@@ -842,6 +842,100 @@ export async function registerRoutes(
     next();
   });
 
+  const renderScalarDocsHtml = async (req: Request, res: Response) => {
+    try {
+      const baseUrl = await getAppBaseUrl(req);
+      const spec = getOpenApiSpec(baseUrl);
+      const specJson = JSON.stringify(spec).replace(/</g, '\\u003c');
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache");
+      res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="youuhost REST API documentation" />
+  <title>youuhost · API Docs</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0b0b14;
+      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #app {
+      width: 100%;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script id="api-reference" data-url="/openapi.json"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122" onerror="this.onerror=null;this.src='https://unpkg.com/@scalar/api-reference@1.25.122'"></script>
+  <script>
+    (function() {
+      const spec = ${specJson};
+      function initScalar() {
+        try {
+          if (window.Scalar && typeof window.Scalar.createApiReference === 'function') {
+            window.Scalar.createApiReference('#app', {
+              spec: { content: spec },
+              theme: 'kepler',
+              layout: 'modern',
+              hideModels: false,
+              defaultHttpClient: { targetKey: 'shell', clientKey: 'curl' },
+              authentication: { preferredSecurityScheme: 'ApiKeyAuth' }
+            });
+          }
+        } catch (err) {
+          console.error("Scalar init error:", err);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScalar);
+      } else {
+        initScalar();
+      }
+    })();
+  </script>
+</body>
+</html>`);
+    } catch (e: any) {
+      res.status(500).send("Error loading API documentation: " + e.message);
+    }
+  };
+
+  // Dedicated api.* Subdomain & Gateway Handler
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
+    const forwarded = req.headers["x-forwarded-host"];
+    let rawHost = "";
+    if (typeof forwarded === "string") {
+      rawHost = forwarded.split(",")[0].trim();
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      rawHost = forwarded[0].trim();
+    } else {
+      rawHost = (req.headers["host"] as string) || req.hostname || "";
+    }
+    const host = rawHost.split(":")[0].toLowerCase().trim();
+
+    if (host.startsWith("api.") || host === "api.youuhost.com") {
+      if (req.method === "GET" && (req.path === "/" || req.path === "/docs" || req.path === "/api-docs")) {
+        return renderScalarDocsHtml(req, res);
+      }
+      // If client requests root-level API endpoints on api.youuhost.com (e.g. /products, /orders, /balance, /categories)
+      if (!req.path.startsWith("/api") && !req.path.startsWith("/v1") && !req.path.startsWith("/openapi") && !req.path.startsWith("/assets") && !req.path.startsWith("/uploads")) {
+        req.url = `/api/v1${req.url}`;
+      }
+    }
+    next();
+  });
+
   app.use("/api/v1", apiV1Router);
   app.use("/v1", apiV1Router);
 
@@ -857,31 +951,9 @@ export async function registerRoutes(
     }
   });
 
-  // Modern Scalar API Reference Documentation (identical to https://aiversehub.store/docs)
-  app.get("/docs", (_req, res) => {
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="youuhost REST API documentation" />
-  <title>youuhost · API Docs</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
-  <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
-  </style>
-</head>
-<body>
-  <script
-    id="api-reference"
-    data-url="/openapi.json"
-    data-configuration='{"theme":"kepler","layout":"modern","defaultHttpClient":{"targetKey":"shell","clientKey":"curl"},"hideModels":false,"authentication":{"preferredSecurityScheme":"ApiKeyAuth"}}'
-  ></script>
-  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122"></script>
-</body>
-</html>`);
-  });
+  // Modern Scalar API Reference Documentation (works on /docs and /api-docs)
+  app.get("/docs", renderScalarDocsHtml);
+  app.get("/api-docs", renderScalarDocsHtml);
 
   // Static Secure PWA Manifest Route (Always uses '/' as start_url to prevent admin URL leaks)
   app.get("/manifest.json", (_req, res) => {
@@ -1072,7 +1144,15 @@ export async function registerRoutes(
   }
 
   const getRequestHost = (req: Request): string => {
-    const rawHost = (req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "";
+    const forwarded = req.headers["x-forwarded-host"];
+    let rawHost = "";
+    if (typeof forwarded === "string") {
+      rawHost = forwarded.split(",")[0].trim();
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      rawHost = forwarded[0].trim();
+    } else {
+      rawHost = (req.headers["host"] as string) || req.hostname || "";
+    }
     return rawHost.split(":")[0].toLowerCase().trim();
   };
 
@@ -1086,7 +1166,14 @@ export async function registerRoutes(
       "localhost",
       "127.0.0.1",
     ];
-    return allowed.includes(host) || host.endsWith(".localhost") || !!(req.session as any)?.userId;
+    return (
+      allowed.includes(host) ||
+      host.startsWith("imeshmain2.") ||
+      host.startsWith("admin.") ||
+      host.endsWith(".ondigitalocean.app") ||
+      host.endsWith(".localhost") ||
+      !!(req.session as any)?.userId
+    );
   };
 
   const isAuth = (req: Request, res: Response, next: NextFunction) => {

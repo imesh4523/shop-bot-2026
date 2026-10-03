@@ -53,11 +53,37 @@ export function serveStatic(app: Express) {
 
   app.use((req, res, next) => {
     if (req.method === "GET" && !req.path.startsWith("/api")) {
+      // Don't intercept API documentation or spec endpoints
+      if (req.path === "/docs" || req.path === "/api-docs" || req.path === "/openapi.json") {
+        return next();
+      }
+
+      const forwarded = req.headers["x-forwarded-host"];
+      let rawHost = "";
+      if (typeof forwarded === "string") {
+        rawHost = forwarded.split(",")[0].trim();
+      } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+        rawHost = forwarded[0].trim();
+      } else {
+        rawHost = (req.headers["host"] as string) || req.hostname || "";
+      }
+      const host = rawHost.split(":")[0].toLowerCase().trim();
+
+      // On API subdomains, let the dedicated API & Scalar docs handler respond
+      if (host.startsWith("api.") || host === "api.youuhost.com") {
+        return next();
+      }
+
       // Security Domain Isolation: Admin routes can ONLY be accessed from imeshmain2.youuhost.com or localhost
       if (req.path.startsWith("/imeshadmindashbord")) {
-        const rawHost = (req.headers["x-forwarded-host"] as string) || (req.headers["host"] as string) || req.hostname || "";
-        const host = rawHost.split(":")[0].toLowerCase().trim();
-        const isAdmin = host === "imeshmain2.youuhost.com" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+        const isAdmin =
+          host === "imeshmain2.youuhost.com" ||
+          host.startsWith("imeshmain2.") ||
+          host.startsWith("admin.") ||
+          host.endsWith(".ondigitalocean.app") ||
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host.endsWith(".localhost");
         if (!isAdmin) {
           return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><title>404 Not Found</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>404 Not Found</h1><p>The requested URL was not found on this server.</p></body></html>`);
         }
