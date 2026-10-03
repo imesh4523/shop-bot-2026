@@ -18,8 +18,42 @@ export function serveStatic(app: Express) {
     distPath = path.resolve(process.cwd(), "dist", "public");
   }
 
+  const setStaticHeaders = (res: any, filePath: string) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    if (filePath.endsWith(".css")) {
+      res.setHeader("Content-Type", "text/css; charset=utf-8");
+    } else if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    }
+  };
+
+  // Mount static assets explicitly with global CORS and correct MIME types
+  const candidateAssets = [
+    path.resolve(distPath, "assets"),
+    path.resolve(process.cwd(), "dist", "public", "assets"),
+    path.resolve(__dirname, "public", "assets"),
+  ];
+  const assetsDir = candidateAssets.find((p) => fs.existsSync(p));
+  if (assetsDir) {
+    app.use(
+      "/assets",
+      express.static(assetsDir, {
+        maxAge: "1y",
+        immutable: true,
+        setHeaders: setStaticHeaders,
+      })
+    );
+  }
+
   if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
+    app.use(
+      express.static(distPath, {
+        maxAge: "1d",
+        setHeaders: setStaticHeaders,
+      })
+    );
   }
 
   // Mount static uploads directory candidates directly
@@ -34,12 +68,9 @@ export function serveStatic(app: Express) {
     }
   }
 
-  // Do NOT serve index.html for missing /uploads or /assets
+  // Do NOT serve index.html for missing /uploads
   app.use("/uploads", (_req, res) => {
     res.status(404).send("Upload not found");
-  });
-  app.use("/assets", (_req, res) => {
-    res.status(404).send("Asset not found");
   });
 
   // Fall through to index.html for all frontend SPA GET routes

@@ -850,13 +850,14 @@ export async function registerRoutes(
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Access-Control-Allow-Origin", "*");
       res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="youuhost REST API documentation" />
-  <title>youuhost · API Docs</title>
+  <title>youuhost · REST API Documentation</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <style>
     html, body {
@@ -865,44 +866,62 @@ export async function registerRoutes(
       width: 100%;
       height: 100%;
       background-color: #0b0b14;
-      overflow-x: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     #app {
       width: 100%;
       min-height: 100vh;
     }
+    .scalar-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #a78bfa;
+      gap: 16px;
+    }
+    .scalar-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(167, 139, 250, 0.2);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: scalarSpin 0.8s linear infinite;
+    }
+    @keyframes scalarSpin {
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
-  <div id="app"></div>
-  <script id="api-reference" data-url="/openapi.json"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.122" onerror="this.onerror=null;this.src='https://unpkg.com/@scalar/api-reference@1.25.122'"></script>
-  <script>
-    (function() {
+  <div id="app">
+    <div class="scalar-loader">
+      <div class="scalar-spinner"></div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:0.5px;">Loading youuhost REST API Reference...</div>
+    </div>
+  </div>
+
+  <script id="api-reference" type="application/json">
+    ${specJson}
+  </script>
+
+  <script type="module">
+    import { createApiReference } from 'https://cdn.jsdelivr.net/npm/@scalar/api-reference/esm.js';
+
+    try {
       const spec = ${specJson};
-      function initScalar() {
-        try {
-          if (window.Scalar && typeof window.Scalar.createApiReference === 'function') {
-            window.Scalar.createApiReference('#app', {
-              spec: { content: spec },
-              theme: 'kepler',
-              layout: 'modern',
-              hideModels: false,
-              defaultHttpClient: { targetKey: 'shell', clientKey: 'curl' },
-              authentication: { preferredSecurityScheme: 'ApiKeyAuth' }
-            });
-          }
-        } catch (err) {
-          console.error("Scalar init error:", err);
-        }
-      }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initScalar);
-      } else {
-        initScalar();
-      }
-    })();
+      createApiReference('#app', {
+        spec: { content: spec },
+        theme: 'kepler',
+        layout: 'modern',
+        hideModels: false,
+        defaultHttpClient: { targetKey: 'shell', clientKey: 'curl' },
+        authentication: { preferredSecurityScheme: 'ApiKeyAuth' }
+      });
+    } catch (err) {
+      console.error("Scalar init error:", err);
+    }
   </script>
 </body>
 </html>`);
