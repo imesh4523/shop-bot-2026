@@ -54,9 +54,6 @@ export async function sendLuxuryEmail({
     if (resendApiKey && resendApiKey.startsWith("re_")) {
       try {
         let activeFrom = fromEmail;
-        if (cleanToEmail.toLowerCase() === "rochanaimeah@gmail.com") {
-          activeFrom = "YouuHost <onboarding@resend.dev>";
-        }
 
         // 1. Generate Plain Text Alternative for Maximum Deliverability
         const plainText = generatePlainTextEmail(templateType || "custom", {

@@ -5259,7 +5259,7 @@ export async function registerRoutes(
         );
         await Promise.all(orderPromises);
 
-        return { product, availableItems, newBalance: updatedUser.balance, quantity, finalDeductAmount, appliedPromo };
+        return { product, availableItems, newBalance: updatedUser.balance, quantity, finalDeductAmount, appliedPromo, user };
       });
 
       // 5. Send credentials to user via Telegram Bot (Non-blocking)
@@ -5320,7 +5320,7 @@ export async function registerRoutes(
       (async () => {
         try {
           const userRec = await storage.getTelegramUser(tgUser.id?.toString());
-          const targetEmail = tgUser.email || userRec?.email;
+          const targetEmail = tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
           if (targetEmail && targetEmail.includes("@")) {
             const reqCurrency = (req.body.currency || "").toUpperCase();
             const isLkr = reqCurrency === "LKR" || !reqCurrency;
@@ -5350,9 +5350,11 @@ export async function registerRoutes(
               : `$${(finalPaidCents / 100).toFixed(2)} USD`;
             const promoCodeStr = result.appliedPromo?.code || undefined;
 
+            const customerName = tgUser.first_name || result.user?.firstName || userRec?.firstName || "Valued Customer";
+
             const emailHtml = buildOrderCredentialsEmailHtml({
               toEmail: targetEmail,
-              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              recipientName: customerName,
               orderId: orderNo,
               productName: result.product.name,
               quantity: result.quantity,
@@ -5368,7 +5370,7 @@ export async function registerRoutes(
 
             const pdfBuf = generateInvoicePdf({
               toEmail: targetEmail,
-              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              recipientName: customerName,
               amount: orderTotalFormatted,
               subtotal: subtotalFormatted,
               discountAmount: discountFormatted,
@@ -5382,13 +5384,13 @@ export async function registerRoutes(
             const txtBuf = generateCredentialsTxt({
               orderId: orderNo,
               productName: result.product.name,
-              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              recipientName: customerName,
               credentials: orderCreds,
             });
 
             await sendLuxuryEmail({
               toEmail: targetEmail,
-              recipientName: tgUser.first_name || userRec?.firstName || "Valued Customer",
+              recipientName: customerName,
               subject: `Order #${orderNo} Confirmed - Your Product Credentials`,
               html: emailHtml,
               templateType: "order_credentials",
@@ -5517,7 +5519,7 @@ export async function registerRoutes(
         );
         await Promise.all(orderPromises);
 
-        return { offer, availableItems, newBalance: updatedUser.balance };
+        return { offer, availableItems, newBalance: updatedUser.balance, user };
       });
 
       const offerBot = getBroadcastBot();
@@ -5572,6 +5574,92 @@ export async function registerRoutes(
       };
 
       sendBundleChunked();
+
+      // Auto-send Order Confirmation & Credentials Email to customer
+      (async () => {
+        try {
+          const userRec = await storage.getTelegramUser(tgUser.id?.toString());
+          const targetEmail = tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
+          if (targetEmail && targetEmail.includes("@")) {
+            const reqCurrency = (req.body.currency || "").toUpperCase();
+            const isLkr = reqCurrency === "LKR" || !reqCurrency;
+            const rates = await fetchLiveExchangeRates();
+            const lkrRate = rates.LKR || 305.5;
+
+            const orderCreds = result.availableItems.map((item: any) => item.content);
+            const firstItemId = result.availableItems[0]?.id || 1;
+            const orderNo = `YOUUHOST-BNDL-${result.offer.id}-${firstItemId}`;
+            const totalCents = result.offer.price;
+            const qty = result.offer.bundleQuantity || 1;
+
+            const orderTotalFormatted = isLkr 
+              ? `Rs. ${Math.round((totalCents / 100) * lkrRate).toLocaleString()} LKR` 
+              : `$${(totalCents / 100).toFixed(2)} USD`;
+            const unitPriceFormatted = isLkr 
+              ? `Rs. ${Math.round(((totalCents / qty) / 100) * lkrRate).toLocaleString()} LKR` 
+              : `$${((totalCents / qty) / 100).toFixed(2)} USD`;
+            const subtotalFormatted = orderTotalFormatted;
+
+            const customerName = tgUser.first_name || result.user?.firstName || userRec?.firstName || "Valued Customer";
+
+            const emailHtml = buildOrderCredentialsEmailHtml({
+              toEmail: targetEmail,
+              recipientName: customerName,
+              orderId: orderNo,
+              productName: `${result.offer.name} (${result.offer.product.name})`,
+              quantity: qty,
+              unitPrice: unitPriceFormatted,
+              subtotal: subtotalFormatted,
+              amount: orderTotalFormatted,
+              credentials: orderCreds,
+              ctaText: "Manage Your Orders",
+              ctaUrl: "https://youuhost.com/shop",
+            });
+
+            const pdfBuf = generateInvoicePdf({
+              toEmail: targetEmail,
+              recipientName: customerName,
+              amount: orderTotalFormatted,
+              subtotal: subtotalFormatted,
+              planTitle: `${result.offer.name} (${result.offer.product.name})`,
+              billingCycle: "One-Time / Special Bundle",
+              paymentMethod: "wallet_balance",
+              referenceId: orderNo,
+            });
+
+            const txtBuf = generateCredentialsTxt({
+              orderId: orderNo,
+              productName: `${result.offer.name} (${result.offer.product.name})`,
+              recipientName: customerName,
+              credentials: orderCreds,
+            });
+
+            await sendLuxuryEmail({
+              toEmail: targetEmail,
+              recipientName: customerName,
+              subject: `Order #${orderNo} Confirmed - Your Bundle Credentials`,
+              html: emailHtml,
+              templateType: "order_credentials",
+              metadata: { orderId: orderNo, offerId: result.offer.id, quantity: qty },
+              attachments: [
+                {
+                  filename: `invoice_${orderNo}.pdf`,
+                  content: pdfBuf,
+                  contentType: "application/pdf",
+                },
+                {
+                  filename: `credentials_${orderNo}.txt`,
+                  content: txtBuf,
+                  contentType: "text/plain",
+                },
+              ],
+            });
+            console.log(`[Email Hub - Bundle Auto-Dispatch] Sent credentials for Order #${orderNo} to ${targetEmail}`);
+          }
+        } catch (emailErr: any) {
+          console.error("[Email Hub - Bundle Dispatch Error]:", emailErr.message);
+        }
+      })();
 
       // Emit real-time notification to Admin Dashboard
       io.emit('admin_notification', {
@@ -8473,6 +8561,111 @@ app.post("/api/mini/cssx/purchase", verifyMiniAppAuth, async (req, res) => {
         deliveryText: typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText),
       })
       .returning();
+
+    // 1. Send credentials to user via Telegram Bot (if valid numeric Telegram user)
+    const isNumericTelegramUser = tgUser.id && !isNaN(Number(tgUser.id)) && Number(tgUser.id) > 1000;
+    if (isNumericTelegramUser && deliveryText) {
+      (async () => {
+        try {
+          const bot = getBroadcastBot();
+          const cleanDelivery = typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText);
+          const safeTitle = String(product.title).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const safeDelivery = cleanDelivery.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const msg = `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Purchase Successful!</b> <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>\n\n` +
+            `<tg-emoji emoji-id="5231102735817918643">📦</tg-emoji> Product: <b>${safeTitle}</b>\n` +
+            `🔢 Quantity: <b>${qty} unit(s)</b>\n` +
+            `<tg-emoji emoji-id="5201692367437974073">💵</tg-emoji> Total: <b>Rs. ${finalLkr.toLocaleString()} ($${(finalCents / 100).toFixed(2)})</b>\n\n` +
+            `<tg-emoji emoji-id="6276134137963222688">🔑</tg-emoji> <b>Your Access Credentials:</b>\n` +
+            `<blockquote><code>${safeDelivery}</code></blockquote>\n\n` +
+            `Thank you for choosing YouuHost! <tg-emoji emoji-id="5456343263340405032">🛍️</tg-emoji>`;
+
+          await bot?.sendMessage(tgUser.id, msg, {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: 'Copy Credentials', copy_text: { text: cleanDelivery }, icon_custom_emoji_id: '5231102735817918643' }]
+              ]
+            }
+          });
+        } catch (botErr) {
+          console.error("Failed to send bot DM for CSSX purchase:", botErr);
+        }
+      })();
+    }
+
+    // 2. Auto-send Order Confirmation & Credentials Email to customer
+    (async () => {
+      try {
+        const targetEmail = user.email || tgUser.email || tgUser.dbUser?.email;
+        if (targetEmail && targetEmail.includes("@")) {
+          const isLkr = req.body.currency?.toUpperCase() === "LKR" || (!req.body.currency && finalLkr > 0);
+          const orderNo = `YOUUHOST-CSX-${newOrder.id}`;
+          const cleanDelivery = typeof deliveryText === "object" ? JSON.stringify(deliveryText) : String(deliveryText);
+          const credsArray = cleanDelivery.split(/\r?\n/).filter(Boolean);
+
+          const orderTotalFormatted = isLkr ? `Rs. ${finalLkr.toLocaleString()} LKR` : `$${(finalCents / 100).toFixed(2)} USD`;
+          const unitPriceFormatted = isLkr ? `Rs. ${unitLkr.toLocaleString()} LKR` : `$${((product.sellingPriceUsd || (finalCents / qty)) / 100).toFixed(2)} USD`;
+          const subtotalFormatted = orderTotalFormatted;
+          const customerName = tgUser.first_name || user.firstName || user.username || "Valued Customer";
+
+          const emailHtml = buildOrderCredentialsEmailHtml({
+            toEmail: targetEmail,
+            recipientName: customerName,
+            orderId: orderNo,
+            productName: product.title,
+            quantity: qty,
+            unitPrice: unitPriceFormatted,
+            subtotal: subtotalFormatted,
+            amount: orderTotalFormatted,
+            credentials: credsArray,
+            ctaText: "Manage Your Orders",
+            ctaUrl: "https://youuhost.com/shop",
+          });
+
+          const pdfBuf = generateInvoicePdf({
+            toEmail: targetEmail,
+            recipientName: customerName,
+            amount: orderTotalFormatted,
+            subtotal: subtotalFormatted,
+            planTitle: product.title,
+            billingCycle: "One-Time / Digital License",
+            paymentMethod: "wallet_balance",
+            referenceId: orderNo,
+          });
+
+          const txtBuf = generateCredentialsTxt({
+            orderId: orderNo,
+            productName: product.title,
+            recipientName: customerName,
+            credentials: credsArray,
+          });
+
+          await sendLuxuryEmail({
+            toEmail: targetEmail,
+            recipientName: customerName,
+            subject: `Order #${orderNo} Confirmed - Your Product Credentials`,
+            html: emailHtml,
+            templateType: "order_credentials",
+            metadata: { orderId: orderNo, cssxProductId: product.id, quantity: qty },
+            attachments: [
+              {
+                filename: `invoice_${orderNo}.pdf`,
+                content: pdfBuf,
+                contentType: "application/pdf",
+              },
+              {
+                filename: `credentials_${orderNo}.txt`,
+                content: txtBuf,
+                contentType: "text/plain",
+              },
+            ],
+          });
+          console.log(`[Email Hub - CSX Auto-Dispatch] Sent credentials for Order #${orderNo} to ${targetEmail}`);
+        }
+      } catch (emailErr: any) {
+        console.error("[Email Hub - CSX Dispatch Error]:", emailErr.message);
+      }
+    })();
 
     sendAdminPushNotification({
       title: `⚡ CSxStore Order: ${product.title}`,

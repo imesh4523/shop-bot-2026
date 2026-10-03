@@ -190,21 +190,37 @@ function isExemptPath(url: string, path: string, host: string): boolean {
   return false;
 }
 
+// Helper: Check if IP is private, CGNAT, or cloud provider ingress
+function isPrivateOrSharedIp(ip: string): boolean {
+  if (!ip) return true;
+  return (
+    WHITELISTED_IPS.has(ip) ||
+    ip.startsWith("100.") || // RFC 6598 CGNAT / DigitalOcean Ingress Load Balancer
+    ip.startsWith("10.") ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("172.") ||
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip === "::ffff:127.0.0.1"
+  );
+}
+
 // Helper: Extract real client IP securely
 export function getClientIp(req: Request): string {
   const cfIp = req.headers["cf-connecting-ip"];
   if (cfIp && typeof cfIp === "string") return cfIp.trim();
 
-  // Only consider x-forwarded-for if sent from trusted local proxy
-  const remote = req.socket.remoteAddress || "";
-  const isLocalProxy = remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1";
-
   const xff = req.headers["x-forwarded-for"];
-  if (isLocalProxy && xff && typeof xff === "string") {
-    return xff.split(",")[0].trim();
+  if (xff && typeof xff === "string") {
+    const parts = xff.split(",");
+    const clientIp = parts[0]?.trim();
+    if (clientIp) return clientIp;
   }
 
-  return req.socket.remoteAddress || "127.0.0.1";
+  const realIp = req.headers["x-real-ip"];
+  if (realIp && typeof realIp === "string") return realIp.trim();
+
+  return req.ip || req.socket.remoteAddress || "127.0.0.1";
 }
 
 // Record security threat event
@@ -235,9 +251,9 @@ function logThreat(req: Request, type: SecurityThreatLog["threatType"], action: 
   );
 }
 
-// Ban IP in Jail
-function jailIp(ip: string, reason: string, durationMinutes: number = 30) {
-  if (WHITELISTED_IPS.has(ip)) return; // Whitelisted IPs are immune to jailing
+// Ban IP in Jail (Only for confirmed public external attackers, never shared/proxy IPs)
+function jailIp(ip: string, reason: string, durationMinutes: number = 15) {
+  if (isPrivateOrSharedIp(ip)) return; // Private, CGNAT, DigitalOcean Ingress & Whitelist are 100% immune
   const existing = ipJailMap.get(ip);
   const violations = (existing?.violations || 0) + 1;
   const expiresAt = Date.now() + durationMinutes * 60 * 1000;
@@ -246,13 +262,6 @@ function jailIp(ip: string, reason: string, durationMinutes: number = 30) {
 
 // --- MAIN SECURITY SHIELD MIDDLEWARE ---
 export function securityShieldMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Only genuine direct socket loopback calls without proxy headers can bypass
-  const directRemote = req.socket.remoteAddress || "";
-  const isDirectLoopback = directRemote === "127.0.0.1" || directRemote === "::1" || directRemote === "::ffff:127.0.0.1";
-  if (isDirectLoopback && !req.headers["cf-connecting-ip"] && !req.headers["x-forwarded-for"]) {
-    return next();
-  }
-
   const ip = getClientIp(req);
   const now = Date.now();
   const url = req.originalUrl || req.url;
@@ -267,10 +276,9 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   res.removeHeader("X-Powered-By"); // Hide Express tech stack
 
-  // 2. WHITELISTED IP BYPASS
-  if (WHITELISTED_IPS.has(ip)) {
+  // 2. WHITELISTED & PRIVATE / PROXY IP BYPASS
+  if (isPrivateOrSharedIp(ip)) {
     ipJailMap.delete(ip); // Auto-clear if previously recorded
-    return next();
   }
 
   // 3. EXEMPTION CHECK (Documentation, Static Assets, Health Checks)
@@ -278,31 +286,31 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     return next();
   }
 
-  // 4. CHECK IP JAIL (INSTANT DROP FOR MALICIOUS ATTACKERS)
-  const jailRecord = ipJailMap.get(ip);
-  if (jailRecord && now < jailRecord.expiresAt) {
-    const remainingMins = Math.ceil((jailRecord.expiresAt - now) / 60000);
-    return res.status(403).json({
-      error: "ACCESS_DENIED",
-      message: `Your IP (${ip}) has been blocked by Shopeefy Security Shield for suspicious activity. Retry in ${remainingMins} minute(s).`,
-      code: "SECURITY_IP_JAILED",
-    });
+  // 4. CHECK IP JAIL (INSTANT DROP FOR PERSISTENT PUBLIC ATTACKERS ONLY)
+  if (!isPrivateOrSharedIp(ip)) {
+    const jailRecord = ipJailMap.get(ip);
+    if (jailRecord && now < jailRecord.expiresAt) {
+      const remainingMins = Math.ceil((jailRecord.expiresAt - now) / 60000);
+      return res.status(403).json({
+        error: "ACCESS_DENIED",
+        message: `Your IP (${ip}) has been blocked by Shopeefy Security Shield for suspicious activity. Retry in ${remainingMins} minute(s).`,
+        code: "SECURITY_IP_JAILED",
+      });
+    }
   }
 
-  // 5. MALICIOUS SCANNER USER AGENT DETECTION
+  // 5. MALICIOUS SCANNER USER AGENT DETECTION (Drop request immediately, don't jail shared proxies)
   for (const botPattern of MALICIOUS_USER_AGENTS) {
     if (botPattern.test(userAgent)) {
-      logThreat(req, "scanner_bot", "jailed");
-      jailIp(ip, `Malicious scanner user-agent: ${userAgent}`, 60);
+      logThreat(req, "scanner_bot", "blocked");
       return res.status(403).json({ error: "FORBIDDEN", message: "Automated vulnerability scanners are strictly prohibited." });
     }
   }
 
-  // 6. PATH TRAVERSAL & EXPLOIT PROBE DETECTION
+  // 6. PATH TRAVERSAL & EXPLOIT PROBE DETECTION (Drop probe immediately, don't jail shared proxies)
   for (const pathPattern of BLOCKED_PATH_PATTERNS) {
     if (pathPattern.test(url)) {
-      logThreat(req, "path_traversal", "jailed");
-      jailIp(ip, `Exploit probe attempt: ${url}`, 60);
+      logThreat(req, "path_traversal", "blocked");
       return res.status(403).json({ error: "FORBIDDEN", message: "Probing internal/system paths is blocked." });
     }
   }
@@ -316,7 +324,6 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
     for (const sqliPattern of SQL_INJECTION_PATTERNS) {
       if (sqliPattern.test(payloadToInspect)) {
         logThreat(req, "sqli_payload", "blocked");
-        jailIp(ip, `SQL Injection signature detected`, 30);
         return res.status(400).json({ error: "MALICIOUS_REQUEST", message: "Invalid characters or query syntax detected." });
       }
     }
