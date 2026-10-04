@@ -1304,6 +1304,7 @@ export default function MiniAppShopModern() {
     code: string;
     discountCents: number;
     discountUsd: string;
+    discountLkr?: number;
     discountType: string;
     discountValue: number;
     finalPriceCents: number;
@@ -3446,12 +3447,28 @@ Support: https://t.me/youuhost_support
 
     const itemLkr = isTelegram
       ? Math.round((effUsdCents / 100) * lkrRate)
-      : (detailSandromaniaProduct.sellingPriceLkr
+      : (detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
         ? Number(detailSandromaniaProduct.sellingPriceLkr)
         : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate));
     const totalLkr = itemLkr * sandromaniaOrderQty;
     const totalCents = effUsdCents * sandromaniaOrderQty;
-    const totalPriceUsd = totalCents / 100;
+
+    let neededLkr = totalLkr;
+    let neededCents = totalCents;
+    if (appliedCoupon) {
+      if (appliedCoupon.finalPriceLkr != null) {
+        neededLkr = appliedCoupon.finalPriceLkr;
+      } else if (appliedCoupon.discountLkr) {
+        neededLkr = Math.max(0, totalLkr - appliedCoupon.discountLkr);
+      }
+      if (appliedCoupon.finalPriceCents != null) {
+        neededCents = appliedCoupon.finalPriceCents;
+      } else if (appliedCoupon.discountCents) {
+        neededCents = Math.max(0, totalCents - appliedCoupon.discountCents);
+      }
+    }
+
+    const totalPriceUsd = neededCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
     const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
@@ -3459,11 +3476,11 @@ Support: https://t.me/youuhost_support
       : Math.round((userBalCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalLkr >= totalLkr)
-      : (userBalCents >= totalCents);
+      ? (userBalLkr >= neededLkr)
+      : (userBalCents >= neededCents);
 
     if (!hasEnough) {
-      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallLkr = Math.max(0, neededLkr - userBalLkr);
       const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
@@ -3482,7 +3499,7 @@ Support: https://t.me/youuhost_support
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: totalLkr,
+        neededLkr,
         neededUsd: totalPriceUsd,
       });
 
@@ -3563,12 +3580,28 @@ Support: https://t.me/youuhost_support
 
     const itemLkr = isTelegram
       ? Math.round((effUsdCents / 100) * lkrRate)
-      : (detailCssxProduct.sellingPriceLkr
+      : (detailCssxProduct.sellingPriceLkr && Number(detailCssxProduct.sellingPriceLkr) > 0
         ? Number(detailCssxProduct.sellingPriceLkr)
         : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate));
     const totalLkr = itemLkr * cssxOrderQty;
     const totalCents = effUsdCents * cssxOrderQty;
-    const totalPriceUsd = totalCents / 100;
+
+    let neededLkr = totalLkr;
+    let neededCents = totalCents;
+    if (appliedCoupon) {
+      if (appliedCoupon.finalPriceLkr != null) {
+        neededLkr = appliedCoupon.finalPriceLkr;
+      } else if (appliedCoupon.discountLkr) {
+        neededLkr = Math.max(0, totalLkr - appliedCoupon.discountLkr);
+      }
+      if (appliedCoupon.finalPriceCents != null) {
+        neededCents = appliedCoupon.finalPriceCents;
+      } else if (appliedCoupon.discountCents) {
+        neededCents = Math.max(0, totalCents - appliedCoupon.discountCents);
+      }
+    }
+
+    const totalPriceUsd = neededCents / 100;
     const userBalCents = user?.balance || 0;
     const userBalanceUsd = userBalCents / 100;
     const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
@@ -3576,11 +3609,11 @@ Support: https://t.me/youuhost_support
       : Math.round((userBalCents / 100) * lkrRate);
 
     const hasEnough = selectedCurrency === "LKR"
-      ? (userBalLkr >= totalLkr)
-      : (userBalCents >= totalCents);
+      ? (userBalLkr >= neededLkr)
+      : (userBalCents >= neededCents);
 
     if (!hasEnough) {
-      const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+      const shortfallLkr = Math.max(0, neededLkr - userBalLkr);
       const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
       const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
 
@@ -3599,7 +3632,7 @@ Support: https://t.me/youuhost_support
         shortfallLkr,
         shortfallUsd,
         cardSuggestedLkr,
-        neededLkr: totalLkr,
+        neededLkr,
         neededUsd: totalPriceUsd,
       });
 
@@ -3664,19 +3697,41 @@ Support: https://t.me/youuhost_support
   const handleApplyCoupon = async () => {
     if (!couponCodeInput.trim()) return;
     let targetPriceCents = 0;
+    let targetPriceLkr = 0;
     let targetProdId: any = null;
     let targetProdName = "";
 
     if (detailProduct) {
       targetPriceCents = detailProduct.price * quantity;
+      targetPriceLkr = (detailProduct as any).priceLkr && (detailProduct as any).priceLkr > 0
+        ? (detailProduct as any).priceLkr * quantity
+        : Math.round(((detailProduct.price * quantity) / 100) * lkrRate);
       targetProdId = detailProduct.id;
       targetProdName = detailProduct.name;
     } else if (detailSandromaniaProduct) {
-      targetPriceCents = (detailSandromaniaProduct.sellingPriceUsd || 0) * sandromaniaOrderQty;
+      const effUsdCents = (isTelegram && detailSandromaniaProduct.telegramPriceUsd && detailSandromaniaProduct.telegramPriceUsd > 0)
+        ? detailSandromaniaProduct.telegramPriceUsd
+        : (detailSandromaniaProduct.sellingPriceUsd || 0);
+      targetPriceCents = effUsdCents * sandromaniaOrderQty;
+      const itemLkr = isTelegram
+        ? Math.round((effUsdCents / 100) * lkrRate)
+        : (detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
+          ? Number(detailSandromaniaProduct.sellingPriceLkr)
+          : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate));
+      targetPriceLkr = itemLkr * sandromaniaOrderQty;
       targetProdId = `sandro-${detailSandromaniaProduct.id}`;
       targetProdName = detailSandromaniaProduct.title;
     } else if (detailCssxProduct) {
-      targetPriceCents = (detailCssxProduct.sellingPriceUsd || 0) * cssxOrderQty;
+      const effUsdCents = (isTelegram && detailCssxProduct.telegramPriceUsd && detailCssxProduct.telegramPriceUsd > 0)
+        ? detailCssxProduct.telegramPriceUsd
+        : (detailCssxProduct.sellingPriceUsd || 0);
+      targetPriceCents = effUsdCents * cssxOrderQty;
+      const itemLkr = isTelegram
+        ? Math.round((effUsdCents / 100) * lkrRate)
+        : (detailCssxProduct.sellingPriceLkr && Number(detailCssxProduct.sellingPriceLkr) > 0
+          ? Number(detailCssxProduct.sellingPriceLkr)
+          : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate));
+      targetPriceLkr = itemLkr * cssxOrderQty;
       targetProdId = `cssx-${detailCssxProduct.id}`;
       targetProdName = detailCssxProduct.title;
     } else {
@@ -3688,6 +3743,8 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/validate-coupon", {
         code: couponCodeInput.trim(),
         amountCents: targetPriceCents,
+        amountLkr: targetPriceLkr,
+        currency: isTelegram ? "USD" : selectedCurrency,
         productId: targetProdId,
         productName: targetProdName
       });
@@ -3699,7 +3756,7 @@ Support: https://t.me/youuhost_support
       toast({
         title: "🎉 Coupon Applied!",
         description: data.message || (selectedCurrency === "LKR" || data.currency === "LKR"
-          ? `You saved Rs. ${Number(data.discountLkr || Math.round(Number(data.discountUsd || 0) * lkrRate)).toLocaleString()} with coupon ${data.code}!`
+          ? `You saved Rs. ${Number(data.discountLkr != null ? data.discountLkr : Math.round(Number(data.discountUsd || 0) * lkrRate)).toLocaleString()} with coupon ${data.code}!`
           : `You saved $${data.discountUsd} with coupon ${data.code}!`),
       });
     } catch (err: any) {
@@ -3769,10 +3826,16 @@ Support: https://t.me/youuhost_support
     let neededLkr = 0;
     if ((detailProduct as any).priceLkr && (detailProduct as any).priceLkr > 0) {
       const prodLkrTotal = (detailProduct as any).priceLkr * quantity;
-      const discountLkr = appliedCoupon?.discountLkr || 0;
-      neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+      if (appliedCoupon?.finalPriceLkr != null) {
+        neededLkr = appliedCoupon.finalPriceLkr;
+      } else {
+        const discountLkr = appliedCoupon?.discountLkr || 0;
+        neededLkr = Math.max(0, prodLkrTotal - discountLkr);
+      }
     } else {
-      neededLkr = Math.round((finalPriceCents / 100) * lkrRate);
+      neededLkr = appliedCoupon?.finalPriceLkr != null 
+        ? appliedCoupon.finalPriceLkr 
+        : Math.round((finalPriceCents / 100) * lkrRate);
     }
     const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
       ? Number((user as any).balanceLkr)
