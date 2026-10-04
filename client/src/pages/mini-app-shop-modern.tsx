@@ -4313,7 +4313,7 @@ Support: https://t.me/youuhost_support
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-[#181432] font-sans antialiased pb-28 select-none">
-      <div className="max-w-md mx-auto px-5 pt-5 sm:pt-7">
+      <div className="max-w-md mx-auto px-3.5 xs:px-4 sm:px-5 pt-4 xs:pt-5 sm:pt-7">
         
         {/* TOP BRANDING HEADER: youuhost Logo */}
         <div className="flex items-center mb-3">
@@ -4325,13 +4325,13 @@ Support: https://t.me/youuhost_support
         </div>
 
         {/* Greeting & Avatar Bar */}
-        <header className="flex items-center justify-between mb-5">
-          <div>
+        <header className="flex items-center justify-between gap-2 mb-5">
+          <div className="min-w-0 flex-1">
             <span className="text-xs font-semibold text-[#7E7998] tracking-wide block">{greeting}</span>
-            <h1 className="text-2xl font-black text-[#181432] tracking-tight">{displayName}</h1>
+            <h1 className="text-xl xs:text-2xl font-black text-[#181432] tracking-tight truncate">{displayName}</h1>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 xs:gap-2.5 shrink-0">
             {/* Balance Pill */}
             <button
               onClick={() => {
@@ -4339,20 +4339,20 @@ Support: https://t.me/youuhost_support
                 queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
                 setActiveTab("wallet");
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 xs:px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group active:scale-95 cursor-pointer shrink-0"
               title="Click to view wallet & refresh balance"
             >
-              <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-bold text-[#181432]">
+              <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform shrink-0" />
+              <span className="text-xs font-bold text-[#181432] whitespace-nowrap">
                 {formatBalanceInCurrentCurrency(user?.balance || 0)}
               </span>
-              <RefreshCw className="w-2.5 h-2.5 text-[#9490A8] group-hover:rotate-180 transition-transform duration-500 opacity-60" />
+              <RefreshCw className="w-2.5 h-2.5 text-[#9490A8] group-hover:rotate-180 transition-transform duration-500 opacity-60 shrink-0" />
             </button>
 
             {/* Profile Avatar */}
             <button
               onClick={() => setActiveTab("profile")}
-              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
+              className="w-9 h-9 xs:w-10 xs:h-10 rounded-full bg-gradient-to-tr from-[#FFE4E6] to-[#EDE9FE] border-2 border-white shadow-sm flex items-center justify-center overflow-hidden hover:scale-105 transition-transform shrink-0"
             >
               {effectiveAvatarUrl ? (
                 <img
@@ -4397,7 +4397,7 @@ Support: https://t.me/youuhost_support
 
           <button
             onClick={() => setSelectedCategory("all")}
-            className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center shadow-md shadow-[#6C5CE7]/25 hover:opacity-95 transition-all active:scale-95"
+            className="w-11 h-11 xs:w-12 xs:h-12 shrink-0 rounded-2xl bg-gradient-to-tr from-[#FF5E62] to-[#6C5CE7] text-white flex items-center justify-center shadow-md shadow-[#6C5CE7]/25 hover:opacity-95 transition-all active:scale-95"
             title="Reset Filters"
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -4422,7 +4422,7 @@ Support: https://t.me/youuhost_support
               onMouseMove={handleCatMouseMove}
               onMouseUp={handleCatMouseUp}
               onMouseLeave={handleCatMouseUp}
-              className="flex items-center gap-3 overflow-x-auto pt-3 pb-3 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-5 px-5"
+              className="flex items-center gap-3 overflow-x-auto pt-3 pb-3 mb-6 scrollbar-none overscroll-x-contain touch-pan-x cursor-grab active:cursor-grabbing -mx-3.5 xs:-mx-4 sm:-mx-5 px-3.5 xs:px-4 sm:px-5"
               style={{
                 WebkitOverflowScrolling: "touch",
                 scrollbarWidth: "none",
@@ -4644,7 +4644,7 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 <div
-                  className="flex items-center gap-3.5 overflow-x-auto pt-2 pb-3.5 scrollbar-none overscroll-x-contain touch-pan-x -mx-5 px-5"
+                  className="flex items-center gap-3.5 overflow-x-auto pt-2 pb-3.5 scrollbar-none overscroll-x-contain touch-pan-x -mx-3.5 xs:-mx-4 sm:-mx-5 px-3.5 xs:px-4 sm:px-5"
                   style={{
                     WebkitOverflowScrolling: "touch",
                     scrollbarWidth: "none",
@@ -4792,7 +4792,7 @@ Support: https://t.me/youuhost_support
                 <p className="text-xs text-[#6B8574] mt-1">Try another category or search query.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-2 gap-2.5 xs:gap-3.5">
                 {unifiedCatalogItems.map((item) => {
                   if (item.type === "smm") {
                     const smm = item.data;
@@ -5263,7 +5263,7 @@ Support: https://t.me/youuhost_support
           ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <h2 className="text-lg font-black text-[#181432] mb-4">All Product Categories</h2>
-            <div className="grid grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-2 gap-2.5 xs:gap-3.5">
               {categories
                 .filter((c) => c.id !== "all")
                 .map((cat) => {
@@ -5629,7 +5629,7 @@ Support: https://t.me/youuhost_support
         {activeTab === "wallet" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             {/* Ultra-Modern Live Balance & Currency Switcher Card */}
-            <div className="bg-gradient-to-br from-[#120B2E] via-[#21124C] to-[#4E2ECF] rounded-3xl p-6 text-white shadow-2xl shadow-[#4E2ECF]/30 border border-white/10 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#120B2E] via-[#21124C] to-[#4E2ECF] rounded-3xl p-4 xs:p-5 sm:p-6 text-white shadow-2xl shadow-[#4E2ECF]/30 border border-white/10 relative overflow-hidden">
               <div className="absolute right-0 top-0 w-44 h-44 bg-[#FF5E62]/15 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none" />
               <div className="absolute left-0 bottom-0 w-40 h-40 bg-[#5B42F3]/20 rounded-full blur-3xl translate-y-10 -translate-x-10 pointer-events-none" />
 
@@ -5653,9 +5653,9 @@ Support: https://t.me/youuhost_support
                     <button
                       type="button"
                       onClick={() => handleCurrencyChange("USD")}
-                      className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                      className={`px-2.5 xs:px-3 py-1 rounded-xl text-[10.5px] xs:text-[11px] font-black tracking-wide transition-all whitespace-nowrap ${
                         selectedCurrency === "USD"
-                          ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-md shadow-[#D92078]/40 scale-105"
+                          ? "bg-gradient-to-r from-[#FF5E62] to-[#D92078] text-white shadow-md shadow-[#D92078]/40 ring-1 ring-white/20"
                           : "text-white/60 hover:text-white"
                       }`}
                     >
@@ -5664,9 +5664,9 @@ Support: https://t.me/youuhost_support
                     <button
                       type="button"
                       onClick={() => handleCurrencyChange("LKR")}
-                      className={`px-3 py-1 rounded-xl text-[11px] font-black tracking-wide transition-all ${
+                      className={`px-2.5 xs:px-3 py-1 rounded-xl text-[10.5px] xs:text-[11px] font-black tracking-wide transition-all whitespace-nowrap ${
                         selectedCurrency === "LKR"
-                          ? "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/40 scale-105"
+                          ? "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/40 ring-1 ring-white/20"
                           : "text-white/60 hover:text-white"
                       }`}
                     >
@@ -5694,11 +5694,11 @@ Support: https://t.me/youuhost_support
 
               {/* Bottom Row: Live Exchange Rate Badge & User Info */}
               <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10 relative z-10 text-[11px]">
-                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-purple-100 font-bold">
-                  <TrendingUp className="w-3.5 h-3.5 text-cyan-300" />
+                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2 xs:px-2.5 py-1 rounded-full text-purple-100 font-bold shrink-0 whitespace-nowrap">
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
                   <span>1 USD = {lkrRate.toFixed(2)} LKR</span>
                 </div>
-                <span className="text-purple-300/80 font-mono text-[10px] truncate max-w-[140px]">
+                <span className="text-purple-300/80 font-mono text-[10px] truncate max-w-[120px] xs:max-w-[160px]">
                   ID: {user?.telegramId || (user?.email ? user.email.split('@')[0] : "Guest")}
                 </span>
               </div>
@@ -5780,7 +5780,7 @@ Support: https://t.me/youuhost_support
               </h3>
 
               {/* 1. CARD PAYMENT (VISA / MASTERCARD) - AT THE TOP */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+              <div className="bg-white rounded-3xl p-3.5 xs:p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
                     <div className="h-10 px-3 rounded-2xl bg-[#0052CC]/10 flex items-center justify-center gap-2 shadow-sm border border-[#0052CC]/15">
@@ -5803,14 +5803,14 @@ Support: https://t.me/youuhost_support
 
                 {/* Amount selection quick chips */}
                 <div className="mb-3.5">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
-                    <span>Select Card Deposit Amount ({selectedCurrency})</span>
+                  <label className="text-[10px] font-bold text-[#7E7998] mb-1.5 flex items-center justify-between gap-1.5 uppercase">
+                    <span className="truncate">Select Card Deposit Amount ({selectedCurrency})</span>
                     {selectedCurrency === "LKR" ? (
-                      <span className="text-blue-600 font-black text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      <span className="text-blue-600 font-black text-[9.5px] xs:text-[10px] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 shrink-0 whitespace-nowrap">
                         Credits: ≈ ${payhereCalculatedUsd.toFixed(2)} USD
                       </span>
                     ) : (
-                      <span className="text-blue-600 font-black text-[10px]">
+                      <span className="text-blue-600 font-black text-[9.5px] xs:text-[10px] shrink-0 whitespace-nowrap">
                         ≈ Rs. {Math.round(parseFloat(payhereAmount || "0") * lkrRate).toLocaleString()} LKR
                       </span>
                     )}
@@ -5827,7 +5827,7 @@ Support: https://t.me/youuhost_support
                     const colsClass = chips.length <= 5 ? "grid-cols-5" : chips.length === 6 ? "grid-cols-6" : chips.length === 7 ? "grid-cols-7" : "grid-cols-4";
 
                     return (
-                      <div className={`grid ${colsClass} gap-1.5 mb-2`}>
+                      <div className={`grid ${colsClass} gap-1 xs:gap-1.5 mb-2`}>
                         {chips.map((val) => {
                           const amt = val.toString();
                           const isSelected = (selectedCurrency === "LKR" ? payhereEffectiveLkr.toString() : payhereAmount) === amt;
@@ -5836,9 +5836,9 @@ Support: https://t.me/youuhost_support
                               key={amt}
                               type="button"
                               onClick={() => setPayhereAmount(amt)}
-                              className={`py-2 rounded-xl text-xs font-black transition-all ${
+                              className={`py-2 px-0.5 rounded-xl text-[10.5px] xs:text-xs font-black whitespace-nowrap min-w-0 flex items-center justify-center tracking-tight transition-all ${
                                 isSelected
-                                  ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 scale-105"
+                                  ? "bg-[#0052CC] text-white shadow-md shadow-[#0052CC]/30 ring-2 ring-[#0052CC] ring-offset-1 z-10"
                                   : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
                               }`}
                             >
@@ -5873,41 +5873,41 @@ Support: https://t.me/youuhost_support
                 </div>
 
                 {/* Accepted Cards & Wallets Badge row with Official Branded Logos */}
-                <div className="flex items-center gap-1.5 mb-3.5 px-3 py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
-                  <span className="text-[10px] font-bold text-[#7E7998] mr-1">Accepted:</span>
-                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs">
-                    <svg className="h-3 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <div className="flex items-center gap-1 xs:gap-1.5 mb-3.5 px-2 xs:px-3 py-1.5 xs:py-2 bg-[#F8F7FD] rounded-xl border border-[#ECEEF8] flex-wrap">
+                  <span className="text-[9.5px] xs:text-[10px] font-bold text-[#7E7998] mr-0.5 xs:mr-1">Accepted:</span>
+                  <span className="inline-flex items-center px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-[#1A1F71]/20 shadow-xs">
+                    <svg className="h-2.5 xs:h-3 w-auto" viewBox="0 0 52 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M19.16 0.5L12.55 15.5H8.22L5.01 3.5C4.82 2.76 4.63 2.48 4.02 2.14C3.04 1.62 1.43 1.13 0 0.82L0.1 0.5H7.02C7.91 0.5 8.7 1.09 8.88 2.11L10.58 11.16L14.77 0.5H19.16ZM35.98 10.5C36 6.51 30.45 6.29 30.49 4.49C30.5 3.94 31.02 3.36 32.18 3.2C32.76 3.13 34.33 3.07 36.03 3.86L36.72 0.65C35.77 0.31 34.56 0 33.05 0C28.98 0 26.11 2.16 26.09 5.25C26.05 7.54 28.1 8.82 29.66 9.58C31.27 10.36 31.81 10.86 31.8 11.56C31.79 12.63 30.51 13.1 29.33 13.12C27.28 13.15 26.08 12.57 25.13 12.13L24.41 15.48C25.37 15.92 27.15 16.3 28.99 16.32C33.32 16.32 36.17 14.18 35.98 10.5ZM46.54 15.5H50.36L47.01 0.5H43.46C42.66 0.5 42 0.96 41.7 1.68L35.6 15.5H39.95L40.82 13.1H46.12L46.54 15.5ZM41.97 9.98L44.18 3.92L45.45 9.98H41.97ZM25.04 0.5L21.64 15.5H17.47L20.87 0.5H25.04Z" fill="#1A1F71"/>
                     </svg>
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs">
-                    <svg className="h-3 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <span className="inline-flex items-center gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-[#EB001B]/20 shadow-xs">
+                    <svg className="h-2.5 xs:h-3 w-auto" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="9" cy="9" r="9" fill="#EB001B"/>
                       <circle cx="19" cy="9" r="9" fill="#F79E1B"/>
                       <path d="M14 2.82A8.96 8.96 0 0 0 9 0a8.96 8.96 0 0 0-5 1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1-10 7.42A8.96 8.96 0 0 0 9 18a8.96 8.96 0 0 0 5-2.82A8.96 8.96 0 0 0 19 18a8.96 8.96 0 0 0 5-1.58A8.97 8.97 0 0 1 14 9a8.97 8.97 0 0 1 10-7.42A8.96 8.96 0 0 0 19 0a8.96 8.96 0 0 0-5 2.82z" fill="#FF5F00"/>
                     </svg>
-                    <span className="text-[9.5px] font-black text-[#181432]">Mastercard</span>
+                    <span className="text-[8.5px] xs:text-[9.5px] font-black text-[#181432]">Mastercard</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-purple-200/80 shadow-xs">
-                    <img src="/frimi.png" alt="FriMi" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#582C83]">FriMi</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-purple-200/80 shadow-xs">
+                    <img src="/frimi.png" alt="FriMi" className="h-3 w-3 xs:h-3.5 xs:w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[8.5px] xs:text-[9.5px] font-black text-[#582C83]">FriMi</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-red-200/80 shadow-xs">
-                    <img src="/ipay.png" alt="iPay" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#E31B23]">iPay</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-red-200/80 shadow-xs">
+                    <img src="/ipay.png" alt="iPay" className="h-3 w-3 xs:h-3.5 xs:w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[8.5px] xs:text-[9.5px] font-black text-[#E31B23]">iPay</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs">
-                    <img src="/qplus.png" alt="Q+ Payment" className="h-3.5 w-3.5 object-contain rounded-full shadow-xs" />
-                    <span className="text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-blue-200/80 shadow-xs">
+                    <img src="/qplus.png" alt="Q+ Payment" className="h-3 w-3 xs:h-3.5 xs:w-3.5 object-contain rounded-full shadow-xs" />
+                    <span className="text-[8.5px] xs:text-[9.5px] font-black text-[#0054A6]">Q+ Payment</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200/80 shadow-xs">
-                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <span className="inline-flex items-center gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-lg bg-white border border-slate-200/80 shadow-xs">
+                    <svg className="h-3 w-3 xs:h-3.5 xs:w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" fill="#4285F4"/>
                       <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z" fill="#34A853"/>
                       <path d="M5.28 14.27a7.18 7.18 0 0 1 0-4.54V6.58H1.25a11.97 11.97 0 0 0 0 10.84l4.03-3.15Z" fill="#FBBC05"/>
                       <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z" fill="#EA4335"/>
                     </svg>
-                    <span className="text-[9.5px] font-black text-[#3C4043]">Google Pay</span>
+                    <span className="text-[8.5px] xs:text-[9.5px] font-black text-[#3C4043]">Google Pay</span>
                   </span>
                 </div>
 
@@ -5936,7 +5936,7 @@ Support: https://t.me/youuhost_support
               </div>
 
               {/* 2. BINANCE PAY REAL GATEWAY - IN THE MIDDLE */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+              <div className="bg-white rounded-3xl p-3.5 xs:p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-2xl bg-[#F3BA2F]/15 flex items-center justify-center shadow-sm">
@@ -5954,19 +5954,19 @@ Support: https://t.me/youuhost_support
 
                 {/* Step 1: Amount Selection */}
                 <div className="mb-3.5">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
-                    <span>1. Select Top-Up Amount ({selectedCurrency})</span>
+                  <label className="text-[10px] font-bold text-[#7E7998] mb-1.5 flex items-center justify-between gap-1.5 uppercase">
+                    <span className="truncate">1. Select Top-Up Amount ({selectedCurrency})</span>
                     {selectedCurrency === "LKR" ? (
-                      <span className="text-purple-600 font-black text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                      <span className="text-purple-600 font-black text-[9.5px] xs:text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 shrink-0 whitespace-nowrap">
                         Pay: ${binanceCalculatedUsd.toFixed(2)} USDT
                       </span>
                     ) : (
-                      <span className="text-purple-600 font-black text-[10px]">
+                      <span className="text-purple-600 font-black text-[9.5px] xs:text-[10px] shrink-0 whitespace-nowrap">
                         ≈ Rs. {Math.round(parseFloat(binanceAmount || "0") * lkrRate).toLocaleString()} LKR
                       </span>
                     )}
                   </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-5" : "grid-cols-5"} gap-1.5 mb-2`}>
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-5" : "grid-cols-5"} gap-1 xs:gap-1.5 mb-2`}>
                     {(selectedCurrency === "LKR" ? ["50", "100", "500", "1000", "5000"] : ["0.1", "1", "5", "10", "20"]).map((amt) => {
                       const isSelected = binanceAmount === amt;
                       return (
@@ -5974,9 +5974,9 @@ Support: https://t.me/youuhost_support
                           key={amt}
                           type="button"
                           onClick={() => setBinanceAmount(amt)}
-                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                          className={`py-2 px-0.5 rounded-xl text-[10.5px] xs:text-xs font-black whitespace-nowrap min-w-0 flex items-center justify-center tracking-tight transition-all ${
                             isSelected
-                              ? "bg-[#F3BA2F] text-[#181432] shadow-md shadow-[#F3BA2F]/30 scale-105"
+                              ? "bg-[#F3BA2F] text-[#181432] shadow-md shadow-[#F3BA2F]/30 ring-2 ring-[#F3BA2F] ring-offset-1 z-10"
                               : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
                           }`}
                         >
@@ -6105,7 +6105,7 @@ Support: https://t.me/youuhost_support
               </div>
 
               {/* 3. CRYPTOMUS GATEWAY - AT THE BOTTOM */}
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
+              <div className="bg-white rounded-3xl p-3.5 xs:p-5 shadow-sm border border-[#ECEEF8] relative overflow-hidden">
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-2xl bg-[#1C1838] flex items-center justify-center shadow-sm">
@@ -6120,19 +6120,19 @@ Support: https://t.me/youuhost_support
 
                 {/* Amount selection quick chips */}
                 <div className="mb-3.5">
-                  <label className="text-[10px] font-bold text-[#7E7998] block uppercase mb-1.5 flex items-center justify-between">
-                    <span>Select Top-Up Amount ({selectedCurrency})</span>
+                  <label className="text-[10px] font-bold text-[#7E7998] mb-1.5 flex items-center justify-between gap-1.5 uppercase">
+                    <span className="truncate">Select Top-Up Amount ({selectedCurrency})</span>
                     {selectedCurrency === "LKR" ? (
-                      <span className="text-purple-600 font-black text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                      <span className="text-purple-600 font-black text-[9.5px] xs:text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 shrink-0 whitespace-nowrap">
                         Pay: ${cryptomusCalculatedUsd.toFixed(2)} USD
                       </span>
                     ) : (
-                      <span className="text-purple-600 font-black text-[10px]">
+                      <span className="text-purple-600 font-black text-[9.5px] xs:text-[10px] shrink-0 whitespace-nowrap">
                         ≈ Rs. {Math.round(parseFloat(cryptomusAmount || "0") * lkrRate).toLocaleString()} LKR
                       </span>
                     )}
                   </label>
-                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1.5 mb-2`}>
+                  <div className={`grid ${selectedCurrency === "LKR" ? "grid-cols-4" : "grid-cols-5"} gap-1 xs:gap-1.5 mb-2`}>
                     {(selectedCurrency === "LKR" ? ["500", "1000", "5000", "20000"] : ["5", "10", "20", "50", "100"]).map((amt) => {
                       const isSelected = cryptomusAmount === amt;
                       return (
@@ -6140,9 +6140,9 @@ Support: https://t.me/youuhost_support
                           key={amt}
                           type="button"
                           onClick={() => setCryptomusAmount(amt)}
-                          className={`py-2 rounded-xl text-xs font-black transition-all ${
+                          className={`py-2 px-0.5 rounded-xl text-[10.5px] xs:text-xs font-black whitespace-nowrap min-w-0 flex items-center justify-center tracking-tight transition-all ${
                             isSelected
-                              ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30 scale-105"
+                              ? "bg-[#5B42F3] text-white shadow-md shadow-[#5B42F3]/30 ring-2 ring-[#5B42F3] ring-offset-1 z-10"
                               : "bg-[#F8F7FD] border border-[#ECEEF8] text-[#181432] hover:bg-white"
                           }`}
                         >
@@ -8482,12 +8482,12 @@ Support: https://t.me/youuhost_support
       </Dialog>
 
       {/* FLOATING BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-4 inset-x-0 max-w-md mx-auto px-5 z-40">
-        <div className="bg-white/95 backdrop-blur-md rounded-full px-5 py-3 shadow-xl border border-[#ECEEF8] flex items-center justify-between">
+      <nav className="fixed bottom-3 xs:bottom-4 inset-x-0 max-w-md mx-auto px-3 xs:px-4 sm:px-5 z-40">
+        <div className="bg-white/95 backdrop-blur-md rounded-full px-2.5 xs:px-4 sm:px-5 py-2 xs:py-2.5 sm:py-3 shadow-xl border border-[#ECEEF8] flex items-center justify-between">
           <button
             onClick={() => switchTabWithRefresh("home")}
-            className={`flex flex-col items-center gap-0.5 transition-all ${
-              activeTab === "home" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+              activeTab === "home" ? "text-[#5B42F3] font-bold" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
             {/* Custom Modern Solid Rounded House Home Icon */}
@@ -8500,8 +8500,8 @@ Support: https://t.me/youuhost_support
 
           <button
             onClick={() => switchTabWithRefresh("categories")}
-            className={`flex flex-col items-center gap-0.5 transition-all ${
-              activeTab === "categories" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+              activeTab === "categories" ? "text-[#5B42F3] font-bold" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -8511,8 +8511,8 @@ Support: https://t.me/youuhost_support
 
           <button
             onClick={() => switchTabWithRefresh("orders")}
-            className={`flex flex-col items-center gap-0.5 transition-all ${
-              activeTab === "orders" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+              activeTab === "orders" ? "text-[#5B42F3] font-bold" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
             {/* Custom Orders Document + Box + Sync Icon */}
@@ -8535,8 +8535,8 @@ Support: https://t.me/youuhost_support
 
           <button
             onClick={() => switchTabWithRefresh("wallet")}
-            className={`flex flex-col items-center gap-0.5 transition-all ${
-              activeTab === "wallet" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+              activeTab === "wallet" ? "text-[#5B42F3] font-bold" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
             <Wallet className="w-5 h-5" />
@@ -8546,8 +8546,8 @@ Support: https://t.me/youuhost_support
 
           <button
             onClick={() => switchTabWithRefresh("profile")}
-            className={`flex flex-col items-center gap-0.5 transition-all ${
-              activeTab === "profile" ? "text-[#5B42F3] scale-105" : "text-[#9490A8] hover:text-[#5B42F3]"
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+              activeTab === "profile" ? "text-[#5B42F3] font-bold" : "text-[#9490A8] hover:text-[#5B42F3]"
             }`}
           >
             <UserIcon className="w-5 h-5" />

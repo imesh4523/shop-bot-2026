@@ -4,6 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Universal Adaptive Mobile Screen Scaling Engine
+   Calibrated for iPhone 15 Pro Max (430px base artboard).
+   Scales proportionally on any screen size (from 320px to 448px)
+   so layout, text, paddings, and button grids look visually identical
+   across iPhone 12/13/14/15/16, iPhone SE, Samsung, Pixel, and all Android devices. */
+html, :root {
+  --base-design-width: 430;
+  font-size: clamp(12.8px, 3.721vw, 16px);
+}
+
+@media (min-width: 440px) {
+  html, :root {
+    font-size: 16px;
+  }
+}
+
 :root {
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;

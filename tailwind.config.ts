@@ -82,6 +82,9 @@ export default {
           offline: "rgb(156 163 175)",
         },
       },
+      screens: {
+        xs: "380px",
+      },
       fontFamily: {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
