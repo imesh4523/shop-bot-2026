@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
-import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions } from "@shared/schema";
+import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions, sandromaniaOrders, cssxOrders, smmOrders } from "@shared/schema";
 import { eq, and, or, desc, sql, gte } from "drizzle-orm";
 import { sendAdminPushNotification } from "../push-notifications";
 
@@ -678,45 +678,174 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
 
 /**
  * GET /api/v1/orders
- * Order history for this API key
+ * Unified order history for this authenticated customer / API key
  */
 apiV1Router.get("/orders", async (req: AuthenticatedApiRequest, res: Response) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
     const offset = (page - 1) * limit;
+    const filterType = (req.query.type as string || "").toLowerCase();
+    const filterStatus = (req.query.status as string || "").toLowerCase();
+    const onlyApiKey = req.query.only_api_key === "true";
 
-    const allKeyOrders = await storage.getApiKeyOrders(req.apiKey!.id);
-    const totalCount = allKeyOrders.length;
-    const paginatedOrders = allKeyOrders.slice(offset, offset + limit);
+    const userId = req.telegramUser!.id;
+    const apiKeyId = req.apiKey!.id;
 
-    const formatted = await Promise.all(paginatedOrders.map(async (ord) => {
-      let credContent = null;
-      if (ord.credentialId) {
-        const [cred] = await db.select().from(credentials).where(eq(credentials.id, ord.credentialId));
-        credContent = cred?.content || null;
+    // 1. Catalog Orders (Direct product orders)
+    let rawCatalogOrders: any[] = [];
+    try {
+      let catalogQuery = db.select()
+        .from(orders)
+        .leftJoin(products, eq(orders.productId, products.id))
+        .leftJoin(credentials, eq(orders.credentialId, credentials.id));
+
+      if (onlyApiKey) {
+        catalogQuery = catalogQuery.where(eq(orders.apiKeyId, apiKeyId)) as any;
+      } else {
+        catalogQuery = catalogQuery.where(
+          or(
+            eq(orders.telegramUserId, userId),
+            eq(orders.apiKeyId, apiKeyId)
+          )
+        ) as any;
       }
+      rawCatalogOrders = await catalogQuery.orderBy(desc(orders.createdAt));
+    } catch (e) {
+      console.error("[api-v1 orders] Catalog orders fetch error:", e);
+    }
 
-      return {
-        id: ord.id,
-        product_id: ord.productId,
-        product_name: ord.product?.name || "Unknown Product",
-        price_cents: ord.product?.price || 0,
-        price_usd: ((ord.product?.price || 0) / 100).toFixed(2),
-        status: ord.status,
-        delivered_content: credContent,
-        created_at: ord.createdAt
-      };
+    const catalogFormatted = rawCatalogOrders.map(r => ({
+      id: r.orders.id,
+      order_number: `ORD-${r.orders.id}`,
+      type: "catalog",
+      product_id: r.orders.productId,
+      product_name: r.products?.name || "Catalog Product",
+      category: r.products?.type || "General",
+      quantity: 1,
+      price_cents: r.products?.price || 0,
+      price_usd: ((r.products?.price || 0) / 100).toFixed(2),
+      status: r.orders.status,
+      delivered_content: r.credentials?.content || null,
+      created_at: r.orders.createdAt
     }));
+
+    // 2. Sandromania Orders (Cloud servers, accounts, streaming, etc.)
+    let sandromaniaFormatted: any[] = [];
+    if (!onlyApiKey) {
+      try {
+        const rawSandromania = await db.select()
+          .from(sandromaniaOrders)
+          .where(eq(sandromaniaOrders.telegramUserId, userId))
+          .orderBy(desc(sandromaniaOrders.createdAt));
+
+        sandromaniaFormatted = rawSandromania.map(s => ({
+          id: s.id,
+          order_number: `SM-${s.id}`,
+          type: "sandromania",
+          product_id: s.sandromaniaProductId,
+          product_name: s.productTitle || "Cloud Server / Account",
+          category: "Cloud Services",
+          quantity: s.quantity || 1,
+          price_cents: Math.round((s.amountPaid || 0) * 100),
+          price_usd: (s.amountPaid || 0).toFixed(2),
+          price_lkr: s.amountPaidLkr || null,
+          status: s.status,
+          delivered_content: s.deliveryText || null,
+          created_at: s.createdAt
+        }));
+      } catch (e) {
+        console.error("[api-v1 orders] Sandromania orders fetch error:", e);
+      }
+    }
+
+    // 3. CSxStore Orders (License keys, utilities)
+    let cssxFormatted: any[] = [];
+    if (!onlyApiKey) {
+      try {
+        const rawCssx = await db.select()
+          .from(cssxOrders)
+          .where(eq(cssxOrders.telegramUserId, userId))
+          .orderBy(desc(cssxOrders.createdAt));
+
+        cssxFormatted = rawCssx.map(c => ({
+          id: c.id,
+          order_number: `CS-${c.id}`,
+          type: "cssx",
+          product_id: c.cssxProductId,
+          product_name: c.productTitle || "Software / License Key",
+          category: "Software Licenses",
+          quantity: c.quantity || 1,
+          price_cents: Math.round((c.amountPaid || 0) * 100),
+          price_usd: (c.amountPaid || 0).toFixed(2),
+          price_lkr: c.amountPaidLkr || null,
+          status: c.status,
+          delivered_content: c.deliveryText || null,
+          created_at: c.createdAt
+        }));
+      } catch (e) {
+        console.error("[api-v1 orders] CSSX orders fetch error:", e);
+      }
+    }
+
+    // 4. SMM Orders (Social media boost services)
+    let smmFormatted: any[] = [];
+    if (!onlyApiKey) {
+      try {
+        const rawSmm = await db.select()
+          .from(smmOrders)
+          .where(eq(smmOrders.telegramUserId, userId))
+          .orderBy(desc(smmOrders.createdAt));
+
+        smmFormatted = rawSmm.map(s => ({
+          id: s.id,
+          order_number: `SMM-${s.id}`,
+          type: "smm",
+          product_id: s.smmServiceId,
+          product_name: `SMM Service #${s.smmServiceId}`,
+          category: "Social Media Services",
+          link: s.link,
+          quantity: s.quantity || 0,
+          price_cents: Math.round((s.charge || 0) * 100),
+          price_usd: (s.charge || 0).toFixed(2),
+          status: s.status,
+          delivered_content: s.link ? `Target Link: ${s.link}` : null,
+          created_at: s.createdAt
+        }));
+      } catch (e) {
+        console.error("[api-v1 orders] SMM orders fetch error:", e);
+      }
+    }
+
+    // Combine and apply optional filters
+    let allOrders = [
+      ...catalogFormatted,
+      ...sandromaniaFormatted,
+      ...cssxFormatted,
+      ...smmFormatted
+    ];
+
+    if (filterType) {
+      allOrders = allOrders.filter(o => o.type.toLowerCase() === filterType);
+    }
+    if (filterStatus) {
+      allOrders = allOrders.filter(o => o.status.toLowerCase() === filterStatus);
+    }
+
+    // Sort descending by created_at
+    allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const totalCount = allOrders.length;
+    const paginatedOrders = allOrders.slice(offset, offset + limit);
 
     return res.json({
       success: true,
-      count: formatted.length,
+      count: paginatedOrders.length,
       total_count: totalCount,
       page,
       limit,
       total_pages: Math.ceil(totalCount / limit),
-      data: formatted
+      data: paginatedOrders
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -725,7 +854,7 @@ apiV1Router.get("/orders", async (req: AuthenticatedApiRequest, res: Response) =
 
 /**
  * GET /api/v1/order/:id
- * Single order details
+ * Single order details (supports catalog, sandromania, cssx, smm)
  */
 apiV1Router.get("/order/:id", async (req: AuthenticatedApiRequest, res: Response) => {
   try {
@@ -734,32 +863,131 @@ apiV1Router.get("/order/:id", async (req: AuthenticatedApiRequest, res: Response
       return res.status(400).json({ success: false, error: "invalid_id" });
     }
 
-    const keyOrders = await storage.getApiKeyOrders(req.apiKey!.id);
-    const ord = keyOrders.find(o => o.id === orderId);
+    const userId = req.telegramUser!.id;
+    const apiKeyId = req.apiKey!.id;
 
-    if (!ord) {
-      return res.status(404).json({ success: false, error: "order_not_found" });
+    // 1. Check Catalog Orders
+    const [catOrder] = await db.select()
+      .from(orders)
+      .leftJoin(products, eq(orders.productId, products.id))
+      .leftJoin(credentials, eq(orders.credentialId, credentials.id))
+      .where(and(
+        eq(orders.id, orderId),
+        or(eq(orders.telegramUserId, userId), eq(orders.apiKeyId, apiKeyId))
+      ))
+      .limit(1);
+
+    if (catOrder) {
+      return res.json({
+        success: true,
+        data: {
+          id: catOrder.orders.id,
+          order_number: `ORD-${catOrder.orders.id}`,
+          type: "catalog",
+          product_id: catOrder.orders.productId,
+          product_name: catOrder.products?.name || "Catalog Product",
+          category: catOrder.products?.type || "General",
+          quantity: 1,
+          price_cents: catOrder.products?.price || 0,
+          price_usd: ((catOrder.products?.price || 0) / 100).toFixed(2),
+          status: catOrder.orders.status,
+          delivered_content: catOrder.credentials?.content || null,
+          created_at: catOrder.orders.createdAt
+        }
+      });
     }
 
-    let credContent = null;
-    if (ord.credentialId) {
-      const [cred] = await db.select().from(credentials).where(eq(credentials.id, ord.credentialId));
-      credContent = cred?.content || null;
+    // 2. Check Sandromania Orders
+    const [sandOrder] = await db.select()
+      .from(sandromaniaOrders)
+      .where(and(
+        eq(sandromaniaOrders.id, orderId),
+        eq(sandromaniaOrders.telegramUserId, userId)
+      ))
+      .limit(1);
+
+    if (sandOrder) {
+      return res.json({
+        success: true,
+        data: {
+          id: sandOrder.id,
+          order_number: `SM-${sandOrder.id}`,
+          type: "sandromania",
+          product_id: sandOrder.sandromaniaProductId,
+          product_name: sandOrder.productTitle || "Cloud Server / Account",
+          category: "Cloud Services",
+          quantity: sandOrder.quantity || 1,
+          price_cents: Math.round((sandOrder.amountPaid || 0) * 100),
+          price_usd: (sandOrder.amountPaid || 0).toFixed(2),
+          price_lkr: sandOrder.amountPaidLkr || null,
+          status: sandOrder.status,
+          delivered_content: sandOrder.deliveryText || null,
+          created_at: sandOrder.createdAt
+        }
+      });
     }
 
-    return res.json({
-      success: true,
-      data: {
-        id: ord.id,
-        product_id: ord.productId,
-        product_name: ord.product?.name || "Unknown Product",
-        price_cents: ord.product?.price || 0,
-        price_usd: ((ord.product?.price || 0) / 100).toFixed(2),
-        status: ord.status,
-        delivered_content: credContent,
-        created_at: ord.createdAt
-      }
-    });
+    // 3. Check CSSX Orders
+    const [cssxOrder] = await db.select()
+      .from(cssxOrders)
+      .where(and(
+        eq(cssxOrders.id, orderId),
+        eq(cssxOrders.telegramUserId, userId)
+      ))
+      .limit(1);
+
+    if (cssxOrder) {
+      return res.json({
+        success: true,
+        data: {
+          id: cssxOrder.id,
+          order_number: `CS-${cssxOrder.id}`,
+          type: "cssx",
+          product_id: cssxOrder.cssxProductId,
+          product_name: cssxOrder.productTitle || "Software / License Key",
+          category: "Software Licenses",
+          quantity: cssxOrder.quantity || 1,
+          price_cents: Math.round((cssxOrder.amountPaid || 0) * 100),
+          price_usd: (cssxOrder.amountPaid || 0).toFixed(2),
+          price_lkr: cssxOrder.amountPaidLkr || null,
+          status: cssxOrder.status,
+          delivered_content: cssxOrder.deliveryText || null,
+          created_at: cssxOrder.createdAt
+        }
+      });
+    }
+
+    // 4. Check SMM Orders
+    const [smmOrder] = await db.select()
+      .from(smmOrders)
+      .where(and(
+        eq(smmOrders.id, orderId),
+        eq(smmOrders.telegramUserId, userId)
+      ))
+      .limit(1);
+
+    if (smmOrder) {
+      return res.json({
+        success: true,
+        data: {
+          id: smmOrder.id,
+          order_number: `SMM-${smmOrder.id}`,
+          type: "smm",
+          product_id: smmOrder.smmServiceId,
+          product_name: `SMM Service #${smmOrder.smmServiceId}`,
+          category: "Social Media Services",
+          link: smmOrder.link,
+          quantity: smmOrder.quantity || 0,
+          price_cents: Math.round((smmOrder.charge || 0) * 100),
+          price_usd: (smmOrder.charge || 0).toFixed(2),
+          status: smmOrder.status,
+          delivered_content: smmOrder.link ? `Target Link: ${smmOrder.link}` : null,
+          created_at: smmOrder.createdAt
+        }
+      });
+    }
+
+    return res.status(404).json({ success: false, error: "order_not_found" });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }

@@ -3983,6 +3983,19 @@ export async function registerRoutes(
       }
       const userId = dbUser.id;
 
+      // Anti-Replay: Invalidate any previous pending PayHere deposit sessions for this user so old URLs cannot be re-triggered
+      try {
+        await db.update(payments)
+          .set({ status: "expired" })
+          .where(and(
+            eq(payments.telegramUserId, userId),
+            eq(payments.paymentMethod, "payhere"),
+            eq(payments.status, "pending")
+          ));
+      } catch (e) {
+        console.warn("[PayHere deposit] Could not expire prior sessions:", e);
+      }
+
       // Amount in cents (integer in DB)
       const amountInCents = Math.round(numAmount * 100);
 
@@ -4031,6 +4044,25 @@ export async function registerRoutes(
 
       const payment = await storage.getPayment(paymentId);
       if (!payment) return res.status(404).json({ message: "Payment session not found" });
+
+      // Guard 1: Must be pending
+      if (payment.status !== "pending") {
+        return res.status(400).json({
+          message: `Payment session is no longer active (Status: ${payment.status}).`,
+          status: payment.status,
+          isExpired: true
+        });
+      }
+
+      // Guard 2: 15-minute expiration
+      if (payment.createdAt && (Date.now() - new Date(payment.createdAt).getTime() > 15 * 60 * 1000)) {
+        await storage.updatePaymentStatus(payment.id, "expired");
+        return res.status(400).json({
+          message: "Payment session has expired. Please initiate a new deposit from the shop.",
+          status: "expired",
+          isExpired: true
+        });
+      }
 
       const billingEmail = (await storage.getSetting('PAYHERE_BILLING_EMAIL'))?.value || "support@imhosteepay.online";
       const billingName = (await storage.getSetting('PAYHERE_BILLING_NAME'))?.value || "Direct Client";

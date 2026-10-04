@@ -6865,15 +6865,15 @@ Support: https://t.me/youuhost_support
                         <div className="grid grid-cols-3 gap-2 pt-1">
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-[#9490A8] block">API Orders</span>
-                            <span className="text-base font-black text-[#181432]">{apiKeysData?.activeKey?.totalOrders || 0}</span>
+                            <span className="text-base font-black text-[#181432]">{apiKeysData?.activeKey?.totalOrders ?? apiKeysData?.totalOrders ?? 0}</span>
                           </div>
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-emerald-600 block">Success</span>
-                            <span className="text-base font-black text-emerald-600">{apiKeysData?.activeKey?.successOrders || 0}</span>
+                            <span className="text-base font-black text-emerald-600">{apiKeysData?.activeKey?.successOrders ?? apiKeysData?.successOrders ?? 0}</span>
                           </div>
                           <div className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#ECEEF8] text-center">
                             <span className="text-[10px] font-bold uppercase text-purple-600 block">API Spend</span>
-                            <span className="text-base font-black text-purple-600">${(((apiKeysData?.activeKey?.revenue || 0)) / 100).toFixed(2)}</span>
+                            <span className="text-base font-black text-purple-600">${(((apiKeysData?.activeKey?.revenue ?? apiKeysData?.revenueCents ?? 0)) / 100).toFixed(2)}</span>
                           </div>
                         </div>
                       )}
