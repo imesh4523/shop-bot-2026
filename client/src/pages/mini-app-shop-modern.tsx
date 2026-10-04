@@ -212,10 +212,15 @@ const miniApiRequest = async (method: string, path: string, body?: any) => {
     }
   } catch {}
 
-  const res = await fetch(path, {
+  const finalPath = method === "GET"
+    ? `${path}${path.includes("?") ? "&" : "?"}_t=${Date.now()}`
+    : path;
+
+  const res = await fetch(finalPath, {
     method,
     headers,
     credentials: "include",
+    cache: "no-store",
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -1189,6 +1194,11 @@ export default function MiniAppShopModern() {
 
   const switchTabWithRefresh = async (tab: TabType) => {
     setActiveTab(tab);
+    try {
+      refetchUser();
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+    } catch (e) {}
+
     if (tab === "home" || tab === "categories") {
       setIsTabTransitioning(true);
       try {
@@ -1541,6 +1551,9 @@ export default function MiniAppShopModern() {
       const data = await res.json();
       if (data && data.id && !data.isGuest) {
         try { localStorage.setItem("yh_active_user", JSON.stringify(data)); } catch {}
+        if (data.token) {
+          try { localStorage.setItem("yh_auth_token", data.token); } catch {}
+        }
       }
       return data;
     },
@@ -1560,11 +1573,34 @@ export default function MiniAppShopModern() {
     },
     initialDataUpdatedAt: 0,
     staleTime: 0,
-    refetchInterval: 3000,
+    refetchInterval: 2500,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: "always",
     refetchOnMount: "always",
   });
+
+  // Live polling for user balance & status on Home and across all tabs every 2.5 seconds
+  useEffect(() => {
+    refetchUser();
+    queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+
+    const interval = setInterval(() => {
+      refetchUser();
+    }, 2500);
+
+    const handleRecheck = () => {
+      refetchUser();
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+    };
+    window.addEventListener("focus", handleRecheck);
+    document.addEventListener("visibilitychange", handleRecheck);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleRecheck);
+      document.removeEventListener("visibilitychange", handleRecheck);
+    };
+  }, [refetchUser]);
 
   const effectiveAvatarUrl = useMemo(() => {
     let url = user?.avatarUrl || telegramPhotoUrl || null;
@@ -4235,13 +4271,19 @@ Support: https://t.me/youuhost_support
           <div className="flex items-center gap-2.5">
             {/* Balance Pill */}
             <button
-              onClick={() => setActiveTab("wallet")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group"
+              onClick={() => {
+                refetchUser();
+                queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+                setActiveTab("wallet");
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group active:scale-95 cursor-pointer"
+              title="Click to view wallet & refresh balance"
             >
               <Wallet className="w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" />
               <span className="text-xs font-bold text-[#181432]">
                 {formatBalanceInCurrentCurrency(user?.balance || 0)}
               </span>
+              <RefreshCw className="w-2.5 h-2.5 text-[#9490A8] group-hover:rotate-180 transition-transform duration-500 opacity-60" />
             </button>
 
             {/* Profile Avatar */}
@@ -4921,6 +4963,7 @@ Support: https://t.me/youuhost_support
                     const cleanTitle = cssxProd.title || "Digital Product";
                     const cleanCat = cssxProd.category || "General";
                     const conf = getProviderConfig(cleanTitle, cleanCat);
+                    const priceFormatted = formatCssxPrice(cssxProd, 1);
                     const rawStock = typeof cssxProd.stock === "number" ? cssxProd.stock : 0;
                     const availableStock = (cssxProd.available === false || cssxProd.isActive === false || rawStock <= 0) ? 0 : rawStock;
                     const stats = getItemStats(cssxProd, "sandromania");

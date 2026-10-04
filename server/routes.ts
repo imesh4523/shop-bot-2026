@@ -1315,6 +1315,20 @@ export async function registerRoutes(
         }
       }
 
+      // Check x-customer-user-id or x-customer-email fallback header
+      if (!customerUserId) {
+        const headerUserId = req.headers['x-customer-user-id'] as string;
+        const headerEmail = req.headers['x-customer-email'] as string;
+        if (headerUserId && /^\d+$/.test(headerUserId) && parseInt(headerUserId, 10) > 0) {
+          customerUserId = parseInt(headerUserId, 10);
+        } else if (headerEmail && typeof headerEmail === "string" && headerEmail.includes("@")) {
+          try {
+            const userByEmail = await storage.getTelegramUserByEmail(headerEmail);
+            if (userByEmail?.id) customerUserId = userByEmail.id;
+          } catch {}
+        }
+      }
+
       if (customerUserId) {
         try {
           const customer = await storage.getTelegramUserById(customerUserId);
@@ -1863,9 +1877,10 @@ export async function registerRoutes(
 
   // Get current user balance and info within Mini App
   app.get("/api/mini/user", verifyMiniAppAuth, async (req, res) => {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
 
     const tgUser = (req as any).tgUser;
     if (!tgUser || tgUser.isGuest || !tgUser.id) {
@@ -7158,10 +7173,12 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
         where: eq(sandromaniaProducts.externalProductId, extId),
       });
 
-      const liveStockVal = typeof item.stock === 'number' 
+      const rawMatchStock = typeof item.stock === 'number' 
         ? item.stock 
-        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 99 : 0));
-      const parsedStock = isNaN(liveStockVal) ? (item.available ? 99 : 0) : liveStockVal;
+        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 10 : 0));
+      const parsedStock = isNaN(rawMatchStock) ? 0 : rawMatchStock;
+      const isItemAvailable = Boolean(item.available !== false && parsedStock > 0);
+      const finalStock = isItemAvailable ? parsedStock : 0;
 
       if (existing) {
         await db
@@ -7169,8 +7186,8 @@ app.post("/api/admin/sandromania/import-products", isAuth, async (req, res) => {
           .set({
             title: cleanedTitle || item.title,
             type: item.type || "standard",
-            stock: parsedStock,
-            available: Boolean(item.available),
+            stock: finalStock,
+            available: isItemAvailable,
             costPriceUsd: costCents,
             bulkPrices: item.bulk_prices || null,
             category: existing.category && existing.category !== "general" ? existing.category : assignedCategory,
@@ -7260,10 +7277,12 @@ async function autoSyncSandromaniaProductsInternal() {
       const cleanedTitle = cleanSandromaniaText(item.title);
       const assignedCategory = item.category ? cleanSandromaniaText(item.category) : detectCategory(cleanedTitle, item.category);
 
-      const liveStockVal = typeof item.stock === 'number' 
+      const rawMatchStock = typeof item.stock === 'number' 
         ? item.stock 
-        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 99 : 0));
-      const parsedStock = isNaN(liveStockVal) ? (item.available ? 99 : 0) : liveStockVal;
+        : (item.stock !== undefined && item.stock !== null && item.stock !== "" ? parseInt(item.stock) : (item.available ? 10 : 0));
+      const parsedStock = isNaN(rawMatchStock) ? 0 : rawMatchStock;
+      const isItemAvailable = Boolean(item.available !== false && parsedStock > 0);
+      const finalStock = isItemAvailable ? parsedStock : 0;
 
       const existing = await db.query.sandromaniaProducts.findFirst({
         where: eq(sandromaniaProducts.externalProductId, extId),
@@ -7273,8 +7292,8 @@ async function autoSyncSandromaniaProductsInternal() {
         await db
           .update(sandromaniaProducts)
           .set({
-            stock: parsedStock,
-            available: Boolean(item.available),
+            stock: finalStock,
+            available: isItemAvailable,
             costPriceUsd: costCents,
             bulkPrices: item.bulk_prices || null,
             updatedAt: new Date()

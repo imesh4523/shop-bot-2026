@@ -75573,7 +75573,7 @@ function le() {
   var h2 = l2.getContext("2d");
   h2.fillStyle = "#fff", h2.fillRect(0, 0, l2.width, l2.height);
   var f2 = { ignoreMouse: true, ignoreAnimation: true, ignoreDimensions: true }, d2 = this;
-  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-BeVV7Sfv.js"), true ? [] : void 0)).catch(function(t4) {
+  return (i$4.canvg ? Promise.resolve(i$4.canvg) : __vitePreload(() => import("./index.es-DN5XH6z7.js"), true ? [] : void 0)).catch(function(t4) {
     return Promise.reject(new Error("Could not load canvg: " + t4));
   }).then(function(t4) {
     return t4.default ? t4.default : t4;
@@ -106634,10 +106634,12 @@ const miniApiRequest = async (method, path, body) => {
     }
   } catch {
   }
-  const res = await fetch(path, {
+  const finalPath = method === "GET" ? `${path}${path.includes("?") ? "&" : "?"}_t=${Date.now()}` : path;
+  const res = await fetch(finalPath, {
     method,
     headers,
     credentials: "include",
+    cache: "no-store",
     body: body ? JSON.stringify(body) : void 0
   });
   if (!res.ok) {
@@ -107440,6 +107442,11 @@ function MiniAppShopModern() {
   const [isTabTransitioning, setIsTabTransitioning] = reactExports.useState(false);
   const switchTabWithRefresh = async (tab) => {
     setActiveTab(tab);
+    try {
+      refetchUser();
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+    } catch (e3) {
+    }
     if (tab === "home" || tab === "categories") {
       setIsTabTransitioning(true);
       try {
@@ -107737,6 +107744,12 @@ function MiniAppShopModern() {
           localStorage.setItem("yh_active_user", JSON.stringify(data));
         } catch {
         }
+        if (data.token) {
+          try {
+            localStorage.setItem("yh_auth_token", data.token);
+          } catch {
+          }
+        }
       }
       return data;
     },
@@ -107757,11 +107770,29 @@ function MiniAppShopModern() {
     },
     initialDataUpdatedAt: 0,
     staleTime: 0,
-    refetchInterval: 3e3,
+    refetchInterval: 2500,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: "always",
     refetchOnMount: "always"
   });
+  reactExports.useEffect(() => {
+    refetchUser();
+    queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+    const interval2 = setInterval(() => {
+      refetchUser();
+    }, 2500);
+    const handleRecheck = () => {
+      refetchUser();
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+    };
+    window.addEventListener("focus", handleRecheck);
+    document.addEventListener("visibilitychange", handleRecheck);
+    return () => {
+      clearInterval(interval2);
+      window.removeEventListener("focus", handleRecheck);
+      document.removeEventListener("visibilitychange", handleRecheck);
+    };
+  }, [refetchUser]);
   const effectiveAvatarUrl = reactExports.useMemo(() => {
     let url2 = user?.avatarUrl || telegramPhotoUrl || null;
     if (url2 && typeof url2 === "string" && url2.startsWith("/uploads/")) {
@@ -109956,11 +109987,17 @@ ${lines}`;
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "button",
             {
-              onClick: () => setActiveTab("wallet"),
-              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group",
+              onClick: () => {
+                refetchUser();
+                queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+                setActiveTab("wallet");
+              },
+              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-[#ECEEF8] hover:border-[#6C5CE7] transition-all group active:scale-95 cursor-pointer",
+              title: "Click to view wallet & refresh balance",
               children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(Wallet, { className: "w-3.5 h-3.5 text-[#D92078] group-hover:scale-110 transition-transform" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#181432]", children: formatBalanceInCurrentCurrency(user?.balance || 0) })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold text-[#181432]", children: formatBalanceInCurrentCurrency(user?.balance || 0) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "w-2.5 h-2.5 text-[#9490A8] group-hover:rotate-180 transition-transform duration-500 opacity-60" })
               ]
             }
           ),
@@ -110522,6 +110559,7 @@ ${lines}`;
             const cleanTitle = cssxProd.title || "Digital Product";
             const cleanCat = cssxProd.category || "General";
             const conf2 = getProviderConfig(cleanTitle, cleanCat);
+            const priceFormatted2 = formatCssxPrice(cssxProd, 1);
             const rawStock = typeof cssxProd.stock === "number" ? cssxProd.stock : 0;
             const availableStock2 = cssxProd.available === false || cssxProd.isActive === false || rawStock <= 0 ? 0 : rawStock;
             const stats2 = getItemStats(cssxProd, "sandromania");
@@ -110585,7 +110623,7 @@ ${lines}`;
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-black text-[#181432]", children: priceFormatted2 }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[9px] text-[#7E7998] block", children: "Instant Auto" })
                     ] }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx(
