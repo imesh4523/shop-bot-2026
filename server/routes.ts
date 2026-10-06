@@ -14,6 +14,7 @@ import { sendLuxuryEmail, sendLuxuryReceiptEmail } from "./email-service";
 import { db, pool } from "./db";
 import { storage } from "./storage";
 import { N1PanelService } from "./n1panel-service";
+import { SocialPanelService } from "./socialpanel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { CssxService } from "./cssx-service";
 import { domainAutomationService } from "./domain-automation-service";
@@ -6854,6 +6855,278 @@ app.post("/api/admin/n1panel/sync-orders", isAuth, async (req, res) => {
   }
 });
 
+// ==========================================
+// --- SocialPanel.pro Admin API Routes ---
+// ==========================================
+
+// 1. Get SocialPanel Settings & Live Balance
+app.get("/api/admin/socialpanel/settings", isAuth, async (req, res) => {
+  try {
+    const keySetting = await storage.getSetting("SOCIALPANEL_API_KEY");
+    const urlSetting = await storage.getSetting("SOCIALPANEL_API_URL");
+    const apiKey = keySetting?.value || "";
+    const apiUrl = urlSetting?.value || "https://socialpanel.pro/api/v2";
+
+    let balanceInfo: any = null;
+    if (apiKey) {
+      balanceInfo = await SocialPanelService.getBalance();
+    }
+
+    res.json({
+      apiKey,
+      apiUrl,
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load SocialPanel settings" });
+  }
+});
+
+// 2. Save SocialPanel Settings
+app.post("/api/admin/socialpanel/settings", isAuth, async (req, res) => {
+  try {
+    const { apiKey, apiUrl } = req.body;
+    if (apiKey !== undefined) {
+      await storage.setSetting("SOCIALPANEL_API_KEY", apiKey.trim());
+    }
+    if (apiUrl !== undefined) {
+      await storage.setSetting("SOCIALPANEL_API_URL", apiUrl.trim());
+    }
+
+    let balanceInfo: any = null;
+    if (apiKey?.trim()) {
+      balanceInfo = await SocialPanelService.getBalance();
+    }
+
+    res.json({
+      success: true,
+      message: "SocialPanel.pro settings saved successfully!",
+      balanceInfo,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save SocialPanel settings" });
+  }
+});
+
+// 3. Test Connection
+app.post("/api/admin/socialpanel/test-connection", isAuth, async (req, res) => {
+  try {
+    const { apiKey, apiUrl } = req.body;
+    const testResult = await SocialPanelService.testConnection(apiKey, apiUrl);
+    res.json(testResult);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Test connection failed" });
+  }
+});
+
+// 4. Fetch Live Services from SocialPanel.pro
+app.get("/api/admin/socialpanel/fetch-services", isAuth, async (req, res) => {
+  try {
+    const services = await SocialPanelService.getServices();
+    res.json(services);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch services from SocialPanel.pro" });
+  }
+});
+
+// 5. Import / Add Selected Services into Store Catalog
+app.post("/api/admin/socialpanel/import-services", isAuth, async (req, res) => {
+  try {
+    const { services, markupPercent = 50 } = req.body;
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({ message: "No services selected for import." });
+    }
+
+    let importedCount = 0;
+    for (const item of services) {
+      const rawRate = typeof item.rate === "number" ? item.rate : parseFloat(item.rate || "0");
+      const rateCents = Math.round(rawRate * 100);
+      const customRateCents = Math.round(rateCents * (1 + markupPercent / 100));
+
+      const existing = await db.query.smmServices.findFirst({
+        where: and(
+          eq(smmServices.serviceId, String(item.service)),
+          eq(smmServices.provider, "socialpanel")
+        ),
+      });
+
+      if (existing) {
+        await db
+          .update(smmServices)
+          .set({
+            name: item.name,
+            category: item.category || "General",
+            type: item.type || "Default",
+            rate: rateCents,
+            customRate: customRateCents,
+            min: parseInt(item.min) || 10,
+            max: parseInt(item.max) || 100000,
+            provider: "socialpanel",
+            updatedAt: new Date(),
+          })
+          .where(eq(smmServices.id, existing.id));
+      } else {
+        await db.insert(smmServices).values({
+          serviceId: String(item.service),
+          name: item.name,
+          category: item.category || "General",
+          type: item.type || "Default",
+          rate: rateCents,
+          customRate: customRateCents,
+          min: parseInt(item.min) || 10,
+          max: parseInt(item.max) || 100000,
+          isActive: true,
+          provider: "socialpanel",
+        });
+      }
+      importedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported / updated ${importedCount} SocialPanel.pro services!`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to import services" });
+  }
+});
+
+// 6. List Saved SocialPanel Services
+app.get("/api/admin/socialpanel/services", isAuth, async (req, res) => {
+  try {
+    const all = await db
+      .select()
+      .from(smmServices)
+      .where(eq(smmServices.provider, "socialpanel"))
+      .orderBy(desc(smmServices.id));
+    res.json(all);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to list services" });
+  }
+});
+
+// 7. Update SocialPanel Service Custom Rate / Active Status
+app.put("/api/admin/socialpanel/services/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { customRate, isActive, name, category, min, max } = req.body;
+    const updates: any = { updatedAt: new Date() };
+
+    if (customRate !== undefined) updates.customRate = parseInt(customRate);
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (name !== undefined) updates.name = name;
+    if (category !== undefined) updates.category = category;
+    if (min !== undefined) updates.min = parseInt(min);
+    if (max !== undefined) updates.max = parseInt(max);
+
+    const [updated] = await db
+      .update(smmServices)
+      .set(updates)
+      .where(eq(smmServices.id, id))
+      .returning();
+
+    res.json({ success: true, service: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update service" });
+  }
+});
+
+// 8. Delete SocialPanel Service
+app.delete("/api/admin/socialpanel/services/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(smmServices).where(eq(smmServices.id, id));
+    res.json({ success: true, message: "Service deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete service" });
+  }
+});
+
+// 9. List All SocialPanel Orders for Audit Tracker
+app.get("/api/admin/socialpanel/orders", isAuth, async (req, res) => {
+  try {
+    const allOrders = await db
+      .select({
+        id: smmOrders.id,
+        externalOrderId: smmOrders.externalOrderId,
+        link: smmOrders.link,
+        quantity: smmOrders.quantity,
+        charge: smmOrders.charge,
+        status: smmOrders.status,
+        startCount: smmOrders.startCount,
+        remains: smmOrders.remains,
+        createdAt: smmOrders.createdAt,
+        updatedAt: smmOrders.updatedAt,
+        serviceName: smmServices.name,
+        serviceCategory: smmServices.category,
+        serviceId: smmServices.serviceId,
+        userFirstName: telegramUsers.firstName,
+        userLastName: telegramUsers.lastName,
+        userEmail: telegramUsers.email,
+        telegramId: telegramUsers.telegramId,
+        username: telegramUsers.username,
+      })
+      .from(smmOrders)
+      .leftJoin(smmServices, eq(smmOrders.smmServiceId, smmServices.id))
+      .leftJoin(telegramUsers, eq(smmOrders.telegramUserId, telegramUsers.id))
+      .where(eq(smmOrders.provider, "socialpanel"))
+      .orderBy(desc(smmOrders.id));
+
+    res.json(allOrders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch SocialPanel orders" });
+  }
+});
+
+// 10. Sync SocialPanel Orders Status
+app.post("/api/admin/socialpanel/sync-orders", isAuth, async (req, res) => {
+  try {
+    const activeOrders = await db
+      .select()
+      .from(smmOrders)
+      .where(
+        and(
+          sql`external_order_id IS NOT NULL`,
+          eq(smmOrders.provider, "socialpanel"),
+          inArray(smmOrders.status, ["Pending", "In progress", "Processing", "In Progress", "pending"])
+        )
+      );
+
+    if (activeOrders.length === 0) {
+      return res.json({ message: "No active SocialPanel orders to sync.", syncedCount: 0 });
+    }
+
+    const orderIds = activeOrders.map((o) => o.externalOrderId as string);
+    const statuses = await SocialPanelService.getMultiOrderStatus(orderIds);
+
+    let updatedCount = 0;
+    for (const ord of activeOrders) {
+      const extId = ord.externalOrderId as string;
+      const statusData = statuses[extId];
+      if (statusData && statusData.status) {
+        await db
+          .update(smmOrders)
+          .set({
+            status: statusData.status,
+            startCount: statusData.start_count || ord.startCount,
+            remains: statusData.remains || ord.remains,
+            updatedAt: new Date(),
+          })
+          .where(eq(smmOrders.id, ord.id));
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synced status for ${updatedCount} SocialPanel orders!`,
+      syncedCount: updatedCount,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to sync order statuses" });
+  }
+});
+
 // --- Public Mini-App SMM Routes ---
 
 // Get active SMM services for client
@@ -6938,16 +7211,26 @@ app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
         throw new Error("Insufficient balance or concurrency conflict.");
       }
 
-      // 3. Place order via N1Panel API
-      const n1OrderRes = await N1PanelService.createOrder(service.serviceId, link, qty);
+      // 3. Place order via SMM Provider API (SocialPanel or N1Panel)
       let externalId: string | null = null;
       let orderStatus = "Pending";
 
-      if ("order" in n1OrderRes && n1OrderRes.order) {
-        externalId = String(n1OrderRes.order);
-        orderStatus = "In progress";
-      } else if ("error" in n1OrderRes) {
-        console.warn("[N1Panel Order Warning]:", n1OrderRes.error);
+      if (service.provider === "socialpanel") {
+        const spOrderRes = await SocialPanelService.createOrder(service.serviceId, link, qty);
+        if ("order" in spOrderRes && spOrderRes.order) {
+          externalId = String(spOrderRes.order);
+          orderStatus = "In progress";
+        } else if ("error" in spOrderRes) {
+          console.warn("[SocialPanel Order Warning]:", spOrderRes.error);
+        }
+      } else {
+        const n1OrderRes = await N1PanelService.createOrder(service.serviceId, link, qty);
+        if ("order" in n1OrderRes && n1OrderRes.order) {
+          externalId = String(n1OrderRes.order);
+          orderStatus = "In progress";
+        } else if ("error" in n1OrderRes) {
+          console.warn("[N1Panel Order Warning]:", n1OrderRes.error);
+        }
       }
 
       // 4. Save SMM Order
@@ -6961,6 +7244,7 @@ app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
           quantity: qty,
           charge: totalCents,
           status: orderStatus,
+          provider: service.provider || "n1panel",
         })
         .returning();
 
@@ -7007,22 +7291,49 @@ app.get("/api/mini/smm/orders", verifyMiniAppAuth, async (req, res) => {
 
     if (activeOrders.length > 0) {
       try {
-        const extIds = activeOrders.map(o => o.externalOrderId as string).filter(Boolean);
-        if (extIds.length > 0) {
-          const statuses = await N1PanelService.getMultiOrderStatus(extIds);
-          for (const ord of activeOrders) {
-            const extId = ord.externalOrderId as string;
-            const statusData = statuses[extId];
-            if (statusData && statusData.status) {
-              await db
-                .update(smmOrders)
-                .set({
-                  status: statusData.status,
-                  startCount: statusData.start_count || ord.startCount,
-                  remains: statusData.remains || ord.remains,
-                  updatedAt: new Date(),
-                })
-                .where(eq(smmOrders.id, ord.id));
+        const socialActive = activeOrders.filter(o => o.provider === 'socialpanel');
+        const n1Active = activeOrders.filter(o => o.provider !== 'socialpanel');
+
+        if (socialActive.length > 0) {
+          const extIds = socialActive.map(o => o.externalOrderId as string).filter(Boolean);
+          if (extIds.length > 0) {
+            const statuses = await SocialPanelService.getMultiOrderStatus(extIds);
+            for (const ord of socialActive) {
+              const extId = ord.externalOrderId as string;
+              const statusData = statuses[extId];
+              if (statusData && statusData.status) {
+                await db
+                  .update(smmOrders)
+                  .set({
+                    status: statusData.status,
+                    startCount: statusData.start_count || ord.startCount,
+                    remains: statusData.remains || ord.remains,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(smmOrders.id, ord.id));
+              }
+            }
+          }
+        }
+
+        if (n1Active.length > 0) {
+          const extIds = n1Active.map(o => o.externalOrderId as string).filter(Boolean);
+          if (extIds.length > 0) {
+            const statuses = await N1PanelService.getMultiOrderStatus(extIds);
+            for (const ord of n1Active) {
+              const extId = ord.externalOrderId as string;
+              const statusData = statuses[extId];
+              if (statusData && statusData.status) {
+                await db
+                  .update(smmOrders)
+                  .set({
+                    status: statusData.status,
+                    startCount: statusData.start_count || ord.startCount,
+                    remains: statusData.remains || ord.remains,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(smmOrders.id, ord.id));
+              }
             }
           }
         }
@@ -15905,6 +16216,10 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           }
         }
 
+        const freshUser = await storage.getTelegramUser(userId) || tgUser;
+        tgUser = freshUser;
+        invalidateUserFastCache(userId);
+
         const totalUSD = (qty * unitPriceUSD).toFixed(2);
         const userBalUSD = ((tgUser.balance || 0) / 100).toFixed(2);
 
@@ -18579,13 +18894,23 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             // Trigger referral commission if deposit >= $1.00 (100 cents)
             await processReferralDepositCommission(tgUser.telegramId.toString(), depositAmountCents);
 
-            await sendDepositSuccessNotification(targetBot, chatId, depositAmountCents / 100, newBalUSD, "Binance Pay", txid);
-            await targetBot.sendMessage(
-              chatId,
-              `<tg-emoji emoji-id="6276090299232031662">✅</tg-emoji> <b>Binance Order ID Verified!</b>\n\n` +
-              `Order ID <code>${escapeHTML(txid)}</code> verified successfully. <b>+$${(depositAmountCents / 100).toFixed(2)} USD</b> added to your balance.`,
-              { parse_mode: 'HTML' }
-            );
+            invalidateUserFastCache(userId);
+            if (tgUser?.telegramId) invalidateUserFastCache(tgUser.telegramId.toString());
+
+            const binanceSuccessMsg =
+              `<tg-emoji emoji-id="6084551628461967966">✅</tg-emoji> <b>Binance Pay payment confirmed!</b>\n` +
+              `Wallet credited: <b>$${(depositAmountCents / 100).toFixed(2)} </b><tg-emoji emoji-id="6039539366177541657">⬅️</tg-emoji>\n` +
+              `Transaction: <code>${escapeHTML(txid)}</code>`;
+
+            await targetBot.sendMessage(chatId, binanceSuccessMsg, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "🛍️ Catalog", callback_data: "buy" }],
+                  [{ text: "🌐 Open Shop", web_app: { url: "https://youuhost.com/shop" } }]
+                ]
+              }
+            });
             return;
           }
 

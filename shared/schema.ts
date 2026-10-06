@@ -497,7 +497,7 @@ export type InsertPreorder = z.infer<typeof insertPreorderSchema>;
 // SMM Services (N1Panel API Integration)
 export const smmServices = pgTable("smm_services", {
   id: serial("id").primaryKey(),
-  serviceId: text("service_id").notNull(), // N1Panel Service ID (e.g. "1245")
+  serviceId: text("service_id").notNull(), // SMM Provider Service ID (e.g. "1245")
   name: text("name").notNull(),
   category: text("category").notNull(), // Facebook, TikTok, Instagram, Telegram, Other
   type: text("type").default("Default"),
@@ -507,6 +507,7 @@ export const smmServices = pgTable("smm_services", {
   max: integer("max").notNull().default(100000),
   isActive: boolean("is_active").notNull().default(true),
   description: text("description"),
+  provider: text("provider").default("n1panel"), // "n1panel" or "socialpanel"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -515,13 +516,14 @@ export const smmOrders = pgTable("smm_orders", {
   id: serial("id").primaryKey(),
   telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
   smmServiceId: integer("smm_service_id").notNull().references(() => smmServices.id),
-  externalOrderId: text("external_order_id"), // N1Panel Order ID
+  externalOrderId: text("external_order_id"), // Provider Order ID
   link: text("link").notNull(),
   quantity: integer("quantity").notNull(),
   charge: integer("charge").notNull(), // In cents charged to customer
   status: text("status").notNull().default("Pending"), // Pending, In progress, Completed, Partial, Canceled
   startCount: text("start_count"),
   remains: text("remains"),
+  provider: text("provider").default("n1panel"), // "n1panel" or "socialpanel"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

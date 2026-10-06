@@ -7391,12 +7391,6 @@ Support: https://t.me/youuhost_support
                       })()}
                     </div>
 
-                    {/* Description */}
-                    <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
-                      {detailProduct.description ||
-                        "Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring."}
-                    </p>
-
                     {/* Quantity Stepper & Price Summary */}
                     <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
                       <div className="flex items-center gap-2">
@@ -7458,6 +7452,23 @@ Support: https://t.me/youuhost_support
                           <span className="text-sm font-black text-[#181432]">
                             {formatProductPrice(detailProduct, liveStockCount <= 0 ? 1 : quantity)}
                           </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Product Description & Details Card */}
+                    <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-3 mb-3 flex items-start gap-2.5 shadow-xs">
+                      <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div className="text-[11px] text-purple-950 flex-1">
+                        <span className="font-extrabold block">
+                          {detailProduct.description ? "Product Description & Details" : "Instant Auto-Fulfillment"}
+                        </span>
+                        {detailProduct.description ? (
+                          <p className="whitespace-pre-line leading-relaxed text-[#2D2A4A] mt-1 font-medium text-[11px]">
+                            {detailProduct.description}
+                          </p>
+                        ) : (
+                          <span>Fully automated verified cloud service with instant credential delivery, active quotas, and continuous uptime monitoring.</span>
                         )}
                       </div>
                     </div>
@@ -7946,12 +7957,6 @@ Support: https://t.me/youuhost_support
                   })()}
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
-                  {detailSandromaniaProduct.description ||
-                    "Instant CDK license key generated automatically upon purchase. 100% genuine digital product with full activation guarantee."}
-                </p>
-
                 {/* Quantity Stepper & Price Summary */}
                 <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">
                   <div className="flex items-center gap-2">
@@ -8266,12 +8271,6 @@ Support: https://t.me/youuhost_support
                     );
                   })()}
                 </div>
-
-                {/* Description */}
-                <p className="text-xs text-[#6B658B] leading-relaxed mb-5">
-                  {detailCssxProduct.description ||
-                    "Instant CDK license key / account generated automatically upon purchase. 100% genuine digital product with full activation guarantee."}
-                </p>
 
                 {/* Quantity Stepper & Price Summary */}
                 <div className="flex items-center justify-between bg-[#F8F7FD] rounded-2xl p-3 border border-[#ECEEF8] mb-2.5">

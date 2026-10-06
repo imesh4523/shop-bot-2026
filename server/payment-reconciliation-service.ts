@@ -161,23 +161,33 @@ export async function runPaymentAndOrderReconciliation(io?: any): Promise<Reconc
         const isTelegramCustomer = user.authProvider === "telegram" && user.telegramId && /^\d+$/.test(user.telegramId);
 
         if (isTelegramCustomer && botToken) {
-          const tgMsg = 
-            `🎉 <b>Payment Confirmed & Verified!</b>\n\n` +
-            `🪙 <b>Method:</b> ${methodTitle}\n` +
-            `💰 <b>Amount:</b> ${isLkr ? `Rs. ${creditLkr.toLocaleString()} LKR` : `$${(creditCents / 100).toFixed(2)} USD`}\n` +
-            `🧾 <b>Reference:</b> <code>${referenceId}</code>\n` +
-            `⚡ <b>Status:</b> Credited to Wallet Balance\n\n` +
-            `📧 <i>Official PDF Receipt & Invoice dispatched to ${recipientEmail}</i>`;
+          const isBinance = rawMethod.includes("binance");
+          const tgMsg = isBinance
+            ? `<tg-emoji emoji-id="6084551628461967966">✅</tg-emoji> <b>Binance Pay payment confirmed!</b>\n` +
+              `Wallet credited: <b>$${(creditCents / 100).toFixed(2)} </b><tg-emoji emoji-id="6039539366177541657">⬅️</tg-emoji>\n` +
+              `Transaction: <code>${payment.txid || referenceId}</code>`
+            : `🎉 <b>Payment Confirmed & Verified!</b>\n\n` +
+              `🪙 <b>Method:</b> ${methodTitle}\n` +
+              `💰 <b>Amount:</b> ${isLkr ? `Rs. ${creditLkr.toLocaleString()} LKR` : `$${(creditCents / 100).toFixed(2)} USD`}\n` +
+              `🧾 <b>Reference:</b> <code>${referenceId}</code>\n` +
+              `⚡ <b>Status:</b> Credited to Wallet Balance\n\n` +
+              `📧 <i>Official PDF Receipt & Invoice dispatched to ${recipientEmail}</i>`;
 
           await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             chat_id: user.telegramId,
             text: tgMsg,
             parse_mode: "HTML",
             reply_markup: {
-              inline_keyboard: [
-                [{ text: "🛍️ Open Shop Mini App", web_app: { url: "https://youuhost.com/shop" } }],
-                [{ text: "📜 View Balance", callback_data: "my_profile" }]
-              ]
+              inline_keyboard: isBinance
+                ? [
+                    [{ text: "🛍️ Catalog", callback_data: "buy" }],
+                    [{ text: "🌐 Open Shop", web_app: { url: "https://youuhost.com/shop" } }]
+                  ]
+                : [
+                    [{ text: "🛍️ Catalog", callback_data: "buy" }],
+                    [{ text: "🛍️ Open Shop Mini App", web_app: { url: "https://youuhost.com/shop" } }],
+                    [{ text: "📜 View Balance", callback_data: "my_profile" }]
+                  ]
             }
           }).catch(err => console.error("[RECONCILIATION Telegram Error]:", err?.response?.data || err.message));
 

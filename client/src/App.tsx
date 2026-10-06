@@ -35,6 +35,7 @@ import MiniAppShop from "@/pages/mini-app-shop";
 import ApiDocsPage from "@/pages/api-docs-page";
 import AdminApiKeysPage from "@/pages/admin-api-keys-page";
 import N1PanelPage from "@/pages/n1panel-page";
+import SocialPanelPage from "@/pages/socialpanel-page";
 import SandromaniaPage from "@/pages/sandromania-page";
 import CssxApiPage from "@/pages/cssx-api-page";
 import SoftwareUpdatesPage from "@/pages/software-updates-page";
@@ -296,6 +297,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/n1panel">
         <ProtectedRoute component={N1PanelPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/socialpanel">
+        <ProtectedRoute component={SocialPanelPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/sandromania">
