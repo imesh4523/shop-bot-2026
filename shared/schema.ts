@@ -141,6 +141,7 @@ export const orders = pgTable("orders", {
   credentialId: integer("credential_id").references(() => credentials.id),
   telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
   apiKeyId: integer("api_key_id").references(() => apiKeys.id),
+  deliveryText: text("delivery_text"),
   status: text("status").notNull().default("completed"),
   createdAt: timestamp("created_at").defaultNow(),
 });

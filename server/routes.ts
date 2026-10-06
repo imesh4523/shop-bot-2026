@@ -3139,7 +3139,7 @@ export async function registerRoutes(
           amountUsd: `$${costUsd.toFixed(2)}`,
           amountLkr: `Rs. ${costLkr.toLocaleString()}`,
           status: o.orders.status || "completed",
-          deliveredContent: o.credentials?.content || null,
+          deliveredContent: o.orders.deliveryText || o.credentials?.content || null,
           details: `Direct Auto-Fulfillment (${o.products?.type || "Cloud"})`,
           createdAt: o.orders.createdAt || new Date()
         };
@@ -13625,7 +13625,8 @@ const sendOrderSuccessMessage = async (
   chatId: number,
   orderId: number | string,
   productName: string,
-  credentialContent: string | string[]
+  credentialContent: string | string[],
+  quantity?: number
 ) => {
   let prodEmojiId = '5854908544712707500';
   const pType = productName.toLowerCase();
@@ -13639,25 +13640,119 @@ const sendOrderSuccessMessage = async (
   else if (pType.includes('gemini')) prodEmojiId = '5377660214096974712';
   else if (pType.includes('chatgpt') || pType.includes('grok')) prodEmojiId = '5404617696589390973';
 
-  const itemsArray = Array.isArray(credentialContent) ? credentialContent : [credentialContent];
-  const totalItems = itemsArray.length;
+  let itemsArray: string[] = [];
+  if (Array.isArray(credentialContent)) {
+    itemsArray = credentialContent.filter(Boolean);
+  } else if (typeof credentialContent === 'string') {
+    const rawTrimmed = credentialContent.trim();
+    if (quantity && quantity > 1 && rawTrimmed.includes('\n')) {
+      itemsArray = rawTrimmed.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    } else {
+      itemsArray = [rawTrimmed];
+    }
+  } else {
+    itemsArray = [String(credentialContent || '')];
+  }
+
+  const totalItems = (quantity !== undefined && quantity > 0) ? quantity : itemsArray.length;
+  const slDeliveryTime = formatSriLankaTime(new Date(), 'full');
+  const isPreOrderMsg = productName.toLowerCase().includes('pre-order');
+  const headerTitleText = isPreOrderMsg ? 'Pre-Order Fulfilled Successfully!' : 'Purchase completed successfully';
+
+  const inline_keyboard = [
+    [
+      {
+        text: 'Download TXT',
+        callback_data: `download_txt_${orderId}`,
+        style: 'primary',
+        icon_custom_emoji_id: '5443127283898405358'
+      }
+    ],
+    [
+      {
+        text: 'Leave a review',
+        callback_data: `leave_review_${orderId}`,
+        style: 'primary',
+        icon_custom_emoji_id: '5193009244940557703'
+      }
+    ],
+    [
+      {
+        text: 'Main menu',
+        callback_data: 'main_menu',
+        style: 'primary',
+        icon_custom_emoji_id: '5416041192905265756'
+      }
+    ]
+  ] as any;
+
+  // If customer purchases more than 3 items, deliver ONLY via .txt file document to prevent chat flood
+  if (totalItems > 3) {
+    const safeProdName = productName.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
+    const fileName = `order_${orderId}_${safeProdName}.txt`;
+    const tempDir = path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const tempFilePath = path.join(tempDir, fileName);
+
+    const txtFileContent = itemsArray.length > 1
+      ? itemsArray.map((item, i) => `--- Item ${i + 1} of ${totalItems} ---\n${item}`).join('\n\n')
+      : (typeof credentialContent === 'string' ? credentialContent : itemsArray.join('\n\n'));
+
+    fs.writeFileSync(tempFilePath, txtFileContent, 'utf-8');
+
+    const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>${headerTitleText}</b>\n\n` +
+      `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)} (${totalItems} Pcs)</b>\n` +
+      `<tg-emoji emoji-id="5976535107933050770">🧾</tg-emoji> Order <b>#${orderId}</b>\n` +
+      `<tg-emoji emoji-id="5805188079148863343">🕒</tg-emoji> Delivery Time: <b>${slDeliveryTime}</b>\n\n` +
+      `<tg-emoji emoji-id="5258514780469075716">📄</tg-emoji> <b>All ${totalItems} items are delivered in the attached .txt file below:</b>\n\n` +
+      `Thank you for your purchase! If you have questions, contact support.\n` +
+      `A review would help us if everything went well.`;
+
+    const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
+    await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard });
+
+    // Send the .txt file document directly to Telegram
+    const fileCaption = `<tg-emoji emoji-id="5258514780469075716">📂</tg-emoji> <b>Order #${orderId}</b> credentials attached (${totalItems} Pcs)`;
+    try {
+      await targetBot.sendDocument(chatId, tempFilePath, {
+        caption: fileCaption,
+        parse_mode: 'HTML'
+      });
+    } catch (err: any) {
+      console.error("Error sending order TXT file via targetBot:", err);
+      const token = (targetBot as any)?.token;
+      if (token) {
+        try {
+          const form = new FormData();
+          form.append('chat_id', chatId.toString());
+          form.append('caption', fileCaption);
+          form.append('parse_mode', 'HTML');
+          form.append('document', fs.createReadStream(tempFilePath), { filename: fileName, contentType: 'text/plain' });
+          await axios.post(`https://api.telegram.org/bot${token}/sendDocument`, form, { headers: form.getHeaders() });
+        } catch (e2: any) {
+          console.error("Error sending order TXT file via Direct API:", e2);
+        }
+      }
+    }
+    return;
+  }
+
+  // When totalItems <= 3: display items in message text for quick copying
   const chunkSize = 10;
-  const totalMessages = Math.ceil(totalItems / chunkSize);
+  const totalMessages = Math.ceil(itemsArray.length / chunkSize);
 
   for (let msgIdx = 0; msgIdx < totalMessages; msgIdx++) {
     const startIdx = msgIdx * chunkSize;
-    const endIdx = Math.min(startIdx + chunkSize, totalItems);
+    const endIdx = Math.min(startIdx + chunkSize, itemsArray.length);
     const chunk = itemsArray.slice(startIdx, endIdx);
 
-    const formattedChunkItems = chunk.length === 1 && totalItems === 1
+    const formattedChunkItems = chunk.length === 1 && itemsArray.length === 1
       ? `<code>${escapeHTML(chunk[0])}</code>`
       : chunk.map((item, i) => `--- Item ${startIdx + i + 1} ---\n<code>${escapeHTML(item)}</code>`).join('\n\n');
 
     const partInfo = totalMessages > 1 ? ` (Part ${msgIdx + 1}/${totalMessages} - Items ${startIdx + 1} to ${endIdx})` : '';
-
-    const slDeliveryTime = formatSriLankaTime(new Date(), 'full');
-    const isPreOrderMsg = productName.toLowerCase().includes('pre-order');
-    const headerTitleText = isPreOrderMsg ? 'Pre-Order Fulfilled Successfully!' : 'Purchase completed successfully';
 
     const caption = `<tg-emoji emoji-id="5949584381424178413">✅</tg-emoji> <b>${headerTitleText}</b>${partInfo}\n\n` +
       `<tg-emoji emoji-id="5854908544712707500">📦</tg-emoji> <tg-emoji emoji-id="${prodEmojiId}">✨</tg-emoji> <b>${escapeHTML(productName)}</b>\n` +
@@ -13670,35 +13765,8 @@ const sendOrderSuccessMessage = async (
 
     const isLastMessage = msgIdx === totalMessages - 1;
 
-    const inline_keyboard = isLastMessage ? [
-      [
-        {
-          text: 'Download TXT',
-          callback_data: `download_txt_${orderId}`,
-          style: 'primary',
-          icon_custom_emoji_id: '5443127283898405358'
-        }
-      ],
-      [
-        {
-          text: 'Leave a review',
-          callback_data: `leave_review_${orderId}`,
-          style: 'primary',
-          icon_custom_emoji_id: '5193009244940557703'
-        }
-      ],
-      [
-        {
-          text: 'Main menu',
-          callback_data: 'main_menu',
-          style: 'primary',
-          icon_custom_emoji_id: '5416041192905265756'
-        }
-      ]
-    ] as any : undefined;
-
     const bannerPath = path.join(process.cwd(), "public", "imesh_cloudbot_orders_banner.png");
-    if (inline_keyboard) {
+    if (isLastMessage) {
       await sendOrEditScreenWithPhoto(targetBot, chatId, bannerPath, caption, { inline_keyboard });
     } else {
       await targetBot.sendMessage(chatId, caption, { parse_mode: 'HTML' });
@@ -16102,20 +16170,24 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           if (prod) prodName = prod.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
           // Find all orders in the same bulk purchase batch (same user, same product, within 15s window)
-          const targetTime = new Date(targetOrder.createdAt).getTime();
+          const targetTime = targetOrder.createdAt ? new Date(targetOrder.createdAt).getTime() : Date.now();
           const batchOrders = allOrders.filter(o =>
             o.telegramUserId === targetOrder.telegramUserId &&
             o.productId === targetOrder.productId &&
-            Math.abs(new Date(o.createdAt).getTime() - targetTime) <= 15000
+            Math.abs((o.createdAt ? new Date(o.createdAt).getTime() : 0) - targetTime) <= 15000
           );
 
           const allCreds = await db.select().from(credentials);
           const credItems: string[] = [];
 
           for (const ord of batchOrders) {
-            const cred = allCreds.find(c => c.id === ord.credentialId);
-            if (cred && cred.content) {
-              credItems.push(cred.content);
+            if ((ord as any).deliveryText) {
+              credItems.push((ord as any).deliveryText);
+            } else {
+              const cred = allCreds.find(c => c.id === ord.credentialId);
+              if (cred && cred.content) {
+                credItems.push(cred.content);
+              }
             }
           }
 
@@ -16123,6 +16195,28 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             credContent = credItems.length === 1
               ? credItems[0]
               : credItems.map((item, i) => `--- Item ${i + 1} of ${credItems.length} ---\n${item}`).join('\n\n');
+          } else if ((targetOrder as any).deliveryText) {
+            credContent = (targetOrder as any).deliveryText;
+          }
+        }
+
+        // Check sandromaniaOrders if not found
+        if (!credContent) {
+          const sandroId = orderId >= 2000 && orderId < 3000 ? orderId - 2000 : orderId;
+          const [sandroOrd] = await db.select().from(sandromaniaOrders).where(eq(sandromaniaOrders.id, sandroId));
+          if (sandroOrd && sandroOrd.deliveryText) {
+            credContent = sandroOrd.deliveryText;
+            if (sandroOrd.productTitle) prodName = sandroOrd.productTitle.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          }
+        }
+
+        // Check cssxOrders if not found
+        if (!credContent) {
+          const cssxId = orderId >= 3000 && orderId < 4000 ? orderId - 3000 : orderId;
+          const [cssxOrd] = await db.select().from(cssxOrders).where(eq(cssxOrders.id, cssxId));
+          if (cssxOrd && cssxOrd.deliveryText) {
+            credContent = cssxOrd.deliveryText;
+            if (cssxOrd.productTitle) prodName = cssxOrd.productTitle.toLowerCase().replace(/[^a-z0-9]/g, '_');
           }
         }
 
@@ -16397,12 +16491,15 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
 
             invalidateCatalogCache();
 
-            await db.insert(orders).values({
+            const [createdOrd] = await db.insert(orders).values({
               telegramUserId: tgUser.id,
               productId: targetProduct.id,
               credentialId: null,
+              deliveryText: deliveredText,
               status: 'completed'
-            }).catch(() => {});
+            }).returning().catch(() => [null]);
+
+            if (createdOrd?.id) targetOrderId = createdOrd.id;
 
             sendAdminPushNotification(
               `🛒 New Partner Order Completed (#${targetOrderId})`,
@@ -16410,7 +16507,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               '/orders'
             ).catch(console.error);
 
-            await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredText);
+            await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredText, qty);
             return;
           } catch (partErr: any) {
             console.error("Partner order fulfillment error in bot:", partErr);
@@ -16568,6 +16665,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
               telegramUserId: u.id,
               productId: targetProduct.id,
               credentialId: chosenCred.id,
+              deliveryText: chosenCred.content,
               status: 'completed'
             }).returning();
 
@@ -16590,7 +16688,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           '/orders'
         ).catch(console.error);
 
-        await sendOrderSuccessMessage(targetBot, chatId, purchaseRes.targetOrderId, productName, purchaseRes.deliveredItems);
+        await sendOrderSuccessMessage(targetBot, chatId, purchaseRes.targetOrderId, productName, purchaseRes.deliveredItems, qty);
         return;
       }
 
@@ -16863,11 +16961,130 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             await storage.updateTelegramUser(tgUser.id, { balance: tgUser.balance - totalCents });
           }
 
+          let targetProduct: any = null;
+          if (!isNaN(prodIdNum)) {
+            targetProduct = await storage.getProduct(prodIdNum);
+          }
+
+          const { partnerMap } = await getCatalogDataFast();
+          const availableCreds = targetProduct ? (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available') : [];
+          const partnerInfo = targetProduct ? partnerMap.get(targetProduct.id) : null;
+          const partnerStock = partnerInfo?.partner?.stock || 0;
+
+          // 1. Partner fulfillment
+          if (targetProduct && availableCreds.length < qty && partnerInfo && partnerStock >= qty) {
+            let deliveredText = "";
+            let targetOrderId: number | string = Math.floor(2000 + Math.random() * 8000);
+            try {
+              if (partnerInfo.type === 'sandromania') {
+                const idempotencyKey = `sandromania-crypto-${tgUser.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+                const targetExtId = Number(
+                  partnerInfo.partner.externalProductId ??
+                  partnerInfo.partner.external_product_id ??
+                  partnerInfo.partner.id ??
+                  0
+                );
+                const partnerOrderRes = await SandromaniaService.createOrder(targetExtId, qty, idempotencyKey);
+                const orderData = partnerOrderRes?.order || partnerOrderRes?.data || partnerOrderRes || {};
+                const rawDelivery = extractUniversalDelivery(orderData);
+                deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : (orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "Delivered successfully"));
+                const extId = orderData.id ? parseInt(orderData.id) : null;
+
+                const [sandroOrd] = await db.insert(sandromaniaOrders).values({
+                  telegramUserId: tgUser.id,
+                  sandromaniaProductId: partnerInfo.partner.id,
+                  externalOrderId: extId,
+                  externalProductId: targetExtId,
+                  productTitle: partnerInfo.partner.title,
+                  quantity: qty,
+                  costPriceUsd: Math.round(partnerInfo.partner.costPriceUsd || 0),
+                  amountPaid: totalCents,
+                  deliveryText: deliveredText,
+                  status: 'approved',
+                  idempotencyKey: idempotencyKey,
+                } as any).returning();
+
+                if (sandroOrd?.id) targetOrderId = 2000 + sandroOrd.id;
+
+                await db.update(sandromaniaProducts).set({
+                  stock: sql`GREATEST(0, ${sandromaniaProducts.stock} - ${qty})`,
+                  updatedAt: new Date()
+                }).where(eq(sandromaniaProducts.id, partnerInfo.partner.id));
+
+              } else if (partnerInfo.type === 'cssx') {
+                const targetServiceId = String(
+                  partnerInfo.partner.serviceId ??
+                  partnerInfo.partner.service_id ??
+                  partnerInfo.partner.id ??
+                  ""
+                ).trim();
+
+                const orderRes = await CssxService.createOrder({
+                  service_id: targetServiceId,
+                  service: targetServiceId,
+                  serviceId: targetServiceId,
+                  product_id: isNaN(Number(targetServiceId)) ? targetServiceId : Number(targetServiceId),
+                  quantity: qty,
+                  unit_price: (partnerInfo.partner.sellingPriceUsd || 0) / 100,
+                  buyer_identifier: tgUser.telegramId || String(tgUser.id)
+                });
+                const orderData = (orderRes as any)?.order || (orderRes as any)?.data || orderRes || {};
+                const rawDelivery = extractUniversalDelivery(orderData);
+                deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : ((orderRes as any)?.account || (orderRes as any)?.delivery_text || "Delivered successfully");
+                const extId = (orderRes as any)?.order_id || orderData.id || null;
+
+                const [cxOrd] = await db.insert(cssxOrders).values({
+                  telegramUserId: tgUser.id,
+                  cssxProductId: partnerInfo.partner.id,
+                  serviceId: targetServiceId,
+                  externalOrderId: extId ? String(extId) : null,
+                  productTitle: partnerInfo.partner.title,
+                  quantity: qty,
+                  amountPaid: totalCents,
+                  deliveryText: deliveredText,
+                  status: 'completed',
+                  partnerCostUsd: (partnerInfo.partner.costPriceUsd || 0) * qty / 100
+                }).returning();
+
+                if (cxOrd?.id) targetOrderId = 3000 + cxOrd.id;
+
+                await db.update(cssxProducts).set({
+                  stock: sql`GREATEST(0, ${cssxProducts.stock} - ${qty})`,
+                  updatedAt: new Date()
+                }).where(eq(cssxProducts.id, partnerInfo.partner.id));
+              }
+
+              invalidateCatalogCache();
+
+              const [newOrd] = await db.insert(orders).values({
+                telegramUserId: tgUser.id,
+                productId: targetProduct.id,
+                credentialId: null,
+                deliveryText: deliveredText,
+                status: 'completed'
+              }).returning();
+
+              if (newOrd?.id) targetOrderId = newOrd.id;
+
+              try {
+                if (query.message) await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+              } catch (e) {}
+
+              await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredText, qty);
+              return;
+            } catch (partErr: any) {
+              console.error("Crypto partner fulfillment error:", partErr);
+              await db.execute(sql`UPDATE telegram_users SET balance = balance + ${totalCents} WHERE id = ${tgUser.id}`);
+              await targetBot.sendMessage(chatId, `⚠️ Partner fulfillment temporary issue. $${(totalCents / 100).toFixed(2)} was credited to your wallet balance.`);
+              return;
+            }
+          }
+
+          // 2. Local stock fulfillment
           let deliveredItems: string[] = [];
           let targetOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
 
-          if (!isNaN(prodIdNum)) {
-            const availableCreds = (await storage.getCredentialsByProduct(prodIdNum)).filter(c => c.status === 'available');
+          if (!isNaN(prodIdNum) && availableCreds.length >= qty) {
             const credsToAssign = availableCreds.slice(0, qty);
 
             for (let i = 0; i < credsToAssign.length; i++) {
@@ -16879,30 +17096,27 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                 telegramUserId: tgUser.id,
                 productId: prodIdNum,
                 credentialId: chosenCred.id,
+                deliveryText: chosenCred.content,
                 status: 'completed'
               });
               if (i === 0 && newOrder && newOrder.id) {
                 targetOrderId = newOrder.id;
               }
             }
+
+            try {
+              if (query.message) {
+                await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
+              }
+            } catch (e) {}
+
+            await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredItems, qty);
+            return;
           }
 
-          while (deliveredItems.length < qty) {
-            const idx = deliveredItems.length + 1;
-            deliveredItems.push(`${productName} #${idx}\nKey: ${productName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${targetOrderId}_${idx}\nStatus: Active 24/7`);
-          }
-
-          const deliveredCredential = deliveredItems.length === 1
-            ? deliveredItems[0]
-            : deliveredItems.map((item, i) => `--- Item ${i + 1} of ${qty} ---\n${item}`).join('\n\n');
-
-          try {
-            if (query.message) {
-              await targetBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-            }
-          } catch (e) {}
-
-          await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredCredential);
+          // 3. Fallback: Stock unavailable, credit to wallet
+          await db.execute(sql`UPDATE telegram_users SET balance = balance + ${totalCents} WHERE id = ${tgUser.id}`);
+          await targetBot.sendMessage(chatId, `✅ Payment verified!\n$${(totalCents / 100).toFixed(2)} credited to your wallet balance.\n\n⚠️ ${escapeHTML(productName)} is currently out of stock for instant delivery.`);
           return;
         }
 
@@ -18927,35 +19141,251 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             return;
           }
 
-          let productName = "Gemini Link 18 months";
-          let unitPriceUSD = 0.55;
+          let targetProduct: any = null;
           if (!isNaN(prodIdNum)) {
-            const product = await storage.getProduct(prodIdNum);
-            if (product) {
-              productName = product.name;
-              unitPriceUSD = product.price / 100;
-            }
+            targetProduct = await storage.getProduct(prodIdNum);
           }
+          if (!targetProduct && typeof prodId === 'string') {
+            const allProds = await storage.getProducts();
+            targetProduct = allProds.find(p => p.type === prodId || p.name === prodId || p.name.includes(prodId));
+          }
+
+          const rates = await fetchLiveExchangeRates();
+          const lkrRate = rates.LKR || 305.50;
+
+          let paidAmountCents = 0;
+          if (paymentId > 0) {
+            const paymentCheck = await storage.getPayment(paymentId);
+            if (paymentCheck) paidAmountCents = paymentCheck.amount;
+          }
+
+          if (!targetProduct) {
+            const creditCents = paidAmountCents > 0 ? paidAmountCents : 500;
+            const creditLkr = Math.round((creditCents / 100) * lkrRate);
+            await db.execute(sql`UPDATE telegram_users SET balance = balance + ${creditCents}, balance_lkr = COALESCE(balance_lkr, 0) + ${creditLkr} WHERE id = ${tgUser.id}`);
+            invalidateUserFastCache(userId);
+            if (tgUser?.telegramId) invalidateUserFastCache(tgUser.telegramId.toString());
+
+            await targetBot.sendMessage(chatId, `✅ <b>Binance Pay confirmed!</b>\n$${(creditCents / 100).toFixed(2)} was credited to your wallet balance.`, {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "🛍️ Catalog", callback_data: "buy" }],
+                  [{ text: "🌐 Open Shop", web_app: { url: "https://youuhost.com/shop" } }]
+                ]
+              }
+            });
+            return;
+          }
+
+          const productName = targetProduct.name;
+          const unitPriceUSD = targetProduct.price / 100;
           const totalCents = Math.round(qty * unitPriceUSD * 100);
 
-          let credentialText = "https://serviceactivation.google.com/subscription/new/ACTIVATION_KEY_PROD_" + Math.random().toString(36).substring(2, 10).toUpperCase();
-          const stock = await storage.getCredentialsByProduct(prodIdNum);
-          const avail = stock.find(c => c.status === 'available');
-          if (avail) {
-            credentialText = avail.data;
-            await storage.updateCredential(avail.id, { status: 'sold' });
+          const { partnerMap } = await getCatalogDataFast();
+          const availableCreds = (await storage.getCredentialsByProduct(targetProduct.id)).filter(c => c.status === 'available');
+          const partnerInfo = partnerMap.get(targetProduct.id);
+          const partnerStock = partnerInfo?.partner?.stock || 0;
+
+          // 1. Partner Fulfillment (Sandromania / CSSX)
+          if (availableCreds.length < qty && partnerInfo && partnerStock >= qty) {
+            let deliveredText = "";
+            let targetOrderId: number | string = Math.floor(2000 + Math.random() * 8000);
+
+            try {
+              if (partnerInfo.type === 'sandromania') {
+                const idempotencyKey = `sandromania-binance-${tgUser.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+                const targetExtId = Number(
+                  partnerInfo.partner.externalProductId ??
+                  partnerInfo.partner.external_product_id ??
+                  partnerInfo.partner.id ??
+                  0
+                );
+                const partnerOrderRes = await SandromaniaService.createOrder(
+                  targetExtId,
+                  qty,
+                  idempotencyKey
+                );
+                const orderData = partnerOrderRes?.order || partnerOrderRes?.data || partnerOrderRes || {};
+                const rawDelivery = extractUniversalDelivery(orderData);
+                deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : (orderData.delivery_text || (Array.isArray(orderData.delivery) ? orderData.delivery.join("\n") : "Delivered successfully"));
+                const extId = orderData.id ? parseInt(orderData.id) : null;
+
+                const [sandroOrd] = await db.insert(sandromaniaOrders).values({
+                  telegramUserId: tgUser.id,
+                  sandromaniaProductId: partnerInfo.partner.id,
+                  externalOrderId: extId,
+                  externalProductId: targetExtId,
+                  productTitle: partnerInfo.partner.title,
+                  quantity: qty,
+                  costPriceUsd: Math.round(partnerInfo.partner.costPriceUsd || 0),
+                  amountPaid: totalCents,
+                  amountPaidLkr: Math.round((totalCents / 100) * lkrRate),
+                  unitPriceLkr: partnerInfo.partner.sellingPriceLkr ? Math.round(partnerInfo.partner.sellingPriceLkr) : null,
+                  deliveryText: deliveredText,
+                  status: 'approved',
+                  idempotencyKey: idempotencyKey,
+                } as any).returning();
+
+                if (sandroOrd?.id) targetOrderId = 2000 + sandroOrd.id;
+
+                await db.update(sandromaniaProducts).set({
+                  stock: sql`GREATEST(0, ${sandromaniaProducts.stock} - ${qty})`,
+                  updatedAt: new Date()
+                }).where(eq(sandromaniaProducts.id, partnerInfo.partner.id));
+
+              } else if (partnerInfo.type === 'cssx') {
+                const targetServiceId = String(
+                  partnerInfo.partner.serviceId ??
+                  partnerInfo.partner.service_id ??
+                  partnerInfo.partner.id ??
+                  ""
+                ).trim();
+
+                const orderRes = await CssxService.createOrder({
+                  service_id: targetServiceId,
+                  service: targetServiceId,
+                  serviceId: targetServiceId,
+                  product_id: isNaN(Number(targetServiceId)) ? targetServiceId : Number(targetServiceId),
+                  quantity: qty,
+                  unit_price: (partnerInfo.partner.sellingPriceUsd || 0) / 100,
+                  buyer_identifier: tgUser.telegramId || String(tgUser.id)
+                });
+                const orderData = (orderRes as any)?.order || (orderRes as any)?.data || orderRes || {};
+                const rawDelivery = extractUniversalDelivery(orderData);
+                deliveredText = rawDelivery && rawDelivery !== "{}" ? rawDelivery : ((orderRes as any)?.account || (orderRes as any)?.delivery_text || "Delivered successfully");
+                const extId = (orderRes as any)?.order_id || orderData.id || null;
+
+                const [cxOrd] = await db.insert(cssxOrders).values({
+                  telegramUserId: tgUser.id,
+                  cssxProductId: partnerInfo.partner.id,
+                  serviceId: targetServiceId,
+                  externalOrderId: extId ? String(extId) : null,
+                  productTitle: partnerInfo.partner.title,
+                  quantity: qty,
+                  amountPaid: totalCents,
+                  amountPaidLkr: ((totalCents / 100) * lkrRate).toString(),
+                  deliveryText: deliveredText,
+                  status: 'completed',
+                  partnerCostUsd: (partnerInfo.partner.costPriceUsd || 0) * qty / 100
+                }).returning();
+
+                if (cxOrd?.id) targetOrderId = 3000 + cxOrd.id;
+
+                await db.update(cssxProducts).set({
+                  stock: sql`GREATEST(0, ${cssxProducts.stock} - ${qty})`,
+                  updatedAt: new Date()
+                }).where(eq(cssxProducts.id, partnerInfo.partner.id));
+              }
+
+              invalidateCatalogCache();
+
+              const [newOrd] = await db.insert(orders).values({
+                telegramUserId: tgUser.id,
+                productId: targetProduct.id,
+                credentialId: null,
+                deliveryText: deliveredText,
+                status: 'completed'
+              }).returning();
+
+              if (newOrd?.id) targetOrderId = newOrd.id;
+
+              sendAdminPushNotification(
+                `🛒 New Binance Partner Order Completed (#${targetOrderId})`,
+                `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} purchased ${qty}x ${productName} ($${(totalCents / 100).toFixed(2)}) via Binance Pay`,
+                '/orders'
+              ).catch(console.error);
+
+              await sendOrderSuccessMessage(targetBot, chatId, targetOrderId, productName, deliveredText, qty);
+              return;
+            } catch (partErr: any) {
+              console.error("Binance partner fulfillment error:", partErr);
+              const refundLkr = Math.round((totalCents / 100) * lkrRate);
+              await db.execute(sql`UPDATE telegram_users SET balance = balance + ${totalCents}, balance_lkr = COALESCE(balance_lkr, 0) + ${refundLkr} WHERE id = ${tgUser.id}`);
+              invalidateUserFastCache(userId);
+              if (tgUser?.telegramId) invalidateUserFastCache(tgUser.telegramId.toString());
+
+              await targetBot.sendMessage(chatId, `✅ <b>Binance Pay confirmed!</b>\n\n⚠️ Automatic delivery encountered a temporary provider issue. Your payment of <b>$${(totalCents / 100).toFixed(2)}</b> has been credited to your wallet balance. You can try purchasing again or contact support.`, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "🛍️ Catalog", callback_data: "buy" }],
+                    [{ text: "💬 Support", callback_data: "support" }]
+                  ]
+                }
+              });
+              return;
+            }
           }
 
-          const newOrder = await storage.createOrder({
-            telegramUserId: tgUser.id,
-            productId: prodIdNum,
-            quantity: qty,
-            totalPrice: totalCents,
-            status: 'completed',
-            credential: credentialText
-          } as any);
+          // 2. Local Credentials Fulfillment
+          if (availableCreds.length >= qty) {
+            const purchaseRes: any = await db.transaction(async (tx) => {
+              const lockedCreds = await tx.select()
+                .from(credentials)
+                .where(and(eq(credentials.productId, targetProduct.id), eq(credentials.status, 'available')))
+                .limit(qty)
+                .for('update', { skipLocked: true });
 
-          await sendPurchaseSuccessScreen(targetBot, chatId, newOrder.id, productName, credentialText);
+              if (lockedCreds.length < qty) {
+                throw new Error("Insufficient stock available");
+              }
+
+              const deliveredItems: string[] = [];
+              let firstOrderId: number | string = Math.floor(1000 + Math.random() * 9000);
+
+              for (let i = 0; i < lockedCreds.length; i++) {
+                const chosenCred = lockedCreds[i];
+                deliveredItems.push(chosenCred.content);
+                await tx.update(credentials).set({ status: 'sold' }).where(eq(credentials.id, chosenCred.id));
+
+                const [newOrder] = await tx.insert(orders).values({
+                  telegramUserId: tgUser.id,
+                  productId: targetProduct.id,
+                  credentialId: chosenCred.id,
+                  deliveryText: chosenCred.content,
+                  status: 'completed'
+                }).returning();
+
+                if (i === 0 && newOrder && newOrder.id) {
+                  firstOrderId = newOrder.id;
+                }
+              }
+
+              return { targetOrderId: firstOrderId, deliveredItems };
+            }).catch(err => ({ error: err.message }));
+
+            if (!purchaseRes.error && purchaseRes.deliveredItems) {
+              sendAdminPushNotification(
+                `🛒 New Binance Order Completed (#${purchaseRes.targetOrderId})`,
+                `User @${tgUser.username || tgUser.firstName || tgUser.telegramId} purchased ${qty}x ${productName} ($${(totalCents / 100).toFixed(2)}) via Binance Pay`,
+                '/orders'
+              ).catch(console.error);
+
+              await sendOrderSuccessMessage(targetBot, chatId, purchaseRes.targetOrderId, productName, purchaseRes.deliveredItems, qty);
+              return;
+            }
+          }
+
+          // 3. Stock unavailable: Safely credit to wallet
+          const creditAmountCents = paidAmountCents > 0 ? paidAmountCents : totalCents;
+          const creditAmountLkr = Math.round((creditAmountCents / 100) * lkrRate);
+          await db.execute(sql`UPDATE telegram_users SET balance = balance + ${creditAmountCents}, balance_lkr = COALESCE(balance_lkr, 0) + ${creditAmountLkr} WHERE id = ${tgUser.id}`);
+          invalidateUserFastCache(userId);
+          if (tgUser?.telegramId) invalidateUserFastCache(tgUser.telegramId.toString());
+
+          await targetBot.sendMessage(chatId, `✅ <b>Binance Pay payment confirmed!</b>\n\n` +
+            `Amount credited: <b>$${(creditAmountCents / 100).toFixed(2)}</b>\n\n` +
+            `⚠️ <b>${escapeHTML(productName)}</b> is temporarily out of stock for instant delivery.\n` +
+            `Your funds are safely credited to your wallet balance. You can select another product from our catalog or contact support.`, {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🛍️ Open Catalog", callback_data: "buy" }],
+                [{ text: "💬 Contact Support", callback_data: "support" }]
+              ]
+            }
+          });
           return;
         }
       }
@@ -19467,6 +19897,7 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
                 telegramUserId: user.id,
                 productId: product.id,
                 credentialId: cred.id,
+                deliveryText: cred.content,
                 status: 'completed'
               }).returning();
               createdOrders.push(newOrder);
@@ -19490,7 +19921,8 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
             chatId,
             lastOrderId,
             result.product.name,
-            result.availableCredentials[0]?.content || "Item credentials delivered."
+            result.availableCredentials.map(c => c.content),
+            quantity
           );
 
           // Emit real-time notification to Admin Dashboard
