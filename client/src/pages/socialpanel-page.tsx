@@ -25,8 +25,8 @@ import {
   Radio,
   Clock,
   User,
-  ShieldCheck,
   Send,
+  Edit3,
 } from "lucide-react";
 import {
   FaFacebook,
@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,17 @@ export default function SocialPanelPage() {
   const [importSearch, setImportSearch] = useState("");
   const [markupPercent, setMarkupPercent] = useState<number>(50);
   const [selectedServicesToImport, setSelectedServicesToImport] = useState<any[]>([]);
+
+  // Edit Service Modal State (USD, LKR, Description, Limits)
+  const [editingService, setEditingService] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editSellingPriceUsd, setEditSellingPriceUsd] = useState("");
+  const [editSellingPriceLkr, setEditSellingPriceLkr] = useState("");
+  const [editMin, setEditMin] = useState("");
+  const [editMax, setEditMax] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
 
   // 1. Query SocialPanel Settings & Balance
   const { data: socialSettings, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
@@ -197,22 +209,79 @@ export default function SocialPanelPage() {
     },
   });
 
-  // Update Custom Selling Price Mutation
-  const updatePriceMutation = useMutation({
-    mutationFn: async ({ id, customRate }: { id: number; customRate: number }) => {
+  // Update Full Service Mutation (Title, USD, LKR, Limits, Description, Status)
+  const updateServiceMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
       const res = await fetch(`/api/admin/socialpanel/services/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customRate }),
+        body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error("Failed to update price");
+      if (!res.ok) throw new Error("Failed to update service");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/socialpanel/services"] });
-      toast({ title: "Rate Updated", description: "Customer selling rate updated successfully." });
+      toast({ title: "Service Updated", description: "Pricing, description, and limits saved successfully." });
+      setEditingService(null);
+    },
+    onError: (err: any) => {
+      toast({ title: "Update Failed", description: err.message, variant: "destructive" });
     },
   });
+
+  const handleOpenEdit = (svc: any) => {
+    setEditingService(svc);
+    setEditName(svc.name || "");
+    setEditCategory(svc.category || "General");
+    const usdVal = ((svc.customRate || 0) / 100).toFixed(2);
+    setEditSellingPriceUsd(usdVal);
+    setEditSellingPriceLkr(
+      svc.customRateLkr != null && svc.customRateLkr > 0
+        ? String(svc.customRateLkr)
+        : String(Math.round(((svc.customRate || 0) / 100) * 305.5))
+    );
+    setEditMin(String(svc.min || 10));
+    setEditMax(String(svc.max || 100000));
+    setEditDescription(svc.description || "");
+    setEditIsActive(svc.isActive !== false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingService) return;
+    let usdVal = parseFloat(editSellingPriceUsd);
+    let lkrVal = editSellingPriceLkr ? parseFloat(editSellingPriceLkr) : 0;
+
+    if ((isNaN(usdVal) || usdVal <= 0) && lkrVal > 0) {
+      usdVal = parseFloat((lkrVal / 305.5).toFixed(2));
+    }
+    if (usdVal > 0 && lkrVal <= 0) {
+      lkrVal = Math.round(usdVal * 305.5);
+    }
+
+    if ((isNaN(usdVal) || usdVal <= 0) && (isNaN(lkrVal) || lkrVal <= 0)) {
+      toast({
+        title: "Invalid Price",
+        description: "Please enter a valid rate in USD or LKR.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateServiceMutation.mutate({
+      id: editingService.id,
+      updates: {
+        name: editName.trim() || editingService.name,
+        category: editCategory.trim() || editingService.category,
+        customRate: Math.round(usdVal * 100),
+        customRateLkr: Math.round(lkrVal),
+        min: parseInt(editMin) || editingService.min || 10,
+        max: parseInt(editMax) || editingService.max || 100000,
+        description: editDescription.trim() || null,
+        isActive: editIsActive,
+      },
+    });
+  };
 
   // Delete Service Mutation
   const deleteServiceMutation = useMutation({
@@ -567,8 +636,13 @@ export default function SocialPanelPage() {
                         <td className="py-3.5 px-4 font-mono text-white/50">
                           ${((service.rate || 0) / 100).toFixed(2)}
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
-                          ${((service.customRate || 0) / 100).toFixed(2)}
+                        <td className="py-3.5 px-4 font-mono">
+                          <div className="font-bold text-emerald-400">
+                            ${((service.customRate || 0) / 100).toFixed(2)}
+                          </div>
+                          <div className="text-[10px] font-bold text-emerald-500/80">
+                            Rs. {(service.customRateLkr || Math.round(((service.customRate || 0) / 100) * 305.5)).toLocaleString()} / 1k
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-white/50 font-mono text-[11px]">
                           {service.min?.toLocaleString()} - {service.max?.toLocaleString()}
@@ -582,14 +656,30 @@ export default function SocialPanelPage() {
                           />
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteServiceMutation.mutate(service.id)}
-                            className="h-8 w-8 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEdit(service)}
+                              className="h-8 w-8 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg"
+                              title="Edit Title, Prices (Rs/USD), Description & Limits"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm(`Remove ${service.name} from catalog?`)) {
+                                  deleteServiceMutation.mutate(service.id);
+                                }
+                              }}
+                              className="h-8 w-8 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                              title="Delete Service"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -924,6 +1014,185 @@ export default function SocialPanelPage() {
               >
                 {importServicesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Import {selectedServicesToImport.length} Services
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT SERVICE MODAL (USD, LKR, DESCRIPTION, LIMITS) */}
+      <Dialog open={!!editingService} onOpenChange={(open) => !open && setEditingService(null)}>
+        <DialogContent className="max-w-xl bg-neutral-900 border border-white/10 text-white p-6 rounded-3xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black flex items-center gap-2 text-white">
+              <SlidersHorizontal className="w-4 h-4 text-purple-400" />
+              Edit SocialPanel Service #{editingService?.serviceId}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-white/50">
+              Customize title, selling rates in USD ($) and LKR (Rs.), instructions, and limits.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* Service Name */}
+            <div>
+              <label className="text-xs font-bold text-white/70 block mb-1">
+                Service Title / Name
+              </label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Instagram Followers [HQ - Real]"
+                className="bg-white/5 border-white/10 text-xs text-white rounded-xl font-medium focus:border-purple-500"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="text-xs font-bold text-white/70 block mb-1">
+                Category
+              </label>
+              <Input
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                placeholder="e.g. Instagram Followers"
+                className="bg-white/5 border-white/10 text-xs text-white rounded-xl font-medium focus:border-purple-500"
+              />
+            </div>
+
+            {/* Rates: USD & LKR Grid */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+              <div>
+                <label className="text-xs font-bold text-white/70 block mb-1">
+                  Selling Rate ($ USD / 1k)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-bold">$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editSellingPriceUsd}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditSellingPriceUsd(v);
+                      const n = parseFloat(v);
+                      if (!isNaN(n) && n > 0) {
+                        setEditSellingPriceLkr(String(Math.round(n * 305.5)));
+                      }
+                    }}
+                    placeholder="e.g. 1.20"
+                    className="pl-7 bg-white/5 border-white/10 text-xs font-mono font-bold text-emerald-400 rounded-xl"
+                  />
+                </div>
+                <span className="text-[10px] text-white/40 mt-1 block">
+                  Original Cost: ${((editingService?.rate || 0) / 100).toFixed(2)}
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-emerald-400 block mb-1">
+                  Selling Rate (Rs. LKR / 1k)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-bold text-xs">Rs.</span>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={editSellingPriceLkr}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setEditSellingPriceLkr(v);
+                      const n = parseFloat(v);
+                      if (!isNaN(n) && n > 0) {
+                        setEditSellingPriceUsd((n / 305.5).toFixed(2));
+                      }
+                    }}
+                    placeholder="e.g. 367"
+                    className="pl-9 bg-emerald-500/5 border-emerald-500/20 text-xs font-mono font-bold text-emerald-300 rounded-xl"
+                  />
+                </div>
+                <span className="text-[10px] text-emerald-400/70 mt-1 block font-semibold">
+                  Type Rs. to auto-convert USD
+                </span>
+              </div>
+            </div>
+
+            {/* Min and Max Limits */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-white/70 block mb-1">
+                  Min Order Quantity
+                </label>
+                <Input
+                  type="number"
+                  value={editMin}
+                  onChange={(e) => setEditMin(e.target.value)}
+                  placeholder="10"
+                  className="bg-white/5 border-white/10 text-xs text-white rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-white/70 block mb-1">
+                  Max Order Quantity
+                </label>
+                <Input
+                  type="number"
+                  value={editMax}
+                  onChange={(e) => setEditMax(e.target.value)}
+                  placeholder="100000"
+                  className="bg-white/5 border-white/10 text-xs text-white rounded-xl"
+                />
+              </div>
+            </div>
+
+            {/* Description & Instructions */}
+            <div>
+              <label className="text-xs font-bold text-white/70 block mb-1">
+                Service Description & Instructions
+              </label>
+              <Textarea
+                rows={3}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Enter service details, speed, drop rate, guarantee, and format requirements for customers..."
+                className="bg-white/5 border-white/10 text-xs text-white rounded-xl resize-y placeholder:text-white/30"
+              />
+              <span className="text-[10px] text-white/40 mt-1 block">
+                Displayed cleanly in the service detail card on Telegram Mini App and Web Store.
+              </span>
+            </div>
+
+            {/* Active Status Switch */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+              <div>
+                <span className="text-xs font-bold text-white block">Active in Store</span>
+                <span className="text-[10px] text-white/40">Enable this service for customers to browse & order</span>
+              </div>
+              <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingService(null)}
+                className="text-xs text-white/60 hover:text-white rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={updateServiceMutation.isPending}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl gap-1.5"
+              >
+                {updateServiceMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
+                Save Changes
               </Button>
             </div>
           </div>

@@ -6699,18 +6699,21 @@ app.post("/api/admin/n1panel/import-services", isAuth, async (req, res) => {
             updatedAt: new Date(),
           })
           .where(eq(smmServices.id, existing.id));
-      } else {
+        const finalCustomRate = customRateCents > 0 ? customRateCents : rateCents;
+        const defaultLkrRate = Math.round((finalCustomRate / 100) * 305.5);
         await db.insert(smmServices).values({
           serviceId: String(item.service),
           name: item.name,
           category: item.category || "General",
           type: item.type || "Default",
           rate: rateCents,
-          customRate: customRateCents > 0 ? customRateCents : rateCents,
+          customRate: finalCustomRate,
+          customRateLkr: defaultLkrRate,
           min: parseInt(item.min) || 10,
           max: parseInt(item.max) || 100000,
           isActive: true,
-          description: item.name,
+          description: item.desc || item.description || item.name,
+          provider: "n1panel",
         });
       }
       importedCount++;
@@ -6735,14 +6738,16 @@ app.get("/api/admin/n1panel/services", isAuth, async (req, res) => {
   }
 });
 
-// 6. Update SMM Service Custom Rate / Active Status
+// 6. Update SMM Service Custom Rate / Description / LKR / Active Status
 app.put("/api/admin/n1panel/services/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { customRate, isActive, name, category, min, max } = req.body;
+    const { customRate, customRateLkr, description, isActive, name, category, min, max } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (customRate !== undefined) updates.customRate = parseInt(customRate);
+    if (customRateLkr !== undefined) updates.customRateLkr = customRateLkr === null ? null : parseInt(customRateLkr);
+    if (description !== undefined) updates.description = description;
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
     if (name !== undefined) updates.name = name;
     if (category !== undefined) updates.category = category;
@@ -6966,16 +6971,20 @@ app.post("/api/admin/socialpanel/import-services", isAuth, async (req, res) => {
           })
           .where(eq(smmServices.id, existing.id));
       } else {
+        const finalCustomRate = customRateCents > 0 ? customRateCents : rateCents;
+        const defaultLkrRate = Math.round((finalCustomRate / 100) * 305.5);
         await db.insert(smmServices).values({
           serviceId: String(item.service),
           name: item.name,
           category: item.category || "General",
           type: item.type || "Default",
           rate: rateCents,
-          customRate: customRateCents,
+          customRate: finalCustomRate,
+          customRateLkr: defaultLkrRate,
           min: parseInt(item.min) || 10,
           max: parseInt(item.max) || 100000,
           isActive: true,
+          description: item.desc || item.description || item.name,
           provider: "socialpanel",
         });
       }
@@ -7005,14 +7014,16 @@ app.get("/api/admin/socialpanel/services", isAuth, async (req, res) => {
   }
 });
 
-// 7. Update SocialPanel Service Custom Rate / Active Status
+// 7. Update SocialPanel Service Custom Rate / Description / LKR / Active Status
 app.put("/api/admin/socialpanel/services/:id", isAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { customRate, isActive, name, category, min, max } = req.body;
+    const { customRate, customRateLkr, description, isActive, name, category, min, max } = req.body;
     const updates: any = { updatedAt: new Date() };
 
     if (customRate !== undefined) updates.customRate = parseInt(customRate);
+    if (customRateLkr !== undefined) updates.customRateLkr = customRateLkr === null ? null : parseInt(customRateLkr);
+    if (description !== undefined) updates.description = description;
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
     if (name !== undefined) updates.name = name;
     if (category !== undefined) updates.category = category;
@@ -7196,7 +7207,9 @@ app.post("/api/mini/smm/purchase", verifyMiniAppAuth, async (req, res) => {
       // 2. Deduct balance atomically
       const rates = await fetchLiveExchangeRates();
       const lkrRate = rates.LKR || 305.50;
-      const deductLkr = Math.round((totalCents / 100) * lkrRate);
+      const deductLkr = (service.customRateLkr && service.customRateLkr > 0)
+        ? Math.round((service.customRateLkr / 1000) * qty)
+        : Math.round((totalCents / 100) * lkrRate);
 
       const [deducted] = await tx
         .update(telegramUsers)

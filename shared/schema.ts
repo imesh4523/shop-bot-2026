@@ -503,6 +503,7 @@ export const smmServices = pgTable("smm_services", {
   type: text("type").default("Default"),
   rate: integer("rate").notNull(), // Original API price per 1k in cents
   customRate: integer("custom_rate").notNull(), // Custom Selling price per 1k in cents
+  customRateLkr: integer("custom_rate_lkr"), // Custom Selling price per 1k in LKR (Rs.)
   min: integer("min").notNull().default(10),
   max: integer("max").notNull().default(100000),
   isActive: boolean("is_active").notNull().default(true),

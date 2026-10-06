@@ -3130,21 +3130,27 @@ Support: https://t.me/youuhost_support
     return { text: "INSTANT", gradient: "bg-gradient-to-r from-[#5B42F3] to-[#00C9FF] text-white" };
   };
 
-  // SMM Price Formatters
-  const formatSmmRate = (rateCentsPer1000: number) => {
-    const usd = rateCentsPer1000 / 100;
+  // SMM Price Formatters (Supports both USD and custom fixed LKR)
+  const formatSmmRate = (smmOrRateCents: any) => {
+    const rateCents = typeof smmOrRateCents === "number" ? smmOrRateCents : (smmOrRateCents?.customRate || 0);
+    const customLkr = typeof smmOrRateCents === "object" ? smmOrRateCents?.customRateLkr : null;
+    const usd = rateCents / 100;
     if (selectedCurrency === "LKR") {
-      const lkr = Math.round(usd * lkrRate);
+      const lkr = (customLkr && customLkr > 0) ? customLkr : Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()} / 1k`;
     }
     return `$${usd.toFixed(2)} / 1k`;
   };
 
-  const calculateSmmPriceFormatted = (rateCentsPer1000: number, qty: number) => {
-    const totalCents = Math.round((rateCentsPer1000 / 1000) * (qty || 0));
+  const calculateSmmPriceFormatted = (smmOrRateCents: any, qty: number) => {
+    const rateCents = typeof smmOrRateCents === "number" ? smmOrRateCents : (smmOrRateCents?.customRate || 0);
+    const customLkr = typeof smmOrRateCents === "object" ? smmOrRateCents?.customRateLkr : null;
+    const totalCents = Math.round((rateCents / 1000) * (qty || 0));
     const usd = totalCents / 100;
     if (selectedCurrency === "LKR") {
-      const lkr = Math.round(usd * lkrRate);
+      const lkr = (customLkr && customLkr > 0)
+        ? Math.round((customLkr / 1000) * (qty || 0))
+        : Math.round(usd * lkrRate);
       return `Rs. ${lkr.toLocaleString()}`;
     }
     return `$${usd.toFixed(2)}`;
@@ -3965,7 +3971,9 @@ Support: https://t.me/youuhost_support
 
     const totalCents = Math.round((detailSmmService.customRate / 1000) * smmOrderQty);
     const totalPriceUsd = totalCents / 100;
-    const totalLkr = Math.round((totalCents / 100) * lkrRate);
+    const totalLkr = (detailSmmService.customRateLkr && detailSmmService.customRateLkr > 0)
+      ? Math.round((detailSmmService.customRateLkr / 1000) * smmOrderQty)
+      : Math.round((totalCents / 100) * lkrRate);
     const userBalanceCents = user?.balance || 0;
     const userBalanceUsd = userBalanceCents / 100;
     const userBalanceLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
@@ -4798,7 +4806,7 @@ Support: https://t.me/youuhost_support
                     const smm = item.data;
                     const isOutOfStock = item.isOutOfStock;
                     const smmConf = getSmmPlatformConfig(smm.category, smm.name);
-                    const rateFormatted = formatSmmRate(smm.customRate);
+                    const rateFormatted = formatSmmRate(smm);
                     const stats = getItemStats(smm, "smm");
 
                     return (
@@ -7667,10 +7675,27 @@ Support: https://t.me/youuhost_support
                   <span>Max: {detailSmmService.max?.toLocaleString()}</span>
                   <span>•</span>
                   <span className="text-[#5B42F3] font-bold">
-                    {formatSmmRate(detailSmmService.customRate)}
+                    {formatSmmRate(detailSmmService)}
                   </span>
                 </div>
               </div>
+
+              {/* Service Description & Instructions Card */}
+              {detailSmmService.description && (
+                <div className="bg-white/80 rounded-2xl p-3.5 border border-[#ECEEF8] shadow-xs mb-4 text-left">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                      <CheckCircle2 className="w-3 h-3" />
+                    </div>
+                    <h4 className="text-[11px] font-black text-[#181432] uppercase tracking-wider">
+                      Service Description & Instructions
+                    </h4>
+                  </div>
+                  <p className="text-xs text-[#524E68] leading-relaxed whitespace-pre-line font-medium">
+                    {detailSmmService.description}
+                  </p>
+                </div>
+              )}
 
               {/* Step 1: Target Link Input */}
               <div className="space-y-1.5 mb-4">
@@ -7779,26 +7804,34 @@ Support: https://t.me/youuhost_support
                 const totalCents = Math.round(
                   (detailSmmService.customRate / 1000) * (smmOrderQty || 0)
                 );
+                const totalLkr = (detailSmmService.customRateLkr && detailSmmService.customRateLkr > 0)
+                  ? Math.round((detailSmmService.customRateLkr / 1000) * (smmOrderQty || 0))
+                  : Math.round((totalCents / 100) * lkrRate);
                 const userBalCents = user?.balance || 0;
-                const hasSufficientBal = userBalCents >= totalCents;
+                const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+                  ? Number((user as any).balanceLkr)
+                  : Math.round((userBalCents / 100) * lkrRate);
+                const hasSufficientBal = selectedCurrency === "LKR"
+                  ? userBalLkr >= totalLkr
+                  : userBalCents >= totalCents;
 
                 return (
                   <div className="bg-gradient-to-br from-[#120B2E] to-[#2E1A68] rounded-3xl p-4 text-white mb-4 relative overflow-hidden shadow-lg shadow-[#2E1A68]/20">
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-purple-200/80 font-semibold">Total Order Cost:</span>
                       <span className="text-[10px] text-cyan-300 font-mono">
-                        Rate: {formatSmmRate(detailSmmService.customRate)}
+                        Rate: {formatSmmRate(detailSmmService)}
                       </span>
                     </div>
 
                     <div className="flex items-baseline justify-between mb-3">
                       <span className="text-2xl font-black text-white">
-                        {calculateSmmPriceFormatted(detailSmmService.customRate, smmOrderQty)}
+                        {calculateSmmPriceFormatted(detailSmmService, smmOrderQty)}
                       </span>
                       <span className="text-xs font-bold text-purple-200/90">
                         {selectedCurrency === "LKR"
                           ? `≈ $${(totalCents / 100).toFixed(2)} USD`
-                          : `≈ Rs. ${Math.round((totalCents / 100) * lkrRate).toLocaleString()} LKR`}
+                          : `≈ Rs. ${totalLkr.toLocaleString()} LKR`}
                       </span>
                     </div>
 
