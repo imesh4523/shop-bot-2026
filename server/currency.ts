@@ -68,27 +68,68 @@ export function getCachedRates(): Record<string, number> {
   return cachedRates;
 }
 
+export function getLastRateUpdateTime(): number {
+  return lastFetchTime || Date.now();
+}
+
 export function formatPriceInCurrency(amountUSD: number, currencyCode: string = 'USD'): { formatted: string; amountInCurr: number; symbol: string } {
   const curr = SUPPORTED_CURRENCIES[currencyCode] || SUPPORTED_CURRENCIES.USD;
   const rate = cachedRates[curr.code] || 1.0;
-  const amountInCurr = amountUSD * rate;
+  const rawAmountInCurr = amountUSD * rate;
 
   let formatted = '';
+  let amountInCurr = rawAmountInCurr;
+
   if (curr.code === 'USD') {
-    formatted = `$${amountUSD.toFixed(2)}`;
+    amountInCurr = parseFloat(amountUSD.toFixed(2));
+    formatted = `$${amountInCurr.toFixed(2)}`;
   } else if (curr.code === 'EUR') {
+    amountInCurr = parseFloat(rawAmountInCurr.toFixed(2));
     formatted = `€${amountInCurr.toFixed(2)}`;
-  } else if (curr.code === 'RUB') {
-    formatted = `${amountInCurr.toFixed(2)} ₽`;
   } else if (curr.code === 'GBP') {
+    amountInCurr = parseFloat(rawAmountInCurr.toFixed(2));
     formatted = `£${amountInCurr.toFixed(2)}`;
+  } else if (curr.code === 'LKR') {
+    // Clean integer rounding for LKR with thousand separator (no ugly cents)
+    amountInCurr = Math.round(rawAmountInCurr);
+    formatted = `Rs. ${amountInCurr.toLocaleString('en-US')}`;
   } else if (curr.code === 'INR') {
-    formatted = `₹${amountInCurr.toFixed(2)}`;
-  } else if (curr.code === 'LKR' || curr.code === 'PKR' || curr.code === 'RON') {
-    formatted = `${amountInCurr.toFixed(2)} ${curr.code}`;
+    amountInCurr = Math.round(rawAmountInCurr);
+    formatted = `₹${amountInCurr.toLocaleString('en-US')}`;
+  } else if (curr.code === 'PKR') {
+    amountInCurr = Math.round(rawAmountInCurr);
+    formatted = `Rs. ${amountInCurr.toLocaleString('en-US')}`;
+  } else if (curr.code === 'RUB') {
+    amountInCurr = Math.round(rawAmountInCurr);
+    formatted = `${amountInCurr.toLocaleString('en-US')} ₽`;
+  } else if (curr.code === 'RON') {
+    amountInCurr = parseFloat(rawAmountInCurr.toFixed(2));
+    formatted = `${amountInCurr.toFixed(2)} RON`;
   } else {
-    formatted = `${amountInCurr.toFixed(2)} ${curr.code}`;
+    amountInCurr = Math.round(rawAmountInCurr);
+    formatted = `${amountInCurr.toLocaleString('en-US')} ${curr.code}`;
   }
 
   return { formatted, amountInCurr, symbol: curr.symbol };
 }
+
+export function convertUsdToLkr(amountUSD: number): { lkr: number; rate: number; formatted: string } {
+  const rate = cachedRates.LKR || 305.50;
+  const lkr = Math.round(amountUSD * rate);
+  return {
+    lkr,
+    rate,
+    formatted: `Rs. ${lkr.toLocaleString('en-US')}`
+  };
+}
+
+export function convertLkrToUsd(amountLKR: number): { usd: number; rate: number; formatted: string } {
+  const rate = cachedRates.LKR || 305.50;
+  const usd = rate > 0 ? parseFloat((amountLKR / rate).toFixed(2)) : 0;
+  return {
+    usd,
+    rate,
+    formatted: `$${usd.toFixed(2)}`
+  };
+}
+

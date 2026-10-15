@@ -81,6 +81,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'SocialPanel.pro SMM', href: '/imeshadmindashbord/socialpanel', icon: Share2 },
     { name: 'Sandromania Shop', href: '/imeshadmindashbord/sandromania', icon: ShoppingBag },
     { name: 'Reseller API (CSxStore)', href: '/imeshadmindashbord/cssx-api', icon: Puzzle },
+    { name: 'Canboso Partner API', href: '/imeshadmindashbord/canboso-api', icon: Globe, highlight: true },
     { name: 'Inventory', href: '/imeshadmindashbord/inventory', icon: Package },
     { name: 'Orders', href: '/imeshadmindashbord/orders', icon: ShoppingCart },
     { name: 'Support Tickets', href: '/imeshadmindashbord/support-tickets', icon: LifeBuoy },

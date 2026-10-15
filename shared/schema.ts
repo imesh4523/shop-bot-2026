@@ -800,4 +800,73 @@ export const insertCustomerErrorLogSchema = createInsertSchema(customerErrorLogs
 export type CustomerErrorLog = typeof customerErrorLogs.$inferSelect;
 export type InsertCustomerErrorLog = z.infer<typeof insertCustomerErrorLogSchema>;
 
+// ==========================================
+// Canboso Partner Products & Orders
+// ==========================================
+export const canbosoProducts = pgTable("canboso_products", {
+  id: serial("id").primaryKey(),
+  productId: text("product_id").notNull().unique(), // Canboso external product ID / code
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"), // standard, slot, upgrade_account
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  costPriceVnd: integer("cost_price_vnd").default(0),
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"), // in cents
+  category: text("category").default("general"),
+  description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
+  purchaseRequirements: jsonb("purchase_requirements"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const canbosoOrders = pgTable("canboso_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  canbosoProductId: integer("canboso_product_id").references(() => canbosoProducts.id),
+  externalOrderId: text("external_order_id"), // Canboso orderCode
+  productId: text("product_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
+  status: text("status").notNull().default("completed"),
+  customerEmail: text("customer_email"),
+  customerAccounts: jsonb("customer_accounts"),
+  deliveryText: text("delivery_text"),
+  idempotencyKey: text("idempotency_key"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const canbosoProductsRelations = relations(canbosoProducts, ({ many }) => ({
+  orders: many(canbosoOrders),
+}));
+
+export const canbosoOrdersRelations = relations(canbosoOrders, ({ one }) => ({
+  product: one(canbosoProducts, {
+    fields: [canbosoOrders.canbosoProductId],
+    references: [canbosoProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [canbosoOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertCanbosoProductSchema = createInsertSchema(canbosoProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type CanbosoProductRow = typeof canbosoProducts.$inferSelect;
+export type InsertCanbosoProduct = z.infer<typeof insertCanbosoProductSchema>;
+
+export const insertCanbosoOrderSchema = createInsertSchema(canbosoOrders).omit({ id: true, createdAt: true });
+export type CanbosoOrderRow = typeof canbosoOrders.$inferSelect;
+export type InsertCanbosoOrder = z.infer<typeof insertCanbosoOrderSchema>;
+
+
 

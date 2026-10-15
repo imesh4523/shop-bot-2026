@@ -38,6 +38,7 @@ import N1PanelPage from "@/pages/n1panel-page";
 import SocialPanelPage from "@/pages/socialpanel-page";
 import SandromaniaPage from "@/pages/sandromania-page";
 import CssxApiPage from "@/pages/cssx-api-page";
+import CanbosoApiPage from "@/pages/canboso-api-page";
 import SoftwareUpdatesPage from "@/pages/software-updates-page";
 import AdvancedErrorCheckerPage from "@/pages/advanced-error-checker-page";
 import DomainAutomationPage from "@/pages/domain-automation-page";
@@ -309,6 +310,10 @@ function Router() {
 
       <Route path="/imeshadmindashbord/cssx-api">
         <ProtectedRoute component={CssxApiPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/canboso-api">
+        <ProtectedRoute component={CanbosoApiPage} />
       </Route>
 
       <Route path="/imeshadmindashbord/error-checker">

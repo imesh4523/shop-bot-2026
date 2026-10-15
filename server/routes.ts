@@ -6,7 +6,7 @@ import { Server as SocketServer } from "socket.io";
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, cssxProducts, cssxOrders, emailLogs, apiKeys, storeMeshNodes, preorders } from "@shared/schema";
+import { credentials, settings, payments, insertCredentialSchema, telegramUsers, users, insertAwsAccountSchema, insertSpecialOfferSchema, orders, products, referrals, promoCodes, promoCodeRedemptions, insertPromoCodeSchema, insertPromoCodeRedemptionSchema, supportTickets, smmServices, smmOrders, sandromaniaProducts, sandromaniaOrders, cssxProducts, cssxOrders, canbosoProducts, canbosoOrders, emailLogs, apiKeys, storeMeshNodes, preorders } from "@shared/schema";
 import { buildPaymentSuccessEmailHtml, buildCustomEmailHtml, buildOrderCredentialsEmailHtml, buildOtpVerificationEmailHtml, generateInvoicePdf, generateCredentialsTxt, generatePlainTextEmail, TransactionEmailProps, CustomEmailProps, OrderCredentialsEmailProps, OtpEmailProps } from "./email-template";
 import { eq, desc, and, or, sql, gte, gt, inArray } from "drizzle-orm";
 import { startPaymentReconciliationWatchdog } from "./payment-reconciliation-service";
@@ -17,6 +17,7 @@ import { N1PanelService } from "./n1panel-service";
 import { SocialPanelService } from "./socialpanel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { CssxService } from "./cssx-service";
+import { CanbosoService } from "./canboso-service";
 import { domainAutomationService } from "./domain-automation-service";
 import { getSecurityShieldStatus, unbanJailedIp, addToWhitelist } from "./security-shield";
 import { 
@@ -3075,8 +3076,49 @@ export async function registerRoutes(
         };
       });
 
+      // 6. Canboso Partner Orders
+      const userCanbosoOrders = await db.select()
+        .from(canbosoOrders)
+        .leftJoin(canbosoProducts, eq(canbosoOrders.canbosoProductId, canbosoProducts.id))
+        .where(eq(canbosoOrders.telegramUserId, userId))
+        .orderBy(desc(canbosoOrders.createdAt));
+
+      const canbosoTransactions = userCanbosoOrders.map(cb => {
+        const qty = cb.canboso_orders.quantity || 1;
+        const costUsd = ((cb.canboso_orders.amountPaid || 0) / 100);
+        const fixedLkr = cb.canboso_products?.sellingPriceLkr;
+        const costLkr = cb.canboso_orders.amountPaidLkr 
+          ? Number(cb.canboso_orders.amountPaidLkr)
+          : (cb.canboso_orders.unitPriceLkr 
+            ? Number(cb.canboso_orders.unitPriceLkr) * qty 
+            : (fixedLkr ? (Number(fixedLkr) * qty) : Math.round(costUsd * lkrRate)));
+        const isLkr = Boolean((cb.canboso_orders.amountPaidLkr && Number(cb.canboso_orders.amountPaidLkr) > 0) || (fixedLkr && Number(fixedLkr) > 0));
+
+        return {
+          id: `YOUUHOST-${cb.canboso_orders.externalOrderId || (4000 + cb.canboso_orders.id)}`,
+          rawId: cb.canboso_orders.id,
+          type: "partner" as const,
+          category: "Digital License Delivery",
+          title: (cb.canboso_orders.productTitle || "Canboso Goods") + (qty > 1 ? ` (×${qty})` : ""),
+          imageUrl: null,
+          amountCents: -(cb.canboso_orders.amountPaid || 0),
+          amountUsd: costUsd.toFixed(2),
+          amountLkr: costLkr.toLocaleString(),
+          amountFormatted: isLkr ? `-Rs. ${costLkr.toLocaleString()}` : `-$${costUsd.toFixed(2)}`,
+          currency: isLkr ? "LKR" : "USD",
+          quantity: qty,
+          method: "wallet_balance",
+          status: cb.canboso_orders.status === "approved" || cb.canboso_orders.status === "completed" ? "completed" : cb.canboso_orders.status,
+          reference: `#YOUUHOST-${cb.canboso_orders.externalOrderId || (4000 + cb.canboso_orders.id)}`,
+          deliveredContent: cb.canboso_orders.deliveryText || null,
+          details: `Order for ${cb.canboso_orders.productTitle} (Qty: ${qty}). Instant digital credentials delivered.`,
+          createdAt: cb.canboso_orders.createdAt || new Date(),
+          updatedAt: cb.canboso_orders.createdAt || new Date()
+        };
+      });
+
       // Combine and sort by createdAt descending, with secondary tie-breaker by rawId descending
-      const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions, ...cssxTransactions].sort((a, b) => {
+      const allTransactions = [...deposits, ...purchases, ...smmTransactions, ...partnerTransactions, ...cssxTransactions, ...canbosoTransactions].sort((a, b) => {
         const timeA = new Date(a.createdAt).getTime();
         const timeB = new Date(b.createdAt).getTime();
         if (Math.abs(timeB - timeA) > 1000) {
@@ -3295,8 +3337,59 @@ export async function registerRoutes(
         };
       });
 
+      // 5. Canboso Partner Orders
+      const canbosoItemsRaw = await db.select()
+        .from(canbosoOrders)
+        .leftJoin(canbosoProducts, eq(canbosoOrders.canbosoProductId, canbosoProducts.id))
+        .leftJoin(telegramUsers, eq(canbosoOrders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(canbosoOrders.createdAt));
+
+      const canbosoItems = canbosoItemsRaw.map(cb => {
+        const user = cb.telegram_users;
+        const hasLkrPaid = cb.canboso_orders.amountPaidLkr && Number(cb.canboso_orders.amountPaidLkr) > 0;
+        const isLkr = Boolean(hasLkrPaid || user?.selectedCurrency === "LKR");
+        const costUsd = ((cb.canboso_orders.amountPaid || 0) / 100);
+        const costLkr = hasLkrPaid 
+          ? Number(cb.canboso_orders.amountPaidLkr) 
+          : (cb.canboso_products?.sellingPriceLkr ? Number(cb.canboso_products.sellingPriceLkr) : Math.round(costUsd * lkrRate));
+        const currency = isLkr ? "LKR" : "USD";
+        const displayAmount = isLkr ? `Rs. ${costLkr.toLocaleString()}` : `$${costUsd.toFixed(2)}`;
+
+        const buyerUsername = user?.username ? `@${user.username}` : null;
+        const buyerEmail = user?.email || null;
+        const buyerTgId = user?.telegramId || null;
+        const buyer = buyerEmail 
+          ? (buyerUsername ? `${buyerUsername} • ${buyerEmail}` : buyerEmail) 
+          : (buyerUsername || (buyerTgId ? `ID: ${buyerTgId}` : "Guest User"));
+
+        return {
+          id: cb.canboso_orders.externalOrderId ? `#${cb.canboso_orders.externalOrderId}` : `#${cb.canboso_orders.id}`,
+          rawId: cb.canboso_orders.id,
+          orderType: "canboso" as const,
+          typeLabel: "Canboso Partner",
+          title: cb.canboso_orders.productTitle || cb.canboso_products?.title || "Partner Good",
+          category: cb.canboso_products?.category || "Canboso",
+          buyer,
+          buyerUsername,
+          buyerEmail,
+          buyerTelegramId: buyerTgId,
+          buyerId: cb.canboso_orders.telegramUserId,
+          currency,
+          displayAmount,
+          amountCents: cb.canboso_orders.amountPaid || 0,
+          amountUsd: `$${costUsd.toFixed(2)}`,
+          amountLkr: `Rs. ${costLkr.toLocaleString()}`,
+          status: cb.canboso_orders.status || "completed",
+          quantity: cb.canboso_orders.quantity || 1,
+          deliveredContent: cb.canboso_orders.deliveryText || null,
+          externalOrderId: cb.canboso_orders.externalOrderId || null,
+          details: `Canboso Order #${cb.canboso_orders.externalOrderId || cb.canboso_orders.id}`,
+          createdAt: cb.canboso_orders.createdAt || new Date()
+        };
+      });
+
       // Combine all orders and sort by date descending
-      const all = [...cloudItems, ...smmItems, ...partnerItems, ...cssxItems].sort((a, b) => {
+      const all = [...cloudItems, ...smmItems, ...partnerItems, ...cssxItems, ...canbosoItems].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
@@ -8166,6 +8259,659 @@ app.post("/api/admin/cssx/batch-order", isAuth, async (req, res) => {
     res.status(500).json({ message: err.message || "Failed to create batch order" });
   }
 });
+
+// =========================================================================
+// --- Canboso Buyer API v2 & Store Management Routes ---
+// =========================================================================
+
+// 1. Get Canboso Settings & Live Balance
+app.get("/api/admin/canboso/settings", isAuth, async (req, res) => {
+  try {
+    const creds = await CanbosoService.getCredentials();
+    let balanceInfo: any = null;
+    let isConnected = false;
+    let connectionError = "";
+
+    if (creds.apiKey) {
+      try {
+        balanceInfo = await CanbosoService.getBalance();
+        isConnected = balanceInfo.success !== false;
+        if (!isConnected && balanceInfo.error) {
+          connectionError = balanceInfo.error;
+        }
+      } catch (err: any) {
+        connectionError = err.message;
+      }
+    }
+
+    res.json({
+      apiKey: creds.apiKey,
+      maskedApiKey: creds.apiKey ? `${creds.apiKey.substring(0, 4)}••••••••${creds.apiKey.slice(-4)}` : "",
+      baseUrl: creds.baseUrl,
+      status: isConnected ? "connected" : (creds.apiKey ? "error" : "no_key"),
+      statusMessage: isConnected ? "Active & Connected (Buyer API v2)" : (creds.apiKey ? `Connection Error: ${connectionError}` : "No active key"),
+      walletCurrency: balanceInfo?.walletCurrency || "USD",
+      balance: balanceInfo?.balance ?? 0,
+      balanceUsd: balanceInfo?.balanceUsd ?? balanceInfo?.balance ?? 0,
+      balanceVnd: balanceInfo?.balanceVnd ?? 0,
+      balanceText: balanceInfo?.balanceText || "$0.00",
+      usdtBalance: balanceInfo?.usdtBalance ?? 0,
+      requester: balanceInfo?.requester || null,
+      updatedAt: balanceInfo?.updatedAt || null
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load Canboso settings" });
+  }
+});
+
+// 2. Save Canboso Settings
+app.post("/api/admin/canboso/settings", isAuth, async (req, res) => {
+  try {
+    const { apiKey, baseUrl } = req.body;
+    if (typeof apiKey !== "string") {
+      return res.status(400).json({ message: "API Key must be provided" });
+    }
+
+    await CanbosoService.saveCredentials(apiKey, baseUrl);
+
+    let balanceInfo: any = null;
+    let isConnected = false;
+    let errorMsg = "";
+
+    if (apiKey.trim()) {
+      try {
+        balanceInfo = await CanbosoService.getBalance();
+        isConnected = balanceInfo.success !== false;
+        if (!isConnected && balanceInfo.error) {
+          errorMsg = balanceInfo.error;
+        }
+      } catch (err: any) {
+        errorMsg = err.message;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: isConnected ? "Canboso API connected successfully!" : (apiKey.trim() ? `Saved, but connection test failed: ${errorMsg}` : "API key cleared."),
+      status: isConnected ? "connected" : (apiKey.trim() ? "error" : "no_key"),
+      walletCurrency: balanceInfo?.walletCurrency || "USD",
+      balanceUsd: balanceInfo?.balanceUsd ?? balanceInfo?.balance ?? 0,
+      balanceText: balanceInfo?.balanceText || "$0.00"
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to save Canboso settings" });
+  }
+});
+
+// 3. Test Connection
+app.get("/api/admin/canboso/test", isAuth, async (req, res) => {
+  try {
+    const result = await CanbosoService.getHealth();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// 4. Fetch Live Remote Catalog from Canboso
+app.get("/api/admin/canboso/fetch-products", isAuth, async (req, res) => {
+  try {
+    const productsList = await CanbosoService.getProducts();
+    res.json(productsList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch live products from Canboso" });
+  }
+});
+
+// 5. Import Products into Store Catalog with Custom Profit Markup
+app.post("/api/admin/canboso/import-products", isAuth, async (req, res) => {
+  try {
+    const { products: importList, markupPercent = 35 } = req.body;
+    if (!Array.isArray(importList) || importList.length === 0) {
+      return res.status(400).json({ message: "No products selected for import." });
+    }
+
+    const rates = await fetchLiveExchangeRates();
+    const lkrRate = rates.LKR || 305.50;
+
+    let count = 0;
+    for (const item of importList) {
+      const productId = String(item.productId || item.product_id || item.id);
+      let costCents = 0;
+      let costVnd = 0;
+
+      if (item.price?.currency === "VND" && item.price.amount) {
+        costVnd = item.price.amount;
+        // Standard Canboso VND conversion rate ~25,000 - 27,000 VND per USD
+        costCents = Math.round((costVnd / 25400) * 100);
+      } else if (item.price?.amount) {
+        costCents = Math.round(item.price.amount * 100);
+      }
+
+      if (costCents <= 0) costCents = 100; // minimum fallback $1.00
+
+      const sellingCents = Math.round(costCents * (1 + markupPercent / 100));
+      const sellingLkr = Math.round((sellingCents / 100) * lkrRate);
+
+      const title = item.name || item.title || `Canboso Product #${productId}`;
+      const productType = item.productType || "standard";
+      const description = item.description || "";
+      const stock = item.availability?.available ?? (item.available ? 50 : 0);
+      const isAvailable = Boolean(item.available !== false && (stock == null || stock > 0));
+
+      const existing = await db.query.canbosoProducts.findFirst({
+        where: eq(canbosoProducts.productId, productId),
+      });
+
+      if (existing) {
+        await db
+          .update(canbosoProducts)
+          .set({
+            title: title || existing.title,
+            stock: stock ?? existing.stock,
+            available: isAvailable,
+            costPriceUsd: costCents,
+            costPriceVnd: costVnd,
+            type: productType,
+            description: description || existing.description,
+            purchaseRequirements: item.purchaseRequirements || existing.purchaseRequirements,
+            updatedAt: new Date(),
+          })
+          .where(eq(canbosoProducts.id, existing.id));
+      } else {
+        await db.insert(canbosoProducts).values({
+          productId,
+          title,
+          type: productType,
+          stock: stock ?? 50,
+          available: isAvailable,
+          costPriceUsd: costCents,
+          costPriceVnd: costVnd,
+          sellingPriceUsd: sellingCents,
+          sellingPriceLkr: sellingLkr,
+          category: "Digital Accounts",
+          description,
+          purchaseRequirements: item.purchaseRequirements || null,
+          isActive: true,
+        });
+      }
+      count++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully imported / updated ${count} products from Canboso!`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to import products from Canboso" });
+  }
+});
+
+// 6. Sync Live Stock from Canboso API
+app.post("/api/admin/canboso/sync-stock", isAuth, async (req, res) => {
+  try {
+    const remoteProducts = await CanbosoService.getProducts();
+    const localProducts = await db.select().from(canbosoProducts);
+
+    let updatedCount = 0;
+    for (const local of localProducts) {
+      const match = remoteProducts.find((r: any) => String(r.productId || r.product_id || r.id) === local.productId);
+      if (match) {
+        const liveStock = match.availability?.available ?? (match.available ? 50 : 0);
+        const isAvailable = Boolean(match.available !== false && (liveStock == null || liveStock > 0));
+        await db
+          .update(canbosoProducts)
+          .set({
+            stock: liveStock ?? 0,
+            available: isAvailable,
+            updatedAt: new Date(),
+          })
+          .where(eq(canbosoProducts.id, local.id));
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synced live stock for ${updatedCount} products from Canboso!`,
+      updatedCount,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to sync stock from Canboso" });
+  }
+});
+
+// 7. List Managed Canboso Products
+app.get("/api/admin/canboso/products", isAuth, async (req, res) => {
+  try {
+    const all = await db.select().from(canbosoProducts).orderBy(desc(canbosoProducts.id));
+    res.json(all);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to list Canboso products" });
+  }
+});
+
+// 8. Update Managed Canboso Product
+app.put("/api/admin/canboso/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { sellingPriceUsd, sellingPriceLkr, isActive, title, category, description, showOnTelegram, telegramPriceUsd, customEmojiId } = req.body;
+
+    const updateData: any = { updatedAt: new Date() };
+    if (sellingPriceUsd !== undefined) updateData.sellingPriceUsd = Math.round(Number(sellingPriceUsd));
+    if (sellingPriceLkr !== undefined) updateData.sellingPriceLkr = Math.round(Number(sellingPriceLkr));
+    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+    if (title !== undefined) updateData.title = title;
+    if (category !== undefined) updateData.category = category;
+    if (description !== undefined) updateData.description = description;
+    if (showOnTelegram !== undefined) updateData.showOnTelegram = Boolean(showOnTelegram);
+    if (telegramPriceUsd !== undefined) updateData.telegramPriceUsd = Math.round(Number(telegramPriceUsd));
+    if (customEmojiId !== undefined) updateData.customEmojiId = customEmojiId;
+
+    await db.update(canbosoProducts).set(updateData).where(eq(canbosoProducts.id, id));
+    res.json({ success: true, message: "Product updated successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update Canboso product" });
+  }
+});
+
+// 8.5. Delete Managed Canboso Product
+app.delete("/api/admin/canboso/products/:id", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(canbosoProducts).where(eq(canbosoProducts.id, id));
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to delete Canboso product" });
+  }
+});
+
+// 9. List Canboso Orders
+app.get("/api/admin/canboso/orders", isAuth, async (req, res) => {
+  try {
+    const allOrders = await db
+      .select({
+        id: canbosoOrders.id,
+        externalOrderId: canbosoOrders.externalOrderId,
+        productId: canbosoOrders.productId,
+        productTitle: canbosoOrders.productTitle,
+        quantity: canbosoOrders.quantity,
+        costPriceUsd: canbosoOrders.costPriceUsd,
+        amountPaid: canbosoOrders.amountPaid,
+        amountPaidLkr: canbosoOrders.amountPaidLkr,
+        unitPriceLkr: canbosoOrders.unitPriceLkr,
+        status: canbosoOrders.status,
+        customerEmail: canbosoOrders.customerEmail,
+        customerAccounts: canbosoOrders.customerAccounts,
+        deliveryText: canbosoOrders.deliveryText,
+        createdAt: canbosoOrders.createdAt,
+        user: {
+          id: telegramUsers.id,
+          username: telegramUsers.username,
+          firstName: telegramUsers.firstName,
+          telegramId: telegramUsers.telegramId,
+          email: telegramUsers.email,
+        }
+      })
+      .from(canbosoOrders)
+      .leftJoin(telegramUsers, eq(canbosoOrders.telegramUserId, telegramUsers.id))
+      .orderBy(desc(canbosoOrders.id));
+
+    res.json(allOrders);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch Canboso orders" });
+  }
+});
+
+// 10. Direct Purchase API for Admin
+app.post("/api/admin/canboso/order", isAuth, async (req, res) => {
+  try {
+    const { productId, quantity = 1, customerEmail, customerAccounts, slotMonths } = req.body;
+    const orderResult = await CanbosoService.purchase({
+      productId,
+      quantity,
+      customerEmail,
+      customerAccounts,
+      slotMonths
+    });
+    res.json({ success: true, order: orderResult });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to place Canboso order" });
+  }
+});
+
+// 11. Public / Mini-App Catalog of Active Canboso Products
+let lastCanbosoStockSync = 0;
+app.get("/api/canboso/products", async (req, res) => {
+  try {
+    const now = Date.now();
+    if (now - lastCanbosoStockSync > 30000) {
+      lastCanbosoStockSync = now;
+      (async () => {
+        try {
+          const remoteProducts = await CanbosoService.getProducts();
+          if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+            const localProducts = await db.select().from(canbosoProducts);
+            for (const local of localProducts) {
+              const match = remoteProducts.find((r: any) => String(r.productId || r.product_id || r.id) === local.productId);
+              if (match) {
+                const liveStock = match.availability?.available ?? (match.available ? 50 : 0);
+                const isAvailable = Boolean(match.available !== false && (liveStock == null || liveStock > 0));
+                await db
+                  .update(canbosoProducts)
+                  .set({
+                    stock: liveStock ?? 0,
+                    available: isAvailable,
+                    updatedAt: new Date()
+                  })
+                  .where(eq(canbosoProducts.id, local.id));
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn("[Canboso Live Stock Auto-Sync] Warning:", (syncErr as any)?.message);
+        }
+      })();
+    }
+
+    const productsList = await db
+      .select()
+      .from(canbosoProducts)
+      .where(eq(canbosoProducts.isActive, true));
+
+    res.json(productsList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to load Canboso products" });
+  }
+});
+
+// 12. Customer Instant Purchase for Canboso Products (Mini-App / Web)
+app.post("/api/mini/canboso/purchase", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const tgUser = (req as any).tgUser;
+    if (!tgUser || !tgUser.id) {
+      return res.status(401).json({ message: "Please authenticate to make a purchase." });
+    }
+
+    const { productId, quantity = 1, customerEmail, customerAccounts, slotMonths } = req.body;
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty < 1) {
+      return res.status(400).json({ message: "Invalid quantity requested." });
+    }
+
+    const [product] = await db
+      .select()
+      .from(canbosoProducts)
+      .where(and(eq(canbosoProducts.id, parseInt(productId, 10)), eq(canbosoProducts.isActive, true)));
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found or currently unavailable." });
+    }
+
+    if (product.stock < qty || !product.available) {
+      return res.status(400).json({ message: "This product is currently out of stock." });
+    }
+
+    // Check purchase requirements
+    const reqs: any = product.purchaseRequirements;
+    if (reqs?.customerEmail && (!customerEmail || !customerEmail.includes('@'))) {
+      return res.status(400).json({ message: "A valid customer email address is required for this product." });
+    }
+
+    const isUsdOrder = req.body.currency ? req.body.currency === 'USD' : (req.body.platform === 'telegram');
+    const effectiveUsdCents = (isUsdOrder && product.telegramPriceUsd && product.telegramPriceUsd > 0)
+      ? product.telegramPriceUsd
+      : (product.sellingPriceUsd || 0);
+
+    const totalCents = effectiveUsdCents * qty;
+
+    const rates = await fetchLiveExchangeRates();
+    const lkrRate = rates.LKR || 305.50;
+    const singleLkr = product.sellingPriceLkr && Number(product.sellingPriceLkr) > 0
+      ? Number(product.sellingPriceLkr)
+      : Math.round((effectiveUsdCents / 100) * lkrRate);
+    let finalLkr = singleLkr * qty;
+    let finalCents = totalCents;
+    let deductCents = totalCents;
+    let deductLkr = finalLkr;
+
+    // Phase 1: Atomic Balance Check & Hold
+    const holdResult = await db.transaction(async (tx) => {
+      let user = (
+        await tx
+          .select()
+          .from(telegramUsers)
+          .where(eq(telegramUsers.telegramId, tgUser.id.toString()))
+      )[0];
+
+      if (!user) {
+        user = (
+          await tx
+            .select()
+            .from(telegramUsers)
+            .where(eq(telegramUsers.id, tgUser.dbUser?.id || 0))
+        )[0];
+      }
+
+      if (!user) {
+        throw new Error("User account not found. Please log in first.");
+      }
+
+      // Check coupon code if provided
+      const couponCode = req.body.couponCode;
+      if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+        const cleanCode = couponCode.trim().toUpperCase();
+        const [promo] = await tx.select().from(promoCodes).where(eq(promoCodes.code, cleanCode)).for('update');
+        if (promo && promo.status === "active" && promo.usesCount < promo.maxUses) {
+          const [alreadyRedeemed] = await tx.select({ id: promoCodeRedemptions.id })
+            .from(promoCodeRedemptions)
+            .where(and(
+              eq(promoCodeRedemptions.telegramUserId, user.id),
+              eq(promoCodeRedemptions.promoCodeId, promo.id)
+            ))
+            .limit(1);
+
+          if (!alreadyRedeemed) {
+            let discount = 0;
+            if (promo.discountType === "percentage") {
+              const pct = Math.min(100, Math.max(1, promo.discountValue || 10));
+              discount = Math.round((totalCents * pct) / 100);
+              finalLkr = Math.max(0, finalLkr - Math.round((finalLkr * pct) / 100));
+            } else if (promo.currency === "LKR") {
+              const discLkr = promo.discountValue || promo.reward || 0;
+              discount = Math.min(totalCents, Math.round((discLkr / lkrRate) * 100));
+              finalLkr = Math.max(0, finalLkr - discLkr);
+            } else {
+              discount = Math.min(totalCents, promo.discountValue || promo.reward || 0);
+              finalLkr = Math.max(0, finalLkr - Math.round((discount / 100) * lkrRate));
+            }
+            finalCents = Math.max(0, totalCents - discount);
+
+            await tx.update(promoCodes).set({
+              usesCount: sql`${promoCodes.usesCount} + 1`,
+              status: sql`CASE WHEN ${promoCodes.usesCount} + 1 >= ${promoCodes.maxUses} THEN 'expired' ELSE ${promoCodes.status} END`
+            }).where(eq(promoCodes.id, promo.id));
+
+            await tx.insert(promoCodeRedemptions).values({
+              telegramUserId: user.id,
+              promoCodeId: promo.id,
+            });
+          }
+        }
+      }
+
+      const effBalCents = user.balance != null ? user.balance : (user.balanceLkr ? Math.round((user.balanceLkr / lkrRate) * 100) : 0);
+      const effBalLkr = user.balanceLkr != null && user.balanceLkr >= 0 ? user.balanceLkr : Math.round((effBalCents / 100) * lkrRate);
+
+      if (isUsdOrder) {
+        deductCents = finalCents;
+        deductLkr = Math.round((finalCents / 100) * lkrRate);
+      } else {
+        deductLkr = finalLkr;
+        deductCents = Math.round((finalLkr / lkrRate) * 100);
+      }
+
+      const hasEnough = isUsdOrder
+        ? (effBalCents >= deductCents || effBalLkr >= deductLkr)
+        : (effBalLkr >= deductLkr || effBalCents >= deductCents);
+
+      if (!hasEnough) {
+        throw new Error(
+          `Insufficient wallet balance. Total required: Rs. ${deductLkr.toLocaleString()} ($${(deductCents / 100).toFixed(2)}), Available: Rs. ${effBalLkr.toLocaleString()} ($${((effBalCents || 0) / 100).toFixed(2)}). Please top up your wallet.`
+        );
+      }
+
+      const remainingLkr = Math.max(0, (user.balanceLkr != null ? user.balanceLkr : effBalLkr) - deductLkr);
+      const remainingCents = Math.max(0, (user.balance != null ? user.balance : effBalCents) - deductCents);
+
+      const [updatedUser] = await tx
+        .update(telegramUsers)
+        .set({
+          balance: remainingCents,
+          balanceLkr: remainingLkr
+        })
+        .where(
+          and(
+            eq(telegramUsers.id, user.id),
+            or(
+              gte(telegramUsers.balance, deductCents),
+              gte(telegramUsers.balanceLkr, deductLkr)
+            )
+          )
+        )
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error("Transaction conflict or insufficient wallet balance.");
+      }
+
+      return { user: updatedUser, remainingCents, remainingLkr };
+    });
+
+    const user = holdResult.user;
+
+    // Phase 2: Call External Canboso API
+    let orderRes: any = null;
+    let partnerError: string | null = null;
+    try {
+      orderRes = await CanbosoService.purchase({
+        productId: product.productId,
+        quantity: qty,
+        customerEmail,
+        customerAccounts,
+        slotMonths: slotMonths ? parseInt(slotMonths, 10) : undefined,
+      });
+    } catch (apiErr: any) {
+      console.error("[Canboso Fulfillment Error]:", apiErr);
+      partnerError = apiErr?.message || "Provider communication error";
+    }
+
+    // Phase 3: Auto-Refund on Partner Failure
+    if (partnerError || !orderRes || orderRes.success === false) {
+      console.warn(`[Canboso Auto-Refund]: Partner failed for user ${user.id}. Refunding Rs. ${finalLkr} ($${(finalCents / 100).toFixed(2)})`);
+      await db.transaction(async (refundTx) => {
+        await refundTx.update(telegramUsers).set({
+          balance: sql`${telegramUsers.balance} + ${deductCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${deductLkr}`
+        }).where(eq(telegramUsers.id, user.id));
+
+        await refundTx.insert(payments).values({
+          telegramUserId: user.id,
+          amount: deductCents,
+          amountLkr: deductLkr,
+          status: "completed",
+          paymentMethod: "wallet_refund",
+          payherePaymentId: `REFUND_${Date.now()}`,
+          notes: `YouuHost Team: Money Refunded (${product.title})`,
+        });
+      });
+
+      return res.status(400).json({
+        message: `Order could not be fulfilled by partner: ${partnerError || "Out of stock"}. Your wallet balance has been refunded in full.`
+      });
+    }
+
+    // Phase 4: Save Order Record in Database
+    const [savedOrder] = await db
+      .insert(canbosoOrders)
+      .values({
+        telegramUserId: user.id,
+        canbosoProductId: product.id,
+        externalOrderId: orderRes.orderCode || null,
+        productId: product.productId,
+        productTitle: product.title,
+        quantity: qty,
+        costPriceUsd: product.costPriceUsd || 0,
+        amountPaid: deductCents,
+        amountPaidLkr: deductLkr,
+        unitPriceLkr: Math.round(deductLkr / qty),
+        status: "completed",
+        customerEmail: customerEmail || null,
+        customerAccounts: customerAccounts ? JSON.stringify(customerAccounts) : null,
+        deliveryText: orderRes.deliveryText || null,
+      })
+      .returning();
+
+    io.emit("new_order", {
+      orderId: savedOrder.id,
+      productTitle: product.title,
+      amount: deductCents,
+      amountLkr: deductLkr,
+      partner: "canboso",
+      buyer: user.username || user.firstName || "Customer"
+    });
+
+    res.json({
+      success: true,
+      order: savedOrder,
+      deliveryText: orderRes.deliveryText,
+      accounts: orderRes.accounts,
+      message: `Successfully purchased ${product.title}!`
+    });
+  } catch (err: any) {
+    console.error("Canboso mini purchase error:", err);
+    res.status(500).json({ message: err.message || "Failed to process purchase" });
+  }
+});
+
+// 13. Customer Canboso Order History
+app.get("/api/mini/canboso/orders", verifyMiniAppAuth, async (req, res) => {
+  try {
+    const tgUser = (req as any).tgUser;
+    if (!tgUser || !tgUser.id) return res.json([]);
+
+    let dbUser = tgUser.dbUser;
+    if (!dbUser) {
+      dbUser = await storage.getTelegramUser(tgUser.id.toString());
+    }
+    if (!dbUser) return res.json([]);
+
+    const ordersList = await db
+      .select({
+        id: canbosoOrders.id,
+        canbosoProductId: canbosoOrders.canbosoProductId,
+        externalOrderId: canbosoOrders.externalOrderId,
+        productId: canbosoOrders.productId,
+        productTitle: canbosoOrders.productTitle,
+        quantity: canbosoOrders.quantity,
+        amountPaid: canbosoOrders.amountPaid,
+        amountPaidLkr: canbosoOrders.amountPaidLkr,
+        unitPriceLkr: canbosoOrders.unitPriceLkr,
+        status: canbosoOrders.status,
+        deliveryText: canbosoOrders.deliveryText,
+        createdAt: canbosoOrders.createdAt,
+      })
+      .from(canbosoOrders)
+      .leftJoin(canbosoProducts, eq(canbosoOrders.canbosoProductId, canbosoProducts.id))
+      .where(eq(canbosoOrders.telegramUserId, dbUser.id))
+      .orderBy(desc(canbosoOrders.id));
+
+    res.json(ordersList);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch Canboso orders" });
+  }
+});
+
 
 // --- Public Mini-App Sandromania Shop Routes ---
 

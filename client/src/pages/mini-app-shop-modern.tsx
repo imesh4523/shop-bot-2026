@@ -7,6 +7,7 @@ import { getTelegramInitData, expandTelegramWebApp } from "@/lib/telegram";
 import { queryClient } from "@/lib/queryClient";
 import { PaymentProcessingModal, LottiePayment } from "@/components/lottie-loader";
 import { SlideToPurchase } from "@/components/slide-to-purchase";
+import { CurrencySimulatorModal } from "@/components/currency-simulator-modal";
 import { DEFAULT_CATEGORIES, BADGE_COLOR_STYLES, renderCategoryBrandIcon, CustomCategoryItem } from "@/pages/categories-manager-page";
 import {
   Loader2,
@@ -1237,11 +1238,10 @@ export default function MiniAppShopModern() {
     return Boolean(initData || hasTgParam || hasTgObj);
   }, []);
 
-  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) on first visit. Telegram is strictly locked to USD.
+  // Currency State (USD / LKR) - Auto-detect Sri Lanka (LKR) vs Global (USD) with seamless user choice persistence
   const [selectedCurrency, setSelectedCurrency] = useState<"USD" | "LKR">(() => {
-    if (isTelegram) return "USD";
-    const saved = localStorage.getItem("app_currency");
-    if (saved === "LKR" || saved === "USD") return saved;
+    const saved = typeof window !== "undefined" ? localStorage.getItem("app_currency") : null;
+    if (saved === "LKR" || saved === "USD") return saved as "USD" | "LKR";
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
       if (tz.includes("Colombo") || tz.includes("Sri_Lanka") || tz.includes("Kolkata")) {
@@ -1250,6 +1250,8 @@ export default function MiniAppShopModern() {
     } catch {}
     return "USD";
   });
+
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
 
   const { data: currencyData } = useQuery<{ rates: Record<string, number>; defaultCurrency?: string; isSriLanka?: boolean }>({
     queryKey: ["/api/currency/rates"],
@@ -1262,7 +1264,7 @@ export default function MiniAppShopModern() {
         }
         return data;
       } catch {
-        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 330.04;
+        const cached = parseFloat(localStorage.getItem("cached_lkr_rate") || "") || 305.50;
         return { rates: { USD: 1.0, LKR: cached }, defaultCurrency: "USD", isSriLanka: false };
       }
     },
@@ -1275,23 +1277,23 @@ export default function MiniAppShopModern() {
       } catch {}
       return undefined;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Auto-apply detected currency on first visit if user hasn't toggled yet (skipped in Telegram)
+  // Auto-apply detected currency on initial visit if user hasn't explicitly chosen yet
   useEffect(() => {
     if (currencyData) {
       if (currencyData.rates?.LKR) {
         localStorage.setItem("cached_lkr_rate", String(currencyData.rates.LKR));
       }
-      if (!isTelegram && !localStorage.getItem("app_currency")) {
+      if (!localStorage.getItem("app_currency")) {
         const detected = currencyData.defaultCurrency === "LKR" || currencyData.isSriLanka ? "LKR" : "USD";
         setSelectedCurrency(detected);
       }
     }
-  }, [currencyData, isTelegram]);
+  }, [currencyData]);
 
-  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 330.04);
+  const lkrRate = currencyData?.rates?.LKR || (parseFloat(typeof window !== "undefined" ? localStorage.getItem("cached_lkr_rate") || "" : "") || 305.50);
 
   // Selected Product Detail Modal
   const [detailProduct, setDetailProduct] = useState<(Product & { stockCount?: number }) | null>(null);
@@ -1756,6 +1758,35 @@ export default function MiniAppShopModern() {
     refetchInterval: activeTab === "orders" ? 8000 : false,
   });
 
+  // Canboso Partner Products & Orders Queries
+  const { data: canbosoProductsList = [] } = useQuery<any[]>({
+    queryKey: ["/api/canboso/products"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/canboso/products");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    refetchInterval: 10000,
+  });
+
+  const { data: canbosoOrdersList = [], refetch: refetchCanbosoOrders } = useQuery<any[]>({
+    queryKey: ["/api/mini/canboso/orders"],
+    queryFn: async () => {
+      try {
+        const res = await miniApiRequest("GET", "/api/mini/canboso/orders");
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: activeTab === "orders",
+    refetchInterval: activeTab === "orders" ? 8000 : false,
+  });
+
   // Inline Tab Loading states for Orders and Profile
   const [isOrdersTabLoading, setIsOrdersTabLoading] = useState(false);
   const [isProfileTabLoading, setIsProfileTabLoading] = useState(false);
@@ -1769,6 +1800,7 @@ export default function MiniAppShopModern() {
         refetchOrders(),
         refetchSandromaniaOrders(),
         refetchCssxOrders(),
+        refetchCanbosoOrders(),
         refetchSmmOrders(),
       ]).finally(() => {
         const elapsed = Date.now() - timerStart;
@@ -1801,6 +1833,7 @@ export default function MiniAppShopModern() {
         refetchSmmOrders(),
         refetchSandromaniaOrders(),
         refetchCssxOrders(),
+        refetchCanbosoOrders(),
       ]);
       toast({
         title: "Orders Synced! 🔄",
@@ -2048,11 +2081,43 @@ export default function MiniAppShopModern() {
       });
     });
 
+    // 5. Canboso Partner Orders
+    canbosoOrdersList.forEach((canbOrd: any) => {
+      const isFailed = (canbOrd.status || "").toLowerCase() === "failed";
+      if (isFailed) return;
+
+      const conf = getProviderConfig(canbOrd.productTitle || "Canboso Service", "license");
+      const orderNum = `#CANB-${canbOrd.externalOrderId || (4000 + canbOrd.id)}`;
+      const prodTitle = canbOrd.productTitle || "Digital License";
+
+      list.push({
+        id: `canb-${canbOrd.id}`,
+        rawId: canbOrd.id,
+        orderType: "license",
+        orderNumber: orderNum,
+        title: prodTitle,
+        categoryTag: conf.tag || "Digital License",
+        badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
+        status: canbOrd.status || "Completed",
+        statusBadge: (
+          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+            {canbOrd.status || "Completed"}
+          </span>
+        ),
+        priceCents: canbOrd.amountPaid || 0,
+        priceLkr: canbOrd.amountPaidLkr || Math.round(((canbOrd.amountPaid || 0) / 100) * lkrRate),
+        quantity: canbOrd.quantity || 1,
+        date: canbOrd.createdAt ? new Date(canbOrd.createdAt) : new Date(0),
+        licenseKey: canbOrd.deliveryText || (canbOrd.customerEmail ? `Account/Email: ${canbOrd.customerEmail}` : "Order processed successfully"),
+        customerEmail: canbOrd.customerEmail,
+      });
+    });
+
     // Chronological Sort: Newest Order Always First
     list.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return list;
-  }, [orders, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, smmServicesList, cssxProductsList, lkrRate]);
+  }, [orders, smmOrdersList, sandromaniaOrdersList, cssxOrdersList, canbosoOrdersList, smmServicesList, cssxProductsList, canbosoProductsList, lkrRate]);
 
   const filteredOrders = useMemo(() => {
     if (ordersFilter === "all") return unifiedOrdersList;
@@ -2530,27 +2595,15 @@ Support: https://t.me/youuhost_support
 
   const formatBalanceInCurrentCurrency = (balanceCents: number) => {
     if (selectedCurrency === "LKR") {
-      if ((user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0) {
-        return `Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")}`;
-      }
-      if (!balanceCents || balanceCents <= 0) {
+      const usd = (balanceCents || 0) / 100;
+      if (usd <= 0) {
+        if ((user as any)?.balanceLkr && (user as any).balanceLkr > 0) {
+          return `Rs. ${Math.round(Number((user as any).balanceLkr)).toLocaleString("en-US")}`;
+        }
         return "Rs. 0";
       }
-      const usd = balanceCents / 100;
-      const rawLkr = usd * lkrRate;
-      let rounded = Math.round(rawLkr);
-      if (rounded <= 0) return "Rs. 0";
-      for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
-        const rem = rounded % step;
-        if (rem >= step - 25 && step <= rounded) {
-          rounded += (step - rem);
-          break;
-        } else if (rem <= 25 && rem > 0 && rounded > step) {
-          rounded -= rem;
-          break;
-        }
-      }
-      return `Rs. ${rounded.toLocaleString("en-US")}`;
+      const rawLkr = Math.round(usd * lkrRate);
+      return `Rs. ${rawLkr.toLocaleString("en-US")}`;
     }
     const usd = (balanceCents || 0) / 100;
     return `$${usd.toFixed(2)}`;
@@ -3164,7 +3217,8 @@ Support: https://t.me/youuhost_support
         const activeSmmCount = smmServicesList.filter((s: any) => s.isActive !== false).length;
         const activeSandroCount = sandromaniaProductsList.filter((s: any) => s.isActive !== false).length;
         const activeCssxCount = cssxProductsList.filter((s: any) => s.isActive !== false).length;
-        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount + activeSandroCount + activeCssxCount;
+        const activeCanbosoCount = canbosoProductsList.filter((s: any) => s.isActive !== false).length;
+        return (totalStock > 0 ? totalStock : products.length) + activeSmmCount + activeSandroCount + activeCssxCount + activeCanbosoCount;
       }
       const matching = products.filter((p) => {
         const conf = getProviderConfig(p.name, p.type);
@@ -3194,12 +3248,20 @@ Support: https://t.me/youuhost_support
         const targetCat = categoryId.toLowerCase();
         return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
       });
+      const matchingCanboso = canbosoProductsList.filter((s: any) => {
+        if (s.isActive === false) return false;
+        const title = (s.title || "").toLowerCase();
+        const cat = (s.category || "").toLowerCase();
+        const targetCat = categoryId.toLowerCase();
+        return cat === targetCat || cat.includes(targetCat) || title.includes(targetCat);
+      });
       const totalStock = matching.reduce((acc, p) => acc + (p.stockCount || 0), 0);
       const sandroStock = matchingSandro.reduce((acc, s) => acc + (s.stock || s.stockCount || 1), 0);
       const cssxStock = matchingCssx.reduce((acc, s) => acc + (s.stock || s.stockCount || 1), 0);
-      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock + cssxStock;
+      const canbosoStock = matchingCanboso.reduce((acc, s) => acc + (s.stock || 1), 0);
+      return (totalStock > 0 ? totalStock : matching.length) + matchingSmm.length + sandroStock + cssxStock + canbosoStock;
     };
-  }, [products, smmServicesList, sandromaniaProductsList, cssxProductsList]);
+  }, [products, smmServicesList, sandromaniaProductsList, cssxProductsList, canbosoProductsList]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -3292,10 +3354,34 @@ Support: https://t.me/youuhost_support
     });
   }, [cssxProductsList, selectedCategory, searchQuery, isTelegram]);
 
+  // Filtered Canboso Partner Products
+  const filteredCanbosoProducts = useMemo(() => {
+    return canbosoProductsList.filter((p: any) => {
+      if (p.isActive === false) return false;
+      if (isTelegram && p.showOnTelegram === false) return false;
+      const title = (p.title || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      const targetCat = selectedCategory.toLowerCase();
+
+      const matchesCategory =
+        targetCat === "all" ||
+        cat === targetCat ||
+        cat.includes(targetCat) ||
+        title.includes(targetCat);
+
+      const matchesSearch =
+        !searchQuery.trim() ||
+        title.includes(searchQuery.toLowerCase()) ||
+        cat.includes(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [canbosoProductsList, selectedCategory, searchQuery, isTelegram]);
+
   // Unified Catalog Items with In-Stock prioritized at the TOP and Out-of-Stock sorted to the BOTTOM
   const unifiedCatalogItems = useMemo(() => {
     const list: Array<{
-      type: "smm" | "sandromania" | "cssx" | "product";
+      type: "smm" | "sandromania" | "cssx" | "canboso" | "product";
       data: any;
       isOutOfStock: boolean;
       orderScore: number;
@@ -3338,7 +3424,19 @@ Support: https://t.me/youuhost_support
       });
     });
 
-    // 4. Direct Cloud & Account Products (In stock if stockCount > 0 and isActive !== false)
+    // 4. Canboso Partner Products
+    filteredCanbosoProducts.forEach((canbProd: any) => {
+      const rawStock = typeof canbProd.stock === "number" ? canbProd.stock : 0;
+      const isOutOfStock = canbProd.isActive === false || canbProd.available === false || rawStock <= 0;
+      list.push({
+        type: "canboso",
+        data: canbProd,
+        isOutOfStock,
+        orderScore: isOutOfStock ? 1 : 0,
+      });
+    });
+
+    // 5. Direct Cloud & Account Products (In stock if stockCount > 0 and isActive !== false)
     filteredProducts.forEach((prod: any) => {
       const availableStock = typeof prod.stockCount === "number" ? prod.stockCount : 0;
       const isOutOfStock = prod.isActive === false || availableStock <= 0;
@@ -3367,36 +3465,31 @@ Support: https://t.me/youuhost_support
     }
 
     return deduplicatedList;
-  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredProducts]);
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredCanbosoProducts, filteredProducts]);
 
   // Format Sandromania price helper
   const formatSandromaniaPrice = (sandProdOrPriceCents: any, qty: number = 1) => {
     if (typeof sandProdOrPriceCents === "object" && sandProdOrPriceCents !== null) {
       const prod = sandProdOrPriceCents;
-      if (isTelegram) {
-        const unitUsdCents = (prod.telegramPriceUsd && prod.telegramPriceUsd > 0) ? prod.telegramPriceUsd : (prod.sellingPriceUsd || 0);
-        return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
-      }
-      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
-        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
-      }
-      const totalCents = (prod.sellingPriceUsd || 0) * qty;
-      const usd = totalCents / 100;
       if (selectedCurrency === "LKR") {
-        const lkr = Math.round(usd * lkrRate);
-        return `Rs. ${lkr.toLocaleString()}`;
+        if (prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+          return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString("en-US")}`;
+        }
+        const unitUsdCents = (prod.sellingPriceUsd || 0);
+        const lkr = Math.round(((unitUsdCents * qty) / 100) * lkrRate);
+        return `Rs. ${lkr.toLocaleString("en-US")}`;
       }
-      return `$${usd.toFixed(2)}`;
+      const unitUsdCents = (isTelegram && prod.telegramPriceUsd && prod.telegramPriceUsd > 0)
+        ? prod.telegramPriceUsd
+        : (prod.sellingPriceUsd || 0);
+      return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
     }
     const priceCents = typeof sandProdOrPriceCents === "number" ? sandProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
-    if (isTelegram) {
-      return `$${usd.toFixed(2)}`;
-    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
-      return `Rs. ${lkr.toLocaleString()}`;
+      return `Rs. ${lkr.toLocaleString("en-US")}`;
     }
     return `$${usd.toFixed(2)}`;
   };
@@ -3405,30 +3498,52 @@ Support: https://t.me/youuhost_support
   const formatCssxPrice = (cssxProdOrPriceCents: any, qty: number = 1) => {
     if (typeof cssxProdOrPriceCents === "object" && cssxProdOrPriceCents !== null) {
       const prod = cssxProdOrPriceCents;
-      if (isTelegram) {
-        const unitUsdCents = (prod.telegramPriceUsd && prod.telegramPriceUsd > 0) ? prod.telegramPriceUsd : (prod.sellingPriceUsd || 0);
-        return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
-      }
-      if (selectedCurrency === "LKR" && prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
-        return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString()}`;
-      }
-      const totalCents = (prod.sellingPriceUsd || 0) * qty;
-      const usd = totalCents / 100;
       if (selectedCurrency === "LKR") {
-        const lkr = Math.round(usd * lkrRate);
-        return `Rs. ${lkr.toLocaleString()}`;
+        if (prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+          return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString("en-US")}`;
+        }
+        const unitUsdCents = (prod.sellingPriceUsd || 0);
+        const lkr = Math.round(((unitUsdCents * qty) / 100) * lkrRate);
+        return `Rs. ${lkr.toLocaleString("en-US")}`;
       }
-      return `$${usd.toFixed(2)}`;
+      const unitUsdCents = (isTelegram && prod.telegramPriceUsd && prod.telegramPriceUsd > 0)
+        ? prod.telegramPriceUsd
+        : (prod.sellingPriceUsd || 0);
+      return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
     }
     const priceCents = typeof cssxProdOrPriceCents === "number" ? cssxProdOrPriceCents : 0;
     const totalCents = priceCents * qty;
     const usd = totalCents / 100;
-    if (isTelegram) {
-      return `$${usd.toFixed(2)}`;
-    }
     if (selectedCurrency === "LKR") {
       const lkr = Math.round(usd * lkrRate);
-      return `Rs. ${lkr.toLocaleString()}`;
+      return `Rs. ${lkr.toLocaleString("en-US")}`;
+    }
+    return `$${usd.toFixed(2)}`;
+  };
+
+  // Format Canboso Partner price helper
+  const formatCanbosoPrice = (canbProdOrPriceCents: any, qty: number = 1) => {
+    if (typeof canbProdOrPriceCents === "object" && canbProdOrPriceCents !== null) {
+      const prod = canbProdOrPriceCents;
+      if (selectedCurrency === "LKR") {
+        if (prod.sellingPriceLkr && prod.sellingPriceLkr > 0) {
+          return `Rs. ${(prod.sellingPriceLkr * qty).toLocaleString("en-US")}`;
+        }
+        const unitUsdCents = (prod.sellingPriceUsd || 0);
+        const lkr = Math.round(((unitUsdCents * qty) / 100) * lkrRate);
+        return `Rs. ${lkr.toLocaleString("en-US")}`;
+      }
+      const unitUsdCents = (isTelegram && prod.telegramPriceUsd && prod.telegramPriceUsd > 0)
+        ? prod.telegramPriceUsd
+        : (prod.sellingPriceUsd || 0);
+      return `$${((unitUsdCents * qty) / 100).toFixed(2)}`;
+    }
+    const priceCents = typeof canbProdOrPriceCents === "number" ? canbProdOrPriceCents : 0;
+    const totalCents = priceCents * qty;
+    const usd = totalCents / 100;
+    if (selectedCurrency === "LKR") {
+      const lkr = Math.round(usd * lkrRate);
+      return `Rs. ${lkr.toLocaleString("en-US")}`;
     }
     return `$${usd.toFixed(2)}`;
   };
@@ -3451,11 +3566,9 @@ Support: https://t.me/youuhost_support
       ? detailSandromaniaProduct.telegramPriceUsd
       : (detailSandromaniaProduct.sellingPriceUsd || 0);
 
-    const itemLkr = isTelegram
-      ? Math.round((effUsdCents / 100) * lkrRate)
-      : (detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
-        ? Number(detailSandromaniaProduct.sellingPriceLkr)
-        : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate));
+    const itemLkr = detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
+      ? Number(detailSandromaniaProduct.sellingPriceLkr)
+      : Math.round((effUsdCents / 100) * lkrRate);
     const totalLkr = itemLkr * sandromaniaOrderQty;
     const totalCents = effUsdCents * sandromaniaOrderQty;
 
@@ -3533,7 +3646,7 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/sandromania/purchase", {
         productId: detailSandromaniaProduct.id,
         quantity: sandromaniaOrderQty,
-        currency: isTelegram ? "USD" : selectedCurrency,
+        currency: selectedCurrency,
         platform: isTelegram ? "telegram" : "web",
         couponCode: appliedCoupon?.code || undefined,
       });
@@ -3666,7 +3779,7 @@ Support: https://t.me/youuhost_support
       const res = await miniApiRequest("POST", "/api/mini/cssx/purchase", {
         productId: detailCssxProduct.id,
         quantity: cssxOrderQty,
-        currency: isTelegram ? "USD" : selectedCurrency,
+        currency: selectedCurrency,
         platform: isTelegram ? "telegram" : "web",
         couponCode: appliedCoupon?.code || undefined,
       });
@@ -3699,6 +3812,156 @@ Support: https://t.me/youuhost_support
     }
   };
 
+  // Canboso Ordering & Purchase State
+  const [detailCanbosoProduct, setDetailCanbosoProduct] = useState<any | null>(null);
+  const [canbosoOrderQty, setCanbosoOrderQty] = useState<number>(1);
+  const [canbosoCustomerEmail, setCanbosoCustomerEmail] = useState<string>("");
+  const [canbosoSlotMonths, setCanbosoSlotMonths] = useState<number>(1);
+  const [isCanbosoPurchasing, setIsCanbosoPurchasing] = useState<boolean>(false);
+
+  // Handle Canboso Instant Partner Purchase
+  const handleCanbosoPurchase = async () => {
+    if (!detailCanbosoProduct) return;
+
+    if (!isCustomerLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in with Google or Email to complete your purchase.",
+      });
+      setDetailCanbosoProduct(null);
+      setActiveTab("profile");
+      return;
+    }
+
+    const reqs: any = detailCanbosoProduct.purchaseRequirements;
+    if (reqs?.customerEmail && (!canbosoCustomerEmail || !canbosoCustomerEmail.includes('@'))) {
+      toast({
+        title: "Email Required",
+        description: "Please enter a valid email address for this subscription/activation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const effUsdCents = (isTelegram && detailCanbosoProduct.telegramPriceUsd && detailCanbosoProduct.telegramPriceUsd > 0)
+      ? detailCanbosoProduct.telegramPriceUsd
+      : (detailCanbosoProduct.sellingPriceUsd || 0);
+
+    const itemLkr = detailCanbosoProduct.sellingPriceLkr && Number(detailCanbosoProduct.sellingPriceLkr) > 0
+      ? Number(detailCanbosoProduct.sellingPriceLkr)
+      : Math.round((effUsdCents / 100) * lkrRate);
+    const totalLkr = itemLkr * canbosoOrderQty;
+    const totalCents = effUsdCents * canbosoOrderQty;
+
+    let neededLkr = totalLkr;
+    let neededCents = totalCents;
+    if (appliedCoupon) {
+      if (appliedCoupon.finalPriceLkr != null) {
+        neededLkr = appliedCoupon.finalPriceLkr;
+      } else if (appliedCoupon.discountLkr) {
+        neededLkr = Math.max(0, totalLkr - appliedCoupon.discountLkr);
+      }
+      if (appliedCoupon.finalPriceCents != null) {
+        neededCents = appliedCoupon.finalPriceCents;
+      } else if (appliedCoupon.discountCents) {
+        neededCents = Math.max(0, totalCents - appliedCoupon.discountCents);
+      }
+    }
+
+    const totalPriceUsd = neededCents / 100;
+    const userBalCents = user?.balance || 0;
+    const userBalanceUsd = userBalCents / 100;
+    const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+      ? Number((user as any).balanceLkr)
+      : Math.round((userBalCents / 100) * lkrRate);
+
+    const hasEnough = selectedCurrency === "LKR"
+      ? (userBalLkr >= neededLkr)
+      : (userBalCents >= neededCents);
+
+    if (!hasEnough) {
+      const shortfallLkr = Math.max(0, neededLkr - userBalLkr);
+      const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
+      const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+
+      if (selectedCurrency === "LKR") {
+        setPayhereAmount(cardSuggestedLkr.toString());
+        setBinanceAmount(shortfallLkr.toString());
+        setCryptomusAmount(shortfallLkr.toString());
+      } else {
+        setPayhereAmount(Math.max(1, Math.ceil(shortfallUsd)).toString());
+        setBinanceAmount(shortfallUsd.toString());
+        setCryptomusAmount(shortfallUsd.toString());
+      }
+
+      setShortfallContext({
+        productName: detailCanbosoProduct.title || detailCanbosoProduct.name,
+        shortfallLkr,
+        shortfallUsd,
+        cardSuggestedLkr,
+        neededLkr,
+        neededUsd: totalPriceUsd,
+      });
+
+      const neededDisplay = selectedCurrency === "LKR" ? `Rs. ${shortfallLkr.toLocaleString()}` : `$${shortfallUsd.toFixed(2)} USD`;
+      toast({
+        title: "⚡ Insufficient Balance - Auto Top-up Ready",
+        description: `Shortfall of ${neededDisplay} pre-filled. Card: Rs. ${cardSuggestedLkr} • Binance/Crypto: Rs. ${shortfallLkr}`,
+      });
+
+      setDetailCanbosoProduct(null);
+      setActiveTab("wallet");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setIsCanbosoPurchasing(true);
+    setPaymentModal({
+      isOpen: true,
+      title: "Activating License...",
+      subtitle: "Connecting to Canboso Buyer API & reserving your digital access...",
+    });
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await miniApiRequest("POST", "/api/mini/canboso/purchase", {
+        productId: detailCanbosoProduct.id,
+        quantity: canbosoOrderQty,
+        customerEmail: canbosoCustomerEmail || undefined,
+        slotMonths: canbosoSlotMonths || undefined,
+        currency: selectedCurrency,
+        platform: isTelegram ? "telegram" : "web",
+        couponCode: appliedCoupon?.code || undefined,
+      });
+      await res.json();
+      recordPurchasedDelta(`canboso_${detailCanbosoProduct.id}`, canbosoOrderQty);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      toast({
+        title: "🎉 Purchase Successful!",
+        description: "Your digital license / account access has been provisioned successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/canboso/orders"] });
+      refetchUser();
+      refetchCanbosoOrders();
+      setDetailCanbosoProduct(null);
+      setActiveTab("orders");
+    } catch (err: any) {
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+      queryClient.invalidateQueries({ queryKey: ["/api/mini/user"] });
+      refetchUser();
+      const isRefunded = String(err.message || "").toLowerCase().includes("refund");
+      toast({
+        title: isRefunded ? "🛡️ YouuHost Team: Money Refunded" : "Order Failed",
+        description: err.message || "Failed to process Canboso purchase.",
+        variant: isRefunded ? "default" : "destructive",
+      });
+    } finally {
+      setIsCanbosoPurchasing(false);
+      setPaymentModal((prev) => ({ ...prev, isOpen: false }));
+    }
+  };
+
   // Coupon Code Handlers
   const handleApplyCoupon = async () => {
     if (!couponCodeInput.trim()) return;
@@ -3719,11 +3982,9 @@ Support: https://t.me/youuhost_support
         ? detailSandromaniaProduct.telegramPriceUsd
         : (detailSandromaniaProduct.sellingPriceUsd || 0);
       targetPriceCents = effUsdCents * sandromaniaOrderQty;
-      const itemLkr = isTelegram
-        ? Math.round((effUsdCents / 100) * lkrRate)
-        : (detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
-          ? Number(detailSandromaniaProduct.sellingPriceLkr)
-          : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate));
+      const itemLkr = detailSandromaniaProduct.sellingPriceLkr && Number(detailSandromaniaProduct.sellingPriceLkr) > 0
+        ? Number(detailSandromaniaProduct.sellingPriceLkr)
+        : Math.round(((detailSandromaniaProduct.sellingPriceUsd || 0) / 100) * lkrRate);
       targetPriceLkr = itemLkr * sandromaniaOrderQty;
       targetProdId = `sandro-${detailSandromaniaProduct.id}`;
       targetProdName = detailSandromaniaProduct.title;
@@ -3732,14 +3993,23 @@ Support: https://t.me/youuhost_support
         ? detailCssxProduct.telegramPriceUsd
         : (detailCssxProduct.sellingPriceUsd || 0);
       targetPriceCents = effUsdCents * cssxOrderQty;
-      const itemLkr = isTelegram
-        ? Math.round((effUsdCents / 100) * lkrRate)
-        : (detailCssxProduct.sellingPriceLkr && Number(detailCssxProduct.sellingPriceLkr) > 0
-          ? Number(detailCssxProduct.sellingPriceLkr)
-          : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate));
+      const itemLkr = detailCssxProduct.sellingPriceLkr && Number(detailCssxProduct.sellingPriceLkr) > 0
+        ? Number(detailCssxProduct.sellingPriceLkr)
+        : Math.round(((detailCssxProduct.sellingPriceUsd || 0) / 100) * lkrRate);
       targetPriceLkr = itemLkr * cssxOrderQty;
       targetProdId = `cssx-${detailCssxProduct.id}`;
       targetProdName = detailCssxProduct.title;
+    } else if (detailCanbosoProduct) {
+      const effUsdCents = (isTelegram && detailCanbosoProduct.telegramPriceUsd && detailCanbosoProduct.telegramPriceUsd > 0)
+        ? detailCanbosoProduct.telegramPriceUsd
+        : (detailCanbosoProduct.sellingPriceUsd || 0);
+      targetPriceCents = effUsdCents * canbosoOrderQty;
+      const itemLkr = detailCanbosoProduct.sellingPriceLkr && Number(detailCanbosoProduct.sellingPriceLkr) > 0
+        ? Number(detailCanbosoProduct.sellingPriceLkr)
+        : Math.round(((detailCanbosoProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+      targetPriceLkr = itemLkr * canbosoOrderQty;
+      targetProdId = `canb-${detailCanbosoProduct.id}`;
+      targetProdName = detailCanbosoProduct.title;
     } else {
       return;
     }
@@ -3750,7 +4020,7 @@ Support: https://t.me/youuhost_support
         code: couponCodeInput.trim(),
         amountCents: targetPriceCents,
         amountLkr: targetPriceLkr,
-        currency: isTelegram ? "USD" : selectedCurrency,
+        currency: selectedCurrency,
         productId: targetProdId,
         productName: targetProdName
       });
@@ -4357,6 +4627,18 @@ Support: https://t.me/youuhost_support
               <RefreshCw className="w-2.5 h-2.5 text-[#9490A8] group-hover:rotate-180 transition-transform duration-500 opacity-60 shrink-0" />
             </button>
 
+            {/* Currency Simulator & Switcher Button */}
+            <button
+              type="button"
+              onClick={() => setIsSimulatorOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-[#6C5CE7]/10 via-[#00C9FF]/10 to-[#FF5E62]/10 border border-[#6C5CE7]/30 hover:border-[#6C5CE7] transition-all text-[#6C5CE7] hover:text-[#5B42F3] shadow-xs active:scale-95 cursor-pointer shrink-0"
+              title="Live Currency Simulator & Converter"
+            >
+              <Calculator className="w-3.5 h-3.5 text-[#6C5CE7] shrink-0" />
+              <span className="text-xs font-black tracking-tight">{selectedCurrency}</span>
+              <span className="text-[10px] font-bold text-[#00C9FF] hidden xs:inline">💱</span>
+            </button>
+
             {/* Profile Avatar */}
             <button
               onClick={() => setActiveTab("profile")}
@@ -4670,6 +4952,10 @@ Support: https://t.me/youuhost_support
                             const real = cssxProductsList.find((c: any) => c.id === f.rawId || c.id === (f.id - 200000));
                             return real ? { ...real, ...f } : f;
                           }
+                          if (f.productType === "canboso") {
+                            const real = canbosoProductsList.find((c: any) => c.id === f.rawId || c.id === (f.id - 300000));
+                            return real ? { ...real, ...f } : f;
+                          }
                           const real = products.find((p) => p.id === f.id);
                           return real ? { ...real, ...f } : f;
                         })
@@ -4693,8 +4979,10 @@ Support: https://t.me/youuhost_support
                         ? formatSandromaniaPrice(p, 1)
                         : p.productType === "cssx"
                         ? formatCssxPrice(p, 1)
+                        : p.productType === "canboso"
+                        ? formatCanbosoPrice(p, 1)
                         : formatProductPrice(p);
-                      const stats = getItemStats(p, p.productType === "sandromania" || p.productType === "cssx" ? "sandromania" : "product");
+                      const stats = getItemStats(p, p.productType === "sandromania" || p.productType === "cssx" || p.productType === "canboso" ? "sandromania" : "product");
                       const totalSold = stats.sold;
                       const badgeLabel = p.badge || (idx % 2 === 0 ? "BEST SELLER" : "HOT DEAL");
                       const badgeGradient = idx % 2 === 0
@@ -4717,6 +5005,12 @@ Support: https://t.me/youuhost_support
                               const realProd = cssxProductsList.find((c: any) => c.id === p.rawId || c.id === (p.id - 200000)) || p;
                               setDetailCssxProduct(realProd);
                               setCssxOrderQty(1);
+                              return;
+                            }
+                            if (p.productType === "canboso") {
+                              const realProd = canbosoProductsList.find((c: any) => c.id === p.rawId || c.id === (p.id - 300000)) || p;
+                              setDetailCanbosoProduct(realProd);
+                              setCanbosoOrderQty(1);
                               return;
                             }
                             const realProd = products.find((pr) => pr.id === p.id) || p;
@@ -5128,6 +5422,120 @@ Support: https://t.me/youuhost_support
                               if (isOutOfStock) return;
                               setDetailCssxProduct(cssxProd);
                               setCssxOrderQty(1);
+                            }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              isOutOfStock
+                                ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                                : "bg-gradient-to-tr from-[#8E54E9] to-[#5B42F3] text-white shadow-md shadow-[#8E54E9]/20 hover:opacity-95 active:scale-90"
+                            }`}
+                          >
+                            {isOutOfStock ? <Ban className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
+                  if (item.type === "canboso") {
+                    const canbProd = item.data;
+                    const isOutOfStock = item.isOutOfStock;
+                    const cleanTitle = canbProd.title || "Canboso Service";
+                    const cleanCat = canbProd.category || "General";
+                    const conf = getProviderConfig(cleanTitle, cleanCat);
+                    const priceFormatted = formatCanbosoPrice(canbProd, 1);
+                    const rawStock = typeof canbProd.stock === "number" ? canbProd.stock : 0;
+                    const availableStock = (canbProd.available === false || canbProd.isActive === false || rawStock <= 0) ? 0 : rawStock;
+                    const stats = getItemStats(canbProd, "sandromania");
+
+                    return (
+                      <motion.div
+                        key={`canb-prod-${canbProd.id}`}
+                        whileHover={isOutOfStock ? {} : { y: -3 }}
+                        whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+                        onClick={() => {
+                          if (isOutOfStock) {
+                            toast({ title: "Out of Stock", description: "This product is currently fully out of stock.", variant: "destructive" });
+                            return;
+                          }
+                          setDetailCanbosoProduct(canbProd);
+                          setCanbosoOrderQty(1);
+                        }}
+                        className={`bg-white rounded-3xl p-3.5 shadow-sm border border-[#ECEEF8] flex flex-col justify-between transition-all relative group overflow-hidden ${
+                          isOutOfStock ? "cursor-not-allowed select-none" : "cursor-pointer hover:shadow-md"
+                        }`}
+                      >
+                        {/* Top-Right 45° Corner Angle Ribbon Banner */}
+                        {(() => {
+                          const badge = getProductBadge(canbProd, "cssx");
+                          if (!badge || !badge.text || isOutOfStock) return null;
+                          return (
+                            <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none overflow-hidden z-20">
+                              <div
+                                className={`absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-wider py-1 shadow-sm w-36 -right-10 top-3.5 leading-none ${badge.gradient}`}
+                                style={{ letterSpacing: '0.04em' }}
+                              >
+                                {badge.text}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Top Action: Provider Tag */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
+                            {conf.tag}
+                          </span>
+                        </div>
+
+                        {/* Centered Image with Real Brand Icon, Organic Blob Background & Centered Out of Stock Badge */}
+                        <div className="relative my-2 py-3 flex items-center justify-center">
+                          <div
+                            className={`w-20 h-20 rounded-full bg-gradient-to-br ${conf.blobColor} absolute blur-sm`}
+                          />
+                          <div className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <BrandIcon name={cleanTitle} type={cleanCat} className="w-12 h-12" />
+                          </div>
+
+                          {isOutOfStock && (
+                            <div className="absolute inset-x-0 bottom-0.5 z-20 flex items-center justify-center pointer-events-none">
+                              <div className="bg-slate-700/85 backdrop-blur-md text-slate-100 text-[8.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-slate-500/30 shadow-md flex items-center gap-1.5 whitespace-nowrap">
+                                <Ban className="w-3 h-3 text-slate-300 shrink-0" />
+                                <span>FULLY OUT OF STOCK</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="mt-1">
+                          <h4 className="text-xs font-extrabold text-[#181432] line-clamp-1 group-hover:text-[#5B42F3] transition-colors">
+                            {cleanTitle}
+                          </h4>
+                          <div className="flex items-center justify-between mt-1 text-[9.5px]">
+                            <span className="text-[#7E7998] font-bold flex items-center gap-0.5">
+                              <span className="text-amber-500 font-black">★ {stats.rating}</span>
+                              <span>({stats.sold.toLocaleString()} sold)</span>
+                            </span>
+                            <span className={`text-[9px] font-bold shrink-0 ${!isOutOfStock ? "text-emerald-600" : "text-slate-400"}`}>
+                              {!isOutOfStock ? (availableStock < 90 ? `${availableStock} in stock` : "In stock") : "Out of stock"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Price & Add (+) Button */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5F4FC]">
+                          <div>
+                            <span className="text-xs font-black text-[#181432]">{priceFormatted}</span>
+                            <span className="text-[9px] text-[#7E7998] block">Instant API</span>
+                          </div>
+
+                          <button
+                            disabled={isOutOfStock}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isOutOfStock) return;
+                              setDetailCanbosoProduct(canbProd);
+                              setCanbosoOrderQty(1);
                             }}
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                               isOutOfStock
@@ -5650,13 +6058,8 @@ Support: https://t.me/youuhost_support
                   </span>
                 </div>
 
-                {/* Currency Switcher Pill */}
-                {isTelegram ? (
-                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 shadow-inner">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-black tracking-wide text-white">USD ($) Only</span>
-                  </div>
-                ) : (
+                {/* Currency Switcher Pill & Simulator Trigger */}
+                <div className="flex items-center gap-1.5">
                   <div className="flex items-center bg-black/40 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-inner">
                     <button
                       type="button"
@@ -5681,7 +6084,17 @@ Support: https://t.me/youuhost_support
                       LKR (Rs)
                     </button>
                   </div>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulatorOpen(true)}
+                    className="p-1.5 xs:px-2.5 xs:py-1 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1 text-[10.5px] font-bold transition-all active:scale-95 shadow-xs cursor-pointer"
+                    title="Open Live Currency Simulator & Converter"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">Simulator</span>
+                  </button>
+                </div>
               </div>
 
               {/* Big Balance Amount */}
@@ -5690,22 +6103,24 @@ Support: https://t.me/youuhost_support
                   {formatBalanceInCurrentCurrency(user?.balance || 0)}
                 </h2>
                 <span className="text-xs font-bold text-purple-200/75 block mt-0.5">
-                  {isTelegram
-                    ? `Telegram Wallet (USD)`
-                    : selectedCurrency === "USD"
-                    ? ((user as any)?.balanceLkr != null && (user as any).balanceLkr > 0
-                        ? `≈ Rs. ${Number((user as any).balanceLkr).toLocaleString("en-US")} LKR`
-                        : `≈ Rs. ${(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`)
+                  {selectedCurrency === "USD"
+                    ? `≈ Rs. ${Math.round(((user?.balance || 0) / 100) * lkrRate).toLocaleString("en-US")} LKR`
                     : `≈ $${((user?.balance || 0) / 100).toFixed(2)} USD`}
                 </span>
               </div>
 
               {/* Bottom Row: Live Exchange Rate Badge & User Info */}
               <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10 relative z-10 text-[11px]">
-                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2 xs:px-2.5 py-1 rounded-full text-purple-100 font-bold shrink-0 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setIsSimulatorOpen(true)}
+                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 active:scale-95 transition-all backdrop-blur-md px-2 xs:px-2.5 py-1 rounded-full text-purple-100 font-bold shrink-0 whitespace-nowrap cursor-pointer"
+                  title="Click to simulate conversion"
+                >
                   <TrendingUp className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
                   <span>1 USD = {lkrRate.toFixed(2)} LKR</span>
-                </div>
+                  <span className="text-[10px] text-cyan-300 font-normal">💱</span>
+                </button>
                 <span className="text-purple-300/80 font-mono text-[10px] truncate max-w-[120px] xs:max-w-[160px]">
                   ID: {user?.telegramId || (user?.email ? user.email.split('@')[0] : "Guest")}
                 </span>
@@ -8513,6 +8928,220 @@ Support: https://t.me/youuhost_support
         </DialogContent>
       </Dialog>
 
+      {/* Canboso Product Detail & Purchase Dialog */}
+      <Dialog
+        open={!!detailCanbosoProduct}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailCanbosoProduct(null);
+            setAppliedCoupon(null);
+            setCanbosoCustomerEmail("");
+            setCanbosoSlotMonths(1);
+          }
+        }}
+      >
+        <DialogContent hideClose={true} className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50">
+          {detailCanbosoProduct && (() => {
+            const cleanTitle = detailCanbosoProduct.title || "Canboso Service";
+            const cleanCat = detailCanbosoProduct.category || "General";
+            const rawStock = typeof detailCanbosoProduct.stock === "number" ? detailCanbosoProduct.stock : 0;
+            const isAvail = detailCanbosoProduct.available !== false && detailCanbosoProduct.isActive !== false;
+            const availableStock = (!isAvail || rawStock <= 0) ? 0 : rawStock;
+            const isOutOfStock = !isAvail || availableStock <= 0;
+            const itemLkr = detailCanbosoProduct.sellingPriceLkr ? Number(detailCanbosoProduct.sellingPriceLkr) : Math.round(((detailCanbosoProduct.sellingPriceUsd || 0) / 100) * lkrRate);
+            const totalLkr = itemLkr * canbosoOrderQty;
+            const totalCents = (detailCanbosoProduct.sellingPriceUsd || 0) * canbosoOrderQty;
+            const userBalCents = user?.balance || 0;
+            const userBalLkr = (user as any)?.balanceLkr != null && (user as any).balanceLkr >= 0
+              ? Number((user as any).balanceLkr)
+              : Math.round((userBalCents / 100) * lkrRate);
+            const hasEnough = selectedCurrency === "LKR"
+              ? (userBalLkr >= totalLkr)
+              : (userBalCents >= totalCents);
+            const isFav = favorites.includes(`canboso_${detailCanbosoProduct.id}`);
+            const reqs: any = detailCanbosoProduct.purchaseRequirements;
+            const needsEmail = Boolean(reqs?.customerEmail);
+
+            return (
+              <div>
+                {/* Top Action Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => {
+                      setDetailCanbosoProduct(null);
+                      setAppliedCoupon(null);
+                      setCanbosoCustomerEmail("");
+                    }}
+                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#5B42F3] hover:bg-[#EDE9FE] transition-colors border border-[#ECEEF8]"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => toggleFavorite(`canboso_${detailCanbosoProduct.id}`)}
+                    className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#7E7998] hover:text-red-500 transition-colors border border-[#ECEEF8]"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Centered Visual */}
+                <div className="relative py-4 flex items-center justify-center mb-4">
+                  <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-[#E9D5FF] to-[#DBEAFE] absolute blur-sm" />
+                  <div className="relative z-10 drop-shadow-sm">
+                    <BrandIcon name={cleanTitle} type={cleanCat} className="w-14 h-14" />
+                  </div>
+                </div>
+
+                {/* Title & Badge */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <h3 className="text-lg font-black text-[#181432] leading-tight">{cleanTitle}</h3>
+                    <span className="text-[11px] font-bold text-[#6B658B] block mt-0.5">
+                      {cleanCat || "Digital Goods"} · Canboso Partner Fast API
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black text-[#5B42F3]">
+                      {appliedCoupon ? formatCouponPrice(appliedCoupon) : formatCanbosoPrice(detailCanbosoProduct, canbosoOrderQty)}
+                    </span>
+                    {appliedCoupon && (
+                      <span className="text-[10px] text-emerald-600 font-bold block">
+                        {formatCouponDiscount(appliedCoupon)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                {detailCanbosoProduct.description && (
+                  <p className="text-xs text-[#7E7998] mb-4 bg-white/60 p-3 rounded-2xl border border-[#ECEEF8]">
+                    {detailCanbosoProduct.description}
+                  </p>
+                )}
+
+                {/* Customer Email Input */}
+                {needsEmail && (
+                  <div className="mb-4 bg-white p-3.5 rounded-2xl border border-[#ECEEF8]">
+                    <label className="text-[11px] font-bold text-[#181432] block mb-1.5 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-[#5B42F3]" />
+                      Activation / Subscription Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={canbosoCustomerEmail}
+                      onChange={(e) => setCanbosoCustomerEmail(e.target.value)}
+                      placeholder="e.g. user@gmail.com"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-[#ECEEF8] focus:border-[#5B42F3] focus:outline-none bg-[#F8F9FD]"
+                    />
+                    <span className="text-[10px] text-[#7E7998] mt-1 block">
+                      Required by provider for account invitation or license delivery.
+                    </span>
+                  </div>
+                )}
+
+                {/* Quantity Controls */}
+                <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-[#ECEEF8] mb-4">
+                  <span className="text-xs font-bold text-[#181432]">Order Quantity</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCanbosoOrderQty((q) => Math.max(1, q - 1))}
+                      disabled={canbosoOrderQty <= 1}
+                      className="w-7 h-7 rounded-full bg-[#F5F4FC] hover:bg-[#EDE9FE] text-[#5B42F3] flex items-center justify-center font-bold disabled:opacity-40"
+                    >
+                      -
+                    </button>
+                    <span className="text-xs font-black text-[#181432] min-w-[20px] text-center">
+                      {canbosoOrderQty}
+                    </span>
+                    <button
+                      onClick={() => setCanbosoOrderQty((q) => Math.min(availableStock || 99, q + 1))}
+                      disabled={canbosoOrderQty >= (availableStock || 99)}
+                      className="w-7 h-7 rounded-full bg-[#F5F4FC] hover:bg-[#EDE9FE] text-[#5B42F3] flex items-center justify-center font-bold disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stock & Balance Alert */}
+                {!hasEnough && !isOutOfStock && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between mb-4">
+                    <div className="text-[11px] text-amber-800 font-bold">
+                      Insufficient wallet balance
+                    </div>
+                    <button
+                      onClick={() => {
+                        const shortfallLkr = Math.max(0, totalLkr - userBalLkr);
+                        const totalPriceUsd = totalCents / 100;
+                        const userBalanceUsd = userBalCents / 100;
+                        const shortfallUsd = Math.max(0, parseFloat((totalPriceUsd - userBalanceUsd).toFixed(2)));
+                        const cardSuggestedLkr = Math.max(50, Math.ceil(shortfallLkr / 50) * 50);
+
+                        if (selectedCurrency === "LKR") {
+                          setPayhereAmount(cardSuggestedLkr.toString());
+                          setBinanceAmount(shortfallLkr.toString());
+                          setCryptomusAmount(shortfallLkr.toString());
+                        } else {
+                          const cardSuggestedUsd = Math.max(1, Math.ceil(shortfallUsd));
+                          setPayhereAmount(cardSuggestedUsd.toString());
+                          setBinanceAmount(shortfallUsd.toString());
+                          setCryptomusAmount(shortfallUsd.toString());
+                        }
+
+                        setShortfallContext({
+                          productName: cleanTitle || "Item",
+                          shortfallLkr,
+                          shortfallUsd,
+                          cardSuggestedLkr,
+                          neededLkr: totalLkr,
+                          neededUsd: totalPriceUsd,
+                        });
+
+                        setDetailCanbosoProduct(null);
+                        setActiveTab("wallet");
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[11px] shadow-sm transition-all"
+                    >
+                      Top Up
+                    </button>
+                  </div>
+                )}
+
+                {/* Purchase Button */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCanbosoPurchase}
+                    disabled={isCanbosoPurchasing || isOutOfStock}
+                    className={`flex-1 py-3.5 ${
+                      isOutOfStock
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                        : "bg-gradient-to-r from-[#8E54E9] via-[#5B42F3] to-[#00C9FF] text-white shadow-md shadow-[#5B42F3]/20 hover:opacity-95 active:scale-98"
+                    } rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all disabled:opacity-50`}
+                  >
+                    {isCanbosoPurchasing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isOutOfStock ? (
+                      <span>Out of Stock</span>
+                    ) : !isCustomerLoggedIn ? (
+                      <>
+                        <UserIcon className="w-4 h-4" /> Sign In to Buy
+                      </>
+                    ) : (
+                      <>
+                        <ShopBagIcon className="w-4 h-4" /> Buy Now {appliedCoupon ? `• ${formatCouponPrice(appliedCoupon)}` : `(Instant API)`} 🚀
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* FLOATING BOTTOM NAVIGATION */}
       <nav className="fixed bottom-3 xs:bottom-4 inset-x-0 max-w-md mx-auto px-3 xs:px-4 sm:px-5 z-40">
         <div className="bg-white/95 backdrop-blur-md rounded-full px-2.5 xs:px-4 sm:px-5 py-2 xs:py-2.5 sm:py-3 shadow-xl border border-[#ECEEF8] flex items-center justify-between">
@@ -9615,6 +10244,17 @@ Support: https://t.me/youuhost_support
         isOpen={paymentModal.isOpen}
         title={paymentModal.title}
         subtitle={paymentModal.subtitle}
+      />
+
+      {/* Live Currency Simulator & Converter Modal */}
+      <CurrencySimulatorModal
+        isOpen={isSimulatorOpen}
+        onClose={() => setIsSimulatorOpen(false)}
+        lkrRate={lkrRate}
+        currentCurrency={selectedCurrency}
+        onSelectCurrency={handleCurrencyChange}
+        userBalanceCents={user?.balance || 0}
+        userBalanceLkr={user ? Math.round(((user.balance || 0) / 100) * lkrRate) : 0}
       />
     </div>
   );
