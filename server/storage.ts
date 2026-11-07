@@ -1,5 +1,6 @@
 import { db } from "./db";
 import bcrypt from "bcryptjs";
+import { hashApiKey, maskApiKey } from "./security-shield";
 import {
   products,
   credentials,
@@ -199,7 +200,7 @@ export interface IStorage {
   updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket>;
 
   // Developer API Keys
-  createApiKey(telegramUserId: number, key: string): Promise<ApiKey>;
+  createApiKey(telegramUserId: number, key: string, keyHash?: string, keyHint?: string): Promise<ApiKey>;
   getApiKeyByKey(key: string): Promise<ApiKey | undefined>;
   getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined>;
   getUserApiKeys(telegramUserId: number): Promise<ApiKey[]>;
@@ -1080,17 +1081,22 @@ export class DatabaseStorage implements IStorage {
     return userIds;
   }
 
-  async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+  async createApiKey(telegramUserId: number, key: string, keyHash?: string, keyHint?: string): Promise<ApiKey> {
     const userIds = await this.resolveUnifiedUserIds(telegramUserId);
 
     await db.update(apiKeys)
       .set({ status: "revoked" })
       .where(and(inArray(apiKeys.telegramUserId, userIds), eq(apiKeys.status, "active")));
 
+    const calculatedHash = keyHash || hashApiKey(key);
+    const hint = keyHint || key.slice(-4);
+
     const [inserted] = await db.insert(apiKeys)
       .values({
         telegramUserId,
-        key,
+        key: calculatedHash,
+        keyHash: calculatedHash,
+        keyHint: hint,
         status: "active",
       })
       .returning();
@@ -1098,7 +1104,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiKeyByKey(key: string): Promise<ApiKey | undefined> {
-    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.key, key));
+    const clean = key.trim();
+    const calculatedHash = hashApiKey(clean);
+    const [apiKey] = await db.select()
+      .from(apiKeys)
+      .where(or(
+        eq(apiKeys.keyHash, calculatedHash),
+        eq(apiKeys.key, calculatedHash),
+        eq(apiKeys.key, clean)
+      ));
     return apiKey;
   }
 
@@ -1125,10 +1139,15 @@ export class DatabaseStorage implements IStorage {
   async getUserApiKeys(telegramUserId: number): Promise<ApiKey[]> {
     const userIds = await this.resolveUnifiedUserIds(telegramUserId);
 
-    return await db.select()
+    const rows = await db.select()
       .from(apiKeys)
       .where(inArray(apiKeys.telegramUserId, userIds))
       .orderBy(desc(apiKeys.createdAt));
+
+    return rows.map(r => ({
+      ...r,
+      key: maskApiKey(r.key, r.keyHint || undefined)
+    }));
   }
 
   async getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]> {
@@ -1139,6 +1158,7 @@ export class DatabaseStorage implements IStorage {
 
     return rows.map((r) => ({
       ...r.api_keys,
+      key: maskApiKey(r.api_keys.key, r.api_keys.keyHint || undefined),
       telegramUser: r.telegram_users,
     }));
   }

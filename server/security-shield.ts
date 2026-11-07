@@ -271,9 +271,16 @@ export function securityShieldMiddleware(req: Request, res: Response, next: Next
 
   // 1. HARDENED OWASP SECURITY HEADERS
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data: blob:;"
+  );
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.removeHeader("X-Powered-By"); // Hide Express tech stack
 
   // 2. WHITELISTED & PRIVATE / PROXY IP BYPASS
@@ -445,3 +452,57 @@ export function getSecurityShieldStatus() {
 export function unbanJailedIp(ip: string): boolean {
   return ipJailMap.delete(ip);
 }
+
+// --- API KEY CRYPTOGRAPHIC SECURITY (Stripe / GitHub Standard) ---
+const API_KEY_PREFIX = "yh_live_";
+const API_KEY_PEPPER = process.env.API_KEY_PEPPER || process.env.SESSION_SECRET || "youuhost_api_hmac_pepper_secure_2026";
+
+/**
+ * Generates an enterprise-grade API key with HMAC-SHA256 checksum
+ * Format: yh_live_<48 hex entropy>_<8 hex checksum>
+ */
+export function generateApiKey(): { fullKey: string; keyHash: string; keyHint: string } {
+  const entropy = crypto.randomBytes(24).toString("hex");
+  const checksum = crypto.createHmac("sha256", API_KEY_PEPPER).update(entropy).digest("hex").slice(0, 8);
+  const fullKey = `${API_KEY_PREFIX}${entropy}_${checksum}`;
+  const keyHash = crypto.createHmac("sha256", API_KEY_PEPPER).update(fullKey).digest("hex");
+  const keyHint = fullKey.slice(-4);
+  return { fullKey, keyHash, keyHint };
+}
+
+/**
+ * Verifies key format and 8-hex HMAC checksum with constant-time equality
+ * Rejects forged or invalid keys with zero database overhead
+ */
+export function verifyApiKeyChecksum(key: string): boolean {
+  if (!key || typeof key !== "string" || !key.startsWith(API_KEY_PREFIX)) return false;
+  const body = key.slice(API_KEY_PREFIX.length);
+  const lastUnderscore = body.lastIndexOf("_");
+  if (lastUnderscore <= 0) return false;
+  const entropy = body.substring(0, lastUnderscore);
+  const checksum = body.substring(lastUnderscore + 1);
+  if (!entropy || !checksum || checksum.length !== 8) return false;
+
+  const expected = crypto.createHmac("sha256", API_KEY_PEPPER).update(entropy).digest("hex").slice(0, 8);
+  const a = Buffer.from(checksum);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * Computes deterministic HMAC-SHA256 hash for secure database lookups
+ */
+export function hashApiKey(key: string): string {
+  if (!key) return "";
+  return crypto.createHmac("sha256", API_KEY_PEPPER).update(key.trim()).digest("hex");
+}
+
+/**
+ * Masks API key for safe UI display (e.g. yh_live_•••••••3b8a)
+ */
+export function maskApiKey(key: string, hint?: string): string {
+  if (!key) return "";
+  const last4 = hint || key.slice(-4);
+  return `yh_live_••••••••${last4}`;
+}
+

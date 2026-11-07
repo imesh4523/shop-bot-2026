@@ -118,6 +118,8 @@ export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
   key: text("key").unique().notNull(),
+  keyHash: text("key_hash"),
+  keyHint: text("key_hint"),
   status: text("status").notNull().default("active"),
   totalOrders: integer("total_orders").notNull().default(0),
   successOrders: integer("success_orders").notNull().default(0),

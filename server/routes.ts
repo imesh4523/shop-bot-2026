@@ -19,7 +19,7 @@ import { SandromaniaService } from "./sandromania-service";
 import { CssxService } from "./cssx-service";
 import { TunvnService } from "./tunvn-service";
 import { domainAutomationService } from "./domain-automation-service";
-import { getSecurityShieldStatus, unbanJailedIp, addToWhitelist } from "./security-shield";
+import { getSecurityShieldStatus, unbanJailedIp, addToWhitelist, generateApiKey, maskApiKey } from "./security-shield";
 import { 
   generatePairCode, 
   handleIncomingHandshake, 
@@ -730,12 +730,12 @@ const upload = multer({
   storage: storage_disk,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req: any, file: any, cb: any) => {
-    const allowedExts = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
-    const allowedMime = /^image\/(jpeg|png|gif|webp|svg\+xml)$/i;
+    const allowedExts = /\.(jpg|jpeg|png|gif|webp)$/i;
+    const allowedMime = /^image\/(jpeg|png|gif|webp)$/i;
     if (allowedExts.test(file.originalname) && allowedMime.test(file.mimetype)) {
       return cb(null, true);
     }
-    return cb(new Error("Only safe image files (JPG, PNG, GIF, WEBP, SVG) are allowed"));
+    return cb(new Error("Only safe raster image files (JPG, PNG, GIF, WEBP) are allowed. SVG is blocked for security."));
   }
 });
 
@@ -991,7 +991,7 @@ export async function registerRoutes(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: "auto" as any,
       sameSite: "lax",
       maxAge: sessionTtl,
     },
@@ -1077,6 +1077,8 @@ export async function registerRoutes(
         last_used_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
+      ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_hash TEXT;
+      ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS key_hint TEXT;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS api_key_id INTEGER REFERENCES api_keys(id) ON DELETE SET NULL;
 
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS reward INTEGER DEFAULT 0;
@@ -1249,7 +1251,9 @@ export async function registerRoutes(
       // Valid for 90 days
       if (Date.now() - ts > 90 * 24 * 60 * 60 * 1000) return null;
       const expectedSig = crypto.createHmac("sha256", CUSTOMER_AUTH_SECRET).update(`${userId}:${ts}`).digest("hex");
-      if (sig === expectedSig) {
+      const sigBuf = Buffer.from(sig, "hex");
+      const expBuf = Buffer.from(expectedSig, "hex");
+      if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
         return userId;
       }
       return null;
@@ -1316,20 +1320,6 @@ export async function registerRoutes(
               (req.session as any).customerUserId = verifiedId;
             }
           }
-        }
-      }
-
-      // Check x-customer-user-id or x-customer-email fallback header
-      if (!customerUserId) {
-        const headerUserId = req.headers['x-customer-user-id'] as string;
-        const headerEmail = req.headers['x-customer-email'] as string;
-        if (headerUserId && /^\d+$/.test(headerUserId) && parseInt(headerUserId, 10) > 0) {
-          customerUserId = parseInt(headerUserId, 10);
-        } else if (headerEmail && typeof headerEmail === "string" && headerEmail.includes("@")) {
-          try {
-            const userByEmail = await storage.getTelegramUserByEmail(headerEmail);
-            if (userByEmail?.id) customerUserId = userByEmail.id;
-          } catch {}
         }
       }
 
@@ -2628,13 +2618,17 @@ export async function registerRoutes(
         return res.status(401).json({ success: false, message: "Please sign in to generate an API key" });
       }
 
-      const keyStr = "yh_" + crypto.randomBytes(20).toString("hex");
-      const created = await storage.createApiKey(dbUser.id, keyStr);
+      const { fullKey, keyHash, keyHint } = generateApiKey();
+      const created = await storage.createApiKey(dbUser.id, fullKey, keyHash, keyHint);
 
       res.json({
         success: true,
-        message: "New Developer API Key generated successfully!",
-        key: created
+        message: "New Developer API Key generated successfully! Please copy and store it securely; it will not be shown again in full.",
+        key: {
+          ...created,
+          fullKey,
+          key: fullKey
+        }
       });
     } catch (err: any) {
       console.error("POST /api/mini/api-keys/generate error:", err);
@@ -4463,9 +4457,14 @@ export async function registerRoutes(
         return res.status(400).json({ message: "telegramUserId is required" });
       }
 
-      const keyStr = "yh_" + crypto.randomBytes(20).toString("hex");
-      const created = await storage.createApiKey(Number(telegramUserId), keyStr);
-      res.json(created);
+      const { fullKey, keyHash, keyHint } = generateApiKey();
+      const created = await storage.createApiKey(Number(telegramUserId), fullKey, keyHash, keyHint);
+      res.json({
+        ...created,
+        fullKey,
+        key: fullKey,
+        message: "API key generated successfully! Plaintext key will not be shown again."
+      });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -14903,8 +14902,9 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
       }
 
       if (data === 'create_api_key') {
-        const newKeyStr = 'yh_' + crypto.randomBytes(20).toString('hex');
-        await storage.createApiKey(tgUser.id, newKeyStr);
+        const { fullKey, keyHash, keyHint } = generateApiKey();
+        await storage.createApiKey(tgUser.id, fullKey, keyHash, keyHint);
+        await targetBot.sendMessage(chatId, `🔑 <b>New Enterprise API Key Generated:</b>\n\n<code>${fullKey}</code>\n\n⚠️ <i>Please copy and store your API key now. For your security, the full key cannot be recovered once this screen is closed.</i>`, { parse_mode: 'HTML' }).catch(() => {});
         await sendDeveloperApiScreen(targetBot, chatId, userId, msgId);
         return;
       }
@@ -17085,9 +17085,24 @@ async function processAntiSpamCheck(targetBot: TelegramBot, userId: string, chat
           return;
         }
 
+        const isPaid = Boolean(payment && payment.status === 'completed');
+
+        if (!isPaid) {
+          if (query.id) {
+            await targetBot.answerCallbackQuery(query.id, {
+              text: '❌ Payment not verified or already redeemed.\n\nPlease complete payment or contact support!',
+              show_alert: true
+            }).catch(() => {});
+          } else {
+            await targetBot.sendMessage(chatId, '❌ <b>Payment Not Verified</b>\n\nPayment has not been confirmed or has already been used.', { parse_mode: 'HTML' });
+          }
+          return;
+        }
+
         if (isPaid) {
-          if (tgUser.balance >= totalCents) {
-            await storage.updateTelegramUser(tgUser.id, { balance: tgUser.balance - totalCents });
+          if (payment) {
+            // Anti-Replay: Mark payment as fulfilled so the same transaction cannot be reused
+            await db.update(payments).set({ status: 'fulfilled' }).where(eq(payments.id, payment.id));
           }
 
           let targetProduct: any = null;

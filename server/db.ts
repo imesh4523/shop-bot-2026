@@ -1,6 +1,8 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
+import fs from "fs";
+import path from "path";
 
 const { Pool } = pg;
 
@@ -9,7 +11,6 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
-
 
 const isLocalhost = process.env.DATABASE_URL.includes("localhost") || process.env.DATABASE_URL.includes("127.0.0.1");
 
@@ -21,11 +22,16 @@ if (!isLocalhost) {
   }
 }
 
+const caCert = process.env.DB_CA_CERT || (fs.existsSync(path.join(process.cwd(), "ca-certificate.crt")) ? fs.readFileSync(path.join(process.cwd(), "ca-certificate.crt"), "utf8") : null);
+
 export const pool = new Pool({ 
   connectionString,
-  ssl: isLocalhost ? false : {
+  ssl: isLocalhost ? false : (caCert ? {
+    ca: caCert,
+    rejectUnauthorized: true
+  } : {
     rejectUnauthorized: false
-  },
+  }),
   min: 2,
   max: 8,
   idleTimeoutMillis: 60000,

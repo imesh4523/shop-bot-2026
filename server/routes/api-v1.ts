@@ -4,6 +4,7 @@ import { db } from "../db";
 import { products, orders, credentials, apiKeys, telegramUsers, preorders, promoCodes, promoCodeRedemptions, sandromaniaOrders, cssxOrders, smmOrders } from "@shared/schema";
 import { eq, and, or, desc, sql, gte } from "drizzle-orm";
 import { sendAdminPushNotification } from "../push-notifications";
+import { verifyApiKeyChecksum } from "../security-shield";
 
 export const apiV1Router = Router();
 
@@ -24,7 +25,18 @@ async function authenticateApiKey(req: AuthenticatedApiRequest, res: Response, n
     });
   }
 
-  const apiKeyRecord = await storage.getApiKeyByKey(authHeader.trim());
+  const rawKey = authHeader.trim();
+
+  // Fast pre-auth cryptographic checksum verification (Zero DB load on malformed/forged keys)
+  if (rawKey.startsWith("yh_live_") && !verifyApiKeyChecksum(rawKey)) {
+    return res.status(401).json({
+      error: "unauthorized",
+      message: "Invalid API Key format or failed cryptographic checksum.",
+      statusCode: 401
+    });
+  }
+
+  const apiKeyRecord = await storage.getApiKeyByKey(rawKey);
   if (!apiKeyRecord) {
     return res.status(401).json({
       error: "unauthorized",
