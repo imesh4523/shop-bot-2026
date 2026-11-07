@@ -33,7 +33,8 @@ import {
   User as UserIcon,
   MessageCircle,
   Clock,
-  LayoutGrid
+  LayoutGrid,
+  Move
 } from "lucide-react";
 import { 
   FaAws, 
@@ -63,7 +64,7 @@ export default function LiveStoreEditorPage() {
   const [iframeKey, setIframeKey] = useState(Date.now());
   const [isIframeLoading, setIsIframeLoading] = useState(false);
 
-  // Phone Mockup Mode: 'customerStore' (exact original customer UI with live drag & drop) vs 'liveIframe'
+  // Phone Mockup Mode: 'customerStore' (exact original customer UI with live touch & drag reorder) vs 'liveIframe'
   const [phoneMode, setPhoneMode] = useState<"customerStore" | "liveIframe">("customerStore");
 
   // Search & Catalog Filter State
@@ -85,8 +86,7 @@ export default function LiveStoreEditorPage() {
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
-  // Touch pointer dragging state
-  const touchStartY = useRef<number | null>(null);
+  // Touch tracking ref
   const activeTouchItemKey = useRef<string | null>(null);
 
   // 1. Fetch Standard Products
@@ -136,9 +136,9 @@ export default function LiveStoreEditorPage() {
 
   // Device dimensions
   const deviceDimensions = {
-    iphone: { width: 393, height: 830, label: "iPhone 15 Pro", radius: "rounded-[52px]", border: "border-[12px] border-[#1C1C1E]" },
-    android: { width: 412, height: 850, label: "Samsung Galaxy S24", radius: "rounded-[44px]", border: "border-[10px] border-[#2C2C2E]" },
-    compact: { width: 375, height: 740, label: "Compact / SE", radius: "rounded-[36px]", border: "border-[8px] border-[#1C1C1E]" },
+    iphone: { label: "iPhone 15 Pro", radius: "rounded-[44px]", border: "border-[10px] sm:border-[12px] border-[#1C1C1E]" },
+    android: { label: "Galaxy S24", radius: "rounded-[40px]", border: "border-[8px] sm:border-[10px] border-[#2C2C2E]" },
+    compact: { label: "Compact SE", radius: "rounded-[34px]", border: "border-[8px] border-[#1C1C1E]" },
   };
 
   const currentDevice = deviceDimensions[deviceType];
@@ -217,6 +217,7 @@ export default function LiveStoreEditorPage() {
       // 2. Direct Cloud & Accounts (Hotmail, AWS, Gemini, Canva, YouTube)
       ...standardProducts.map((p) => {
         const isFb = p.name?.toLowerCase().includes("facebook") || p.type?.toLowerCase().includes("facebook") || p.name?.toLowerCase().includes("fb");
+        const isActive = p.status !== "disabled" && p.isActive !== false;
         return {
           ...p,
           sourceType: "standard",
@@ -226,7 +227,7 @@ export default function LiveStoreEditorPage() {
           isFacebook: isFb,
           priceLkrVal: p.priceLkr || Math.round(((p.price || 0) / 100) * 305.5),
           priceUsdVal: ((p.price || 0) / 100).toFixed(2),
-          active: p.isActive !== false,
+          active: isActive,
           telegram: p.showOnTelegram !== false,
           stock: p.stockCount ?? 0,
           badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -447,7 +448,7 @@ export default function LiveStoreEditorPage() {
       handleRefreshIframe();
 
       toast({
-        title: "Store Catalog Order Saved! 🚀",
+        title: "Store Order Saved! 🚀",
         description: `Successfully applied custom order for ${orderToSave.length} products to customer live store.`,
       });
     } catch (err: any) {
@@ -469,7 +470,7 @@ export default function LiveStoreEditorPage() {
     if (autoSync) debouncedAutoSave(defaultKeys);
     toast({
       title: "Order Reset to Default",
-      description: "Default order loaded. Applied to live store.",
+      description: "Default order restored and synced to store.",
     });
   };
 
@@ -503,31 +504,43 @@ export default function LiveStoreEditorPage() {
     setDragOverKey(null);
   };
 
-  // Touch / Pointer Drag Handlers (Works on mobile touch screens & mice!)
-  const handlePointerDown = (e: React.PointerEvent, key: string) => {
-    activeTouchItemKey.current = key;
-    touchStartY.current = e.clientY;
-    setDraggedKey(key);
+  // TRUE TOUCH DRAG & DROP FOR MOBILE PHONES
+  // Uses document.elementFromPoint to find whichever card is under the user's finger!
+  const handleTouchStart = (e: React.TouchEvent, itemKey: string) => {
+    activeTouchItemKey.current = itemKey;
+    setDraggedKey(itemKey);
   };
 
-  const handlePointerEnter = (key: string) => {
-    if (activeTouchItemKey.current && activeTouchItemKey.current !== key) {
-      moveItem(activeTouchItemKey.current, key);
-      setDragOverKey(key);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!activeTouchItemKey.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    // Detect card directly underneath finger on touch screen
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!element) return;
+
+    const targetCard = element.closest("[data-item-key]");
+    if (targetCard) {
+      const targetKey = targetCard.getAttribute("data-item-key");
+      if (targetKey && targetKey !== activeTouchItemKey.current) {
+        moveItem(activeTouchItemKey.current, targetKey);
+        setDragOverKey(targetKey);
+      }
     }
   };
 
-  const handlePointerUp = () => {
+  const handleTouchEnd = () => {
     activeTouchItemKey.current = null;
-    touchStartY.current = null;
     setDraggedKey(null);
     setDragOverKey(null);
   };
 
-  // Toggle active status
+  // Toggle active status (Fixed bug: maps isActive to status for products & SMM services)
   const handleToggleActive = async (item: any) => {
     try {
       const newActive = !item.active;
+
       if (item.sourceType === "standard") {
         await apiRequest("PATCH", `/api/admin/products/${item.id}/quick-edit`, { isActive: newActive });
         refetchProducts();
@@ -546,15 +559,15 @@ export default function LiveStoreEditorPage() {
       }
 
       toast({
-        title: newActive ? "Product Active 🟢" : "Product Hidden 🔴",
-        description: `${item.displayTitle} is now ${newActive ? "active" : "hidden"} on store.`,
+        title: newActive ? "Product Visible 🟢" : "Product Hidden 🔴",
+        description: `${item.displayTitle} is now ${newActive ? "active" : "hidden"} on live store.`,
       });
 
       handleRefreshIframe();
     } catch (err: any) {
       toast({
-        title: "Update Failed",
-        description: err.message || "Failed to toggle status.",
+        title: "Toggle Failed",
+        description: err.message || "Failed to update item visibility.",
         variant: "destructive",
       });
     }
@@ -617,9 +630,9 @@ export default function LiveStoreEditorPage() {
   ];
 
   return (
-    <div className="space-y-6 max-w-full pb-16" onPointerUp={handlePointerUp}>
+    <div className="space-y-4 sm:space-y-6 max-w-full pb-16">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-4 sm:p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/40">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-4 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/40">
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 sm:p-3 bg-[#5B42F3]/30 rounded-2xl border border-indigo-500/30">
@@ -629,11 +642,11 @@ export default function LiveStoreEditorPage() {
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
                 Live Store & Mobile Editor
                 <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
-                  TACTILE DRAG & DROP
+                  MOBILE TOUCH DRAG
                 </Badge>
               </h1>
               <p className="text-slate-300 text-xs mt-0.5">
-                Displays the EXACT Customer Store UI on the phone. Touch or drag cards with fingers/mouse to reorder live!
+                Exact Customer Store UI with real-time mobile touch dragging and 1-tap reorder arrows.
               </p>
             </div>
           </div>
@@ -658,36 +671,9 @@ export default function LiveStoreEditorPage() {
               className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-lg animate-pulse"
             >
               {isSavingOrder ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-              Save Changes
+              Save Order
             </Button>
           )}
-
-          <div className="bg-slate-800/80 p-1 rounded-xl border border-slate-700/80 flex items-center gap-1">
-            <button
-              onClick={() => setDeviceType("iphone")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                deviceType === "iphone" ? "bg-[#5B42F3] text-white shadow-xs" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              iPhone
-            </button>
-            <button
-              onClick={() => setDeviceType("android")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                deviceType === "android" ? "bg-[#5B42F3] text-white shadow-xs" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Galaxy
-            </button>
-            <button
-              onClick={() => setDeviceType("compact")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                deviceType === "compact" ? "bg-[#5B42F3] text-white shadow-xs" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Compact
-            </button>
-          </div>
 
           <Button
             size="sm"
@@ -703,9 +689,9 @@ export default function LiveStoreEditorPage() {
       {/* Main Grid: Left Real Customer Phone UI | Right Controller */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Interactive Smartphone Mockup with Real Customer Store */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 border border-slate-800 shadow-xl relative min-h-[890px]">
+        <div className="lg:col-span-6 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-2xl sm:rounded-3xl p-3 sm:p-6 border border-slate-800 shadow-xl relative min-h-[780px]">
           {/* Phone Top Switcher */}
-          <div className="flex items-center justify-between w-full mb-3 px-2 flex-wrap gap-2">
+          <div className="flex items-center justify-between w-full mb-3 px-1 sm:px-2 flex-wrap gap-2">
             <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setPhoneMode("customerStore")}
@@ -716,7 +702,7 @@ export default function LiveStoreEditorPage() {
                 }`}
               >
                 <Hand className="w-3.5 h-3.5" />
-                Original Customer UI (Drag Enabled)
+                Customer UI (Drag & Reorder)
               </button>
               <button
                 onClick={() => setPhoneMode("liveIframe")}
@@ -727,20 +713,19 @@ export default function LiveStoreEditorPage() {
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                Iframe View
+                Iframe
               </button>
             </div>
 
-            <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/40 flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-800/40 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {currentDevice.label}
+              Live Preview
             </span>
           </div>
 
-          {/* Smartphone Hardware Frame Mockup */}
+          {/* Smartphone Hardware Frame Mockup (Responsive width to fit mobile screens) */}
           <div
-            className={`relative bg-[#F8F9FE] shadow-2xl ${currentDevice.border} ${currentDevice.radius} overflow-hidden transition-all duration-300 flex flex-col`}
-            style={{ width: `${currentDevice.width}px`, height: `${currentDevice.height}px` }}
+            className={`relative bg-[#F8F9FE] shadow-2xl ${currentDevice.border} ${currentDevice.radius} overflow-hidden transition-all duration-300 flex flex-col w-full max-w-[400px] h-[780px] sm:h-[830px]`}
           >
             {/* Dynamic Island Notch */}
             <div className="absolute top-2.5 inset-x-0 mx-auto w-28 h-6 bg-black rounded-full z-40 flex items-center justify-end pr-2.5 shadow-md pointer-events-none">
@@ -750,7 +735,7 @@ export default function LiveStoreEditorPage() {
             </div>
 
             {phoneMode === "customerStore" ? (
-              /* EXACT ORIGINAL CUSTOMER UI WITH LIVE DRAG & DROP */
+              /* EXACT ORIGINAL CUSTOMER UI WITH LIVE TOUCH DRAG & DROP */
               <div className="w-full h-full flex flex-col bg-[#F8F9FE] overflow-hidden select-none text-slate-800">
                 {/* 1. Mobile Header (Greeting, Logo, Balance) */}
                 <div className="pt-9 px-4 pb-3 bg-white border-b border-[#ECEEF8] shrink-0 shadow-2xs">
@@ -788,7 +773,11 @@ export default function LiveStoreEditorPage() {
                 </div>
 
                 {/* 2. Scrollable Body: Banners, Categories, and Drag-and-Drop Product Cards */}
-                <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3.5 custom-scrollbar pb-16">
+                <div 
+                  className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3.5 custom-scrollbar pb-16"
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
                   {/* Category Pills Slider (Including Facebook!) */}
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                     {storeCategories.map((cat) => {
@@ -827,7 +816,7 @@ export default function LiveStoreEditorPage() {
                         All Catalog Products
                       </h4>
                       <p className="text-[9.5px] text-slate-500">
-                        Hold & drag any card with hand/mouse to reorder store display.
+                        Hold `Drag` button to move with touch, or use ▲ / ▼ arrows!
                       </p>
                     </div>
 
@@ -836,7 +825,7 @@ export default function LiveStoreEditorPage() {
                     </Badge>
                   </div>
 
-                  {/* PRODUCT CARDS LIST - AUTHENTIC CUSTOMER CARD DESIGN WITH DRAG & DROP */}
+                  {/* PRODUCT CARDS LIST - AUTHENTIC CUSTOMER CARD DESIGN WITH MOBILE TOUCH DRAG */}
                   {filteredItems.map((item, index) => {
                     const isDragging = draggedKey === item.itemKey;
                     const isOver = dragOverKey === item.itemKey;
@@ -844,17 +833,17 @@ export default function LiveStoreEditorPage() {
                     return (
                       <div
                         key={item.itemKey}
+                        data-item-key={item.itemKey}
                         draggable
                         onDragStart={(e) => handleDragStart(e, item.itemKey)}
                         onDragOver={(e) => handleDragOver(e, item.itemKey)}
                         onDrop={(e) => handleDrop(e, item.itemKey)}
                         onDragEnd={handleDragEnd}
-                        onPointerEnter={() => handlePointerEnter(item.itemKey)}
-                        className={`relative bg-white rounded-2xl p-3.5 border transition-all duration-200 shadow-2xs ${
+                        className={`relative bg-white rounded-2xl p-3.5 border transition-all duration-150 shadow-2xs ${
                           isDragging
                             ? "opacity-40 scale-95 border-purple-500 bg-purple-50/50 shadow-2xl"
                             : isOver
-                            ? "border-[#5B42F3] bg-purple-50/30 scale-[1.02] shadow-md shadow-purple-500/10"
+                            ? "border-[#5B42F3] bg-purple-50/40 scale-[1.02] shadow-md shadow-purple-500/20"
                             : item.active
                             ? "border-[#ECEEF8] hover:border-purple-200"
                             : "opacity-60 bg-slate-50 border-slate-200"
@@ -880,46 +869,45 @@ export default function LiveStoreEditorPage() {
                             </div>
                           </div>
 
-                          {/* TACTILE TOUCH DRAG HANDLE & QUICK MOVE BUTTONS */}
+                          {/* TACTILE MOBILE TOUCH DRAG & INSTANT 1-TAP REORDER BUTTONS */}
                           <div className="flex items-center gap-1 shrink-0">
-                            {/* Touch Drag Grip */}
-                            <button
-                              type="button"
-                              onPointerDown={(e) => handlePointerDown(e, item.itemKey)}
-                              className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-[#5B42F3] rounded-lg text-[9px] font-black flex items-center gap-1 cursor-grab active:cursor-grabbing border border-purple-200 shadow-2xs"
+                            {/* Dedicated Touch Drag Button with touch-action: none */}
+                            <div
+                              onTouchStart={(e) => handleTouchStart(e, item.itemKey)}
+                              className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-[#5B42F3] rounded-lg text-[9px] font-black flex items-center gap-1 cursor-grab active:cursor-grabbing border border-purple-300 shadow-2xs select-none touch-none"
                               style={{ touchAction: "none" }}
-                              title="Hold and drag with finger/mouse"
+                              title="Hold and drag with finger"
                             >
                               <GripVertical className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">Drag</span>
-                            </button>
+                              <span>Drag</span>
+                            </div>
 
-                            {/* Up / Down Quick Buttons */}
+                            {/* Up / Down Instant Tap Buttons */}
                             <button
                               type="button"
                               onClick={() => shiftItemIndex(item.itemKey, "top")}
-                              title="Pin to Top"
-                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3]"
+                              title="Move to Very Top"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-[#5B42F3] active:scale-90"
                             >
-                              <ChevronsUp className="w-3 h-3" />
+                              <ChevronsUp className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => shiftItemIndex(item.itemKey, "up")}
                               disabled={index === 0}
                               title="Move Up"
-                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3] disabled:opacity-30"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-[#5B42F3] disabled:opacity-30 active:scale-90"
                             >
-                              <ChevronUp className="w-3 h-3" />
+                              <ChevronUp className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => shiftItemIndex(item.itemKey, "down")}
                               disabled={index === filteredItems.length - 1}
                               title="Move Down"
-                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3] disabled:opacity-30"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-[#5B42F3] disabled:opacity-30 active:scale-90"
                             >
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -1007,7 +995,7 @@ export default function LiveStoreEditorPage() {
         </div>
 
         {/* Right Column: Full Catalog Reorder Controller & Partner Manager */}
-        <div className="lg:col-span-6 bg-white rounded-3xl p-4 sm:p-6 border border-[#ECEEF8] shadow-sm space-y-4">
+        <div className="lg:col-span-6 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-[#ECEEF8] shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-[#181432] flex items-center gap-2">

@@ -6074,17 +6074,35 @@ app.patch("/api/products/:id/toggle-telegram", isAuth, async (req, res) => {
 app.patch("/api/admin/products/:id/quick-edit", isAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { isActive, priceLkr, price, showOnTelegram } = req.body;
+    const { isActive, status, priceLkr, price, showOnTelegram } = req.body;
     const updateData: any = {};
-    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+    if (isActive !== undefined) {
+      updateData.status = isActive ? "available" : "disabled";
+    }
+    if (status !== undefined) updateData.status = status;
     if (priceLkr !== undefined) updateData.priceLkr = Number(priceLkr);
     if (price !== undefined) updateData.price = Number(price);
     if (showOnTelegram !== undefined) updateData.showOnTelegram = Boolean(showOnTelegram);
     const product = await storage.updateProduct(id, updateData);
     invalidateCatalogCache();
-    res.json(product);
+    res.json({ ...product, isActive: product.status === "available" });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to update product" });
+  }
+});
+
+app.patch("/api/admin/smm/services/:id/toggle", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { isActive } = req.body;
+    const [updated] = await db
+      .update(smmServices)
+      .set({ isActive: Boolean(isActive), updatedAt: new Date() })
+      .where(eq(smmServices.id, id))
+      .returning();
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update SMM service" });
   }
 });
 
