@@ -3289,7 +3289,8 @@ Support: https://t.me/youuhost_support
         if (s.isActive === false) return false;
         const cat = (s.category || "").toLowerCase();
         const name = (s.name || "").toLowerCase();
-        return cat.includes(categoryId) || name.includes(categoryId);
+        const tCat = categoryId.toLowerCase();
+        return cat.includes(tCat) || name.includes(tCat) || (tCat === "facebook" && (cat.includes("fb") || name.includes("fb") || cat.includes("facebook")));
       });
       const matchingSandro = sandromaniaProductsList.filter((s: any) => {
         if (s.isActive === false) return false;
@@ -3347,10 +3348,16 @@ Support: https://t.me/youuhost_support
       const cat = (s.category || "").toLowerCase();
       const name = (s.name || "").toLowerCase();
 
-      const isSocialCategory = ["facebook", "tiktok", "instagram", "telegram"].includes(selectedCategory);
+      const targetCat = (selectedCategory || "all").toLowerCase();
+      const isSocialCategory = ["facebook", "tiktok", "instagram", "telegram", "fb"].includes(targetCat);
+      const isFb = targetCat === "facebook" || targetCat === "fb";
       const matchesCategory =
-        selectedCategory === "all" ||
-        (isSocialCategory && (cat.includes(selectedCategory) || name.includes(selectedCategory)));
+        targetCat === "all" ||
+        (isSocialCategory && (
+          cat.includes(targetCat) || 
+          name.includes(targetCat) || 
+          (isFb && (cat.includes("facebook") || cat.includes("fb") || name.includes("facebook") || name.includes("fb")))
+        ));
 
       const matchesSearch =
         !searchQuery.trim() ||

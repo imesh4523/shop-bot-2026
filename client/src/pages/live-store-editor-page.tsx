@@ -27,8 +27,26 @@ import {
   ChevronsDown,
   ShoppingBag,
   Zap,
-  Hand
+  Hand,
+  Sliders,
+  Wallet,
+  User as UserIcon,
+  MessageCircle,
+  Clock,
+  LayoutGrid
 } from "lucide-react";
+import { 
+  FaAws, 
+  FaSpotify, 
+  FaYoutube, 
+  FaInstagram, 
+  FaFacebook, 
+  FaTiktok, 
+  FaTelegramPlane, 
+  FaLinode, 
+  FaWindows 
+} from "react-icons/fa";
+import { SiCanva, SiOpenai, SiGooglegemini, SiClaude, SiDigitalocean } from "react-icons/si";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -45,12 +63,13 @@ export default function LiveStoreEditorPage() {
   const [iframeKey, setIframeKey] = useState(Date.now());
   const [isIframeLoading, setIsIframeLoading] = useState(false);
 
-  // View Mode: 'editor' (interactive drag & drop on phone) vs 'preview' (live iframe)
-  const [phoneMode, setPhoneMode] = useState<"editor" | "preview">("editor");
+  // Phone Mockup Mode: 'customerStore' (exact original customer UI with live drag & drop) vs 'liveIframe'
+  const [phoneMode, setPhoneMode] = useState<"customerStore" | "liveIframe">("customerStore");
 
   // Search & Catalog Filter State
   const [searchQuery, setSearchQuery] = useState("");
-  const [partnerFilter, setPartnerFilter] = useState<"all" | "products" | "tunvn" | "sandromania" | "cssx">("all");
+  const [partnerFilter, setPartnerFilter] = useState<"all" | "facebook" | "tunvn" | "products" | "sandromania" | "cssx">("all");
+  const [storeCategoryFilter, setStoreCategoryFilter] = useState<string>("all");
 
   // Inline Editing State (map of id -> { priceLkr, priceUsd })
   const [editingPrices, setEditingPrices] = useState<Record<string, { priceLkr: string; priceUsd: string }>>({});
@@ -60,29 +79,51 @@ export default function LiveStoreEditorPage() {
   const [orderedItemKeys, setOrderedItemKeys] = useState<string[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [autoSync, setAutoSync] = useState(true);
 
   // Drag and Drop State
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
-  // Fetch all product catalogs
+  // Touch pointer dragging state
+  const touchStartY = useRef<number | null>(null);
+  const activeTouchItemKey = useRef<string | null>(null);
+
+  // 1. Fetch Standard Products
   const { data: standardProducts = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery<any[]>({
     queryKey: ["/api/products"],
   });
 
+  // 2. Fetch TunVN MMO Products (CapCut)
   const { data: tunvnProducts = [], isLoading: loadingTunvn, refetch: refetchTunvn } = useQuery<any[]>({
     queryKey: ["/api/admin/tunvn/products"],
   });
 
+  // 3. Fetch Sandromania Products
   const { data: sandromaniaProducts = [], isLoading: loadingSandro, refetch: refetchSandro } = useQuery<any[]>({
     queryKey: ["/api/admin/sandromania/products"],
   });
 
+  // 4. Fetch CSxStore Products
   const { data: cssxProducts = [], isLoading: loadingCssx, refetch: refetchCssx } = useQuery<any[]>({
     queryKey: ["/api/admin/cssx/products"],
   });
 
-  // Fetch saved catalog custom order from settings
+  // 5. Fetch SMM Services (Facebook, Instagram, TikTok, etc.)
+  const { data: smmServices = [], isLoading: loadingSmm, refetch: refetchSmm } = useQuery<any[]>({
+    queryKey: ["/api/mini/smm/services"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/mini/smm/services");
+        if (!res.ok) return [];
+        return res.json();
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // 6. Fetch saved catalog custom order
   const { data: savedOrderSetting } = useQuery<{ key: string; value: string }>({
     queryKey: ["/api/settings/CATALOG_CUSTOM_ORDER"],
   });
@@ -95,35 +136,110 @@ export default function LiveStoreEditorPage() {
 
   // Device dimensions
   const deviceDimensions = {
-    iphone: { width: 393, height: 820, label: "iPhone 15 Pro", radius: "rounded-[52px]", border: "border-[12px] border-[#1C1C1E]" },
-    android: { width: 412, height: 840, label: "Samsung Galaxy S24", radius: "rounded-[44px]", border: "border-[10px] border-[#2C2C2E]" },
-    compact: { width: 375, height: 720, label: "Compact / SE", radius: "rounded-[36px]", border: "border-[8px] border-[#1C1C1E]" },
+    iphone: { width: 393, height: 830, label: "iPhone 15 Pro", radius: "rounded-[52px]", border: "border-[12px] border-[#1C1C1E]" },
+    android: { width: 412, height: 850, label: "Samsung Galaxy S24", radius: "rounded-[44px]", border: "border-[10px] border-[#2C2C2E]" },
+    compact: { width: 375, height: 740, label: "Compact / SE", radius: "rounded-[36px]", border: "border-[8px] border-[#1C1C1E]" },
   };
 
   const currentDevice = deviceDimensions[deviceType];
 
-  // Combine and normalize all catalog items
+  // Helper to determine brand icon
+  const getProductIcon = (title: string = "", category: string = "", sourceType: string = "") => {
+    const combined = `${title} ${category} ${sourceType}`.toLowerCase();
+    if (combined.includes("facebook") || combined.includes("fb")) {
+      return <FaFacebook className="w-5 h-5 text-[#1877F2]" />;
+    }
+    if (combined.includes("capcut")) {
+      return <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png" alt="CapCut" className="w-5 h-5 object-contain" />;
+    }
+    if (combined.includes("youtube")) {
+      return <FaYoutube className="w-5 h-5 text-[#FF0000]" />;
+    }
+    if (combined.includes("canva")) {
+      return <SiCanva className="w-5 h-5 text-[#00C4CC]" />;
+    }
+    if (combined.includes("hotmail") || combined.includes("outlook")) {
+      return <img src="/assets/hotmail.png" alt="Hotmail" className="w-5 h-5 object-contain" />;
+    }
+    if (combined.includes("aws")) {
+      return <FaAws className="w-5 h-5 text-[#FF9900]" />;
+    }
+    if (combined.includes("digitalocean")) {
+      return <SiDigitalocean className="w-5 h-5 text-[#0080FF]" />;
+    }
+    if (combined.includes("gemini")) {
+      return <SiGooglegemini className="w-5 h-5 text-[#1BA0E2]" />;
+    }
+    if (combined.includes("chatgpt") || combined.includes("openai")) {
+      return <SiOpenai className="w-5 h-5 text-[#10A37F]" />;
+    }
+    if (combined.includes("spotify")) {
+      return <FaSpotify className="w-5 h-5 text-[#1DB954]" />;
+    }
+    if (combined.includes("instagram")) {
+      return <FaInstagram className="w-5 h-5 text-[#E1306C]" />;
+    }
+    if (combined.includes("tiktok")) {
+      return <FaTiktok className="w-5 h-5 text-black" />;
+    }
+    if (combined.includes("telegram")) {
+      return <FaTelegramPlane className="w-5 h-5 text-[#24A1DE]" />;
+    }
+    if (combined.includes("windows")) {
+      return <FaWindows className="w-5 h-5 text-[#0078D7]" />;
+    }
+    return <Package className="w-5 h-5 text-[#5B42F3]" />;
+  };
+
+  // Combine and normalize all catalog items across all partners & SMM
   const unifiedItems = useMemo(() => {
     return [
-      ...standardProducts.map((p) => ({
-        ...p,
-        sourceType: "standard",
-        itemKey: `standard_${p.id}`,
-        displayTitle: p.name,
-        displayCat: p.type || "Cloud",
-        priceLkrVal: p.priceLkr || Math.round(((p.price || 0) / 100) * 305.5),
-        priceUsdVal: ((p.price || 0) / 100).toFixed(2),
-        active: p.isActive !== false,
-        telegram: p.showOnTelegram !== false,
-        stock: p.stockCount ?? 0,
-        badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-      })),
+      // 1. SMM Services (Facebook Video Views, Facebook Views, etc.)
+      ...smmServices.map((s) => {
+        const isFb = s.category?.toLowerCase().includes("facebook") || s.name?.toLowerCase().includes("facebook") || s.name?.toLowerCase().includes("fb");
+        const rateLkr = s.customRateLkr || Math.round(((s.customRate || s.rate || 0) / 1000) * 305.5);
+        const rateUsd = ((s.customRate || s.rate || 0) / 1000).toFixed(2);
+        return {
+          ...s,
+          sourceType: "smm",
+          itemKey: `smm_${s.id}`,
+          displayTitle: s.name,
+          displayCat: isFb ? "Facebook" : (s.category || "Social Boost"),
+          isFacebook: isFb,
+          priceLkrVal: rateLkr,
+          priceUsdVal: rateUsd,
+          active: s.isActive !== false,
+          telegram: true,
+          stock: "Instant API",
+          badgeColor: isFb ? "bg-blue-600/10 text-[#1877F2] border-blue-500/30" : "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        };
+      }),
+      // 2. Direct Cloud & Accounts (Hotmail, AWS, Gemini, Canva, YouTube)
+      ...standardProducts.map((p) => {
+        const isFb = p.name?.toLowerCase().includes("facebook") || p.type?.toLowerCase().includes("facebook") || p.name?.toLowerCase().includes("fb");
+        return {
+          ...p,
+          sourceType: "standard",
+          itemKey: `standard_${p.id}`,
+          displayTitle: p.name,
+          displayCat: p.type || "Cloud",
+          isFacebook: isFb,
+          priceLkrVal: p.priceLkr || Math.round(((p.price || 0) / 100) * 305.5),
+          priceUsdVal: ((p.price || 0) / 100).toFixed(2),
+          active: p.isActive !== false,
+          telegram: p.showOnTelegram !== false,
+          stock: p.stockCount ?? 0,
+          badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        };
+      }),
+      // 3. TunVN MMO (CapCut Pro)
       ...tunvnProducts.map((t) => ({
         ...t,
         sourceType: "tunvn",
         itemKey: `tunvn_${t.id}`,
         displayTitle: t.title,
         displayCat: t.category || "Subscriptions",
+        isFacebook: false,
         priceLkrVal: t.sellingPriceLkr || Math.round(((t.sellingPriceUsd || 0) / 100) * 305.5),
         priceUsdVal: ((t.sellingPriceUsd || 0) / 100).toFixed(2),
         active: t.isActive !== false,
@@ -131,25 +247,32 @@ export default function LiveStoreEditorPage() {
         stock: t.stock ?? 0,
         badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
       })),
-      ...sandromaniaProducts.map((s) => ({
-        ...s,
-        sourceType: "sandromania",
-        itemKey: `sandromania_${s.id}`,
-        displayTitle: s.title,
-        displayCat: s.category || "Digital Goods",
-        priceLkrVal: s.sellingPriceLkr || Math.round(((s.sellingPriceUsd || 0) / 100) * 305.5),
-        priceUsdVal: ((s.sellingPriceUsd || 0) / 100).toFixed(2),
-        active: s.isActive !== false,
-        telegram: s.showOnTelegram !== false,
-        stock: s.stock ?? 0,
-        badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-      })),
+      // 4. Sandromania
+      ...sandromaniaProducts.map((s) => {
+        const isFb = s.title?.toLowerCase().includes("facebook") || s.category?.toLowerCase().includes("facebook");
+        return {
+          ...s,
+          sourceType: "sandromania",
+          itemKey: `sandromania_${s.id}`,
+          displayTitle: s.title,
+          displayCat: s.category || "Digital Goods",
+          isFacebook: isFb,
+          priceLkrVal: s.sellingPriceLkr || Math.round(((s.sellingPriceUsd || 0) / 100) * 305.5),
+          priceUsdVal: ((s.sellingPriceUsd || 0) / 100).toFixed(2),
+          active: s.isActive !== false,
+          telegram: s.showOnTelegram !== false,
+          stock: s.stock ?? 0,
+          badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        };
+      }),
+      // 5. CSxStore
       ...cssxProducts.map((c) => ({
         ...c,
         sourceType: "cssx",
         itemKey: `cssx_${c.id}`,
         displayTitle: c.title,
         displayCat: c.category || "CDK License",
+        isFacebook: false,
         priceLkrVal: c.sellingPriceLkr || Math.round(((c.sellingPriceUsd || 0) / 100) * 305.5),
         priceUsdVal: ((c.sellingPriceUsd || 0) / 100).toFixed(2),
         active: c.isActive !== false,
@@ -158,9 +281,9 @@ export default function LiveStoreEditorPage() {
         badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
       })),
     ];
-  }, [standardProducts, tunvnProducts, sandromaniaProducts, cssxProducts]);
+  }, [smmServices, standardProducts, tunvnProducts, sandromaniaProducts, cssxProducts]);
 
-  // Synchronize ordered keys when items or saved order load
+  // Synchronize ordered keys
   useEffect(() => {
     if (unifiedItems.length === 0) return;
 
@@ -175,7 +298,6 @@ export default function LiveStoreEditorPage() {
       }
     } catch {}
 
-    // Build complete keys list preserving custom order then appending any new items
     const existingKeys = new Set(initialKeys);
     const allCurrentKeys = unifiedItems.map((i) => i.itemKey);
     const missingKeys = allCurrentKeys.filter((k) => !existingKeys.has(k));
@@ -199,15 +321,30 @@ export default function LiveStoreEditorPage() {
     });
   }, [unifiedItems, orderedItemKeys]);
 
-  // Filtered items based on partner filter and search
+  // Filtered items based on partner filter, store category, and search query
   const filteredItems = useMemo(() => {
     return orderedItems.filter((item) => {
+      // 1. Partner Filter
       if (partnerFilter !== "all") {
-        if (partnerFilter === "products" && item.sourceType !== "standard") return false;
+        if (partnerFilter === "facebook" && !item.isFacebook) return false;
         if (partnerFilter === "tunvn" && item.sourceType !== "tunvn") return false;
+        if (partnerFilter === "products" && item.sourceType !== "standard") return false;
         if (partnerFilter === "sandromania" && item.sourceType !== "sandromania") return false;
         if (partnerFilter === "cssx" && item.sourceType !== "cssx") return false;
       }
+
+      // 2. Store Category Pill Filter (Inside phone screen)
+      if (storeCategoryFilter !== "all") {
+        const cat = storeCategoryFilter.toLowerCase();
+        const itemCombined = `${item.displayTitle} ${item.displayCat} ${item.sourceType}`.toLowerCase();
+        if (cat === "facebook" || cat === "fb") {
+          if (!item.isFacebook && !itemCombined.includes("facebook") && !itemCombined.includes("fb")) return false;
+        } else if (!itemCombined.includes(cat)) {
+          return false;
+        }
+      }
+
+      // 3. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchTitle = (item.displayTitle || "").toLowerCase().includes(q);
@@ -216,7 +353,7 @@ export default function LiveStoreEditorPage() {
       }
       return true;
     });
-  }, [orderedItems, partnerFilter, searchQuery]);
+  }, [orderedItems, partnerFilter, storeCategoryFilter, searchQuery]);
 
   // Reorder Handler: moves item from sourceKey to targetKey
   const moveItem = (sourceKey: string, targetKey: string) => {
@@ -232,11 +369,15 @@ export default function LiveStoreEditorPage() {
       updated.splice(toIndex, 0, removed);
 
       setHasUnsavedChanges(true);
+
+      if (autoSync) {
+        debouncedAutoSave(updated);
+      }
       return updated;
     });
   };
 
-  // Reorder: Move up / down by 1 index
+  // Reorder: Shift by index
   const shiftItemIndex = (itemKey: string, direction: "up" | "down" | "top" | "bottom") => {
     setOrderedItemKeys((prevKeys) => {
       const currentList = prevKeys.length > 0 ? [...prevKeys] : unifiedItems.map((i) => i.itemKey);
@@ -259,11 +400,35 @@ export default function LiveStoreEditorPage() {
       }
 
       setHasUnsavedChanges(true);
+
+      if (autoSync) {
+        debouncedAutoSave(updated);
+      }
       return updated;
     });
   };
 
-  // Save Custom Catalog Order to Database & LocalStorage
+  // Auto-save debouncer
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedAutoSave = (keysToSave: string[]) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const jsonValue = JSON.stringify(keysToSave);
+        await apiRequest("POST", "/api/settings", {
+          key: "CATALOG_CUSTOM_ORDER",
+          value: jsonValue,
+        });
+        localStorage.setItem("youuhost_catalog_custom_order", jsonValue);
+        queryClient.invalidateQueries({ queryKey: ["/api/settings/CATALOG_CUSTOM_ORDER"] });
+        setHasUnsavedChanges(false);
+      } catch (e) {
+        console.error("Auto-sync error:", e);
+      }
+    }, 1200);
+  };
+
+  // Save Custom Catalog Order Manually
   const handleSaveCatalogOrder = async () => {
     setIsSavingOrder(true);
     try {
@@ -283,7 +448,7 @@ export default function LiveStoreEditorPage() {
 
       toast({
         title: "Store Catalog Order Saved! 🚀",
-        description: `Successfully updated order for ${orderToSave.length} products on the live mobile store.`,
+        description: `Successfully applied custom order for ${orderToSave.length} products to customer live store.`,
       });
     } catch (err: any) {
       toast({
@@ -301,13 +466,14 @@ export default function LiveStoreEditorPage() {
     const defaultKeys = unifiedItems.map((i) => i.itemKey);
     setOrderedItemKeys(defaultKeys);
     setHasUnsavedChanges(true);
+    if (autoSync) debouncedAutoSave(defaultKeys);
     toast({
       title: "Order Reset to Default",
-      description: "Click 'Save & Apply to Live Store' to apply this order.",
+      description: "Default order loaded. Applied to live store.",
     });
   };
 
-  // HTML5 Drag and Drop Handlers
+  // HTML5 Drag Handlers
   const handleDragStart = (e: React.DragEvent, key: string) => {
     setDraggedKey(key);
     e.dataTransfer.effectAllowed = "move";
@@ -337,6 +503,27 @@ export default function LiveStoreEditorPage() {
     setDragOverKey(null);
   };
 
+  // Touch / Pointer Drag Handlers (Works on mobile touch screens & mice!)
+  const handlePointerDown = (e: React.PointerEvent, key: string) => {
+    activeTouchItemKey.current = key;
+    touchStartY.current = e.clientY;
+    setDraggedKey(key);
+  };
+
+  const handlePointerEnter = (key: string) => {
+    if (activeTouchItemKey.current && activeTouchItemKey.current !== key) {
+      moveItem(activeTouchItemKey.current, key);
+      setDragOverKey(key);
+    }
+  };
+
+  const handlePointerUp = () => {
+    activeTouchItemKey.current = null;
+    touchStartY.current = null;
+    setDraggedKey(null);
+    setDragOverKey(null);
+  };
+
   // Toggle active status
   const handleToggleActive = async (item: any) => {
     try {
@@ -353,11 +540,14 @@ export default function LiveStoreEditorPage() {
       } else if (item.sourceType === "cssx") {
         await apiRequest("PUT", `/api/admin/cssx/products/${item.id}`, { isActive: newActive });
         refetchCssx();
+      } else if (item.sourceType === "smm") {
+        await apiRequest("PATCH", `/api/admin/smm/services/${item.id}/toggle`, { isActive: newActive });
+        refetchSmm();
       }
 
       toast({
-        title: newActive ? "Product Enabled 🟢" : "Product Disabled 🔴",
-        description: `${item.displayTitle} is now ${newActive ? "active" : "inactive"} in the live store.`,
+        title: newActive ? "Product Active 🟢" : "Product Hidden 🔴",
+        description: `${item.displayTitle} is now ${newActive ? "active" : "hidden"} on store.`,
       });
 
       handleRefreshIframe();
@@ -365,33 +555,6 @@ export default function LiveStoreEditorPage() {
       toast({
         title: "Update Failed",
         description: err.message || "Failed to toggle status.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Toggle Telegram visibility
-  const handleToggleTelegram = async (item: any) => {
-    try {
-      const newTelegram = !item.telegram;
-      if (item.sourceType === "standard") {
-        await apiRequest("PATCH", `/api/products/${item.id}/toggle-telegram`, { showOnTelegram: newTelegram });
-        refetchProducts();
-      } else if (item.sourceType === "tunvn") {
-        await apiRequest("PUT", `/api/admin/tunvn/products/${item.id}`, { showOnTelegram: newTelegram });
-        refetchTunvn();
-      }
-
-      toast({
-        title: newTelegram ? "Visible on Telegram 📱" : "Hidden from Telegram 🔒",
-        description: `${item.displayTitle} visibility updated.`,
-      });
-
-      handleRefreshIframe();
-    } catch (err: any) {
-      toast({
-        title: "Update Failed",
-        description: err.message || "Failed to update Telegram visibility.",
         variant: "destructive",
       });
     }
@@ -423,15 +586,15 @@ export default function LiveStoreEditorPage() {
       }
 
       toast({
-        title: "Price Updated! 💰",
-        description: `${item.displayTitle} price saved: Rs. ${lkr.toLocaleString()} ($${usd.toFixed(2)})`,
+        title: "Price Saved! 💰",
+        description: `${item.displayTitle}: Rs. ${lkr.toLocaleString()} ($${usd.toFixed(2)})`,
       });
 
       handleRefreshIframe();
     } catch (err: any) {
       toast({
         title: "Save Failed",
-        description: err.message || "Failed to save new price.",
+        description: err.message || "Failed to save price.",
         variant: "destructive",
       });
     } finally {
@@ -439,9 +602,23 @@ export default function LiveStoreEditorPage() {
     }
   };
 
+  // List of Category Pills for the Phone Mockup
+  const storeCategories = [
+    { id: "all", label: "All", icon: <LayoutGrid className="w-4 h-4" /> },
+    { id: "facebook", label: "Facebook", icon: <FaFacebook className="w-4 h-4 text-[#1877F2]" />, badge: "FB" },
+    { id: "capcut", label: "CapCut", icon: <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/capcut-icon.png" alt="" className="w-4 h-4 object-contain" />, badge: "PRO" },
+    { id: "canva", label: "Canva", icon: <SiCanva className="w-4 h-4 text-[#00C4CC]" />, badge: "PRO" },
+    { id: "youtube", label: "YouTube", icon: <FaYoutube className="w-4 h-4 text-[#FF0000]" />, badge: "4K" },
+    { id: "hotmail", label: "Hotmail", icon: <img src="/assets/hotmail.png" alt="" className="w-4 h-4 object-contain" />, badge: "MAIL" },
+    { id: "aws", label: "AWS", icon: <FaAws className="w-4 h-4 text-[#FF9900]" />, badge: "HOT" },
+    { id: "gemini", label: "Gemini", icon: <SiGooglegemini className="w-4 h-4 text-[#1BA0E2]" />, badge: "AI" },
+    { id: "chatgpt", label: "ChatGPT", icon: <SiOpenai className="w-4 h-4 text-[#10A37F]" />, badge: "AI" },
+    { id: "spotify", label: "Spotify", icon: <FaSpotify className="w-4 h-4 text-[#1DB954]" /> },
+  ];
+
   return (
-    <div className="space-y-6 max-w-full pb-16">
-      {/* Top Header Banner */}
+    <div className="space-y-6 max-w-full pb-16" onPointerUp={handlePointerUp}>
+      {/* Top Banner Header */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-4 sm:p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-900/40">
         <div>
           <div className="flex items-center gap-3">
@@ -449,21 +626,30 @@ export default function LiveStoreEditorPage() {
               <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-300" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
                 Live Store & Mobile Editor
                 <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
-                  DRAG & REORDER ENABLED
+                  TACTILE DRAG & DROP
                 </Badge>
               </h1>
               <p className="text-slate-300 text-xs mt-0.5">
-                Drag and drop products right on the phone screen to reorder catalog items live for all customers.
+                Displays the EXACT Customer Store UI on the phone. Touch or drag cards with fingers/mouse to reorder live!
               </p>
             </div>
           </div>
         </div>
 
-        {/* Global Action Buttons */}
+        {/* Global Controls & Sync */}
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center gap-2 bg-slate-950/70 px-3 py-1.5 rounded-xl border border-white/10">
+            <span className="text-[11px] font-bold text-gray-300">Auto-Sync</span>
+            <Switch
+              checked={autoSync}
+              onCheckedChange={setAutoSync}
+              className="scale-75"
+            />
+          </div>
+
           {hasUnsavedChanges && (
             <Button
               size="sm"
@@ -472,7 +658,7 @@ export default function LiveStoreEditorPage() {
               className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-lg animate-pulse"
             >
               {isSavingOrder ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-              Save Order Changes
+              Save Changes
             </Button>
           )}
 
@@ -514,39 +700,38 @@ export default function LiveStoreEditorPage() {
         </div>
       </div>
 
-      {/* Main 2-Column Grid: Left Phone Mockup | Right Catalog Reorder Controller */}
+      {/* Main Grid: Left Real Customer Phone UI | Right Controller */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Realistic Interactive Phone Screen Mockup */}
-        <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 border border-slate-800 shadow-xl relative min-h-[860px]">
-          {/* Phone Top Control Bar */}
+        {/* Left Column: Interactive Smartphone Mockup with Real Customer Store */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 border border-slate-800 shadow-xl relative min-h-[890px]">
+          {/* Phone Top Switcher */}
           <div className="flex items-center justify-between w-full mb-3 px-2 flex-wrap gap-2">
-            {/* View Mode Switcher: Interactive Drag Editor vs Live Iframe */}
             <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
-                onClick={() => setPhoneMode("editor")}
+                onClick={() => setPhoneMode("customerStore")}
                 className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
-                  phoneMode === "editor"
+                  phoneMode === "customerStore"
                     ? "bg-[#5B42F3] text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
                 <Hand className="w-3.5 h-3.5" />
-                Interactive Drag Mode
+                Original Customer UI (Drag Enabled)
               </button>
               <button
-                onClick={() => setPhoneMode("preview")}
+                onClick={() => setPhoneMode("liveIframe")}
                 className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
-                  phoneMode === "preview"
+                  phoneMode === "liveIframe"
                     ? "bg-[#5B42F3] text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                Live Preview
+                Iframe View
               </button>
             </div>
 
-            <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-800/40 flex items-center gap-1">
+            <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/40 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               {currentDevice.label}
             </span>
@@ -554,54 +739,104 @@ export default function LiveStoreEditorPage() {
 
           {/* Smartphone Hardware Frame Mockup */}
           <div
-            className={`relative bg-black shadow-2xl ${currentDevice.border} ${currentDevice.radius} overflow-hidden transition-all duration-300`}
+            className={`relative bg-[#F8F9FE] shadow-2xl ${currentDevice.border} ${currentDevice.radius} overflow-hidden transition-all duration-300 flex flex-col`}
             style={{ width: `${currentDevice.width}px`, height: `${currentDevice.height}px` }}
           >
-            {/* Dynamic Island / Camera Notch */}
-            <div className="absolute top-2 inset-x-0 mx-auto w-28 h-6 bg-black rounded-full z-30 flex items-center justify-end pr-2.5 shadow-md pointer-events-none">
+            {/* Dynamic Island Notch */}
+            <div className="absolute top-2.5 inset-x-0 mx-auto w-28 h-6 bg-black rounded-full z-40 flex items-center justify-end pr-2.5 shadow-md pointer-events-none">
               <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-slate-800 flex items-center justify-center">
                 <div className="w-1 h-1 rounded-full bg-blue-900/60" />
               </div>
             </div>
 
-            {/* Simulated Glass Reflection */}
-            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.05] pointer-events-none z-20" />
-
-            {/* SCREEN CONTENT: EITHER INTERACTIVE DRAG-AND-DROP CATALOG OR LIVE IFRAME */}
-            {phoneMode === "editor" ? (
-              <div className="w-full h-full bg-[#0F0E17] text-white flex flex-col overflow-hidden select-none">
-                {/* Simulated Mobile Top Navigation Bar */}
-                <div className="pt-8 px-4 pb-3 bg-gradient-to-b from-[#181432] to-[#0F0E17] border-b border-white/5 shrink-0">
+            {phoneMode === "customerStore" ? (
+              /* EXACT ORIGINAL CUSTOMER UI WITH LIVE DRAG & DROP */
+              <div className="w-full h-full flex flex-col bg-[#F8F9FE] overflow-hidden select-none text-slate-800">
+                {/* 1. Mobile Header (Greeting, Logo, Balance) */}
+                <div className="pt-9 px-4 pb-3 bg-white border-b border-[#ECEEF8] shrink-0 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">YouuHost Store</p>
-                      <h3 className="text-base font-black text-white flex items-center gap-1.5">
-                        Interactive Catalog
-                        <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full font-bold">
-                          Drag Any Card
-                        </span>
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-[#5B42F3] tracking-wider uppercase">youuhost</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium">Good Afternoon,</p>
+                      <h3 className="text-base font-black text-[#181432] leading-tight">Cheak Imesh</h3>
                     </div>
-                    {hasUnsavedChanges && (
-                      <Button
-                        size="sm"
-                        onClick={handleSaveCatalogOrder}
-                        disabled={isSavingOrder}
-                        className="h-7 px-2.5 text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm"
-                      >
-                        {isSavingOrder ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
-                        Apply
-                      </Button>
-                    )}
+
+                    <div className="flex items-center gap-2">
+                      <div className="bg-[#FAF9FE] border border-[#ECEEF8] px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-2xs">
+                        <Wallet className="w-3.5 h-3.5 text-[#5B42F3]" />
+                        <span className="text-xs font-black text-[#181432] font-mono">Rs. 246</span>
+                      </div>
+                      <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-xs">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-                    <Hand className="w-3 h-3 text-purple-400" />
-                    Hold and drag cards up/down, or tap arrows to reorder.
-                  </p>
+
+                  {/* Search Bar in Phone */}
+                  <div className="mt-3 relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search cloud servers, accounts, AI..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#F5F4FC] border border-[#ECEEF8] rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#5B42F3]"
+                    />
+                  </div>
                 </div>
 
-                {/* Interactive Drag & Drop Product Cards Scroll View */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 pb-12 custom-scrollbar">
+                {/* 2. Scrollable Body: Banners, Categories, and Drag-and-Drop Product Cards */}
+                <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3.5 custom-scrollbar pb-16">
+                  {/* Category Pills Slider (Including Facebook!) */}
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    {storeCategories.map((cat) => {
+                      const isCatActive = storeCategoryFilter === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setStoreCategoryFilter(cat.id)}
+                          className={`relative flex flex-col items-center justify-center min-w-[62px] h-[64px] px-2 rounded-2xl transition-all shrink-0 ${
+                            isCatActive
+                              ? "bg-gradient-to-b from-[#FF5E62] to-[#6C5CE7] text-white shadow-md shadow-[#6C5CE7]/30 scale-102"
+                              : "bg-white text-slate-700 shadow-2xs border border-[#ECEEF8] hover:bg-[#F5F4FC]"
+                          }`}
+                        >
+                          {cat.badge && (
+                            <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[7.5px] font-black uppercase bg-red-500 text-white shadow-xs">
+                              {cat.badge}
+                            </span>
+                          )}
+                          <div className="h-5 w-5 flex items-center justify-center mb-1">
+                            {cat.icon}
+                          </div>
+                          <span className="text-[10px] font-black tracking-tight truncate max-w-[56px]">
+                            {cat.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Section Title & Reorder Notice */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      <h4 className="text-xs font-black text-[#181432] uppercase tracking-wider flex items-center gap-1.5">
+                        <Hand className="w-3.5 h-3.5 text-[#5B42F3]" />
+                        All Catalog Products
+                      </h4>
+                      <p className="text-[9.5px] text-slate-500">
+                        Hold & drag any card with hand/mouse to reorder store display.
+                      </p>
+                    </div>
+
+                    <Badge className="bg-purple-100 text-[#5B42F3] text-[9.5px] font-bold border-none">
+                      {filteredItems.length} items
+                    </Badge>
+                  </div>
+
+                  {/* PRODUCT CARDS LIST - AUTHENTIC CUSTOMER CARD DESIGN WITH DRAG & DROP */}
                   {filteredItems.map((item, index) => {
                     const isDragging = draggedKey === item.itemKey;
                     const isOver = dragOverKey === item.itemKey;
@@ -614,85 +849,109 @@ export default function LiveStoreEditorPage() {
                         onDragOver={(e) => handleDragOver(e, item.itemKey)}
                         onDrop={(e) => handleDrop(e, item.itemKey)}
                         onDragEnd={handleDragEnd}
-                        className={`group relative rounded-2xl p-3 border transition-all duration-200 cursor-grab active:cursor-grabbing ${
+                        onPointerEnter={() => handlePointerEnter(item.itemKey)}
+                        className={`relative bg-white rounded-2xl p-3.5 border transition-all duration-200 shadow-2xs ${
                           isDragging
-                            ? "opacity-40 scale-95 border-purple-500 bg-purple-950/40 shadow-2xl"
+                            ? "opacity-40 scale-95 border-purple-500 bg-purple-50/50 shadow-2xl"
                             : isOver
-                            ? "border-amber-400 bg-amber-950/30 scale-[1.02] shadow-lg shadow-amber-500/20"
+                            ? "border-[#5B42F3] bg-purple-50/30 scale-[1.02] shadow-md shadow-purple-500/10"
                             : item.active
-                            ? "bg-gradient-to-r from-slate-900/90 to-slate-950/90 border-white/10 hover:border-purple-500/40"
-                            : "bg-slate-950/60 border-slate-800/60 opacity-60"
+                            ? "border-[#ECEEF8] hover:border-purple-200"
+                            : "opacity-60 bg-slate-50 border-slate-200"
                         }`}
                       >
-                        {/* Drag Handle & Order Badge */}
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="p-1 text-gray-400 group-hover:text-purple-400 transition-colors">
-                              <GripVertical className="w-4 h-4" />
-                            </span>
-                            <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-black flex items-center justify-center">
-                              #{index + 1}
-                            </span>
-                            <Badge className={`text-[9px] font-black px-1.5 py-0 border ${item.badgeColor}`}>
-                              {item.sourceType.toUpperCase()}
-                            </Badge>
+                        {/* Top Card Bar: Brand Icon, Order Index, Drag Handle & Quick Arrows */}
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {/* Brand Icon */}
+                            <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                              {getProductIcon(item.displayTitle, item.displayCat, item.sourceType)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md bg-purple-50 text-[#5B42F3]">
+                                  #{index + 1}
+                                </span>
+                                <span className="text-[9px] font-black uppercase text-slate-400 truncate">
+                                  {item.sourceType}
+                                </span>
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Quick Up / Down Reorder Buttons */}
-                          <div className="flex items-center gap-1">
+                          {/* TACTILE TOUCH DRAG HANDLE & QUICK MOVE BUTTONS */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {/* Touch Drag Grip */}
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                shiftItemIndex(item.itemKey, "top");
-                              }}
-                              title="Move to Very Top"
-                              className="p-1 rounded-md bg-white/5 hover:bg-purple-600/40 text-gray-400 hover:text-white text-[9px] transition-colors"
+                              onPointerDown={(e) => handlePointerDown(e, item.itemKey)}
+                              className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-[#5B42F3] rounded-lg text-[9px] font-black flex items-center gap-1 cursor-grab active:cursor-grabbing border border-purple-200 shadow-2xs"
+                              style={{ touchAction: "none" }}
+                              title="Hold and drag with finger/mouse"
                             >
-                              <ChevronsUp className="w-3.5 h-3.5" />
+                              <GripVertical className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Drag</span>
+                            </button>
+
+                            {/* Up / Down Quick Buttons */}
+                            <button
+                              type="button"
+                              onClick={() => shiftItemIndex(item.itemKey, "top")}
+                              title="Pin to Top"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3]"
+                            >
+                              <ChevronsUp className="w-3 h-3" />
                             </button>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                shiftItemIndex(item.itemKey, "up");
-                              }}
+                              onClick={() => shiftItemIndex(item.itemKey, "up")}
                               disabled={index === 0}
                               title="Move Up"
-                              className="p-1 rounded-md bg-white/5 hover:bg-purple-600/40 text-gray-400 hover:text-white text-[9px] transition-colors disabled:opacity-30"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3] disabled:opacity-30"
                             >
-                              <ChevronUp className="w-3.5 h-3.5" />
+                              <ChevronUp className="w-3 h-3" />
                             </button>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                shiftItemIndex(item.itemKey, "down");
-                              }}
+                              onClick={() => shiftItemIndex(item.itemKey, "down")}
                               disabled={index === filteredItems.length - 1}
                               title="Move Down"
-                              className="p-1 rounded-md bg-white/5 hover:bg-purple-600/40 text-gray-400 hover:text-white text-[9px] transition-colors disabled:opacity-30"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-[#5B42F3] disabled:opacity-30"
                             >
-                              <ChevronDown className="w-3.5 h-3.5" />
+                              <ChevronDown className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
 
-                        {/* Title and Category */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-black text-white truncate leading-snug">
-                              {item.displayTitle}
-                            </h4>
-                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                              {item.displayCat} • Stock: <span className="text-white font-bold">{item.stock}</span>
-                            </p>
+                        {/* Middle Card: Product Title & Badges */}
+                        <div className="py-2.5">
+                          <h4 className="text-xs font-black text-[#181432] leading-tight line-clamp-2">
+                            {item.displayTitle}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold">
+                              {item.displayCat}
+                            </span>
+                            <span>•</span>
+                            <span>Stock: <b className="text-slate-800">{item.stock}</b></span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Card: Live Price & Active Switch */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-black text-[#181432] font-mono">
+                              Rs. {Number(item.priceLkrVal || 0).toLocaleString()}
+                            </span>{" "}
+                            <span className="text-[10px] text-slate-400">
+                              (${item.priceUsdVal})
+                            </span>
                           </div>
 
-                          {/* Active Toggle Switch right on card */}
-                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <span className="text-[9px] font-bold text-gray-400">
-                              {item.active ? "ON" : "OFF"}
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[9px] font-bold text-slate-500">
+                              {item.active ? "Active" : "Hidden"}
                             </span>
                             <Switch
                               checked={item.active}
@@ -701,25 +960,37 @@ export default function LiveStoreEditorPage() {
                             />
                           </div>
                         </div>
-
-                        {/* Price Badge and Direct Live Edit */}
-                        <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-emerald-400 font-mono">
-                            Rs. {item.priceLkrVal?.toLocaleString()}{" "}
-                            <span className="text-gray-400 font-normal text-[10px]">(${item.priceUsdVal})</span>
-                          </span>
-
-                          <span className="text-[9px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 font-bold">
-                            Live on Store
-                          </span>
-                        </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {/* 3. Bottom Customer App Navigation Bar */}
+                <div className="h-14 bg-white border-t border-[#ECEEF8] px-4 flex items-center justify-around shrink-0 relative z-30">
+                  <div className="flex flex-col items-center text-[#5B42F3]">
+                    <ShoppingBag className="w-4 h-4" />
+                    <span className="text-[8.5px] font-bold mt-0.5">Store</span>
+                  </div>
+                  <div className="flex flex-col items-center text-slate-400">
+                    <Layers className="w-4 h-4" />
+                    <span className="text-[8.5px] font-medium mt-0.5">Categories</span>
+                  </div>
+                  <div className="flex flex-col items-center text-slate-400">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-[8.5px] font-medium mt-0.5">Orders</span>
+                  </div>
+                  <div className="flex flex-col items-center text-slate-400">
+                    <Wallet className="w-4 h-4" />
+                    <span className="text-[8.5px] font-medium mt-0.5">Wallet</span>
+                  </div>
+                  <div className="flex flex-col items-center text-slate-400">
+                    <UserIcon className="w-4 h-4" />
+                    <span className="text-[8.5px] font-medium mt-0.5">Profile</span>
+                  </div>
+                </div>
               </div>
             ) : (
-              /* Live Iframe Mode */
+              /* Live Iframe Preview Mode */
               <iframe
                 ref={iframeRef}
                 key={iframeKey}
@@ -731,20 +1002,20 @@ export default function LiveStoreEditorPage() {
             )}
 
             {/* Bottom Home Indicator Bar */}
-            <div className="absolute bottom-1.5 inset-x-0 mx-auto w-32 h-1 bg-white/40 rounded-full z-30 pointer-events-none" />
+            <div className="absolute bottom-1 inset-x-0 mx-auto w-32 h-1 bg-slate-300 rounded-full z-40 pointer-events-none" />
           </div>
         </div>
 
-        {/* Right Column: Live Catalog Controller & Reorder Organizer */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-6 border border-[#ECEEF8] shadow-sm space-y-4">
+        {/* Right Column: Full Catalog Reorder Controller & Partner Manager */}
+        <div className="lg:col-span-6 bg-white rounded-3xl p-4 sm:p-6 border border-[#ECEEF8] shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-[#181432] flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[#5B42F3]" />
-                Catalog Controller & Drag-to-Reorder
+                Catalog Controller & Partner Filter
               </h2>
               <p className="text-xs text-[#7E7998] mt-0.5">
-                Drag cards with handle or use Up/Down arrows to customize store order. Changes sync live to the customer mini app!
+                Manage Facebook Video Views, TunVN CapCut, Cloud VPS & Accounts in one unified dashboard.
               </p>
             </div>
 
@@ -768,17 +1039,18 @@ export default function LiveStoreEditorPage() {
                 className="text-xs font-bold text-slate-600 border-slate-200 hover:bg-slate-50"
               >
                 <RotateCcw className="w-3 h-3 mr-1" />
-                Reset Order
+                Reset
               </Button>
             </div>
           </div>
 
-          {/* Partner & Category Filter Tabs */}
+          {/* Partner & Category Filter Tabs - Including Facebook & SMM */}
           <div className="flex items-center gap-1.5 flex-wrap border-b border-[#ECEEF8] pb-3">
             {[
               { id: "all", label: "All Items" },
+              { id: "facebook", label: "Facebook & Social (SMM)" },
               { id: "tunvn", label: "TunVN MMO (CapCut)" },
-              { id: "products", label: "Direct Products" },
+              { id: "products", label: "Cloud & Accounts" },
               { id: "sandromania", label: "Sandromania" },
               { id: "cssx", label: "CSxStore" },
             ].map((tab) => (
@@ -796,7 +1068,7 @@ export default function LiveStoreEditorPage() {
             ))}
           </div>
 
-          {/* Quick Search Bar */}
+          {/* Search Bar */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             <Input
@@ -891,7 +1163,7 @@ export default function LiveStoreEditorPage() {
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-medium">
                             <span>Stock: <b className="text-slate-800">{item.stock}</b></span>
                             <span>•</span>
-                            <span>Live: <b className="text-emerald-600">Rs. {item.priceLkrVal?.toLocaleString()}</b> (${item.priceUsdVal})</span>
+                            <span>Live: <b className="text-emerald-600">Rs. {Number(item.priceLkrVal || 0).toLocaleString()}</b> (${item.priceUsdVal})</span>
                           </div>
                         </div>
                       </div>
@@ -925,21 +1197,6 @@ export default function LiveStoreEditorPage() {
                           >
                             {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : "Save"}
                           </Button>
-                        </div>
-
-                        {/* Telegram Visibility Toggle */}
-                        <div className="flex items-center gap-1.5" title="Toggle Show on Telegram Bot">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleTelegram(item)}
-                            className={`p-1.5 rounded-xl border transition-all ${
-                              item.telegram
-                                ? "bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100"
-                                : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
-                            }`}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
                         </div>
 
                         {/* Store Active Toggle Switch */}
