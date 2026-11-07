@@ -10559,7 +10559,8 @@ app.get("/api/settings/:key", async (req, res, next) => {
     'STORE_NAME', 'SUPPORT_USERNAME', 'SUPPORT_BTN_TEXT', 'LOADING_TEXT', 
     'BOT_USERNAME', 'faq_content', 'CURRENCY_RATES', 'VAPID_PUBLIC_KEY', 
     'MINI_APP_URL', 'BOT_ABOUT_TEXT', 'BOT_DESCRIPTION_TEXT', 'REVIEWS_CHANNEL_URL',
-    'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME', 'HERO_BANNERS_CONFIG', 'TERMS_AND_CONDITIONS'
+    'SHOW_OUT_OF_STOCK_PRODUCTS', 'MINI_APP_THEME', 'HERO_BANNERS_CONFIG', 'TERMS_AND_CONDITIONS',
+    'CATALOG_CUSTOM_ORDER'
   ];
   const isAuthorized = !!req.session?.userId || (typeof req.isAuthenticated === 'function' && req.isAuthenticated());
   if (!publicKeys.includes(req.params.key) && !isAuthorized) {

@@ -2320,6 +2320,11 @@ Support: https://t.me/youuhost_support
     queryKey: ["/api/settings/SUPPORT_USERNAME"],
   });
 
+  const { data: catalogOrderSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CATALOG_CUSTOM_ORDER"],
+    staleTime: 1000 * 15,
+  });
+
   const supportUser = supportUserSetting?.value || "@youuhost_support";
 
   const { data: depositMethods } = useQuery<{ binancePayId: string; cryptomusEnabled: boolean; payhereEnabled?: boolean; payhereGatewayUrl?: string; supportUsername: string }>({
@@ -3501,8 +3506,43 @@ Support: https://t.me/youuhost_support
       });
     });
 
-    // Sort: In-Stock items FIRST (orderScore: 0), Out-of-Stock items LAST (orderScore: 1)
-    list.sort((a, b) => a.orderScore - b.orderScore);
+    // Apply Custom Catalog Ordering if configured by Admin in Live Store Editor
+    let customOrderMap = new Map<string, number>();
+    try {
+      const rawOrder = catalogOrderSetting?.value || (typeof window !== "undefined" ? localStorage.getItem("youuhost_catalog_custom_order") : null);
+      if (rawOrder) {
+        const orderArr: string[] = typeof rawOrder === "string" ? JSON.parse(rawOrder) : rawOrder;
+        if (Array.isArray(orderArr)) {
+          orderArr.forEach((k, idx) => {
+            customOrderMap.set(String(k).toLowerCase(), idx);
+          });
+        }
+      }
+    } catch {}
+
+    const getItemSortIndex = (item: any): number => {
+      const typeKey = `${item.type}_${item.data.id}`.toLowerCase();
+      const standardKey = `standard_${item.data.id}`.toLowerCase();
+      const productKey = `product_${item.data.id}`.toLowerCase();
+      const titleKey = (item.data.title || item.data.name || "").toLowerCase().trim();
+
+      if (customOrderMap.has(typeKey)) return customOrderMap.get(typeKey)!;
+      if (customOrderMap.has(standardKey)) return customOrderMap.get(standardKey)!;
+      if (customOrderMap.has(productKey)) return customOrderMap.get(productKey)!;
+      if (customOrderMap.has(titleKey)) return customOrderMap.get(titleKey)!;
+      return 9999;
+    };
+
+    if (customOrderMap.size > 0) {
+      list.sort((a, b) => {
+        if (a.orderScore !== b.orderScore) {
+          return a.orderScore - b.orderScore;
+        }
+        return getItemSortIndex(a) - getItemSortIndex(b);
+      });
+    } else {
+      list.sort((a, b) => a.orderScore - b.orderScore);
+    }
 
     // Strict deduplication by normalized product name: guarantees only 1 card ever appears
     const seenNames = new Set<string>();
@@ -3518,7 +3558,7 @@ Support: https://t.me/youuhost_support
     }
 
     return deduplicatedList;
-  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredTunvnProducts, filteredProducts]);
+  }, [filteredSmmServices, filteredSandromaniaProducts, filteredCssxProducts, filteredTunvnProducts, filteredProducts, catalogOrderSetting]);
 
   // Format Sandromania price helper
   const formatSandromaniaPrice = (sandProdOrPriceCents: any, qty: number = 1) => {
