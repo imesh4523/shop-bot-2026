@@ -1,0 +1,724 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Search, 
+  Smile, 
+  Code, 
+  Copy, 
+  Trash2, 
+  RefreshCw, 
+  Sparkles, 
+  Share2, 
+  Check, 
+  Hash, 
+  Tag, 
+  Bot, 
+  Terminal, 
+  Layers,
+  Calendar,
+  User,
+  ArrowRight,
+  Key,
+  ExternalLink,
+  ShieldCheck,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Settings2,
+  Info
+} from "lucide-react";
+import { io } from "socket.io-client";
+
+interface BotConfigResponse {
+  hasCustomToken: boolean;
+  token?: string;
+  maskedToken?: string;
+  isRunning: boolean;
+  botInfo?: {
+    id: number;
+    username: string;
+    firstName: string;
+    canJoinGroups?: boolean;
+  } | null;
+  mainBotUsername?: string | null;
+}
+
+interface InspectionTrace {
+  id: string;
+  timestamp: string;
+  chatId: string;
+  userId: string;
+  username?: string;
+  userFirstName?: string;
+  rawText: string;
+  reconstructedHtml: string;
+  customEmojis: Array<{
+    id: string;
+    char: string;
+    offset: number;
+    length: number;
+  }>;
+  entitySummary: Array<{
+    type: string;
+    count: number;
+    samples: string[];
+  }>;
+  forwardInfo?: {
+    isForwarded: boolean;
+    fromName?: string;
+    fromUsername?: string;
+    fromId?: string | number;
+    chatTitle?: string;
+    chatUsername?: string;
+    chatId?: string | number;
+    messageId?: number;
+    date?: number;
+  };
+}
+
+export default function TelegramInspectorPage() {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [tokenInput, setTokenInput] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(true);
+
+  const { data: traces = [], isLoading, refetch } = useQuery<InspectionTrace[]>({
+    queryKey: ["/api/telegram-inspector/traces"],
+    refetchInterval: 3000, // Poll every 3 seconds
+  });
+
+  const { data: botConfig, isLoading: isConfigLoading, refetch: refetchBotConfig } = useQuery<BotConfigResponse>({
+    queryKey: ["/api/telegram-inspector/bot-config"],
+  });
+
+  useEffect(() => {
+    if (botConfig?.token && !tokenInput) {
+      setTokenInput(botConfig.token);
+    }
+  }, [botConfig?.token]);
+
+  // Socket.io for real-time live updates
+  useEffect(() => {
+    const socket = io();
+    socket.on("telegram_inspector_new_trace", () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/traces"] });
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const saveTokenMutation = useMutation({
+    mutationFn: async (tokenToSave: string) => {
+      return await apiRequest("POST", "/api/telegram-inspector/bot-config", { token: tokenToSave });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast({
+        title: "Inspector Bot Connected! 🚀",
+        description: data?.message || "Bot connected successfully and is now listening for traces.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Connection Failed",
+        description: err.message || "Failed to verify or connect bot token.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeTokenMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/telegram-inspector/bot-config");
+    },
+    onSuccess: () => {
+      setTokenInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/bot-config"] });
+      toast({
+        title: "Bot Token Removed",
+        description: "Custom inspector bot token removed. Dedicated inspector bot stopped.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Remove Token",
+        description: err.message || "Failed to delete token.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/telegram-inspector/traces");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/traces"] });
+      toast({ title: "Cleared Traces", description: "All inspector trace logs cleared successfully." });
+    },
+  });
+
+  const deleteSingleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/telegram-inspector/traces/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/traces"] });
+      toast({ title: "Trace Deleted", description: "Selected trace entry deleted." });
+    },
+  });
+
+  const copyToClipboard = (text: string, label: string, key?: string) => {
+    navigator.clipboard.writeText(text);
+    if (key) {
+      setCopiedId(key);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+    toast({
+      title: "Copied to Clipboard!",
+      description: `${label} has been copied to your clipboard.`,
+    });
+  };
+
+  // Filter traces
+  const filteredTraces = traces.filter((trace) => {
+    const query = searchTerm.toLowerCase();
+    if (!query) return true;
+    const matchText = trace.rawText?.toLowerCase() || "";
+    const matchUser = trace.username?.toLowerCase() || trace.userFirstName?.toLowerCase() || trace.userId || "";
+    const matchEmoji = trace.customEmojis?.some((e) => e.id.includes(query) || e.char.includes(query));
+    const matchHtml = trace.reconstructedHtml?.toLowerCase() || "";
+    return matchText.includes(query) || matchUser.includes(query) || matchEmoji || matchHtml;
+  });
+
+  // Stats calculation
+  const totalTraces = traces.length;
+  const uniqueCustomEmojis = Array.from(
+    new Set(traces.flatMap((t) => t.customEmojis?.map((e) => e.id) || []))
+  );
+  const totalEntityTypes = Array.from(
+    new Set(traces.flatMap((t) => t.entitySummary?.map((e) => e.type) || []))
+  );
+
+  return (
+    <div className="p-6 md:p-10 space-y-8 max-w-[1600px] mx-auto min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/[0.02] backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="space-y-2 relative">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20 text-purple-400">
+              <Smile className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                Telegram Entity & Emoji Inspector
+                <span className="text-xs px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full font-semibold border border-purple-500/30">
+                  Live Tracer
+                </span>
+              </h1>
+              <p className="text-sm text-white/50 font-medium">
+                Auto-detect custom emoji IDs, Telegram HTML formatting codes, quotes, spoilers & forwarded sources
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => setIsConfigOpen(!isConfigOpen)}
+            className="rounded-2xl border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold gap-2"
+          >
+            <Key className="w-4 h-4 text-purple-400" />
+            {isConfigOpen ? "Hide Bot Config" : "Bot Token Config"}
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => { refetch(); refetchBotConfig(); }}
+            className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+
+          <Button
+            variant="destructive"
+            onClick={() => clearAllMutation.mutate()}
+            disabled={clearAllMutation.isPending || traces.length === 0}
+            className="rounded-2xl font-bold gap-2 bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear Traces
+          </Button>
+        </div>
+      </div>
+
+      {/* Custom Bot Token Configuration Card */}
+      {isConfigOpen && (
+        <Card className="bg-gradient-to-br from-purple-950/20 via-black/40 to-slate-950/40 border border-purple-500/25 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[90px] pointer-events-none" />
+
+          {/* Title & Status Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-500/30 text-purple-300">
+                  <Bot className="w-5 h-5" />
+                </div>
+                Telegram Inspector Bot Configuration
+              </h2>
+              <p className="text-xs text-white/50">
+                Connect any custom Telegram Bot Token (from @BotFather). Forward or send messages to that bot on Telegram to extract Custom Emoji IDs and HTML codes.
+              </p>
+            </div>
+
+            {botConfig?.botInfo?.username ? (
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                Connected as @{botConfig.botInfo.username}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                No Custom Bot Connected
+              </span>
+            )}
+          </div>
+
+          {/* Active Bot Info Banner */}
+          {botConfig?.isRunning && botConfig?.botInfo && (
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-emerald-500/[0.07] border border-emerald-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-lg">
+                  {botConfig.botInfo.firstName ? botConfig.botInfo.firstName[0].toUpperCase() : <Bot className="w-5 h-5" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-base">
+                      {botConfig.botInfo.firstName || "Telegram Bot"}
+                    </span>
+                    <a
+                      href={`https://t.me/${botConfig.botInfo.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-bold rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 flex items-center gap-1 transition-colors"
+                    >
+                      @{botConfig.botInfo.username}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <span className="text-xs px-2 py-0.5 bg-white/5 text-white/50 rounded-md border border-white/10 font-mono">
+                      ID: {botConfig.botInfo.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-300/80 font-medium flex items-center gap-1.5 mt-0.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                    Active Polling & Ready to Inspect messages! (Active Token: {botConfig.maskedToken || 'Configured'})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`https://t.me/${botConfig.botInfo.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition-colors"
+                >
+                  <Bot className="w-4 h-4" />
+                  Open in Telegram
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Token Input Form */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-purple-400" />
+              Custom Telegram Bot Token / Key
+            </label>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  placeholder="Paste Telegram Bot Token here (e.g. 123456789:ABCdefGhI_...)"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  className="pr-10 bg-white/5 border-white/10 rounded-2xl text-white font-mono placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <Button
+                  onClick={() => saveTokenMutation.mutate(tokenInput.trim())}
+                  disabled={saveTokenMutation.isPending || !tokenInput.trim()}
+                  className="flex-1 sm:flex-initial rounded-2xl font-bold gap-2 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 h-12 px-6"
+                >
+                  {saveTokenMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Verifying & Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Save & Connect Bot
+                    </>
+                  )}
+                </Button>
+
+                {botConfig?.hasCustomToken && (
+                  <Button
+                    variant="outline"
+                    onClick={() => removeTokenMutation.mutate()}
+                    disabled={removeTokenMutation.isPending}
+                    className="rounded-2xl border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold h-12 px-4 gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Guide Callout */}
+          <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/10 text-xs text-white/60">
+            <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold text-white/80">How to use any custom bot for inspection:</p>
+              <p>
+                1. Open Telegram, search for <b>@BotFather</b>, and create a bot using <code>/newbot</code>.
+              </p>
+              <p>
+                2. Copy the bot token, paste it in the field above, and click <b>Save & Connect Bot</b>.
+              </p>
+              <p>
+                3. Open your bot in Telegram and send or forward any message with custom emojis, quotes, or formatting. The bot will automatically reply with the extracted Custom Emoji IDs and reconstructed Telegram HTML!
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-purple-500/40 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Traces Captured</p>
+              <h3 className="text-3xl font-black text-white">{totalTraces}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+              <Terminal className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-yellow-500/40 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Custom Emoji IDs</p>
+              <h3 className="text-3xl font-black text-yellow-400">{uniqueCustomEmojis.length}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform">
+              <Smile className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-blue-500/40 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Format Types</p>
+              <h3 className="text-3xl font-black text-blue-400">{totalEntityTypes.length}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+              <Code className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden group hover:border-emerald-500/40 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-white/40 uppercase tracking-widest">Inspector Bot</p>
+              <h3 className="text-xl font-black text-emerald-400 flex items-center gap-2">
+                {botConfig?.isRunning ? (
+                  <>
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
+                    {botConfig?.botInfo?.username ? `@${botConfig.botInfo.username}` : "Active"}
+                  </>
+                ) : (
+                  <>
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span className="text-amber-400 text-base">Not Connected</span>
+                  </>
+                )}
+              </h3>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+              <Bot className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filter & Manual Inspection Bar */}
+      <div className="space-y-4">
+        <Card className="bg-white/[0.02] border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              Quick Text & Custom Emoji Inspector
+            </h3>
+            <span className="text-xs text-white/40">Paste raw text, HTML tag, or Emoji ID below to analyze instantly</span>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <Input
+              placeholder="Paste raw text, Telegram HTML, or Emoji ID (e.g. 5201692367437974073)..."
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                  const textVal = e.currentTarget.value.trim();
+                  e.currentTarget.value = '';
+                  try {
+                    await apiRequest("POST", "/api/telegram-inspector/inspect", { text: textVal });
+                    queryClient.invalidateQueries({ queryKey: ["/api/telegram-inspector/traces"] });
+                    toast({ title: "Inspected Successfully!", description: "Trace record added to dashboard list." });
+                  } catch (err: any) {
+                    toast({ title: "Inspection Failed", description: err.message, variant: "destructive" });
+                  }
+                }
+              }}
+              className="flex-1 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+            />
+          </div>
+        </Card>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.02] border border-white/10 p-4 rounded-3xl backdrop-blur-xl">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <Input
+              placeholder="Search by Emoji ID, text content, formatting, or username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-white/30 h-12 text-sm focus:border-purple-500/50"
+            />
+          </div>
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              onClick={() => setSearchTerm("")}
+              className="text-white/50 hover:text-white rounded-xl text-xs font-bold"
+            >
+              Clear Search
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Traces Feed */}
+      <div className="space-y-6">
+        {filteredTraces.length === 0 ? (
+          <Card className="bg-white/[0.02] border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl">
+            <div className="w-16 h-16 bg-purple-500/10 rounded-full border border-purple-500/20 flex items-center justify-center mx-auto mb-4 text-purple-400">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">No Telegram Traces Found</h3>
+            <p className="text-sm text-white/40 max-w-md mx-auto">
+              Forward any formatted message or send custom emojis to your Telegram Bot. The trace and extracted emoji IDs will appear here instantly!
+            </p>
+          </Card>
+        ) : (
+          filteredTraces.map((trace) => (
+            <Card
+              key={trace.id}
+              className="bg-white/[0.02] border-white/10 rounded-3xl backdrop-blur-xl p-6 relative overflow-hidden transition-all duration-300 hover:border-purple-500/30 space-y-6"
+            >
+              {/* Card Top Metadata Header */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm">
+                    {trace.userFirstName ? trace.userFirstName[0].toUpperCase() : <User className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-base">
+                        {trace.userFirstName || trace.username || "Telegram User"}
+                      </span>
+                      {trace.username && (
+                        <span className="text-xs text-purple-400 font-medium">@{trace.username}</span>
+                      )}
+                      <span className="text-xs px-2 py-0.5 bg-white/5 text-white/40 rounded-lg border border-white/10">
+                        ID: {trace.userId}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/30 font-medium flex items-center gap-1.5 mt-0.5">
+                      <Calendar className="w-3.5 h-3.5 text-white/30" />
+                      {new Date(trace.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {trace.forwardInfo?.isForwarded && (
+                    <span className="text-xs px-3 py-1 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-xl font-bold flex items-center gap-1.5">
+                      <Share2 className="w-3.5 h-3.5" />
+                      Forwarded From: {trace.forwardInfo.chatTitle || trace.forwardInfo.fromName || "Telegram Channel"}
+                    </span>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteSingleMutation.mutate(trace.id)}
+                    className="text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-xl"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Extracted Custom Emoji IDs Section */}
+              {trace.customEmojis && trace.customEmojis.length > 0 && (
+                <div className="space-y-3 bg-yellow-500/[0.03] border border-yellow-500/20 p-4 rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-yellow-400 flex items-center gap-2">
+                      <Smile className="w-4 h-4" />
+                      Extracted Premium Custom Emoji IDs ({trace.customEmojis.length})
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {trace.customEmojis.map((emoji) => {
+                      const tagCode = `<tg-emoji emoji-id="${emoji.id}">${emoji.char || "⭐"}</tg-emoji>`;
+                      return (
+                        <div
+                          key={emoji.id}
+                          className="flex items-center justify-between gap-2 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-yellow-500/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="text-lg bg-white/10 px-2 py-0.5 rounded-lg shrink-0">
+                              {emoji.char || "⭐"}
+                            </span>
+                            <div className="truncate">
+                              <p className="text-xs font-mono font-bold text-yellow-300 truncate">
+                                ID: {emoji.id}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => copyToClipboard(emoji.id, `Emoji ID ${emoji.id}`, `id-${emoji.id}`)}
+                              className="h-8 px-2.5 text-xs bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 font-bold rounded-lg gap-1 border border-yellow-500/20"
+                            >
+                              {copiedId === `id-${emoji.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                              Copy ID
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => copyToClipboard(tagCode, `<tg-emoji> tag for ${emoji.id}`, `tag-${emoji.id}`)}
+                              className="h-8 px-2.5 text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold rounded-lg gap-1 border border-purple-500/20"
+                            >
+                              {copiedId === `tag-${emoji.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Code className="w-3.5 h-3.5" />}
+                              Tag
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Detected Formatting Badges */}
+              {trace.entitySummary && trace.entitySummary.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-white/40 uppercase tracking-wider mr-2">
+                    Detected Formats:
+                  </span>
+                  {trace.entitySummary.map((entity) => (
+                    <span
+                      key={entity.type}
+                      className="text-xs px-3 py-1 bg-white/5 border border-white/10 rounded-xl text-purple-300 font-semibold flex items-center gap-1.5"
+                    >
+                      <Tag className="w-3 h-3 text-purple-400" />
+                      {entity.type} ({entity.count})
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Reconstructed HTML Code Box */}
+              {trace.reconstructedHtml && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white/50 uppercase tracking-wider flex items-center gap-2">
+                      <Code className="w-4 h-4 text-purple-400" />
+                      Reconstructed Telegram HTML Code (Ready to Copy for ShopBot)
+                    </span>
+
+                    <Button
+                      size="sm"
+                      onClick={() => copyToClipboard(trace.reconstructedHtml, "Telegram HTML Code", `html-${trace.id}`)}
+                      className="h-8 px-3 text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 rounded-xl font-bold gap-1.5"
+                    >
+                      {copiedId === `html-${trace.id}` ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy Telegram HTML
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <pre className="p-4 bg-black/40 border border-white/10 rounded-2xl overflow-x-auto text-xs font-mono text-purple-200 leading-relaxed select-all">
+                    <code>{trace.reconstructedHtml}</code>
+                  </pre>
+                </div>
+              )}
+
+              {/* Raw Text Content */}
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-white/30 uppercase tracking-wider">
+                  Raw Text / Caption:
+                </span>
+                <p className="text-sm text-white/80 bg-white/[0.01] p-3 rounded-xl border border-white/5 font-sans whitespace-pre-wrap">
+                  {trace.rawText}
+                </p>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

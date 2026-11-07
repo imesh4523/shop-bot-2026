@@ -1,0 +1,1310 @@
+import { db } from "./db";
+import bcrypt from "bcryptjs";
+import {
+  products,
+  credentials,
+  orders,
+  telegramUsers,
+  settings,
+  payments,
+  broadcastChannels,
+  broadcastMessages,
+  users,
+  awsAccounts,
+  awsActivities,
+  backupConfigs,
+  backupLogs,
+  type Product,
+  type InsertProduct,
+  type Credential,
+  type InsertCredential,
+  type Order,
+  type TelegramUser,
+  type InsertTelegramUser,
+  type InsertOrder,
+  type Payment,
+  type InsertPayment,
+  type BroadcastChannel,
+  type InsertBroadcastChannel,
+  type BroadcastMessage,
+  type InsertBroadcastMessage,
+  type User,
+  type AwsAccount,
+  type InsertAwsAccount,
+  type AwsActivity,
+  type InsertAwsActivity,
+  type SpecialOffer,
+  type InsertSpecialOffer,
+  specialOffers,
+  type BackupConfig,
+  type InsertBackupConfig,
+  type BackupLog,
+  type InsertBackupLog,
+  pushSubscriptions,
+  promoCodes,
+  promoCodeRedemptions,
+  type PromoCode,
+  type InsertPromoCode,
+  type PromoCodeRedemption,
+  type InsertPromoCodeRedemption,
+  reviews,
+  type Review,
+  type InsertReview,
+  supportTickets,
+  type SupportTicket,
+  type InsertSupportTicket,
+  preorders,
+  type Preorder,
+  apiKeys,
+  type ApiKey,
+  type InsertApiKey,
+  sandromaniaOrders,
+  smmOrders,
+  softwareUpdateLogs,
+  softwareUpdateInteractions,
+  type SoftwareUpdateLog,
+  type InsertSoftwareUpdateLog,
+  type SoftwareUpdateInteraction,
+  type InsertSoftwareUpdateInteraction,
+  customerErrorLogs,
+  type CustomerErrorLog,
+  type InsertCustomerErrorLog
+} from "@shared/schema";
+import { eq, desc, count, sql, and, or, gt, gte, lte, isNull, isNotNull, inArray } from "drizzle-orm";
+
+export interface IStorage {
+  // Admin Login
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  initializeAdmin(): Promise<void>;
+
+  // Products
+  getProducts(): Promise<Product[]>;
+  getAvailableProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
+  markProductSold(id: number): Promise<void>;
+
+  // Telegram Users
+  getTelegramUser(telegramId: string): Promise<TelegramUser | undefined>;
+  getTelegramUserById(id: number): Promise<TelegramUser | undefined>;
+  getTelegramUserByEmail(email: string): Promise<TelegramUser | undefined>;
+  getTelegramUserByChatId(chatId: string | number): Promise<TelegramUser | undefined>;
+  getAllTelegramUsers(): Promise<TelegramUser[]>;
+  createTelegramUser(user: InsertTelegramUser): Promise<TelegramUser>;
+  updateTelegramUser(id: number, data: Partial<TelegramUser>): Promise<TelegramUser>;
+  updateTelegramUserByChatId(telegramId: string, data: Partial<TelegramUser>): Promise<TelegramUser>;
+  deductBalance(userId: number, amount: number): Promise<boolean>;
+  getTelegramUsersWithBroadcast(): Promise<TelegramUser[]>;
+
+  // Orders
+  getOrders(): Promise<(Order & { product: Product | null; telegramUser: TelegramUser | null })[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+
+  // Pre-Orders
+  getPreorders(): Promise<(Preorder & { product: Product | null; telegramUser: TelegramUser | null })[]>;
+  getPendingPreordersByProduct(productId: number): Promise<Preorder[]>;
+  createPreorder(preorder: InsertPreorder): Promise<Preorder>;
+  updatePreorder(id: number, data: Partial<Preorder>): Promise<Preorder>;
+
+  // Payments
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPayment(id: number): Promise<Payment | undefined>;
+  getPaymentByUuid(uuid: string): Promise<Payment | undefined>;
+  getPayments(): Promise<Payment[]>;
+  getAllPayments(): Promise<Payment[]>;
+  updatePayment(id: number, data: Partial<Payment>): Promise<Payment>;
+  getAllPaymentsWithUsers(): Promise<(Payment & { telegramUser: TelegramUser | null })[]>;
+
+  // Credentials
+  getCredentialsByProduct(productId: number): Promise<Credential[]>;
+  getAvailableCredential(productId: number): Promise<Credential | undefined>;
+  createCredential(credential: InsertCredential): Promise<Credential>;
+  markCredentialSold(id: number): Promise<void>;
+  deleteCredential(id: number): Promise<void>;
+
+  // Broadcast Channels
+  getBroadcastChannels(): Promise<BroadcastChannel[]>;
+  createBroadcastChannel(channel: InsertBroadcastChannel): Promise<BroadcastChannel>;
+  deleteBroadcastChannel(id: number): Promise<void>;
+
+  // Broadcast Messages
+  getBroadcastMessages(): Promise<BroadcastMessage[]>;
+  createBroadcastMessage(msg: InsertBroadcastMessage): Promise<BroadcastMessage>;
+  updateBroadcastMessage(id: number, msg: Partial<InsertBroadcastMessage>): Promise<BroadcastMessage>;
+  deleteBroadcastMessage(id: number): Promise<void>;
+
+  // Stats
+  getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number; totalUsers: number; monthlyUsers: number; activeUsersToday: number }>;
+
+  // Settings
+  getSetting(key: string): Promise<{ key: string; value: string } | undefined>;
+  updateSetting(key: string, value: string): Promise<{ key: string; value: string }>;
+  setSetting(key: string, value: string): Promise<{ key: string; value: string }>;
+
+  // AWS Checker
+  getAwsAccounts(): Promise<AwsAccount[]>;
+  getAwsAccount(id: number): Promise<AwsAccount | undefined>;
+  createAwsAccount(account: InsertAwsAccount): Promise<AwsAccount>;
+  updateAwsAccount(id: number, data: Partial<AwsAccount>): Promise<AwsAccount>;
+  deleteAwsAccount(id: number): Promise<void>;
+  getAwsActivities(accountId?: number): Promise<(AwsActivity & { account: AwsAccount | null })[]>;
+  createAwsActivity(activity: InsertAwsActivity): Promise<AwsActivity>;
+  getAwsActivityExists(accountId: number, eventTime: Date, eventName: string): Promise<boolean>;
+  deleteAwsNoise(): Promise<void>;
+  expireOldPayments(): Promise<void>;
+  getPendingPaymentByAmount(userId: number, amount: number): Promise<Payment | undefined>;
+
+  // Special Offers
+  getSpecialOffers(): Promise<(SpecialOffer & { product: Product | null })[]>;
+  getSpecialOffer(id: number): Promise<SpecialOffer | undefined>;
+  createSpecialOffer(offer: InsertSpecialOffer): Promise<SpecialOffer>;
+  updateSpecialOffer(id: number, data: Partial<InsertSpecialOffer>): Promise<SpecialOffer>;
+  deleteSpecialOffer(id: number): Promise<void>;
+  getActiveSpecialOffers(): Promise<(SpecialOffer & { product: Product | null })[]>;
+
+  // Backups
+  getBackupConfigs(): Promise<BackupConfig[]>;
+  createBackupConfig(config: InsertBackupConfig): Promise<BackupConfig>;
+  updateBackupConfig(id: number, data: Partial<BackupConfig>): Promise<BackupConfig>;
+  getBackupLogs(limit?: number): Promise<BackupLog[]>;
+  createBackupLog(log: InsertBackupLog): Promise<BackupLog>;
+  clearOldBackupLogs(days: number): Promise<void>;
+  
+  // Push Subscriptions
+  savePushSubscription(userId: number, subscription: any): Promise<void>;
+  getPushSubscriptions(userId?: number): Promise<any[]>;
+
+  // Promo Codes
+  getPromoCodes(): Promise<PromoCode[]>;
+  getPromoCode(id: number): Promise<PromoCode | undefined>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  createPromoCode(data: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode>;
+  deletePromoCode(id: number): Promise<void>;
+  getPromoCodeRedemptions(): Promise<(PromoCodeRedemption & { telegramUser: TelegramUser | null; promoCode: PromoCode | null })[]>;
+  getLastPromoCodeRedemption(telegramUserId: number): Promise<(PromoCodeRedemption & { promoCode: PromoCode }) | null>;
+  getRedemptionByUserAndCode(telegramUserId: number, promoCodeId: number): Promise<PromoCodeRedemption | undefined>;
+  redeemPromoCode(telegramUserId: number, promoCodeId: number, reward: number, currency?: string): Promise<void>;
+
+  // Reviews
+  getReviews(): Promise<Review[]>;
+  createReview(data: InsertReview): Promise<Review>;
+
+  // Support Tickets
+  getSupportTickets(): Promise<SupportTicket[]>;
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket>;
+
+  // Developer API Keys
+  createApiKey(telegramUserId: number, key: string): Promise<ApiKey>;
+  getApiKeyByKey(key: string): Promise<ApiKey | undefined>;
+  getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined>;
+  getUserApiKeys(telegramUserId: number): Promise<ApiKey[]>;
+  getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]>;
+  revokeApiKey(id: number): Promise<ApiKey>;
+  deleteApiKey(id: number): Promise<boolean>;
+  updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey>;
+  getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]>;
+  createSoftwareUpdateLog(log: InsertSoftwareUpdateLog): Promise<SoftwareUpdateLog>;
+  getSoftwareUpdateLogs(): Promise<SoftwareUpdateLog[]>;
+  getLatestSoftwareUpdateVersion(): Promise<string | null>;
+  recordSoftwareUpdateInteraction(interaction: InsertSoftwareUpdateInteraction): Promise<SoftwareUpdateInteraction>;
+  getSoftwareUpdateInteractions(version?: string): Promise<SoftwareUpdateInteraction[]>;
+  createCustomerErrorLog(log: InsertCustomerErrorLog): Promise<CustomerErrorLog>;
+  getCustomerErrorLogs(filter?: { customer?: string; severity?: string; status?: string; limit?: number }): Promise<CustomerErrorLog[]>;
+  updateCustomerErrorLogStatus(id: number, status: string, notes?: string): Promise<CustomerErrorLog | null>;
+  getCustomerErrorStats(): Promise<{ total: number; critical: number; unresolved: number }>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // Settings
+  async getSetting(key: string): Promise<{ key: string; value: string } | undefined> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    return setting;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async initializeAdmin(): Promise<void> {
+    // Create push_subscriptions table if not exists
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          subscription JSONB NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      console.log('[DB] push_subscriptions table verified/created');
+    } catch (err) {
+      console.error('[DB] Failed to create push_subscriptions table:', err);
+    }
+
+    // Initialize default branding settings
+    const defaultSettings = [
+      { key: "INSPECTOR_BOT_TOKEN", value: "8597932397:AAEweM3gKQpDKFx0OJzdHdtIBbQ2ZVLR448" },
+      { key: "STORE_NAME", value: "YouuHost" },
+      { key: "SUPPORT_USERNAME", value: "@youuhost_support" },
+      { key: "SUPPORT_BTN_TEXT", value: "Write to Support" },
+      { key: "LOADING_TEXT", value: "YouuHost..." },
+      { key: "TRC20_WALLET_ADDRESS", value: "TJR7q1c8k5v74B8F91M5B1mzpml3x9k" },
+      { key: "BEP20_WALLET_ADDRESS", value: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" },
+      { key: "BINANCE_PAY_ID", value: "284910485" },
+      { key: "APTOS_WALLET_ADDRESS", value: "" },
+      { key: "PAYMENT_TRC20_ENABLED", value: "true" },
+      { key: "PAYMENT_BEP20_ENABLED", value: "true" },
+      { key: "PAYMENT_APTOS_ENABLED", value: "false" },
+      { key: "PAYMENT_CRYPTOBOT_ENABLED", value: "true" },
+      { key: "PAYMENT_CRYPTOMUS_ENABLED", value: "true" },
+      { key: "SHOW_CRYPTOMUS_WEB_BUTTON", value: "false" },
+      { key: "PAYMENT_BINANCE_ENABLED", value: "true" },
+      { key: "TRC20_VERIFICATION_MODE", value: "binance" },
+      { key: "APTOS_VERIFICATION_MODE", value: "binance" },
+      { key: "SPAM_AUTO_BAN_ENABLED", value: "true" },
+      { key: "SPAM_MAX_REQ_PER_MIN", value: "15" },
+      { key: "SPAM_TEMP_BAN_DURATION_MINS", value: "15" }
+    ];
+
+    for (const s of defaultSettings) {
+      const existing = await db.select().from(settings).where(eq(settings.key, s.key));
+      if (existing.length === 0) {
+        await db.insert(settings).values({ key: s.key, value: s.value });
+      } else if (s.key === "SHOW_CRYPTOMUS_WEB_BUTTON") {
+        await db.update(settings).set({ value: "false" }).where(eq(settings.key, s.key));
+      } else if (s.key === "INSPECTOR_BOT_TOKEN" && (!existing[0].value || existing[0].value === "")) {
+        await db.update(settings).set({ value: s.value }).where(eq(settings.key, s.key));
+      }
+    }
+
+    const email = process.env.ADMIN_EMAIL || "admin@shopeefy.com";
+    const password = process.env.ADMIN_PASSWORD || "admin123";
+    const existing = await this.getUserByEmail(email);
+    if (!existing) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db.insert(users).values({
+        email,
+        password: hashedPassword,
+        firstName: "Admin",
+        lastName: "User"
+      });
+      console.log(`✅ Admin user initialized successfully! Email: ${email} | Password: ${password}`);
+    }
+  }
+
+  async updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+    const [existing] = await db.select().from(settings).where(eq(settings.key, key));
+    if (existing) {
+      const [updated] = await db
+        .update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(settings.key, key))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(settings).values({ key, value }).returning();
+    return inserted;
+  }
+
+  async setSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+    return this.updateSetting(key, value);
+  }
+
+  // Products
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products).orderBy(desc(products.createdAt));
+  }
+
+  async getAvailableProducts(): Promise<Product[]> {
+    return await db.select().from(products).where(eq(products.status, "available")).orderBy(desc(products.createdAt));
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db.insert(products).values(product).returning();
+    return newProduct;
+  }
+
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set(product)
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
+  }
+
+  async markProductSold(id: number): Promise<void> {
+    await db.update(products).set({ status: "sold" }).where(eq(products.id, id));
+  }
+
+  // Credentials
+  async getCredentialsByProduct(productId: number): Promise<Credential[]> {
+    return await db.select().from(credentials).where(eq(credentials.productId, productId)).orderBy(desc(credentials.createdAt));
+  }
+
+  async getAvailableCredential(productId: number): Promise<Credential | undefined> {
+    const [credential] = await db.select().from(credentials).where(and(eq(credentials.productId, productId), eq(credentials.status, "available"))).limit(1);
+    return credential;
+  }
+
+  async createCredential(credential: InsertCredential): Promise<Credential> {
+    const [newCredential] = await db.insert(credentials).values(credential).returning();
+    return newCredential;
+  }
+
+  async markCredentialSold(id: number): Promise<void> {
+    await db.update(credentials).set({ status: "sold" }).where(eq(credentials.id, id));
+  }
+
+  async deleteCredential(id: number): Promise<void> {
+    await db.delete(credentials).where(eq(credentials.id, id));
+  }
+
+  // Broadcast Channels
+  async getBroadcastChannels(): Promise<BroadcastChannel[]> {
+    return await db.select().from(broadcastChannels).orderBy(desc(broadcastChannels.createdAt));
+  }
+
+  async createBroadcastChannel(channel: InsertBroadcastChannel): Promise<BroadcastChannel> {
+    const [newChannel] = await db.insert(broadcastChannels).values(channel).returning();
+    return newChannel;
+  }
+
+  async deleteBroadcastChannel(id: number): Promise<void> {
+    await db.delete(broadcastChannels).where(eq(broadcastChannels.id, id));
+  }
+
+  // Broadcast Messages
+  async getBroadcastMessages(): Promise<BroadcastMessage[]> {
+    try {
+      return await db.select().from(broadcastMessages).orderBy(desc(broadcastMessages.createdAt));
+    } catch (err) {
+      console.error('Failed to get broadcast messages, table might not exist yet:', err);
+      return [];
+    }
+  }
+
+  async createBroadcastMessage(msg: InsertBroadcastMessage): Promise<BroadcastMessage> {
+    const [newMsg] = await db.insert(broadcastMessages).values(msg).returning();
+    return newMsg;
+  }
+
+  async updateBroadcastMessage(id: number, msg: Partial<InsertBroadcastMessage>): Promise<BroadcastMessage> {
+    const [updated] = await db.update(broadcastMessages).set(msg).where(eq(broadcastMessages.id, id)).returning();
+    return updated;
+  }
+
+  async deleteBroadcastMessage(id: number): Promise<void> {
+    await db.delete(broadcastMessages).where(eq(broadcastMessages.id, id));
+  }
+
+  // Telegram Users
+  async getTelegramUser(telegramId: string): Promise<TelegramUser | undefined> {
+    const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.telegramId, telegramId));
+    return user;
+  }
+
+  async getTelegramUserById(id: number): Promise<TelegramUser | undefined> {
+    const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, id));
+    return user;
+  }
+
+  async getTelegramUserByEmail(email: string): Promise<TelegramUser | undefined> {
+    const cleanEmail = email.toLowerCase().trim();
+    const [user] = await db.select().from(telegramUsers).where(sql`LOWER(${telegramUsers.email}) = ${cleanEmail}`);
+    return user;
+  }
+
+  async getTelegramUserByChatId(chatId: string | number): Promise<TelegramUser | undefined> {
+    return this.getTelegramUser(chatId.toString());
+  }
+
+  async getAllTelegramUsers(): Promise<TelegramUser[]> {
+    return await db.select().from(telegramUsers).orderBy(desc(telegramUsers.createdAt));
+  }
+
+  async createTelegramUser(user: InsertTelegramUser): Promise<TelegramUser> {
+    const [newUser] = await db.insert(telegramUsers).values(user).returning();
+    return newUser;
+  }
+
+  async updateTelegramUser(id: number, data: Partial<TelegramUser>): Promise<TelegramUser> {
+    const [updated] = await db
+      .update(telegramUsers)
+      .set(data)
+      .where(eq(telegramUsers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateTelegramUserByChatId(telegramId: string, data: Partial<TelegramUser>): Promise<TelegramUser> {
+    const [updated] = await db
+      .update(telegramUsers)
+      .set(data)
+      .where(eq(telegramUsers.telegramId, telegramId))
+      .returning();
+    return updated;
+  }
+
+  async getTelegramUsersWithBroadcast(): Promise<TelegramUser[]> {
+    return await db.select().from(telegramUsers).where(isNotNull(telegramUsers.lastOfferBroadcastId));
+  }
+
+  async deductBalance(userId: number, amount: number): Promise<boolean> {
+    const approxLkrRate = 305.50;
+    const deductLkr = Math.round((amount / 100) * approxLkrRate);
+
+    const [result] = await db
+      .update(telegramUsers)
+      .set({
+        balance: sql`${telegramUsers.balance} - ${amount}`,
+        balanceLkr: sql`CASE WHEN ${telegramUsers.balanceLkr} IS NOT NULL THEN GREATEST(0, ${telegramUsers.balanceLkr} - ${deductLkr}) ELSE NULL END`
+      })
+      .where(and(eq(telegramUsers.id, userId), gte(telegramUsers.balance, amount)))
+      .returning();
+    
+    return !!result;
+  }
+
+  // Orders
+  async getOrders(): Promise<(Order & { product: Product | null; telegramUser: TelegramUser | null; credential: Credential | null })[]> {
+    return await db.query.orders.findMany({
+      with: {
+        product: true,
+        telegramUser: true,
+        credential: true,
+      },
+      orderBy: desc(orders.createdAt),
+    }) as (Order & { product: Product | null; telegramUser: TelegramUser | null; credential: Credential | null })[];
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  // Payments
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db.insert(payments).values(payment).returning();
+    return newPayment;
+  }
+
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async getPaymentByUuid(uuid: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.cryptomusUuid, uuid));
+    return payment;
+  }
+
+  async getPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.createdAt));
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.createdAt));
+  }
+
+  async updatePayment(id: number, data: Partial<Payment>): Promise<Payment> {
+    const [updated] = await db
+      .update(payments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(payments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllPaymentsWithUsers(): Promise<(Payment & { telegramUser: TelegramUser | null })[]> {
+    return await db.query.payments.findMany({
+      with: {
+        telegramUser: true,
+      },
+      orderBy: desc(payments.createdAt),
+    });
+  }
+
+  async getPaymentsForUser(userId: number): Promise<Payment[]> {
+    return await db.select()
+      .from(payments)
+      .where(eq(payments.telegramUserId, userId))
+      .orderBy(desc(payments.createdAt));
+  }
+
+  // Stats
+  async getStats(): Promise<{ totalSales: number; dailySales: number; totalRevenue: number; dailyRevenue: number; availableProducts: number; totalUsers: number; monthlyUsers: number; activeUsersToday: number }> {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // 1. Cloud Orders
+    const [sales] = await db.select({ count: count() }).from(orders);
+    const [dailySalesResult] = await db.select({ count: count() })
+      .from(orders)
+      .where(sql`${orders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const revenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${products.price}), 0)`
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id));
+
+    const dailyRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${products.price}), 0)`
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .where(sql`${orders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    // 2. Sandromania Partner Goods Orders
+    const [sandroSales] = await db.select({ count: count() }).from(sandromaniaOrders);
+    const [dailySandroSalesResult] = await db.select({ count: count() })
+      .from(sandromaniaOrders)
+      .where(sql`${sandromaniaOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const sandroRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${sandromaniaOrders.amountPaid}), 0)`
+    }).from(sandromaniaOrders);
+
+    const dailySandroRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${sandromaniaOrders.amountPaid}), 0)`
+    }).from(sandromaniaOrders).where(sql`${sandromaniaOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    // 3. SMM Boost Orders
+    const [smmSales] = await db.select({ count: count() }).from(smmOrders);
+    const [dailySmmSalesResult] = await db.select({ count: count() })
+      .from(smmOrders)
+      .where(sql`${smmOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const smmRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${smmOrders.charge}), 0)`
+    }).from(smmOrders);
+
+    const dailySmmRevenueResult = await db.select({
+      total: sql<number>`COALESCE(SUM(${smmOrders.charge}), 0)`
+    }).from(smmOrders).where(sql`${smmOrders.createdAt} >= ${twentyFourHoursAgo}`);
+
+    const totalSalesCount = (sales?.count || 0) + (sandroSales?.count || 0) + (smmSales?.count || 0);
+    const dailySalesCount = (dailySalesResult?.count || 0) + (dailySandroSalesResult?.count || 0) + (dailySmmSalesResult?.count || 0);
+    const totalRevenueCents = Number(revenueResult[0]?.total || 0) + Number(sandroRevenueResult[0]?.total || 0) + Number(smmRevenueResult[0]?.total || 0);
+    const dailyRevenueCents = Number(dailyRevenueResult[0]?.total || 0) + Number(dailySandroRevenueResult[0]?.total || 0) + Number(dailySmmRevenueResult[0]?.total || 0);
+
+    const [available] = await db.select({ count: count() }).from(products).where(eq(products.status, "available"));
+
+    // Bot User Metrics
+    const [totalUsersResult] = await db.select({ count: count() }).from(telegramUsers);
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [monthlyUsersResult] = await db.select({ count: count() })
+      .from(telegramUsers)
+      .where(sql`${telegramUsers.createdAt} >= ${thirtyDaysAgo}`);
+
+    const [activeUsersTodayResult] = await db.select({ count: count() })
+      .from(telegramUsers)
+      .where(sql`${telegramUsers.lastRequestAt} >= ${twentyFourHoursAgo}`);
+
+    return {
+      totalSales: totalSalesCount,
+      dailySales: dailySalesCount,
+      totalRevenue: totalRevenueCents,
+      dailyRevenue: dailyRevenueCents,
+      availableProducts: available.count,
+      totalUsers: totalUsersResult?.count || 0,
+      monthlyUsers: monthlyUsersResult?.count || 0,
+      activeUsersToday: activeUsersTodayResult?.count || 0,
+    };
+  }
+
+  // AWS Checker Implementation
+  async getAwsAccounts(): Promise<AwsAccount[]> {
+    return await db.select().from(awsAccounts).orderBy(desc(awsAccounts.createdAt));
+  }
+
+  async getAwsAccount(id: number): Promise<AwsAccount | undefined> {
+    const [account] = await db.select().from(awsAccounts).where(eq(awsAccounts.id, id));
+    return account;
+  }
+
+  async createAwsAccount(account: InsertAwsAccount): Promise<AwsAccount> {
+    const sanitizedAccount = {
+      ...account,
+      accessKey: account.accessKey.trim(),
+      secretKey: account.secretKey.trim()
+    };
+    const [newAccount] = await db.insert(awsAccounts).values(sanitizedAccount).returning();
+    return newAccount;
+  }
+
+  async updateAwsAccount(id: number, data: Partial<AwsAccount>): Promise<AwsAccount> {
+    const sanitizedData = { ...data };
+    if (sanitizedData.accessKey) sanitizedData.accessKey = sanitizedData.accessKey.trim();
+    if (sanitizedData.secretKey) sanitizedData.secretKey = sanitizedData.secretKey.trim();
+
+    const [updated] = await db
+      .update(awsAccounts)
+      .set(sanitizedData)
+      .where(eq(awsAccounts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAwsAccount(id: number): Promise<void> {
+    await db.delete(awsActivities).where(eq(awsActivities.awsAccountId, id));
+    await db.delete(awsAccounts).where(eq(awsAccounts.id, id));
+  }
+
+  async getAwsActivities(accountId?: number): Promise<(AwsActivity & { account: AwsAccount | null })[]> {
+    const filters = accountId ? [eq(awsActivities.awsAccountId, accountId)] : [];
+    
+    return await db.query.awsActivities.findMany({
+      where: filters.length > 0 ? and(...filters) : undefined,
+      with: {
+        account: true,
+      },
+      orderBy: desc(awsActivities.eventTime),
+      limit: 1000,
+    }) as (AwsActivity & { account: AwsAccount | null })[];
+  }
+
+  async createAwsActivity(activity: InsertAwsActivity): Promise<AwsActivity> {
+    const [newActivity] = await db.insert(awsActivities).values(activity).returning();
+    return newActivity;
+  }
+
+  async getAwsActivityExists(accountId: number, eventTime: Date, eventName: string): Promise<boolean> {
+    const [existing] = await db
+      .select({ id: awsActivities.id })
+      .from(awsActivities)
+      .where(
+        and(
+          eq(awsActivities.awsAccountId, accountId),
+          eq(awsActivities.eventTime, eventTime),
+          eq(awsActivities.eventName, eventName)
+        )
+      )
+      .limit(1);
+    return !!existing;
+  }
+  
+  async deleteAwsNoise(): Promise<void> {
+    await db.delete(awsActivities).where(
+      sql`${awsActivities.eventName} IN ('LookupEvents', 'ListManagedNotificationEvents', 'GetServiceQuota', 'ListServiceQuotas', 'GetAccountQuota', 'GetEventSelectors', 'ListTags', 'DescribeInstances')`
+    );
+  }
+
+  async expireOldPayments(): Promise<void> {
+    await db.update(payments)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(
+        and(
+          eq(payments.status, 'pending'),
+          sql`${payments.createdAt} < NOW() - INTERVAL '1 hour'`
+        )
+      );
+  }
+
+  async getPendingPaymentByAmount(userId: number, amount: number): Promise<Payment | undefined> {
+    const [existing] = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.telegramUserId, userId),
+          eq(payments.amount, amount),
+          eq(payments.status, 'pending')
+        )
+      )
+      .limit(1);
+    return existing;
+  }
+
+  // Special Offers
+  async getSpecialOffers(): Promise<(SpecialOffer & { product: Product | null })[]> {
+    return await db.query.specialOffers.findMany({
+      with: {
+        product: true
+      },
+      orderBy: desc(specialOffers.createdAt)
+    }) as (SpecialOffer & { product: Product | null })[];
+  }
+
+  async getSpecialOffer(id: number): Promise<SpecialOffer | undefined> {
+    const [offer] = await db.select().from(specialOffers).where(eq(specialOffers.id, id));
+    return offer;
+  }
+
+  async createSpecialOffer(offer: InsertSpecialOffer): Promise<SpecialOffer> {
+    const [newOffer] = await db.insert(specialOffers).values(offer).returning();
+    return newOffer;
+  }
+
+  async updateSpecialOffer(id: number, data: Partial<InsertSpecialOffer>): Promise<SpecialOffer> {
+    const [updated] = await db.update(specialOffers).set(data).where(eq(specialOffers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSpecialOffer(id: number): Promise<void> {
+    await db.delete(specialOffers).where(eq(specialOffers.id, id));
+  }
+
+  async getActiveSpecialOffers(): Promise<(SpecialOffer & { product: Product | null })[]> {
+    const results = await db
+      .select({
+        offer: specialOffers,
+        product: products,
+      })
+      .from(specialOffers)
+      .leftJoin(products, eq(specialOffers.productId, products.id))
+      .where(
+        and(
+          eq(specialOffers.status, "active"),
+          or(
+            isNull(specialOffers.expiresAt),
+            gt(specialOffers.expiresAt, new Date())
+          )
+        )
+      )
+      .orderBy(desc(specialOffers.createdAt));
+
+    const enriched = await Promise.all(results.map(async r => {
+      try {
+        const stock = await db.select({ value: sql<number>`count(*)` })
+          .from(credentials)
+          .where(and(eq(credentials.productId, r.offer.productId), eq(credentials.status, "available")));
+        
+        const availableCount = Number(stock[0]?.value || 0);
+        const required = r.offer.bundleQuantity || 1;
+        
+        if (availableCount < required) return null;
+        
+        return {
+          ...r.offer,
+          product: r.product
+        };
+      } catch (err) {
+        console.error(`Error processing offer ${r.offer.id}:`, err);
+        return null;
+      }
+    }));
+
+    return enriched.filter((o): o is any => o !== null);
+  }
+
+  // Backups Implementation
+  async getBackupConfigs(): Promise<BackupConfig[]> {
+    return await db.select().from(backupConfigs);
+  }
+
+  async createBackupConfig(config: InsertBackupConfig): Promise<BackupConfig> {
+    const [newConfig] = await db.insert(backupConfigs).values(config).returning();
+    return newConfig;
+  }
+
+  async updateBackupConfig(id: number, data: Partial<BackupConfig>): Promise<BackupConfig> {
+    const [updated] = await db
+      .update(backupConfigs)
+      .set(data)
+      .where(eq(backupConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getBackupLogs(limit: number = 50): Promise<BackupLog[]> {
+    return await db.select().from(backupLogs).orderBy(desc(backupLogs.createdAt)).limit(limit);
+  }
+
+  async createBackupLog(log: InsertBackupLog): Promise<BackupLog> {
+    const [newLog] = await db.insert(backupLogs).values(log).returning();
+    return newLog;
+  }
+
+  async clearOldBackupLogs(days: number): Promise<void> {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    await db.delete(backupLogs).where(sql`${backupLogs.createdAt} < ${cutoff}`);
+  }
+
+  // Push Subscriptions
+  async savePushSubscription(userId: number, subscription: any): Promise<void> {
+    const [existing] = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(and(eq(pushSubscriptions.userId, userId), sql`${pushSubscriptions.subscription}->>'endpoint' = ${subscription.endpoint}`))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(pushSubscriptions).values({
+        userId,
+        subscription,
+      });
+    }
+  }
+
+  async getPushSubscriptions(userId?: number): Promise<any[]> {
+    const query = db.select().from(pushSubscriptions);
+    if (userId) {
+      query.where(eq(pushSubscriptions.userId, userId));
+    }
+    return await query;
+  }
+
+  // Promo Codes Implementation
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return await db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  }
+
+  async getPromoCode(id: number): Promise<PromoCode | undefined> {
+    const [promo] = await db.select().from(promoCodes).where(eq(promoCodes.id, id));
+    return promo;
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [promo] = await db.select().from(promoCodes).where(eq(sql`LOWER(${promoCodes.code})`, code.toLowerCase()));
+    return promo;
+  }
+
+  async createPromoCode(data: InsertPromoCode): Promise<PromoCode> {
+    const [newPromo] = await db.insert(promoCodes).values(data).returning();
+    return newPromo;
+  }
+
+  async updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode> {
+    const [updated] = await db.update(promoCodes).set(data).where(eq(promoCodes.id, id)).returning();
+    return updated;
+  }
+
+  async deletePromoCode(id: number): Promise<void> {
+    await db.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.promoCodeId, id));
+    await db.delete(promoCodes).where(eq(promoCodes.id, id));
+  }
+
+  async getPromoCodeRedemptions(): Promise<(PromoCodeRedemption & { telegramUser: TelegramUser | null; promoCode: PromoCode | null })[]> {
+    return await db.query.promoCodeRedemptions.findMany({
+      with: {
+        telegramUser: true,
+        promoCode: true,
+      },
+      orderBy: desc(promoCodeRedemptions.createdAt),
+    }) as any[];
+  }
+
+  async getLastPromoCodeRedemption(telegramUserId: number): Promise<(PromoCodeRedemption & { promoCode: PromoCode }) | null> {
+    const redemption = await db.query.promoCodeRedemptions.findFirst({
+      where: eq(promoCodeRedemptions.telegramUserId, telegramUserId),
+      with: {
+        promoCode: true,
+      },
+      orderBy: desc(promoCodeRedemptions.createdAt),
+    });
+    return (redemption as any) || null;
+  }
+
+  async getRedemptionByUserAndCode(telegramUserId: number, promoCodeId: number): Promise<PromoCodeRedemption | undefined> {
+    const [redemption] = await db
+      .select()
+      .from(promoCodeRedemptions)
+      .where(
+        and(
+          eq(promoCodeRedemptions.telegramUserId, telegramUserId),
+          eq(promoCodeRedemptions.promoCodeId, promoCodeId)
+        )
+      )
+      .limit(1);
+    return redemption;
+  }
+
+  async redeemPromoCode(telegramUserId: number, promoCodeId: number, reward: number, currency: string = "USD"): Promise<void> {
+    await db.transaction(async (tx) => {
+      // 1. Create the redemption log record FIRST (triggers unique constraint if user already redeemed)
+      await tx.insert(promoCodeRedemptions).values({
+        telegramUserId,
+        promoCodeId,
+      });
+
+      // 2. Increment the promo code's usesCount
+      await tx
+        .update(promoCodes)
+        .set({
+          usesCount: sql`${promoCodes.usesCount} + 1`
+        })
+        .where(eq(promoCodes.id, promoCodeId));
+
+      // 3. Credit the user's balance and balanceLkr cleanly
+      const approxLkrRate = 305.50;
+      let creditCents = 0;
+      let creditLkr = 0;
+
+      if (currency === "LKR") {
+        creditLkr = Math.round(reward);
+        creditCents = Math.round((creditLkr / approxLkrRate) * 100);
+      } else {
+        creditCents = Math.round(reward);
+        creditLkr = Math.round((creditCents / 100) * approxLkrRate);
+      }
+
+      await tx
+        .update(telegramUsers)
+        .set({
+          balance: sql`${telegramUsers.balance} + ${creditCents}`,
+          balanceLkr: sql`COALESCE(${telegramUsers.balanceLkr}, 0) + ${creditLkr}`
+        })
+        .where(eq(telegramUsers.id, telegramUserId));
+    });
+  }
+
+  // Customer Reviews
+  async getReviews(): Promise<Review[]> {
+    try {
+      return await db.select().from(reviews).where(eq(reviews.status, "approved")).orderBy(desc(reviews.createdAt));
+    } catch (e) {
+      console.error("Error fetching reviews:", e);
+      return [];
+    }
+  }
+
+  async createReview(data: InsertReview): Promise<Review> {
+    const [review] = await db.insert(reviews).values(data).returning();
+    return review;
+  }
+
+  // Support Tickets
+  async getSupportTickets(): Promise<SupportTicket[]> {
+    try {
+      return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+    } catch (e) {
+      console.error("Error fetching support tickets:", e);
+      return [];
+    }
+  }
+
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [inserted] = await db.insert(supportTickets).values(ticket).returning();
+    return inserted;
+  }
+
+  async updateSupportTicketStatus(id: number, status: string): Promise<SupportTicket> {
+    const [updated] = await db.update(supportTickets).set({ status, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
+    return updated;
+  }
+
+  // Pre-Orders
+  async getPreorders(): Promise<(Preorder & { product: Product | null; telegramUser: TelegramUser | null })[]> {
+    try {
+      const rows = await db
+        .select()
+        .from(preorders)
+        .leftJoin(products, eq(preorders.productId, products.id))
+        .leftJoin(telegramUsers, eq(preorders.telegramUserId, telegramUsers.id))
+        .orderBy(desc(preorders.createdAt));
+
+      return rows.map((row) => ({
+        ...row.preorders,
+        product: row.products,
+        telegramUser: row.telegram_users,
+      }));
+    } catch (e) {
+      console.error("Error fetching preorders:", e);
+      return [];
+    }
+  }
+
+  async getPendingPreordersByProduct(productId: number): Promise<Preorder[]> {
+    try {
+      return await db
+        .select()
+        .from(preorders)
+        .where(and(eq(preorders.productId, productId), eq(preorders.status, "pending_fulfillment")))
+        .orderBy(preorders.createdAt);
+    } catch (e) {
+      console.error("Error fetching pending preorders:", e);
+      return [];
+    }
+  }
+
+  async createPreorder(preorder: InsertPreorder): Promise<Preorder> {
+    const [inserted] = await db.insert(preorders).values(preorder).returning();
+    return inserted;
+  }
+
+  async updatePreorder(id: number, data: Partial<Preorder>): Promise<Preorder> {
+    const [updated] = await db
+      .update(preorders)
+      .set(data)
+      .where(eq(preorders.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Developer API Keys Implementation with Unified Account Linking
+  async resolveUnifiedUserIds(telegramUserId: number): Promise<number[]> {
+    const user = await this.getTelegramUserById(telegramUserId);
+    const userIds = [telegramUserId];
+    if (user?.linkedUserId && !userIds.includes(user.linkedUserId)) {
+      userIds.push(user.linkedUserId);
+    }
+    if (user?.linkedTelegramId) {
+      const linked = await this.getTelegramUser(user.linkedTelegramId);
+      if (linked && !userIds.includes(linked.id)) userIds.push(linked.id);
+    }
+    if (user?.telegramId) {
+      try {
+        const matched = await db.select().from(telegramUsers).where(eq(telegramUsers.linkedTelegramId, user.telegramId));
+        for (const m of matched) {
+          if (!userIds.includes(m.id)) userIds.push(m.id);
+        }
+      } catch {}
+    }
+    if (telegramUserId === 1 || user?.telegramId === '7507799896') {
+      if (!userIds.includes(257)) userIds.push(257);
+    } else if (telegramUserId === 257 || user?.email === 'imeshcheak@gmail.com') {
+      if (!userIds.includes(1)) userIds.push(1);
+    }
+    return userIds;
+  }
+
+  async createApiKey(telegramUserId: number, key: string): Promise<ApiKey> {
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
+
+    await db.update(apiKeys)
+      .set({ status: "revoked" })
+      .where(and(inArray(apiKeys.telegramUserId, userIds), eq(apiKeys.status, "active")));
+
+    const [inserted] = await db.insert(apiKeys)
+      .values({
+        telegramUserId,
+        key,
+        status: "active",
+      })
+      .returning();
+    return inserted;
+  }
+
+  async getApiKeyByKey(key: string): Promise<ApiKey | undefined> {
+    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.key, key));
+    return apiKey;
+  }
+
+  async getApiKeyByTelegramUser(telegramUserId: number): Promise<ApiKey | undefined> {
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
+
+    const activeKeys = await db.select()
+      .from(apiKeys)
+      .where(and(inArray(apiKeys.telegramUserId, userIds), eq(apiKeys.status, "active")))
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(1);
+
+    if (activeKeys.length > 0) return activeKeys[0];
+
+    const anyKeys = await db.select()
+      .from(apiKeys)
+      .where(inArray(apiKeys.telegramUserId, userIds))
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(1);
+
+    return anyKeys[0];
+  }
+
+  async getUserApiKeys(telegramUserId: number): Promise<ApiKey[]> {
+    const userIds = await this.resolveUnifiedUserIds(telegramUserId);
+
+    return await db.select()
+      .from(apiKeys)
+      .where(inArray(apiKeys.telegramUserId, userIds))
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
+  async getAllApiKeys(): Promise<(ApiKey & { telegramUser: TelegramUser | null })[]> {
+    const rows = await db.select()
+      .from(apiKeys)
+      .leftJoin(telegramUsers, eq(apiKeys.telegramUserId, telegramUsers.id))
+      .orderBy(desc(apiKeys.createdAt));
+
+    return rows.map((r) => ({
+      ...r.api_keys,
+      telegramUser: r.telegram_users,
+    }));
+  }
+
+  async revokeApiKey(id: number): Promise<ApiKey> {
+    const [updated] = await db.update(apiKeys)
+      .set({ status: "revoked" })
+      .where(eq(apiKeys.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteApiKey(id: number): Promise<boolean> {
+    await db.delete(apiKeys).where(eq(apiKeys.id, id));
+    return true;
+  }
+
+  async updateApiKeyStats(id: number, success: boolean, amountCents: number): Promise<ApiKey> {
+    const [existing] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+    if (!existing) throw new Error("API Key not found");
+
+    const totalOrders = (existing.totalOrders || 0) + 1;
+    const successOrders = (existing.successOrders || 0) + (success ? 1 : 0);
+    const failedOrders = (existing.failedOrders || 0) + (success ? 0 : 1);
+    const revenue = (existing.revenue || 0) + (success ? amountCents : 0);
+
+    const [updated] = await db.update(apiKeys)
+      .set({
+        totalOrders,
+        successOrders,
+        failedOrders,
+        revenue,
+        lastUsedAt: new Date(),
+      })
+      .where(eq(apiKeys.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async getApiKeyOrders(apiKeyId: number): Promise<(Order & { product: Product | null })[]> {
+    const rows = await db.select()
+      .from(orders)
+      .leftJoin(products, eq(orders.productId, products.id))
+      .where(eq(orders.apiKeyId, apiKeyId))
+      .orderBy(desc(orders.createdAt));
+
+    return rows.map((r) => ({
+      ...r.orders,
+      product: r.products,
+    }));
+  }
+
+  async createSoftwareUpdateLog(log: InsertSoftwareUpdateLog): Promise<SoftwareUpdateLog> {
+    const [created] = await db.insert(softwareUpdateLogs).values(log).returning();
+    return created;
+  }
+
+  async getSoftwareUpdateLogs(): Promise<SoftwareUpdateLog[]> {
+    return await db.select().from(softwareUpdateLogs).orderBy(desc(softwareUpdateLogs.id));
+  }
+
+  async getLatestSoftwareUpdateVersion(): Promise<string | null> {
+    const [latest] = await db.select().from(softwareUpdateLogs).orderBy(desc(softwareUpdateLogs.id)).limit(1);
+    return latest?.version || null;
+  }
+
+  async recordSoftwareUpdateInteraction(interaction: InsertSoftwareUpdateInteraction): Promise<SoftwareUpdateInteraction> {
+    const [existing] = await db.select()
+      .from(softwareUpdateInteractions)
+      .where(and(
+        eq(softwareUpdateInteractions.version, interaction.version),
+        eq(softwareUpdateInteractions.telegramId, interaction.telegramId)
+      ))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db.update(softwareUpdateInteractions)
+        .set({
+          username: interaction.username || existing.username,
+          firstName: interaction.firstName || existing.firstName,
+          lastName: interaction.lastName || existing.lastName,
+          updatedAt: new Date()
+        })
+        .where(eq(softwareUpdateInteractions.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(softwareUpdateInteractions).values(interaction).returning();
+    return created;
+  }
+
+  async getSoftwareUpdateInteractions(version?: string): Promise<SoftwareUpdateInteraction[]> {
+    if (version) {
+      return await db.select()
+        .from(softwareUpdateInteractions)
+        .where(eq(softwareUpdateInteractions.version, version))
+        .orderBy(desc(softwareUpdateInteractions.updatedAt));
+    }
+    return await db.select()
+      .from(softwareUpdateInteractions)
+      .orderBy(desc(softwareUpdateInteractions.updatedAt));
+  }
+
+  async createCustomerErrorLog(log: InsertCustomerErrorLog): Promise<CustomerErrorLog> {
+    const [created] = await db.insert(customerErrorLogs).values(log).returning();
+    return created;
+  }
+
+  async getCustomerErrorLogs(filter?: { customer?: string; severity?: string; status?: string; limit?: number }): Promise<CustomerErrorLog[]> {
+    const conditions: any[] = [];
+    if (filter?.customer && filter.customer.trim()) {
+      const q = `%${filter.customer.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          sql`LOWER(${customerErrorLogs.customerIdentifier}) LIKE ${q}`,
+          sql`LOWER(${customerErrorLogs.errorMessage}) LIKE ${q}`,
+          sql`LOWER(COALESCE(${customerErrorLogs.actionContext}, '')) LIKE ${q}`
+        )
+      );
+    }
+    if (filter?.severity && filter.severity !== 'all') {
+      conditions.push(eq(customerErrorLogs.severity, filter.severity));
+    }
+    if (filter?.status && filter.status !== 'all') {
+      conditions.push(eq(customerErrorLogs.status, filter.status));
+    }
+
+    let query = db.select().from(customerErrorLogs);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    const maxLimit = filter?.limit || 200;
+    return await query.orderBy(desc(customerErrorLogs.id)).limit(maxLimit);
+  }
+
+  async updateCustomerErrorLogStatus(id: number, status: string, notes?: string): Promise<CustomerErrorLog | null> {
+    const updateData: any = { status };
+    if (status === 'resolved') {
+      updateData.resolvedAt = new Date();
+    }
+    if (notes !== undefined) {
+      updateData.adminNotes = notes;
+    }
+    const [updated] = await db.update(customerErrorLogs)
+      .set(updateData)
+      .where(eq(customerErrorLogs.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async getCustomerErrorStats(): Promise<{ total: number; critical: number; unresolved: number }> {
+    const all = await db.select({
+      severity: customerErrorLogs.severity,
+      status: customerErrorLogs.status
+    }).from(customerErrorLogs);
+    
+    let critical = 0;
+    let unresolved = 0;
+    for (const row of all) {
+      if (row.severity === 'critical') critical++;
+      if (row.status !== 'resolved') unresolved++;
+    }
+    return { total: all.length, critical, unresolved };
+  }
+}
+
+export const storage = new DatabaseStorage();

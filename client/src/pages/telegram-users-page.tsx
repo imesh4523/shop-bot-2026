@@ -1,0 +1,917 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Users, Save, Loader2, Edit2, Search, Ban, ShieldCheck, ChevronLeft, ChevronRight, Mail, Send, Globe, Key, PlusCircle, MinusCircle, Sliders, Wallet } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface TelegramUser {
+  id: number;
+  telegramId: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  balance: number;
+  isBanned?: boolean;
+  createdAt: string;
+  email?: string;
+  authProvider?: string;
+  avatarUrl?: string;
+}
+
+const PAGE_SIZE = 20;
+
+export default function TelegramUsersPage() {
+  const { toast } = useToast();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [modalMode, setModalMode] = useState<"add" | "reduce" | "set">("add");
+  const [adjustAmountLkr, setAdjustAmountLkr] = useState<number>(1000);
+  const [editBalance, setEditBalance] = useState<number>(0);
+  const [editBalanceLkr, setEditBalanceLkr] = useState<number>(0);
+  const [search, setSearch] = useState("");
+  const [accountTypeFilter, setAccountTypeFilter] = useState<"all" | "telegram" | "email">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "banned">("all");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const { data: ratesData } = useQuery<{ rates?: Record<string, number> }>({
+    queryKey: ["/api/currency/rates"],
+    staleTime: 5 * 60 * 1000,
+  });
+  const lkrRate = ratesData?.rates?.LKR || 305.50;
+
+  const { data: usersData, isLoading, isError, refetch } = useQuery<TelegramUser[]>({
+    queryKey: ["/api/telegram-users"],
+    retry: 1,
+  });
+
+  const users: TelegramUser[] = useMemo(() => Array.isArray(usersData) ? usersData : [], [usersData]);
+
+  const isEmailUser = (u: TelegramUser) => Boolean(u.email || u.authProvider === "google" || u.authProvider === "email" || u.telegramId?.startsWith("google:"));
+  const isTelegramUser = (u: TelegramUser) => !isEmailUser(u);
+
+  const emailCount = useMemo(() => users.filter(isEmailUser).length, [users]);
+  const telegramCount = useMemo(() => users.filter(isTelegramUser).length, [users]);
+
+  const bannedCount = useMemo(() => users.filter(u => Boolean(u?.isBanned)).length, [users]);
+  const activeCount = useMemo(() => users.length - bannedCount, [users, bannedCount]);
+
+  const [lastEditedField, setLastEditedField] = useState<"usd" | "lkr">("lkr");
+
+  const mutation = useMutation({
+    mutationFn: async (payload: {
+      id: number;
+      action?: "add" | "reduce" | "set";
+      amountLkr?: number;
+      amountUsd?: number;
+      balance?: number;
+      balanceLkr?: number;
+      reason?: string;
+    }) => {
+      const res = await apiRequest("PATCH", `/api/telegram-users/${payload.id}`, {
+        action: payload.action,
+        amountLkr: payload.amountLkr,
+        amountUsd: payload.amountUsd,
+        balance: payload.balance !== undefined ? Math.round(payload.balance * 100) : undefined,
+        balanceLkr: payload.balanceLkr !== undefined ? Math.round(payload.balanceLkr) : undefined,
+        reason: payload.reason,
+      });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
+      const actionText =
+        variables.action === "add"
+          ? `Successfully added Rs. ${variables.amountLkr?.toLocaleString()} to user wallet!`
+          : variables.action === "reduce"
+          ? `Successfully deducted Rs. ${variables.amountLkr?.toLocaleString()} from user wallet!`
+          : "User balance has been updated successfully.";
+      toast({
+        title: "Wallet Updated",
+        description: actionText,
+      });
+      setEditingId(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Update Failed",
+        description: err.message || "Failed to update user balance",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const banMutation = useMutation({
+    mutationFn: async ({ id, isBanned }: { id: number; isBanned: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/telegram-users/${id}`, {
+        isBanned,
+      });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram-users"] });
+      toast({
+        title: variables.isBanned ? "User Banned" : "User Unbanned",
+        description: variables.isBanned
+          ? "User has been banned from the platform."
+          : "User has been unbanned and restored access.",
+      });
+    },
+  });
+
+  const filteredUsers = useMemo(() => {
+    let result = users;
+
+    // Account type filter (All / Telegram / Email & Google)
+    if (accountTypeFilter === "email") {
+      result = result.filter(isEmailUser);
+    } else if (accountTypeFilter === "telegram") {
+      result = result.filter(isTelegramUser);
+    }
+
+    // Status filter
+    if (statusFilter === "banned") {
+      result = result.filter(u => Boolean(u?.isBanned));
+    } else if (statusFilter === "active") {
+      result = result.filter(u => !u?.isBanned);
+    }
+
+    // Search filter
+    const searchLower = (search || "").toLowerCase().trim();
+    if (searchLower) {
+      result = result.filter((user) => {
+        if (!user) return false;
+        const firstName = String(user.firstName || "");
+        const lastName = String(user.lastName || "");
+        const fullName = `${firstName} ${lastName}`.toLowerCase();
+        const username = String(user.username || "").toLowerCase();
+        const telegramId = String(user.telegramId || "").toLowerCase();
+        const email = String(user.email || "").toLowerCase();
+
+        return (
+          fullName.includes(searchLower) ||
+          username.includes(searchLower) ||
+          telegramId.includes(searchLower) ||
+          email.includes(searchLower)
+        );
+      });
+    }
+
+    return result;
+  }, [users, accountTypeFilter, statusFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (validCurrentPage - 1) * PAGE_SIZE;
+    return filteredUsers.slice(start, start + PAGE_SIZE);
+  }, [filteredUsers, validCurrentPage]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleAccountTypeChange = (type: "all" | "telegram" | "email") => {
+    setAccountTypeFilter(type);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (status: "all" | "active" | "banned") => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  const formatUserLkr = (cents: number) => {
+    if (!cents || cents <= 0) return "0";
+    const usd = cents / 100;
+    const rawLkr = usd * lkrRate;
+    let rounded = Math.round(rawLkr);
+    if (rounded <= 0) return "0";
+    for (const step of [10000, 5000, 2000, 1000, 500, 100, 50, 10]) {
+      const rem = rounded % step;
+      if (rem >= step - 25 && step <= rounded) {
+        rounded += (step - rem);
+        break;
+      } else if (rem <= 25 && rem > 0 && rounded > step) {
+        rounded -= rem;
+        break;
+      }
+    }
+    return rounded.toLocaleString("en-US");
+  };
+
+  const editingUser = useMemo(() => users.find((u) => u.id === editingId), [users, editingId]);
+  const currentBalLkr = editingUser
+    ? (editingUser as any).balanceLkr != null && (editingUser as any).balanceLkr >= 0
+      ? Number((editingUser as any).balanceLkr)
+      : Math.round(((editingUser.balance || 0) / 100) * lkrRate)
+    : 0;
+  const currentBalUsd = editingUser ? (editingUser.balance || 0) / 100 : 0;
+  const previewAddLkr = currentBalLkr + (adjustAmountLkr || 0);
+  const previewReduceLkr = Math.max(0, currentBalLkr - (adjustAmountLkr || 0));
+
+  const handleEdit = (user: TelegramUser) => {
+    setEditingId(user.id);
+    setModalMode("add");
+    setAdjustAmountLkr(1000);
+    const usd = (user.balance || 0) / 100;
+    setEditBalance(usd);
+    if ((user as any).balanceLkr != null && (user as any).balanceLkr >= 0) {
+      setEditBalanceLkr(Number((user as any).balanceLkr));
+    } else {
+      setEditBalanceLkr(Number(formatUserLkr(user.balance || 0).replace(/,/g, "")));
+    }
+    setLastEditedField("lkr");
+  };
+
+  const handleUsdChange = (val: number) => {
+    setLastEditedField("usd");
+    setEditBalance(val);
+    setEditBalanceLkr(Math.round(val * lkrRate));
+  };
+
+  const handleLkrChange = (val: number) => {
+    setLastEditedField("lkr");
+    setEditBalanceLkr(val);
+    setEditBalance(Number((val / lkrRate).toFixed(4)));
+  };
+
+  const handleQuickAdd = (type: "usd" | "lkr", amount: number) => {
+    if (type === "usd") {
+      setLastEditedField("usd");
+      const newUsd = Math.max(0, Number((editBalance + amount).toFixed(2)));
+      handleUsdChange(newUsd);
+    } else {
+      setLastEditedField("lkr");
+      const newLkr = Math.max(0, editBalanceLkr + amount);
+      handleLkrChange(newLkr);
+    }
+  };
+
+  const handleSave = () => {
+    if (editingId === null) return;
+    if (modalMode === "add") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast({ title: "Invalid Amount", description: "Please enter an amount to add.", variant: "destructive" });
+        return;
+      }
+      mutation.mutate({
+        id: editingId,
+        action: "add",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2)),
+      });
+    } else if (modalMode === "reduce") {
+      if (!adjustAmountLkr || adjustAmountLkr <= 0) {
+        toast({ title: "Invalid Amount", description: "Please enter an amount to deduct.", variant: "destructive" });
+        return;
+      }
+      mutation.mutate({
+        id: editingId,
+        action: "reduce",
+        amountLkr: adjustAmountLkr,
+        amountUsd: Number((adjustAmountLkr / lkrRate).toFixed(2)),
+      });
+    } else {
+      mutation.mutate({
+        id: editingId,
+        action: "set",
+        balance: editBalance,
+        balanceLkr: lastEditedField === "lkr" ? editBalanceLkr : Math.round(editBalance * lkrRate),
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-2xl">
+            Users Management
+          </h1>
+          <p className="text-white/40 text-xs sm:text-sm font-medium mt-1">
+            Manage Telegram bot & Web / Google users, balances & access status.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="px-3.5 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-xs font-bold text-purple-300 shadow-sm">
+            <Send className="w-3.5 h-3.5 text-sky-400" />
+            <span>{telegramCount} Telegram</span>
+          </div>
+          <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-xs font-bold text-blue-300 shadow-sm">
+            <Mail className="w-3.5 h-3.5 text-blue-400" />
+            <span>{emailCount} Email / Google</span>
+          </div>
+          <div className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+            <Users className="w-3.5 h-3.5 text-purple-400" />
+            <span>{users.length} Total</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Tabs & Search Controls */}
+      <div className="space-y-3">
+        {/* Tier 1: Platform Source Filter */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center p-1.5 rounded-2xl bg-[#130d24] border border-white/10 gap-1 overflow-x-auto">
+            <button
+              onClick={() => handleAccountTypeChange("all")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                accountTypeFilter === "all"
+                  ? "bg-purple-600 text-white shadow-lg"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              All Users ({users.length})
+            </button>
+
+            <button
+              onClick={() => handleAccountTypeChange("telegram")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                accountTypeFilter === "telegram"
+                  ? "bg-sky-600 text-white shadow-lg"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Send className="w-3.5 h-3.5 text-sky-300" />
+              Telegram Users ({telegramCount})
+            </button>
+
+            <button
+              onClick={() => handleAccountTypeChange("email")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                accountTypeFilter === "email"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-300" />
+              Email & Google Users ({emailCount})
+            </button>
+          </div>
+
+          {/* Status Sub-Filters */}
+          <div className="flex items-center p-1 rounded-xl bg-[#130d24] border border-white/10 gap-1 shrink-0">
+            <button
+              onClick={() => handleStatusFilterChange("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                statusFilter === "all"
+                  ? "bg-white/15 text-white"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              All Status
+            </button>
+            <button
+              onClick={() => handleStatusFilterChange("active")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === "active"
+                  ? "bg-emerald-600/30 text-emerald-400 border border-emerald-500/30"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              Active ({activeCount})
+            </button>
+            <button
+              onClick={() => handleStatusFilterChange("banned")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === "banned"
+                  ? "bg-red-600/30 text-red-400 border border-red-500/30"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <Ban className="w-3 h-3 text-red-400" />
+              Banned ({bannedCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+          <Input
+            placeholder="Search by name, @username, email, or user ID..."
+            className="pl-10 h-11 rounded-2xl border-white/10 bg-[#130d24] text-white text-xs placeholder:text-white/30 focus:border-purple-500/50 w-full"
+            value={search}
+            onChange={handleSearchChange}
+          />
+        </div>
+      </div>
+
+      {/* Pagination Top controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/40 font-medium">
+            Showing {(validCurrentPage - 1) * PAGE_SIZE + 1} - {Math.min(validCurrentPage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} filtered users
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={validCurrentPage === 1}
+              className="h-9 px-3 rounded-xl border-white/10 bg-[#130d24] text-white hover:bg-white/10 disabled:opacity-30 text-xs font-bold"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+            </Button>
+            <span className="text-xs font-bold text-white/60 px-2">
+              {validCurrentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={validCurrentPage === totalPages}
+              className="h-9 px-3 rounded-xl border-white/10 bg-[#130d24] text-white hover:bg-white/10 disabled:opacity-30 text-xs font-bold"
+            >
+              Next <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Users Card List */}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          </div>
+        ) : isError ? (
+          <Card className="border border-red-500/20 bg-red-950/20">
+            <CardContent className="pt-6 text-center space-y-3">
+              <p className="text-red-400 text-sm font-bold">Failed to load users.</p>
+              <Button onClick={() => refetch()} variant="outline" className="border-red-500/30 text-white">
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredUsers.length === 0 ? (
+          <Card className="border border-white/10 bg-[#130d24]">
+            <CardContent className="pt-6">
+              <p className="text-center text-white/50 text-sm">
+                {accountTypeFilter === "email"
+                  ? "No Email / Google users found"
+                  : accountTypeFilter === "telegram"
+                  ? "No Telegram users found"
+                  : statusFilter === "banned"
+                  ? "No banned users found"
+                  : statusFilter === "active"
+                  ? "No active users found"
+                  : search
+                  ? "No users found matching your search"
+                  : "No users registered yet"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          paginatedUsers.map((user) => {
+            const isUserBanned = Boolean(user.isBanned);
+            const isUserEmail = isEmailUser(user);
+            const userDisplayName = (user.firstName || user.lastName)
+              ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+              : (user.username ? `@${user.username}` : user.email ? user.email.split("@")[0] : `User ${user.telegramId || user.id}`);
+
+            return (
+              <div
+                key={`user-${user.id || user.telegramId}`}
+                className={`p-5 rounded-2xl border transition-all duration-200 ${
+                  isUserBanned
+                    ? 'border-red-500/30 bg-red-950/20'
+                    : 'border-white/10 bg-[#130d24] hover:border-purple-500/30'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <p className="font-bold text-white text-base sm:text-lg">
+                        {userDisplayName}
+                      </p>
+
+                      {/* Source Platform Badge */}
+                      {isUserEmail ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                          <Globe className="w-3 h-3 text-blue-400" />
+                          {user.authProvider === "google" || user.telegramId?.startsWith("google:") ? "Google Account" : "Email Account"}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                          <Send className="w-3 h-3 text-sky-400" /> Telegram Bot
+                        </span>
+                      )}
+
+                      {/* Active / Banned Badge */}
+                      {isUserBanned ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+                          <Ban className="w-3 h-3" /> BANNED
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3" /> ACTIVE
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/60 font-mono">
+                      <span>DB ID: #{user.id}</span>
+                      {user.email && (
+                        <span className="text-blue-300 font-sans flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {user.email}
+                        </span>
+                      )}
+                      {user.username && <span>@{user.username}</span>}
+                      {user.telegramId && !user.telegramId.startsWith("google:") && (
+                        <span>TG ID: {user.telegramId}</span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                        💵 ${(((user.balance || 0)) / 100).toFixed(2)} USD
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        🇱🇰 Rs. {(user as any).balanceLkr != null && (user as any).balanceLkr >= 0 ? Number((user as any).balanceLkr).toLocaleString("en-US") : formatUserLkr(user.balance || 0)} LKR
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => banMutation.mutate({ id: user.id, isBanned: !isUserBanned })}
+                      disabled={banMutation.isPending}
+                      variant="outline"
+                      size="sm"
+                      className={
+                        isUserBanned
+                          ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 bg-emerald-950/20 h-9 rounded-xl text-xs font-bold"
+                          : "border-red-500/30 text-red-400 hover:bg-red-500/20 bg-red-950/20 h-9 rounded-xl text-xs font-bold"
+                      }
+                    >
+                      {isUserBanned ? (
+                        <>
+                          <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> Unban User
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-3.5 h-3.5 mr-1.5 text-red-400" /> Ban User
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={() => handleEdit(user)}
+                      variant="ghost"
+                      size="icon"
+                      className="text-purple-400 hover:bg-purple-500/10 h-9 w-9 rounded-xl"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Bottom Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+          <span className="text-xs font-medium text-white/40">
+            Showing {(validCurrentPage - 1) * PAGE_SIZE + 1} - {Math.min(validCurrentPage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={validCurrentPage === 1}
+              className="h-9 px-3 rounded-xl border-white/10 bg-[#130d24] text-white hover:bg-white/10 disabled:opacity-30 text-xs font-bold"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={validCurrentPage === totalPages}
+              className="h-9 px-3 rounded-xl border-white/10 bg-[#130d24] text-white hover:bg-white/10 disabled:opacity-30 text-xs font-bold"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Balance Modal (Dual Currency USD & LKR + Add / Deduct Options) */}
+      <Dialog open={editingId !== null} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="border-white/10 bg-[#130d24] text-white rounded-2xl sm:max-w-lg shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-white font-bold text-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-purple-400" />
+                <span>Manage User Wallet</span>
+              </div>
+              <span className="text-xs font-semibold text-purple-300 font-mono bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                1 USD ≈ {lkrRate} LKR
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Current User Overview Card */}
+          <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/60">Target User:</span>
+              <span className="font-bold text-white">
+                {editingUser?.email || editingUser?.username || editingUser?.firstName || `User #${editingId}`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-white/5">
+              <span className="text-xs text-white/50">Current Balance:</span>
+              <div className="flex items-center gap-2 font-mono">
+                <span className="text-emerald-400 font-bold text-sm">
+                  Rs. {currentBalLkr.toLocaleString("en-US")}
+                </span>
+                <span className="text-white/40 text-xs">(${currentBalUsd.toFixed(2)})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mode Selector Tabs: Add Money / Reduce Money / Exact Balance */}
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => setModalMode("add")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "add"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Add Money</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalMode("reduce")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "reduce"
+                  ? "bg-rose-600 text-white shadow-md shadow-rose-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <MinusCircle className="w-3.5 h-3.5 text-rose-300" />
+              <span>Reduce Money</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalMode("set")}
+              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                modalMode === "set"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-900/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 text-purple-300" />
+              <span>Set Balance</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 pt-1">
+            {modalMode === "add" && (
+              <div className="space-y-3.5">
+                <div className="space-y-1.5 bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-500/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      <PlusCircle className="w-3.5 h-3.5" /> Amount to Add (Rs. LKR)
+                    </Label>
+                    <span className="text-[11px] text-emerald-400 font-mono">
+                      ≈ ${((adjustAmountLkr || 0) / lkrRate).toFixed(2)} USD
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={adjustAmountLkr || ""}
+                    onChange={(e) => setAdjustAmountLkr(Math.max(0, parseInt(e.target.value) || 0))}
+                    placeholder="Enter amount to add..."
+                    className="border-emerald-500/30 bg-black/60 text-white font-mono text-lg font-bold"
+                  />
+                </div>
+
+                {/* Quick Add Buttons */}
+                <div className="space-y-1.5">
+                  <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Top-Up Amounts</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[500, 1000, 2000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-emerald-500 text-black border-emerald-400"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"
+                        }`}
+                      >
+                        +Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {[10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-emerald-500 text-black border-emerald-400"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-300"
+                        }`}
+                      >
+                        +Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview Calculation */}
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-white/60 block text-[10px]">New Wallet Balance Preview</span>
+                    <span className="text-emerald-300 font-bold text-sm font-mono">
+                      Rs. {previewAddLkr.toLocaleString("en-US")} LKR
+                    </span>
+                  </div>
+                  <span className="text-emerald-400 font-semibold text-xs bg-emerald-500/20 px-2 py-1 rounded">
+                    +Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {modalMode === "reduce" && (
+              <div className="space-y-3.5">
+                <div className="space-y-1.5 bg-rose-950/20 p-3.5 rounded-xl border border-rose-500/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                      <MinusCircle className="w-3.5 h-3.5" /> Amount to Deduct (Rs. LKR)
+                    </Label>
+                    <span className="text-[11px] text-rose-400 font-mono">
+                      ≈ ${((adjustAmountLkr || 0) / lkrRate).toFixed(2)} USD
+                    </span>
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={adjustAmountLkr || ""}
+                    onChange={(e) => setAdjustAmountLkr(Math.max(0, parseInt(e.target.value) || 0))}
+                    placeholder="Enter amount to deduct..."
+                    className="border-rose-500/30 bg-black/60 text-white font-mono text-lg font-bold"
+                  />
+                </div>
+
+                {/* Quick Deduct Buttons */}
+                <div className="space-y-1.5">
+                  <span className="text-[10.5px] font-bold text-white/50 uppercase tracking-wider">Quick Deduct Amounts</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[100, 500, 699, 1000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-rose-500 text-white border-rose-400"
+                            : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        -Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    {[2000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAdjustAmountLkr(amt)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          adjustAmountLkr === amt
+                            ? "bg-rose-500 text-white border-rose-400"
+                            : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        -Rs. {amt.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview Calculation */}
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-white/60 block text-[10px]">New Wallet Balance Preview</span>
+                    <span className="text-rose-300 font-bold text-sm font-mono">
+                      Rs. {previewReduceLkr.toLocaleString("en-US")} LKR
+                    </span>
+                  </div>
+                  <span className="text-rose-400 font-semibold text-xs bg-rose-500/20 px-2 py-1 rounded">
+                    -Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {modalMode === "set" && (
+              <div className="space-y-3.5">
+                {/* USD Input Field */}
+                <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-purple-300 text-xs font-bold flex items-center gap-1.5">
+                      💵 Direct Balance ($ USD)
+                    </Label>
+                    <span className="text-[10px] text-white/40">Primary System Currency</span>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editBalance}
+                    onChange={(e) => handleUsdChange(parseFloat(e.target.value) || 0)}
+                    className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+                  />
+                </div>
+
+                {/* LKR Input Field */}
+                <div className="space-y-1.5 bg-black/30 p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                      🇱🇰 Direct Balance (Rs. LKR)
+                    </Label>
+                    <span className="text-[10px] text-white/40">Sri Lankan Rupees</span>
+                  </div>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={editBalanceLkr}
+                    onChange={(e) => handleLkrChange(parseFloat(e.target.value) || 0)}
+                    className="border-white/10 bg-black/60 text-white font-mono text-base font-bold"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+              <Button
+                variant="outline"
+                onClick={() => setEditingId(null)}
+                className="border-white/10 text-white hover:bg-white/10 rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={mutation.isPending}
+                className={
+                  modalMode === "add"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                    : modalMode === "reduce"
+                    ? "bg-gradient-to-r from-rose-600 to-red-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                    : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 rounded-xl font-bold shadow-lg"
+                }
+              >
+                {mutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : modalMode === "add" ? (
+                  <>
+                    <PlusCircle className="w-4 h-4 mr-1.5" />
+                    Add Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </>
+                ) : modalMode === "reduce" ? (
+                  <>
+                    <MinusCircle className="w-4 h-4 mr-1.5" />
+                    Deduct Rs. {(adjustAmountLkr || 0).toLocaleString()}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1.5" />
+                    Set Exact Balance
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

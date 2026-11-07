@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Handle -->
+  <path d="M34 42V26a16 16 0 0 1 32 0v16" />
+  <!-- Bag Body -->
+  <path d="M24 42h52l9.5 38a8 8 0 0 1-7.8 10H22.3a8 8 0 0 1-7.8-10L24 42z" />
+</svg>

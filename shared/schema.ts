@@ -1,0 +1,872 @@
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+export * from "./models/auth";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // Category (e.g. AWS, DigitalOcean)
+  price: integer("price").notNull(), // In cents (USD)
+  priceLkr: integer("price_lkr"), // In LKR (Rupees) - optional override
+  customEmojiId: text("custom_emoji_id"),
+  status: text("status").notNull().default("available"),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(true),
+  isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
+  preorderQuota: integer("preorder_quota").notNull().default(50),
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const credentials = pgTable("credentials", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("available"), // available, sold
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const telegramUsers = pgTable("telegram_users", {
+  id: serial("id").primaryKey(),
+  telegramId: text("telegram_id").unique().notNull(),
+  username: text("username"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  balance: integer("balance").notNull().default(0),
+  balanceLkr: integer("balance_lkr"),
+  isBanned: boolean("is_banned").notNull().default(false),
+  bannedUntil: timestamp("banned_until"),
+  spamViolations: integer("spam_violations").notNull().default(0),
+  lastRequestAt: timestamp("last_request_at"),
+  lastAction: text("last_action"),
+  lastMessageId: integer("last_message_id"),
+  lastErrorMessageId: integer("last_error_message_id"),
+  tutorialBuyVideo: text("tutorial_buy_video"),
+  tutorialDepositVideo: text("tutorial_deposit_video"),
+  doApiKey: text("do_api_key"),
+  lastDropletId: text("last_droplet_id"),
+  lastOfferBroadcastId: integer("last_offer_broadcast_id"),
+  selectedCurrency: text("selected_currency").notNull().default("USD"),
+  selectedLanguage: text("selected_language").notNull().default("en"),
+  email: text("email"),
+  authProvider: text("auth_provider").default("telegram"),
+  avatarUrl: text("avatar_url"),
+  referralBalance: integer("referral_balance").default(0),
+  referredBy: text("referred_by"),
+  linkedUserId: integer("linked_user_id"),
+  linkedTelegramId: text("linked_telegram_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").unique().notNull(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  status: text("status").notNull().default("pending"),
+  paymentMethod: text("payment_method").notNull(),
+  externalId: text("external_id"),
+  cryptomusUuid: text("cryptomus_uuid"),
+  txid: text("txid"),
+  expectedCryptoAmount: text("expected_crypto_amount"),
+  originalLkr: integer("original_lkr"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productsRelations = relations(products, ({ many }) => ({
+  credentials: many(credentials),
+}));
+
+export const credentialsRelations = relations(credentials, ({ one }) => ({
+  product: one(products, {
+    fields: [credentials.productId],
+    references: [products.id],
+  }),
+}));
+
+export const telegramUsersRelations = relations(telegramUsers, ({ many }) => ({
+  orders: many(orders),
+  payments: many(payments),
+  promoCodeRedemptions: many(promoCodeRedemptions),
+  apiKeys: many(apiKeys),
+}));
+
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  key: text("key").unique().notNull(),
+  status: text("status").notNull().default("active"),
+  totalOrders: integer("total_orders").notNull().default(0),
+  successOrders: integer("success_orders").notNull().default(0),
+  failedOrders: integer("failed_orders").notNull().default(0),
+  revenue: integer("revenue").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const apiKeysRelations = relations(apiKeys, ({ one, many }) => ({
+  telegramUser: one(telegramUsers, {
+    fields: [apiKeys.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+  orders: many(orders),
+}));
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id),
+  credentialId: integer("credential_id").references(() => credentials.id),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  apiKeyId: integer("api_key_id").references(() => apiKeys.id),
+  customerEmail: text("customer_email"),
+  customerNote: text("customer_note"),
+  amountPaid: integer("amount_paid"),
+  amountPaidLkr: integer("amount_paid_lkr"),
+  deliveryText: text("delivery_text"),
+  status: text("status").notNull().default("completed"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerTelegramId: text("referrer_telegram_id").notNull(),
+  referredTelegramId: text("referred_telegram_id").notNull(),
+  rewardAmount: integer("reward_amount").notNull().default(15),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+});
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  product: one(products, {
+    fields: [orders.productId],
+    references: [products.id],
+  }),
+  credential: one(credentials, {
+    fields: [orders.credentialId],
+    references: [credentials.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [orders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+  apiKey: one(apiKeys, {
+    fields: [orders.apiKeyId],
+    references: [apiKeys.id],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  telegramUser: one(telegramUsers, {
+    fields: [payments.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
+export const insertCredentialSchema = createInsertSchema(credentials).omit({ id: true, createdAt: true });
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
+export const insertTelegramUserSchema = createInsertSchema(telegramUsers).omit({ id: true, createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Credential = typeof credentials.$inferSelect;
+export type InsertCredential = z.infer<typeof insertCredentialSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type TelegramUser = typeof telegramUsers.$inferSelect;
+export type InsertTelegramUser = z.infer<typeof insertTelegramUserSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export const broadcastChannels = pgTable("broadcast_channels", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").unique().notNull(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const broadcastMessages = pgTable("broadcast_messages", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  buttonText: text("button_text"),
+  buttonUrl: text("button_url"),
+  interval: integer("interval"), // in minutes
+  status: text("status").notNull().default("active"),
+  sentCount: integer("sent_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBroadcastChannelSchema = createInsertSchema(broadcastChannels).omit({ id: true, createdAt: true });
+export type BroadcastChannel = typeof broadcastChannels.$inferSelect;
+export type InsertBroadcastChannel = z.infer<typeof insertBroadcastChannelSchema>;
+
+export const insertBroadcastMessageSchema = createInsertSchema(broadcastMessages).omit({ id: true, createdAt: true });
+export type BroadcastMessage = typeof broadcastMessages.$inferSelect;
+export type InsertBroadcastMessage = z.infer<typeof insertBroadcastMessageSchema>;
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  subscription: jsonb("subscription").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [pushSubscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+// Customer Reviews Entity
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  productName: text("product_name").notNull().default("General Purchase"),
+  rating: integer("rating").notNull().default(5),
+  comment: text("comment").notNull(),
+  reviewerName: text("reviewer_name").notNull().default("Customer"),
+  isVerified: boolean("is_verified").notNull().default(true),
+  status: text("status").notNull().default("approved"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+// Support Tickets Entity
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  issueType: text("issue_type").notNull(),
+  subject: text("subject"),
+  status: text("status").notNull().default("open"),
+  details: text("details"),
+  messages: text("messages"),
+  attachmentUrl: text("attachment_url"),
+  userTelegramId: text("user_telegram_id").notNull(),
+  username: text("username"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true });
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+// AWS Checker Entities
+export const awsAccounts = pgTable("aws_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  accessKey: text("access_key").notNull(),
+  secretKey: text("secret_key").notNull(),
+  region: text("region").notNull().default("us-east-1"),
+  isSold: boolean("is_sold").notNull().default(false),
+  status: text("status").notNull().default("active"), // active, error
+  lastError: text("last_error"),
+  lastChecked: timestamp("last_checked"),
+  initialVcpu: integer("initial_vcpu"),
+  spotVcpu: integer("spot_vcpu"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const awsActivities = pgTable("aws_activities", {
+  id: serial("id").primaryKey(),
+  awsAccountId: integer("aws_account_id").notNull().references(() => awsAccounts.id),
+  eventTime: timestamp("event_time").notNull(),
+  eventName: text("event_name").notNull(),
+  eventSource: text("event_source").notNull(),
+  ipAddress: text("ip_address").notNull(),
+  location: text("location"),
+  userName: text("user_name"),
+  userAgent: text("user_agent"),
+  details: jsonb("details"),
+});
+
+export const awsAccountsRelations = relations(awsAccounts, ({ many }) => ({
+  activities: many(awsActivities),
+}));
+
+export const awsActivitiesRelations = relations(awsActivities, ({ one }) => ({
+  account: one(awsAccounts, {
+    fields: [awsActivities.awsAccountId],
+    references: [awsAccounts.id],
+  }),
+}));
+
+export const insertAwsAccountSchema = createInsertSchema(awsAccounts).omit({ id: true, createdAt: true });
+export const insertAwsActivitySchema = createInsertSchema(awsActivities).omit({ id: true });
+
+export type AwsAccount = typeof awsAccounts.$inferSelect;
+export type InsertAwsAccount = z.infer<typeof insertAwsAccountSchema>;
+export type AwsActivity = typeof awsActivities.$inferSelect;
+export type InsertAwsActivity = z.infer<typeof insertAwsActivitySchema>;
+export const specialOffers = pgTable("special_offers", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  bundleQuantity: integer("bundle_quantity").notNull(),
+  price: integer("price").notNull(), // In cents
+  customEmojiId: text("custom_emoji_id"),
+  status: text("status").notNull().default("active"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const specialOffersRelations = relations(specialOffers, ({ one }) => ({
+  product: one(products, {
+    fields: [specialOffers.productId],
+    references: [products.id],
+  }),
+}));
+
+export const insertSpecialOfferSchema = createInsertSchema(specialOffers, {
+  expiresAt: z.union([z.date(), z.string().transform(v => new Date(v))]).optional().nullable(),
+}).omit({ id: true, createdAt: true });
+export type SpecialOffer = typeof specialOffers.$inferSelect;
+export type InsertSpecialOffer = z.infer<typeof insertSpecialOfferSchema>;
+
+// Database Backup Entities
+export const backupConfigs = pgTable("backup_configs", {
+  id: serial("id").primaryKey(),
+  name: text("name").default("Primary Database Backup"),
+  type: text("type").default("daily"),
+  target: text("target").default("local"),
+  dbUrl: text("db_url").notNull(),
+  botToken: text("bot_token").notNull(),
+  chatId: text("chat_id").notNull(),
+  frequency: integer("frequency").notNull().default(3), // in hours
+  status: text("status").notNull().default("active"), // active, disabled
+  lastBackupAt: timestamp("last_backup_at"),
+  googleDriveEnabled: boolean("google_drive_enabled").default(false),
+  googleDriveAuthType: text("google_drive_auth_type").default("service_account"), // 'service_account' or 'oauth2'
+  googleDriveServiceAccount: text("google_drive_service_account"),
+  googleDriveOauthClientId: text("google_drive_oauth_client_id"),
+  googleDriveOauthClientSecret: text("google_drive_oauth_client_secret"),
+  googleDriveOauthRefreshToken: text("google_drive_oauth_refresh_token"),
+  googleDriveUserEmail: text("google_drive_user_email"),
+  googleDriveFolderId: text("google_drive_folder_id"),
+  googleDriveFolderName: text("google_drive_folder_name"),
+  retentionDays: integer("retention_days").default(49), // default 7 weeks = 49 days
+  backupDestination: text("backup_destination").default("both"), // 'both', 'telegram', 'google_drive'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const backupLogs = pgTable("backup_logs", {
+  id: serial("id").primaryKey(),
+  backupConfigId: integer("backup_config_id").references(() => backupConfigs.id),
+  message: text("message").notNull(),
+  level: text("level").notNull().default("info"), // info, error, success
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBackupConfigSchema = createInsertSchema(backupConfigs).omit({ id: true, createdAt: true });
+export const insertBackupLogSchema = createInsertSchema(backupLogs).omit({ id: true, createdAt: true });
+
+export type BackupConfig = typeof backupConfigs.$inferSelect;
+export type InsertBackupConfig = z.infer<typeof insertBackupConfigSchema>;
+export type BackupLog = typeof backupLogs.$inferSelect;
+export type InsertBackupLog = z.infer<typeof insertBackupLogSchema>;
+
+// Promo Codes Entities
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  reward: integer("reward").notNull(), // reward in cents (e.g. $5.00 is 500)
+  discountType: text("discount_type").notNull().default("fixed"), // "fixed" or "percentage"
+  discountValue: integer("discount_value").notNull().default(0), // percentage (e.g. 20 for 20%), cents (USD), or rupees (LKR)
+  currency: text("currency").notNull().default("USD"), // "USD" or "LKR"
+  minOrderAmount: integer("min_order_amount").default(0),
+  applicableProduct: text("applicable_product").default("all"), // "all" or specific product ID / key
+  applicableProductName: text("applicable_product_name").default("All Items"), // display name of target item
+  maxUses: integer("max_uses").notNull().default(1),
+  usesCount: integer("uses_count").notNull().default(0),
+  status: text("status").notNull().default("active"), // active, inactive
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promoCodeRedemptions = pgTable("promo_code_redemptions", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  promoCodeId: integer("promo_code_id").notNull().references(() => promoCodes.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promoCodesRelations = relations(promoCodes, ({ many }) => ({
+  redemptions: many(promoCodeRedemptions),
+}));
+
+export const promoCodeRedemptionsRelations = relations(promoCodeRedemptions, ({ one }) => ({
+  telegramUser: one(telegramUsers, {
+    fields: [promoCodeRedemptions.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+  promoCode: one(promoCodes, {
+    fields: [promoCodeRedemptions.promoCodeId],
+    references: [promoCodes.id],
+  }),
+}));
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({ id: true, createdAt: true });
+export const insertPromoCodeRedemptionSchema = createInsertSchema(promoCodeRedemptions).omit({ id: true, createdAt: true });
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCodeRedemption = typeof promoCodeRedemptions.$inferSelect;
+export type InsertPromoCodeRedemption = z.infer<typeof insertPromoCodeRedemptionSchema>;
+
+// Broadcast Logs & Recall Entities
+export const broadcastLogs = pgTable("broadcast_logs", {
+  id: serial("id").primaryKey(),
+  adminChatId: text("admin_chat_id").notNull(),
+  title: text("title"),
+  broadcastType: text("broadcast_type").notNull().default("text"), // text, photo
+  messageText: text("message_text"),
+  photoUrl: text("photo_url"),
+  targetProductId: integer("target_product_id"),
+  customButtonText: text("custom_button_text"),
+  customButtonUrl: text("custom_button_url"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentMessagesJson: text("sent_messages_json"), // Store JSON array of { chatId, messageId }
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBroadcastLogSchema = createInsertSchema(broadcastLogs).omit({ id: true, createdAt: true });
+export type BroadcastLog = typeof broadcastLogs.$inferSelect;
+export type InsertBroadcastLog = z.infer<typeof insertBroadcastLogSchema>;
+
+// Pre-Orders Table
+export const preorders = pgTable("preorders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull().default(1),
+  totalPrice: integer("total_price").notNull(), // In cents
+  status: text("status").notNull().default("pending_fulfillment"), // pending_fulfillment, fulfilled, cancelled
+  fulfilledCredentialIds: text("fulfilled_credential_ids"), // JSON array of credential IDs
+  createdAt: timestamp("created_at").defaultNow(),
+  fulfilledAt: timestamp("fulfilled_at"),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const preordersRelations = relations(preorders, ({ one }) => ({
+  product: one(products, {
+    fields: [preorders.productId],
+    references: [products.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [preorders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertPreorderSchema = createInsertSchema(preorders).omit({ id: true, createdAt: true, fulfilledAt: true });
+export type Preorder = typeof preorders.$inferSelect;
+export type InsertPreorder = z.infer<typeof insertPreorderSchema>;
+
+// SMM Services (N1Panel API Integration)
+export const smmServices = pgTable("smm_services", {
+  id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull(), // SMM Provider Service ID (e.g. "1245")
+  name: text("name").notNull(),
+  category: text("category").notNull(), // Facebook, TikTok, Instagram, Telegram, Other
+  type: text("type").default("Default"),
+  rate: integer("rate").notNull(), // Original API price per 1k in cents
+  customRate: integer("custom_rate").notNull(), // Custom Selling price per 1k in cents
+  customRateLkr: integer("custom_rate_lkr"), // Custom Selling price per 1k in LKR (Rs.)
+  min: integer("min").notNull().default(10),
+  max: integer("max").notNull().default(100000),
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  provider: text("provider").default("n1panel"), // "n1panel" or "socialpanel"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmOrders = pgTable("smm_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").notNull().references(() => telegramUsers.id),
+  smmServiceId: integer("smm_service_id").notNull().references(() => smmServices.id),
+  externalOrderId: text("external_order_id"), // Provider Order ID
+  link: text("link").notNull(),
+  quantity: integer("quantity").notNull(),
+  charge: integer("charge").notNull(), // In cents charged to customer
+  status: text("status").notNull().default("Pending"), // Pending, In progress, Completed, Partial, Canceled
+  startCount: text("start_count"),
+  remains: text("remains"),
+  provider: text("provider").default("n1panel"), // "n1panel" or "socialpanel"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmServicesRelations = relations(smmServices, ({ many }) => ({
+  orders: many(smmOrders),
+}));
+
+export const smmOrdersRelations = relations(smmOrders, ({ one }) => ({
+  smmService: one(smmServices, {
+    fields: [smmOrders.smmServiceId],
+    references: [smmServices.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [smmOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertSmmServiceSchema = createInsertSchema(smmServices).omit({ id: true, createdAt: true, updatedAt: true });
+export type SmmService = typeof smmServices.$inferSelect;
+export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
+
+export const insertSmmOrderSchema = createInsertSchema(smmOrders).omit({ id: true, createdAt: true, updatedAt: true });
+export type SmmOrder = typeof smmOrders.$inferSelect;
+export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
+
+// Sandromania Shop Partner Products
+export const sandromaniaProducts = pgTable("sandromania_products", {
+  id: serial("id").primaryKey(),
+  externalProductId: integer("external_product_id").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"), // in cents
+  category: text("category").default("general"),
+  bulkPrices: text("bulk_prices"),
+  description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Sandromania Shop Partner Orders
+export const sandromaniaOrders = pgTable("sandromania_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  sandromaniaProductId: integer("sandromania_product_id").references(() => sandromaniaProducts.id),
+  externalOrderId: integer("external_order_id"),
+  externalProductId: integer("external_product_id"),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
+  status: text("status").notNull().default("approved"),
+  deliveryText: text("delivery_text"),
+  idempotencyKey: text("idempotency_key"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sandromaniaProductsRelations = relations(sandromaniaProducts, ({ many }) => ({
+  orders: many(sandromaniaOrders),
+}));
+
+export const sandromaniaOrdersRelations = relations(sandromaniaOrders, ({ one }) => ({
+  product: one(sandromaniaProducts, {
+    fields: [sandromaniaOrders.sandromaniaProductId],
+    references: [sandromaniaProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [sandromaniaOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertSandromaniaProductSchema = createInsertSchema(sandromaniaProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type SandromaniaProduct = typeof sandromaniaProducts.$inferSelect;
+export type InsertSandromaniaProduct = z.infer<typeof insertSandromaniaProductSchema>;
+
+export const insertSandromaniaOrderSchema = createInsertSchema(sandromaniaOrders).omit({ id: true, createdAt: true });
+export type SandromaniaOrder = typeof sandromaniaOrders.$inferSelect;
+export type InsertSandromaniaOrder = z.infer<typeof insertSandromaniaOrderSchema>;
+
+// CSxStore Partner Products
+export const cssxProducts = pgTable("cssx_products", {
+  id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"), // in cents
+  category: text("category").default("general"),
+  description: text("description"),
+  customEmojiId: text("custom_emoji_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CSxStore Partner Orders
+export const cssxOrders = pgTable("cssx_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  cssxProductId: integer("cssx_product_id").references(() => cssxProducts.id),
+  externalOrderId: text("external_order_id"),
+  serviceId: text("service_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  amountPaid: integer("amount_paid").notNull().default(0), // in cents
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
+  status: text("status").notNull().default("completed"),
+  deliveryText: text("delivery_text"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cssxProductsRelations = relations(cssxProducts, ({ many }) => ({
+  orders: many(cssxOrders),
+}));
+
+export const cssxOrdersRelations = relations(cssxOrders, ({ one }) => ({
+  product: one(cssxProducts, {
+    fields: [cssxOrders.cssxProductId],
+    references: [cssxProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [cssxOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertCssxProductSchema = createInsertSchema(cssxProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type CssxProductRow = typeof cssxProducts.$inferSelect;
+export type InsertCssxProduct = z.infer<typeof insertCssxProductSchema>;
+
+export const insertCssxOrderSchema = createInsertSchema(cssxOrders).omit({ id: true, createdAt: true });
+export type CssxOrderRow = typeof cssxOrders.$inferSelect;
+export type InsertCssxOrder = z.infer<typeof insertCssxOrderSchema>;
+
+// ==========================================
+// Store Mesh & Inter-Store Peer Federation
+// ==========================================
+export const storeMeshNodes = pgTable("store_mesh_nodes", {
+  id: serial("id").primaryKey(),
+  nodeName: text("node_name").notNull(),
+  nodeUrl: text("node_url").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  sharedSecret: text("shared_secret").notNull(),
+  authToken: text("auth_token").notNull(),
+  status: text("status").notNull().default("online"), // online, offline, pending, error, revoked
+  description: text("description"),
+  syncCatalog: boolean("sync_catalog").notNull().default(true),
+  syncOrders: boolean("sync_orders").notNull().default(false),
+  priceMarkupPct: integer("price_markup_pct").notNull().default(0),
+  lastPingAt: timestamp("last_ping_at"),
+  lastSyncAt: timestamp("last_sync_at"),
+  latencyMs: integer("latency_ms").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const storeMeshPairCodes = pgTable("store_mesh_pair_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  hostUrl: text("host_url").notNull(),
+  secretKey: text("secret_key").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const storeMeshLogs = pgTable("store_mesh_logs", {
+  id: serial("id").primaryKey(),
+  nodeId: integer("node_id"),
+  eventType: text("event_type").notNull(), // handshake, ping, sync_catalog, forward_order, error, security_reject
+  message: text("message").notNull(),
+  ip: text("ip"),
+  detailsJson: text("details_json"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertStoreMeshNodeSchema = createInsertSchema(storeMeshNodes).omit({ id: true, createdAt: true, updatedAt: true });
+export type StoreMeshNode = typeof storeMeshNodes.$inferSelect;
+export type InsertStoreMeshNode = z.infer<typeof insertStoreMeshNodeSchema>;
+
+export const insertStoreMeshPairCodeSchema = createInsertSchema(storeMeshPairCodes).omit({ id: true, createdAt: true });
+export type StoreMeshPairCode = typeof storeMeshPairCodes.$inferSelect;
+export type InsertStoreMeshPairCode = z.infer<typeof insertStoreMeshPairCodeSchema>;
+
+export const insertStoreMeshLogSchema = createInsertSchema(storeMeshLogs).omit({ id: true, createdAt: true });
+export type StoreMeshLog = typeof storeMeshLogs.$inferSelect;
+export type InsertStoreMeshLog = z.infer<typeof insertStoreMeshLogSchema>;
+
+export const emailLogs = pgTable("email_logs", {
+  id: serial("id").primaryKey(),
+  toEmail: text("to_email").notNull(),
+  recipientName: text("recipient_name"),
+  subject: text("subject").notNull(),
+  templateType: text("template_type").notNull().default("transaction_receipt"), // transaction_receipt, custom, announcement, alert
+  status: text("status").notNull().default("sent"), // sent, failed, pending
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"), // { amount: string, reference: string, paymentMethod: string, planTitle: string }
+  sentAt: timestamp("sent_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({ id: true, createdAt: true });
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+
+// Software Update Broadcast Releases
+export const softwareUpdateLogs = pgTable("software_update_logs", {
+  id: serial("id").primaryKey(),
+  version: text("version").notNull(),
+  title: text("title"),
+  description: text("description"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentAt: timestamp("sent_at").defaultNow(),
+  adminChatId: text("admin_chat_id"),
+});
+
+export const insertSoftwareUpdateLogSchema = createInsertSchema(softwareUpdateLogs).omit({ id: true, sentAt: true });
+export type SoftwareUpdateLog = typeof softwareUpdateLogs.$inferSelect;
+export type InsertSoftwareUpdateLog = z.infer<typeof insertSoftwareUpdateLogSchema>;
+
+// Software Update User Interactions
+export const softwareUpdateInteractions = pgTable("software_update_interactions", {
+  id: serial("id").primaryKey(),
+  version: text("version").notNull(),
+  telegramId: text("telegram_id").notNull(),
+  username: text("username"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSoftwareUpdateInteractionSchema = createInsertSchema(softwareUpdateInteractions).omit({ id: true, updatedAt: true });
+export type SoftwareUpdateInteraction = typeof softwareUpdateInteractions.$inferSelect;
+export type InsertSoftwareUpdateInteraction = z.infer<typeof insertSoftwareUpdateInteractionSchema>;
+
+// Customer Error Logs (Advanced Error Checker)
+export const customerErrorLogs = pgTable("customer_error_logs", {
+  id: serial("id").primaryKey(),
+  customerIdentifier: text("customer_identifier").notNull(),
+  telegramUserId: integer("telegram_user_id"),
+  severity: text("severity").notNull().default("warning"), // 'critical' | 'warning' | 'info'
+  category: text("category").notNull().default("general"), // 'order' | 'payment' | 'delivery' | 'wallet' | 'auth' | 'api'
+  actionContext: text("action_context"),
+  errorMessage: text("error_message").notNull(),
+  errorDetails: text("error_details"),
+  status: text("status").notNull().default("unresolved"), // 'unresolved' | 'investigating' | 'resolved'
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertCustomerErrorLogSchema = createInsertSchema(customerErrorLogs).omit({ id: true, createdAt: true });
+export type CustomerErrorLog = typeof customerErrorLogs.$inferSelect;
+export type InsertCustomerErrorLog = z.infer<typeof insertCustomerErrorLogSchema>;
+
+// ==========================================
+// TunVN MMO Partner Products & Orders
+// ==========================================
+export const tunvnProducts = pgTable("tunvn_products", {
+  id: serial("id").primaryKey(),
+  externalProductId: integer("external_product_id").notNull(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("standard"),
+  stock: integer("stock").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0), // in cents
+  costPriceVnd: integer("cost_price_vnd").default(0),
+  sellingPriceUsd: integer("selling_price_usd").notNull().default(0), // in cents
+  sellingPriceLkr: integer("selling_price_lkr").default(0),
+  category: text("category").default("general"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  showOnTelegram: boolean("show_on_telegram").notNull().default(false),
+  telegramPriceUsd: integer("telegram_price_usd"),
+  customEmojiId: text("custom_emoji_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tunvnOrders = pgTable("tunvn_orders", {
+  id: serial("id").primaryKey(),
+  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id),
+  tunvnProductId: integer("tunvn_product_id").references(() => tunvnProducts.id),
+  externalOrderId: text("external_order_id"),
+  externalProductId: integer("external_product_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  costPriceUsd: integer("cost_price_usd").notNull().default(0),
+  amountPaid: integer("amount_paid").notNull().default(0),
+  amountPaidLkr: integer("amount_paid_lkr"),
+  unitPriceLkr: integer("unit_price_lkr"),
+  status: text("status").notNull().default("completed"),
+  deliveryText: text("delivery_text"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tunvnProductsRelations = relations(tunvnProducts, ({ many }) => ({
+  orders: many(tunvnOrders),
+}));
+
+export const tunvnOrdersRelations = relations(tunvnOrders, ({ one }) => ({
+  product: one(tunvnProducts, {
+    fields: [tunvnOrders.tunvnProductId],
+    references: [tunvnProducts.id],
+  }),
+  telegramUser: one(telegramUsers, {
+    fields: [tunvnOrders.telegramUserId],
+    references: [telegramUsers.id],
+  }),
+}));
+
+export const insertTunvnProductSchema = createInsertSchema(tunvnProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type TunvnProductRow = typeof tunvnProducts.$inferSelect;
+export type InsertTunvnProduct = z.infer<typeof insertTunvnProductSchema>;
+
+export const insertTunvnOrderSchema = createInsertSchema(tunvnOrders).omit({ id: true, createdAt: true });
+export type TunvnOrderRow = typeof tunvnOrders.$inferSelect;
+export type InsertTunvnOrder = z.infer<typeof insertTunvnOrderSchema>;
+
+
+

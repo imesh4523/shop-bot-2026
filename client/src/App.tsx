@@ -1,0 +1,421 @@
+import { useEffect } from "react";
+import { Switch, Route, Redirect, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
+import { LayoutShell } from "@/components/layout-shell";
+import { AdminNotifier } from "@/components/admin-notifier";
+
+// Eagerly import all pages
+import Dashboard from "@/pages/dashboard";
+import ProductsPage from "@/pages/products-page";
+import InventoryPage from "@/pages/inventory-page";
+import OrdersPage from "@/pages/orders-page";
+import PaymentsPage from "@/pages/payments-page";
+import SettingsPage from "@/pages/settings-page";
+import AwsCheckerPage from "@/pages/aws-checker-page";
+import BroadcastPage from "@/pages/broadcast-page";
+import LoginPage from "@/pages/login-page";
+import SpecialOffersPage from "@/pages/special-offers-page";
+import PromoCodesPage from "@/pages/promo-codes-page";
+import TelegramUsersPage from "@/pages/telegram-users-page";
+import ReferralsPage from "@/pages/referrals-page";
+import SpamProtectorPage from "@/pages/spam-protector-page";
+import TelegramInspectorPage from "@/pages/telegram-inspector-page";
+import TelegramClientPage from "@/pages/telegram-client-page";
+import BackupPage from "@/pages/backup-page";
+import ForwardPage from "@/pages/forward-page";
+import SupportTicketsPage from "@/pages/support-tickets-page";
+import CustomerTrackerPage from "@/pages/customer-tracker-page";
+import PreordersPage from "@/pages/preorders-page";
+import MiniAppShop from "@/pages/mini-app-shop";
+import ApiDocsPage from "@/pages/api-docs-page";
+import AdminApiKeysPage from "@/pages/admin-api-keys-page";
+import N1PanelPage from "@/pages/n1panel-page";
+import SocialPanelPage from "@/pages/socialpanel-page";
+import SandromaniaPage from "@/pages/sandromania-page";
+import CssxApiPage from "@/pages/cssx-api-page";
+import TunvnPage from "@/pages/tunvn-page";
+import LiveStoreEditorPage from "@/pages/live-store-editor-page";
+import ManualOrdersPage from "@/pages/manual-orders-page";
+import SoftwareUpdatesPage from "@/pages/software-updates-page";
+import AdvancedErrorCheckerPage from "@/pages/advanced-error-checker-page";
+import DomainAutomationPage from "@/pages/domain-automation-page";
+import StoreMeshPage from "@/pages/store-mesh-page";
+import PayHereGatewayPage from "@/pages/payhere-gateway-page";
+import AllOrdersPage from "@/pages/all-orders-page";
+import EmailHubPage from "@/pages/email-hub-page";
+import CategoriesManagerPage from "@/pages/categories-manager-page";
+import ConnectedStoresTrackerPage from "@/pages/connected-stores-tracker-page";
+import HeroBannersPage from "@/pages/hero-banners-page";
+import BestSellersPage from "@/pages/best-sellers-page";
+import AdminMaintenancePage from "@/pages/admin-maintenance-page";
+import MaintenancePage from "@/pages/maintenance-page";
+import TermsPage from "@/pages/terms-page";
+import NotFound from "@/pages/not-found";
+import { ErrorBoundary } from "@/components/error-boundary";
+
+import { LottiePayment } from "@/components/lottie-loader";
+
+function PageLoader() {
+  return (
+    <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#F8F9FD] animate-in fade-in duration-200">
+      <div className="relative flex flex-col items-center justify-center">
+        <LottiePayment size={160} />
+        <div className="flex items-center gap-2 mt-4 text-[#6C5CE7] font-semibold text-xs animate-pulse">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Loading YouuHost...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function isAdminHost(): boolean {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname.toLowerCase();
+  return (
+    host === "imeshmain2.youuhost.com" ||
+    host === "3.25.55.57" ||
+    host === "18.141.224.63" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.startsWith("imeshmain2.") ||
+    host.startsWith("admin.") ||
+    host.endsWith(".ondigitalocean.app") ||
+    host.endsWith(".localhost") ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(host)
+  );
+}
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  // Admin dashboard is ONLY accessible from imeshmain2.youuhost.com (or localhost)
+  // On youuhost.com, never redirect - render NotFound directly so admin stays private
+  if (!isAdminHost()) {
+    return <NotFound />;
+  }
+
+  if (!user) {
+    return <Redirect to="/imeshadmindashbord/login" />;
+  }
+
+  return (
+    <LayoutShell>
+      <ErrorBoundary>
+        <Component />
+      </ErrorBoundary>
+    </LayoutShell>
+  );
+}
+
+function RootRouteHandler() {
+  const { user, isLoading } = useAuth();
+
+  const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+
+  // 1. Check if accessing via API subdomain (e.g. api.youuhost.com)
+  const isApiSubdomain = host.startsWith("api.") || host === "api.youuhost.com";
+  if (isApiSubdomain) {
+    return <ApiDocsPage />;
+  }
+
+  // 2. Check if accessing specifically via dedicated admin subdomain (imeshmain2.youuhost.com or admin.*)
+  if (host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.") || host.startsWith("admin.")) {
+    if (isLoading) {
+      return <PageLoader />;
+    }
+    if (user) {
+      return <Redirect to="/imeshadmindashbord" />;
+    } else {
+      // Directly render LoginPage without waiting for extra redirect ticks
+      return <LoginPage />;
+    }
+  }
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  // Main store shop for youuhost.com and all other hosts
+  return <MiniAppShop />;
+}
+
+function Router() {
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith("/imeshadmindashbord") || location === "/login";
+
+  const { data: maintStatus, refetch: refetchMaintStatus } = useQuery<{
+    enabled: boolean;
+    title?: string;
+    message?: string;
+    estimatedEndTime?: string;
+    isWhitelisted?: boolean;
+  }>({
+    queryKey: ["/api/system/maintenance-status"],
+    refetchInterval: 2500,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  // Instant recheck whenever user clicks any link or navigates to any page
+  useEffect(() => {
+    refetchMaintStatus();
+  }, [location, refetchMaintStatus]);
+
+  // Instant recheck when user switches back to this browser tab or window
+  useEffect(() => {
+    const handleRecheck = () => {
+      refetchMaintStatus();
+    };
+    window.addEventListener("focus", handleRecheck);
+    document.addEventListener("visibilitychange", handleRecheck);
+    return () => {
+      window.removeEventListener("focus", handleRecheck);
+      document.removeEventListener("visibilitychange", handleRecheck);
+    };
+  }, [refetchMaintStatus]);
+
+  if (maintStatus?.enabled && !maintStatus.isWhitelisted && !isAdminRoute) {
+    return (
+      <MaintenancePage
+        title={maintStatus.title}
+        message={maintStatus.message}
+        estimatedEnd={maintStatus.estimatedEndTime}
+        onRefresh={() => refetchMaintStatus()}
+      />
+    );
+  }
+
+  return (
+    <Switch>
+      {/* Public Pages */}
+      <Route path="/docs">
+        <ApiDocsPage />
+      </Route>
+
+      <Route path="/api-docs">
+        <ApiDocsPage />
+      </Route>
+
+      <Route path="/shop">
+        <MiniAppShop />
+      </Route>
+
+      {/* Admin Route Login - Only accessible on imeshmain2.youuhost.com */}
+      <Route path="/imeshadmindashbord/login">
+        {isAdminHost() ? <LoginPage /> : <NotFound />}
+      </Route>
+      <Route path="/login">
+        {isAdminHost() ? <Redirect to="/imeshadmindashbord/login" /> : <NotFound />}
+      </Route>
+
+      {/* Secret Admin Routes (/imeshadmindashbord/*) */}
+      <Route path="/imeshadmindashbord">
+        <ProtectedRoute component={Dashboard} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/live-store">
+        <ProtectedRoute component={LiveStoreEditorPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/maintenance">
+        <ProtectedRoute component={AdminMaintenancePage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/email-hub">
+        <ProtectedRoute component={EmailHubPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/all-orders">
+        <ProtectedRoute component={AllOrdersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/api-keys">
+        <ProtectedRoute component={AdminApiKeysPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/domain-automation">
+        <ProtectedRoute component={DomainAutomationPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/store-mesh">
+        <ProtectedRoute component={StoreMeshPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/connected-stores">
+        <ProtectedRoute component={ConnectedStoresTrackerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/api-store-tracker">
+        <ProtectedRoute component={ConnectedStoresTrackerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/payhere">
+        <ProtectedRoute component={PayHereGatewayPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/customer-tracker">
+        <ProtectedRoute component={CustomerTrackerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/preorders">
+        <ProtectedRoute component={PreordersPage} />
+      </Route>
+      
+      <Route path="/imeshadmindashbord/products">
+        <ProtectedRoute component={ProductsPage} />
+      </Route>
+      
+      <Route path="/imeshadmindashbord/categories-manager">
+        <ProtectedRoute component={CategoriesManagerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/hero-banners">
+        <ProtectedRoute component={HeroBannersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/best-sellers">
+        <ProtectedRoute component={BestSellersPage} />
+      </Route>
+      
+      <Route path="/imeshadmindashbord/inventory">
+        <ProtectedRoute component={InventoryPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/orders">
+        <ProtectedRoute component={OrdersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/payments">
+        <ProtectedRoute component={PaymentsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/support-tickets">
+        <ProtectedRoute component={SupportTicketsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/n1panel">
+        <ProtectedRoute component={N1PanelPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/socialpanel">
+        <ProtectedRoute component={SocialPanelPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/sandromania">
+        <ProtectedRoute component={SandromaniaPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/cssx-api">
+        <ProtectedRoute component={CssxApiPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/tunvn">
+        <ProtectedRoute component={TunvnPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/manual-orders">
+        <ProtectedRoute component={ManualOrdersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/error-checker">
+        <ProtectedRoute component={AdvancedErrorCheckerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/software-updates">
+        <ProtectedRoute component={SoftwareUpdatesPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/broadcast">
+        <ProtectedRoute component={BroadcastPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/settings">
+        <ProtectedRoute component={SettingsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/aws-checker">
+        <ProtectedRoute component={AwsCheckerPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/special-offers">
+        <ProtectedRoute component={SpecialOffersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/promo-codes">
+        <ProtectedRoute component={PromoCodesPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/backups">
+        <ProtectedRoute component={BackupPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/users">
+        <ProtectedRoute component={TelegramUsersPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/referrals">
+        <ProtectedRoute component={ReferralsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/spam-protector">
+        <ProtectedRoute component={SpamProtectorPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/telegram-inspector">
+        <ProtectedRoute component={TelegramInspectorPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/telegram-client">
+        <ProtectedRoute component={TelegramClientPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/forward">
+        <ProtectedRoute component={ForwardPage} />
+      </Route>
+
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/terms-of-service" component={TermsPage} />
+      <Route path="/terms-and-conditions" component={TermsPage} />
+
+      {/* Root Path redirects authenticated admin to /imeshadmindashbord, else /docs */}
+      <Route path="/">
+        <RootRouteHandler />
+      </Route>
+
+      {/* Fallback to 404 */}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+import { ThemeProvider } from "@/components/theme-provider";
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="youuhost-theme">
+        <TooltipProvider>
+          <Toaster />
+          <AdminNotifier />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

@@ -1,0 +1,2728 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+import { Bot, Save, Loader2, Sparkles, Lock, Megaphone, Package, CreditCard, ArrowRight, Globe, Mail, Key, Server, ExternalLink, ShieldCheck } from "lucide-react";
+
+export default function SettingsPage() {
+  const { toast } = useToast();
+  const [token, setToken] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [extraInstructionsText, setExtraInstructionsText] = useState("");
+  const [broadcastToken, setBroadcastToken] = useState("");
+  const [supportContact, setSupportContact] = useState("");
+  const [cryptomusApiKey, setCryptomusApiKey] = useState("");
+  const [cryptomusMerchantId, setCryptomusMerchantId] = useState("");
+  const [paymentGatewayMode, setPaymentGatewayMode] = useState("cryptomus");
+  const [bep20WalletAddress, setBep20WalletAddress] = useState("");
+  const [trc20WalletAddress, setTrc20WalletAddress] = useState("");
+  const [appUrl, setAppUrl] = useState("https://monkfish-app-isiw9.ondigitalocean.app");
+  const [cryptoBotToken, setCryptoBotToken] = useState("");
+  const [cryptoBotEnabled, setCryptoBotEnabled] = useState(true);
+  const [cryptoBotTestnet, setCryptoBotTestnet] = useState(false);
+  const [binanceApiKey, setBinanceApiKey] = useState("");
+
+  // Cloudflare & Resend Credentials State
+  const [cfApiToken, setCfApiToken] = useState("");
+  const [cfEmail, setCfEmail] = useState("");
+  const [cfGlobalKey, setCfGlobalKey] = useState("");
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [serverTargetIp, setServerTargetIp] = useState("18.141.224.63");
+
+  const { data: cfApiTokenSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"],
+  });
+  const { data: cfEmailSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_EMAIL"],
+  });
+  const { data: cfGlobalKeySetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"],
+  });
+  const { data: resendApiKeySetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/RESEND_API_KEY"],
+  });
+  const { data: serverTargetIpSetting } = useQuery<{ key: string; value: string }>({
+    queryKey: ["/api/settings/SERVER_TARGET_IP"],
+  });
+
+  useEffect(() => {
+    if (cfApiTokenSetting?.value !== undefined) setCfApiToken(cfApiTokenSetting.value);
+  }, [cfApiTokenSetting]);
+  useEffect(() => {
+    if (cfEmailSetting?.value !== undefined) setCfEmail(cfEmailSetting.value);
+  }, [cfEmailSetting]);
+  useEffect(() => {
+    if (cfGlobalKeySetting?.value !== undefined) setCfGlobalKey(cfGlobalKeySetting.value);
+  }, [cfGlobalKeySetting]);
+  useEffect(() => {
+    if (resendApiKeySetting?.value !== undefined) setResendApiKey(resendApiKeySetting.value);
+  }, [resendApiKeySetting]);
+  useEffect(() => {
+    if (serverTargetIpSetting?.value !== undefined) setServerTargetIp(serverTargetIpSetting.value || "18.141.224.63");
+  }, [serverTargetIpSetting]);
+
+  const saveCloudflareResendMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all([
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_API_TOKEN", value: cfApiToken }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_EMAIL", value: cfEmail }),
+        apiRequest("POST", "/api/settings", { key: "CLOUDFLARE_GLOBAL_KEY", value: cfGlobalKey }),
+        apiRequest("POST", "/api/settings", { key: "RESEND_API_KEY", value: resendApiKey }),
+        apiRequest("POST", "/api/settings", { key: "SERVER_TARGET_IP", value: serverTargetIp }),
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_API_TOKEN"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_EMAIL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CLOUDFLARE_GLOBAL_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/RESEND_API_KEY"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SERVER_TARGET_IP"] });
+      toast({
+        title: "Cloudflare & Resend Credentials Saved",
+        description: "API keys and DNS automation target IP updated successfully.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Save",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+  const [binanceSecretKey, setBinanceSecretKey] = useState("");
+  const [binancePayId, setBinancePayId] = useState("");
+  const [faqText, setFaqText] = useState("");
+  const [howToBuyVideo, setHowToBuyVideo] = useState("");
+  const [howToDepositVideo, setHowToDepositVideo] = useState("");
+  const [storeName, setStoreName] = useState("");
+  const [supportUsername, setSupportUsername] = useState("");
+  const [supportBtnText, setSupportBtnText] = useState("");
+  const [loadingText, setLoadingText] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [vapidPublicKey, setVapidPublicKey] = useState("");
+  const [vapidPrivateKey, setVapidPrivateKey] = useState("");
+  const [vapidSubject, setVapidSubject] = useState("");
+
+  const { data: setting, isLoading: isTokenLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TELEGRAM_BOT_TOKEN"],
+  });
+
+  const { data: geminiSetting, isLoading: isGeminiLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/GEMINI_API_KEY"],
+  });
+
+  const { data: extraInstructionsSetting, isLoading: isExtraInstructionsLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/EXTRA_INSTRUCTIONS"],
+  });
+
+  const [adminBotToken, setAdminBotToken] = useState("");
+  const { data: adminBotTokenSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/ADMIN_BOT_TOKEN"],
+  });
+  useEffect(() => {
+    if (adminBotTokenSetting?.value) {
+      setAdminBotToken(adminBotTokenSetting.value);
+    }
+  }, [adminBotTokenSetting]);
+
+  const [miniAppTheme, setMiniAppTheme] = useState("v2_modern");
+  const { data: miniAppThemeSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/MINI_APP_THEME"],
+  });
+  useEffect(() => {
+    if (miniAppThemeSetting?.value) {
+      setMiniAppTheme(miniAppThemeSetting.value);
+    }
+  }, [miniAppThemeSetting]);
+
+  const miniAppThemeMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "MINI_APP_THEME",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/MINI_APP_THEME"] });
+      toast({
+        title: "Storefront Theme Switched!",
+        description: "The MiniApp store theme was updated instantly.",
+      });
+    }
+  });
+
+  const adminBotTokenMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "ADMIN_BOT_TOKEN",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ADMIN_BOT_TOKEN"] });
+      toast({
+        title: "Admin Bot Token Saved & Activated! 🚀",
+        description: "Dedicated Telegram Admin Bot has been reconnected and is actively running with the new token.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to Save Admin Bot Token",
+        description: err.message || "Could not save admin bot token.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const [softwareUpdateVersion, setSoftwareUpdateVersion] = useState("4.1v");
+  const softwareUpdateMutation = useMutation({
+    mutationFn: async (version: string) => {
+      const res = await apiRequest("POST", "/api/admin/broadcast-software-update", { version });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Software Update Broadcast Sent! 🚀",
+        description: `Successfully broadcasted version ${data.version || softwareUpdateVersion} to ${data.count ?? 0} users with celebration confetti!`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Broadcast Failed",
+        description: err.message || "Could not broadcast software update.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const { data: broadcastSetting, isLoading: isBroadcastLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BROADCAST_BOT_TOKEN"],
+  });
+
+  const { data: supportSetting, isLoading: isSupportLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SUPPORT_CONTACT"],
+  });
+
+  const { data: cryptomusSetting, isLoading: isCryptomusLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/CRYPTOMUS_API_KEY"],
+  });
+
+  const { data: merchantSetting, isLoading: isMerchantLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/CRYPTOMUS_MERCHANT_ID"],
+  });
+
+  const { data: gatewayModeSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_GATEWAY_MODE"],
+  });
+
+  const { data: bep20WalletSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BEP20_WALLET_ADDRESS"],
+  });
+
+  const { data: trc20WalletSetting, isLoading: isTrc20WalletLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"],
+  });
+
+  const { data: appUrlSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/APP_URL"],
+  });
+
+  const { data: binanceSetting, isLoading: isBinanceLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BINANCE_PAY_ID"],
+  });
+
+  const { data: binanceApiSetting, isLoading: isBinanceApiLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BINANCE_API_KEY"],
+  });
+
+  const { data: binanceSecretSetting, isLoading: isBinanceSecretLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/BINANCE_SECRET_KEY"],
+  });
+
+  const { data: faqSetting, isLoading: isFaqLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/faq_content"],
+  });
+
+  const { data: howToBuySetting, isLoading: isHowToBuyLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TUTORIAL_BUY_VIDEO"],
+  });
+
+  const { data: howToDepositSetting, isLoading: isHowToDepositLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TUTORIAL_DEPOSIT_VIDEO"],
+  });
+
+  const { data: binanceEnabledSetting, isLoading: isBinanceEnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_BINANCE_ENABLED"],
+  });
+
+  const { data: cryptomusEnabledSetting, isLoading: isCryptomusEnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_CRYPTOMUS_ENABLED"],
+  });
+
+  const { data: cryptomusWebBtnSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SHOW_CRYPTOMUS_WEB_BUTTON"],
+  });
+
+  const { data: cryptoBotEnabledSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_CRYPTOBOT_ENABLED"],
+  });
+
+  const { data: cryptoBotTokenSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/CRYPTO_BOT_API_TOKEN"],
+  });
+
+  const { data: cryptoBotTestnetSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/CRYPTO_BOT_TESTNET"],
+  });
+
+  const { data: trc20EnabledSetting, isLoading: isTrc20EnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_TRC20_ENABLED"],
+  });
+
+  const { data: aptosEnabledSetting, isLoading: isAptosEnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYMENT_APTOS_ENABLED"],
+  });
+
+  const { data: aptosWalletSetting, isLoading: isAptosWalletLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/APTOS_WALLET_ADDRESS"],
+  });
+
+  const { data: trc20VerificationModeSetting, isLoading: isTrc20VerificationModeLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/TRC20_VERIFICATION_MODE"],
+  });
+
+  const { data: aptosVerificationModeSetting, isLoading: isAptosVerificationModeLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/APTOS_VERIFICATION_MODE"],
+  });
+
+  const { data: automationEnabledSetting, isLoading: isAutomationEnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/AUTOMATION_ENABLED"],
+  });
+
+  const { data: specialOffersEnabledSetting, isLoading: isSpecialOffersEnabledLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SPECIAL_OFFERS_ENABLED"],
+  });
+
+  const { data: storeNameSetting, isLoading: isStoreNameLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/STORE_NAME"],
+  });
+
+  const { data: supportUsernameSetting, isLoading: isSupportUsernameLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SUPPORT_USERNAME"],
+  });
+
+  const { data: supportBtnTextSetting, isLoading: isSupportBtnTextLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SUPPORT_BTN_TEXT"],
+  });
+
+  const { data: loadingTextSetting, isLoading: isLoadingTextLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/LOADING_TEXT"],
+  });
+
+  const { data: vapidPublicSetting, isLoading: isVapidPublicLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/VAPID_PUBLIC_KEY"],
+  });
+
+  const { data: vapidPrivateSetting, isLoading: isVapidPrivateLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/VAPID_PRIVATE_KEY"],
+  });
+
+  const { data: vapidSubjectSetting, isLoading: isVapidSubjectLoading } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/VAPID_SUBJECT"],
+  });
+
+  // PayHere Host Gateway Queries & State
+  const [payhereEnabled, setPayhereEnabled] = useState(false);
+  const [payhereGatewayUrl, setPayhereGatewayUrl] = useState("");
+  const [payhereMerchantId, setPayhereMerchantId] = useState("");
+  const [payhereMerchantSecret, setPayhereMerchantSecret] = useState("");
+  const [payhereSandboxMode, setPayhereSandboxMode] = useState(true);
+  const [payherePairingUrl, setPayherePairingUrl] = useState("");
+  const [payhereStatus, setPayhereStatus] = useState("disconnected");
+  const [payherePairedAt, setPayherePairedAt] = useState("");
+  const [pingLoading, setPingLoading] = useState(false);
+  const [pingResult, setPingResult] = useState<{ success: boolean; latencyMs?: number; message?: string } | null>(null);
+
+  const { data: payhereEnabledSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_ENABLED"],
+  });
+  const { data: payhereGatewayUrlSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"],
+  });
+  const { data: payhereMerchantIdSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"],
+  });
+  const { data: payhereMerchantSecretSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"],
+  });
+  const { data: payhereSandboxSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_SANDBOX_MODE"],
+  });
+  const { data: payhereStatusSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_STATUS"],
+  });
+  const { data: payherePairedAtSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/PAYHERE_PAIRED_AT"],
+  });
+
+  const isLoading = isTokenLoading || isBroadcastLoading || isSupportLoading || isCryptomusLoading ||
+    isMerchantLoading || isBinanceLoading || isBinanceApiLoading || isBinanceSecretLoading ||
+    isFaqLoading || isHowToBuyLoading || isHowToDepositLoading || isBinanceEnabledLoading ||
+    isCryptomusEnabledLoading || isAutomationEnabledLoading ||
+    isSpecialOffersEnabledLoading || isStoreNameLoading || isSupportUsernameLoading ||
+    isSupportBtnTextLoading || isLoadingTextLoading ||
+    isTrc20EnabledLoading || isAptosEnabledLoading || isTrc20WalletLoading || isAptosWalletLoading ||
+    isTrc20VerificationModeLoading || isAptosVerificationModeLoading || isGeminiLoading ||
+    isExtraInstructionsLoading || isVapidPublicLoading || isVapidPrivateLoading || isVapidSubjectLoading;
+
+  const [binanceEnabled, setBinanceEnabled] = useState(true);
+  const [cryptomusEnabled, setCryptomusEnabled] = useState(true);
+  const [cryptomusWebBtnEnabled, setCryptomusWebBtnEnabled] = useState(true);
+  const [trc20Enabled, setTrc20Enabled] = useState(false);
+  const [aptosEnabled, setAptosEnabled] = useState(false);
+  const [trc20Wallet, setTrc20Wallet] = useState("");
+  const [aptosWallet, setAptosWallet] = useState("");
+  const [trc20VerificationMode, setTrc20VerificationMode] = useState("binance");
+  const [aptosVerificationMode, setAptosVerificationMode] = useState("binance");
+  const { data: showOutOfStockSetting } = useQuery<{ key: string, value: string }>({
+    queryKey: ["/api/settings/SHOW_OUT_OF_STOCK_PRODUCTS"],
+  });
+
+  const [automationEnabled, setAutomationEnabled] = useState(true);
+  const [specialOffersEnabled, setSpecialOffersEnabled] = useState(true);
+  const [showOutOfStock, setShowOutOfStock] = useState(false);
+
+  useEffect(() => {
+    if (showOutOfStockSetting?.value !== undefined) setShowOutOfStock(showOutOfStockSetting.value === "true");
+  }, [showOutOfStockSetting]);
+
+  useEffect(() => {
+    if (binanceEnabledSetting?.value !== undefined) setBinanceEnabled(binanceEnabledSetting.value === "true");
+  }, [binanceEnabledSetting]);
+
+  useEffect(() => {
+    if (cryptomusEnabledSetting?.value !== undefined) setCryptomusEnabled(cryptomusEnabledSetting.value === "true");
+  }, [cryptomusEnabledSetting]);
+
+  useEffect(() => {
+    if (cryptomusWebBtnSetting?.value !== undefined) setCryptomusWebBtnEnabled(cryptomusWebBtnSetting.value !== "false");
+  }, [cryptomusWebBtnSetting]);
+
+  useEffect(() => {
+    if (cryptoBotEnabledSetting?.value !== undefined) setCryptoBotEnabled(cryptoBotEnabledSetting.value !== "false");
+  }, [cryptoBotEnabledSetting]);
+
+  useEffect(() => {
+    if (cryptoBotTokenSetting?.value !== undefined) setCryptoBotToken(cryptoBotTokenSetting.value);
+  }, [cryptoBotTokenSetting]);
+
+  useEffect(() => {
+    if (cryptoBotTestnetSetting?.value !== undefined) setCryptoBotTestnet(cryptoBotTestnetSetting.value === "true");
+  }, [cryptoBotTestnetSetting]);
+
+  useEffect(() => {
+    if (trc20EnabledSetting?.value !== undefined) setTrc20Enabled(trc20EnabledSetting.value === "true");
+  }, [trc20EnabledSetting]);
+
+  useEffect(() => {
+    if (aptosEnabledSetting?.value !== undefined) setAptosEnabled(aptosEnabledSetting.value === "true");
+  }, [aptosEnabledSetting]);
+
+  useEffect(() => {
+    if (trc20WalletSetting?.value !== undefined) setTrc20Wallet(trc20WalletSetting.value);
+  }, [trc20WalletSetting]);
+
+  useEffect(() => {
+    if (aptosWalletSetting?.value !== undefined) setAptosWallet(aptosWalletSetting.value);
+  }, [aptosWalletSetting]);
+
+  useEffect(() => {
+    if (trc20VerificationModeSetting?.value !== undefined) setTrc20VerificationMode(trc20VerificationModeSetting.value || "binance");
+  }, [trc20VerificationModeSetting]);
+
+  useEffect(() => {
+    if (aptosVerificationModeSetting?.value !== undefined) setAptosVerificationMode(aptosVerificationModeSetting.value || "binance");
+  }, [aptosVerificationModeSetting]);
+
+  useEffect(() => {
+    if (automationEnabledSetting?.value !== undefined) setAutomationEnabled(automationEnabledSetting.value === "true");
+  }, [automationEnabledSetting]);
+
+  useEffect(() => {
+    if (specialOffersEnabledSetting?.value !== undefined) setSpecialOffersEnabled(specialOffersEnabledSetting.value !== "false");
+  }, [specialOffersEnabledSetting]);
+
+  useEffect(() => {
+    if (setting?.value !== undefined) setToken(setting.value);
+  }, [setting]);
+
+  useEffect(() => {
+    if (geminiSetting?.value !== undefined) setGeminiApiKey(geminiSetting.value);
+  }, [geminiSetting]);
+
+  useEffect(() => {
+    if (extraInstructionsSetting?.value !== undefined) setExtraInstructionsText(extraInstructionsSetting.value);
+  }, [extraInstructionsSetting]);
+
+  useEffect(() => {
+    if (broadcastSetting?.value !== undefined) setBroadcastToken(broadcastSetting.value);
+  }, [broadcastSetting]);
+
+  useEffect(() => {
+    if (supportSetting?.value !== undefined) setSupportContact(supportSetting.value);
+  }, [supportSetting]);
+
+  useEffect(() => {
+    if (cryptomusSetting?.value !== undefined) setCryptomusApiKey(cryptomusSetting.value);
+  }, [cryptomusSetting]);
+
+  useEffect(() => {
+    if (merchantSetting?.value !== undefined) setCryptomusMerchantId(merchantSetting.value);
+  }, [merchantSetting]);
+
+  useEffect(() => {
+    if (gatewayModeSetting?.value !== undefined) setPaymentGatewayMode(gatewayModeSetting.value);
+  }, [gatewayModeSetting]);
+
+  useEffect(() => {
+    if (bep20WalletSetting?.value !== undefined) setBep20WalletAddress(bep20WalletSetting.value);
+  }, [bep20WalletSetting]);
+
+  useEffect(() => {
+    if (trc20WalletSetting?.value !== undefined) setTrc20WalletAddress(trc20WalletSetting.value);
+  }, [trc20WalletSetting]);
+
+  useEffect(() => {
+    if (appUrlSetting?.value !== undefined) setAppUrl(appUrlSetting.value);
+  }, [appUrlSetting]);
+
+  useEffect(() => {
+    if (payhereEnabledSetting?.value !== undefined) setPayhereEnabled(payhereEnabledSetting.value === "true");
+  }, [payhereEnabledSetting]);
+
+  useEffect(() => {
+    if (payhereGatewayUrlSetting?.value !== undefined) setPayhereGatewayUrl(payhereGatewayUrlSetting.value);
+  }, [payhereGatewayUrlSetting]);
+
+  useEffect(() => {
+    if (payhereMerchantIdSetting?.value !== undefined) setPayhereMerchantId(payhereMerchantIdSetting.value);
+  }, [payhereMerchantIdSetting]);
+
+  useEffect(() => {
+    if (payhereMerchantSecretSetting?.value !== undefined) setPayhereMerchantSecret(payhereMerchantSecretSetting.value);
+  }, [payhereMerchantSecretSetting]);
+
+  useEffect(() => {
+    if (payhereSandboxSetting?.value !== undefined) setPayhereSandboxMode(payhereSandboxSetting.value !== "false");
+  }, [payhereSandboxSetting]);
+
+  useEffect(() => {
+    if (payhereStatusSetting?.value !== undefined) setPayhereStatus(payhereStatusSetting.value);
+  }, [payhereStatusSetting]);
+
+  useEffect(() => {
+    if (payherePairedAtSetting?.value !== undefined) setPayherePairedAt(payherePairedAtSetting.value);
+  }, [payherePairedAtSetting]);
+
+  useEffect(() => {
+    if (binanceSetting?.value !== undefined) setBinancePayId(binanceSetting.value);
+  }, [binanceSetting]);
+
+  useEffect(() => {
+    if (binanceApiSetting?.value !== undefined) setBinanceApiKey(binanceApiSetting.value);
+  }, [binanceApiSetting]);
+
+  useEffect(() => {
+    if (binanceSecretSetting?.value !== undefined) setBinanceSecretKey(binanceSecretSetting.value);
+  }, [binanceSecretSetting]);
+
+  useEffect(() => {
+    if (faqSetting?.value !== undefined) setFaqText(faqSetting.value);
+  }, [faqSetting]);
+
+  useEffect(() => {
+    if (howToBuySetting?.value !== undefined) setHowToBuyVideo(howToBuySetting.value);
+  }, [howToBuySetting]);
+
+  useEffect(() => {
+    if (howToDepositSetting?.value !== undefined) setHowToDepositVideo(howToDepositSetting.value);
+  }, [howToDepositSetting]);
+
+  useEffect(() => {
+    if (storeNameSetting?.value !== undefined) setStoreName(storeNameSetting.value);
+  }, [storeNameSetting]);
+
+  useEffect(() => {
+    if (supportUsernameSetting?.value !== undefined) setSupportUsername(supportUsernameSetting.value);
+  }, [supportUsernameSetting]);
+
+  useEffect(() => {
+    if (supportBtnTextSetting?.value !== undefined) setSupportBtnText(supportBtnTextSetting.value);
+  }, [supportBtnTextSetting]);
+
+  useEffect(() => {
+    if (loadingTextSetting?.value !== undefined) setLoadingText(loadingTextSetting.value);
+  }, [loadingTextSetting]);
+
+  useEffect(() => {
+    if (vapidPublicSetting?.value !== undefined) setVapidPublicKey(vapidPublicSetting.value);
+  }, [vapidPublicSetting]);
+
+  useEffect(() => {
+    if (vapidPrivateSetting?.value !== undefined) setVapidPrivateKey(vapidPrivateSetting.value);
+  }, [vapidPrivateSetting]);
+
+  useEffect(() => {
+    if (vapidSubjectSetting?.value !== undefined) setVapidSubject(vapidSubjectSetting.value);
+  }, [vapidSubjectSetting]);
+
+  const mutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "TELEGRAM_BOT_TOKEN",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/TELEGRAM_BOT_TOKEN"] });
+      toast({
+        title: "Settings Updated",
+        description: "Telegram Bot has been re-initialized with the new token.",
+      });
+    }
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BROADCAST_BOT_TOKEN",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BROADCAST_BOT_TOKEN"] });
+      toast({
+        title: "Broadcast Bot Updated",
+        description: "Separate broadcast bot token has been saved.",
+      });
+    }
+  });
+
+  const geminiMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "GEMINI_API_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/GEMINI_API_KEY"] });
+      toast({
+        title: "Gemini API Key Updated",
+        description: "Live support chat bot is now using the updated Gemini API key.",
+      });
+    }
+  });
+
+  const extraInstructionsMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "EXTRA_INSTRUCTIONS",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/EXTRA_INSTRUCTIONS"] });
+      toast({
+        title: "Extra Instructions Updated",
+        description: "Extra instructions & rules have been updated.",
+      });
+    }
+  });
+
+  const supportMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "SUPPORT_CONTACT",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SUPPORT_CONTACT"] });
+      toast({
+        title: "Support Contact Updated",
+        description: "Support contact has been updated.",
+      });
+    }
+  });
+
+  const cryptomusMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "CRYPTOMUS_API_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CRYPTOMUS_API_KEY"] });
+      toast({
+        title: "Cryptomus API Key Updated",
+        description: "Cryptomus integration is now ready to process payments.",
+      });
+    }
+  });
+
+  const cryptomusMerchantMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "CRYPTOMUS_MERCHANT_ID",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CRYPTOMUS_MERCHANT_ID"] });
+      toast({
+        title: "Cryptomus Merchant ID Updated",
+        description: "Merchant ID has been saved.",
+      });
+    }
+  });
+
+  const appUrlMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "APP_URL",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/APP_URL"] });
+      toast({
+        title: "App Domain URL Updated",
+        description: "App URL and Webhook callback endpoint saved successfully.",
+      });
+    }
+  });
+
+  const cryptoBotTokenMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "CRYPTO_BOT_API_TOKEN",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/CRYPTO_BOT_API_TOKEN"] });
+      toast({
+        title: "CryptoBot Token Updated",
+        description: "@CryptoBot API Token has been saved.",
+      });
+    }
+  });
+
+  const binancePayMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BINANCE_PAY_ID",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BINANCE_PAY_ID"] });
+      toast({
+        title: "Binance Pay ID Updated",
+        description: "Binance Pay ID has been saved.",
+      });
+    }
+  });
+
+  const binanceApiKeyMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BINANCE_API_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BINANCE_API_KEY"] });
+      toast({
+        title: "Binance API Key Updated",
+        description: "Binance API Key has been saved.",
+      });
+    }
+  });
+
+  const binanceSecretKeyMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BINANCE_SECRET_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BINANCE_SECRET_KEY"] });
+      toast({
+        title: "Binance Secret Key Updated",
+        description: "Binance Secret Key has been saved.",
+      });
+    }
+  });
+
+  const bep20WalletMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "BEP20_WALLET_ADDRESS",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/BEP20_WALLET_ADDRESS"] });
+      toast({
+        title: "BEP20 Wallet Address Updated",
+        description: "Direct BEP20 deposit address saved.",
+      });
+    }
+  });
+
+  const trc20WalletMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "TRC20_WALLET_ADDRESS",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/TRC20_WALLET_ADDRESS"] });
+      toast({
+        title: "TRC20 Wallet Address Updated",
+        description: "Direct TRC20 deposit address saved.",
+      });
+    }
+  });
+
+  const aptosWalletMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "APTOS_WALLET_ADDRESS",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/APTOS_WALLET_ADDRESS"] });
+      toast({
+        title: "Aptos Wallet Updated",
+        description: "Aptos wallet address has been updated.",
+      });
+    }
+  });
+
+  const trc20VerificationModeMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "TRC20_VERIFICATION_MODE",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/TRC20_VERIFICATION_MODE"] });
+      toast({
+        title: "TRC20 Verification Mode Updated",
+        description: "TRC20 payment verification mode has been updated.",
+      });
+    }
+  });
+
+  const aptosVerificationModeMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "APTOS_VERIFICATION_MODE",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/APTOS_VERIFICATION_MODE"] });
+      toast({
+        title: "Aptos Verification Mode Updated",
+        description: "Aptos payment verification mode has been updated.",
+      });
+    }
+  });
+
+  const showOutOfStockMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "SHOW_OUT_OF_STOCK_PRODUCTS",
+        value: enabled ? "true" : "false"
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/SHOW_OUT_OF_STOCK_PRODUCTS"] });
+      toast({
+        title: "Catalog Visibility Updated",
+        description: "Out-of-stock products visibility setting has been updated.",
+      });
+    }
+  });
+
+  const faqMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "faq_content",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/faq_content"] });
+      toast({
+        title: "FAQ Updated",
+        description: "FAQ content has been updated for all users.",
+      });
+    }
+  });
+
+  const tutorialBuyMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "TUTORIAL_BUY_VIDEO",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/TUTORIAL_BUY_VIDEO"] });
+      toast({
+        title: "Tutorial Updated",
+        description: "How to buy video URL has been updated.",
+      });
+    }
+  });
+
+  const tutorialDepositMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "TUTORIAL_DEPOSIT_VIDEO",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/TUTORIAL_DEPOSIT_VIDEO"] });
+      toast({
+        title: "Tutorial Updated",
+        description: "How to deposit video URL has been updated.",
+      });
+    }
+  });
+
+  const brandingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string, value: string }) => {
+      const res = await apiRequest("POST", "/api/settings", { key, value });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/settings/${variables.key}`] });
+      toast({
+        title: "Branding Updated",
+        description: `${variables.key.replace("_", " ").toLowerCase()} has been updated.`,
+      });
+    }
+  });
+
+  const togglePaymentMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string, value: string }) => {
+      const res = await apiRequest("POST", "/api/settings", { key, value });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/settings/${variables.key}`] });
+      toast({
+        title: "Setting Updated",
+        description: `${variables.key.replace("PAYMENT_", "").replace("_ENABLED", "").toLowerCase()} ${variables.value === "true" ? "enabled" : "disabled"}.`,
+      });
+    }
+  });
+
+  const payherePairMutation = useMutation({
+    mutationFn: async (payload: { pairingUrl: string; merchantId?: string; merchantSecret?: string }) => {
+      const res = await apiRequest("POST", "/api/payhere/pair", payload);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_ENABLED"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_PAIRED_AT"] });
+      toast({
+        title: "Host Gateway Paired! 🟢",
+        description: data.message || "Connected to PayHere Host Gateway.",
+      });
+      setPayherePairingUrl("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Pairing Failed",
+        description: err.message || "Could not connect to Host Gateway.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const payhereDisconnectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/payhere/disconnect");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_STATUS"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_GATEWAY_URL"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_ENABLED"] });
+      toast({
+        title: "Gateway Disconnected",
+        description: "PayHere Host Gateway disconnected.",
+      });
+    }
+  });
+
+  const payhereMerchantIdMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", { key: "PAYHERE_MERCHANT_ID", value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_ID"] });
+      toast({ title: "PayHere Merchant ID Saved", description: "Merchant ID updated." });
+    }
+  });
+
+  const payhereMerchantSecretMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", { key: "PAYHERE_MERCHANT_SECRET", value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/PAYHERE_MERCHANT_SECRET"] });
+      toast({ title: "PayHere Merchant Secret Saved", description: "Merchant Secret updated." });
+    }
+  });
+
+  const handleTestPing = async () => {
+    setPingLoading(true);
+    setPingResult(null);
+    try {
+      const res = await apiRequest("POST", "/api/payhere/test-ping");
+      const data = await res.json();
+      setPingResult({ success: true, latencyMs: data.latencyMs, message: "Gateway is Online & Healthy (200 OK)" });
+    } catch (err: any) {
+      setPingResult({ success: false, message: err.message || "Gateway unreachable" });
+    } finally {
+      setPingLoading(false);
+    }
+  };
+
+  const adminCredentialsMutation = useMutation({
+    mutationFn: async (data: { newEmail: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/admin/credentials", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setAdminPassword("");
+      toast({
+        title: "Admin Credentials Updated",
+        description: "Your login email and password have been updated successfully.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Update Failed",
+        description: err.message || "Failed to update admin credentials.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const vapidPublicKeyMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "VAPID_PUBLIC_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/VAPID_PUBLIC_KEY"] });
+      toast({
+        title: "VAPID Public Key Updated",
+        description: "Browser push notification credentials updated successfully.",
+      });
+    }
+  });
+
+  const vapidPrivateKeyMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "VAPID_PRIVATE_KEY",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/VAPID_PRIVATE_KEY"] });
+      toast({
+        title: "VAPID Private Key Updated",
+        description: "Browser push notification credentials updated successfully.",
+      });
+    }
+  });
+
+  const vapidSubjectMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const res = await apiRequest("POST", "/api/settings", {
+        key: "VAPID_SUBJECT",
+        value
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/VAPID_SUBJECT"] });
+      toast({
+        title: "VAPID Subject Email Updated",
+        description: "Browser push notification contact email updated successfully.",
+      });
+    }
+  });
+
+
+
+  return (
+    <div className="space-y-10 animate-in">
+      <div className="flex items-center justify-between">
+        <h1 className="text-5xl font-black tracking-tighter text-white drop-shadow-2xl">
+          Settings
+        </h1>
+        <div className="glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 text-sm font-bold text-white shadow-lg border-white/20">
+          <Bot className="w-5 h-5 text-purple-400" />
+          Bot Configuration
+        </div>
+      </div>
+
+      <div className="max-w-2xl space-y-6">
+        {/* PayHere Quick Link Banner */}
+        <Link href="/imeshadmindashbord/payhere">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-black/60 border border-emerald-500/30 hover:border-emerald-400/60 transition-all cursor-pointer shadow-lg flex items-center justify-between group">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white flex items-center gap-2">
+                  PayHere Host Gateway & Pairing Center
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">1-Click Setup</span>
+                </p>
+                <p className="text-xs text-white/50">Manage PayHere Merchant ID, Secret & pair with <code>imhost</code> approved domain</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
+        {/* Storefront Theme Selector Card */}
+        <Card className="glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background/80 to-purple-900/20 border border-purple-500/20 shadow-2xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-bold flex items-center gap-2 text-white">
+                <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
+                MiniApp Storefront Theme
+              </CardTitle>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Live Switcher
+              </span>
+            </div>
+            <CardDescription className="text-white/60">
+              Select which storefront UI design is shown when users open your shop or MiniApp.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Modern Luxe UI Option */}
+              <div
+                onClick={() => {
+                  setMiniAppTheme("v2_modern");
+                  miniAppThemeMutation.mutate("v2_modern");
+                }}
+                className={`p-5 rounded-2xl cursor-pointer transition-all duration-300 border-2 relative overflow-hidden ${
+                  miniAppTheme === "v2_modern"
+                    ? "bg-[#1E3325]/90 border-emerald-400 shadow-lg shadow-emerald-950/40 scale-[1.02]"
+                    : "bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-2xl">🌿</span>
+                  {miniAppTheme === "v2_modern" && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-emerald-950 px-2.5 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-base font-extrabold text-white">Modern Luxe Mobile UI</h4>
+                <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                  Clean ivory & emerald organic design, search bar, category chips, best sellers grid & floating navigation.
+                </p>
+                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
+                  <span>✨ 2026 Mobile-First Design</span>
+                </div>
+              </div>
+
+              {/* Classic Cyber-Dark Option */}
+              <div
+                onClick={() => {
+                  setMiniAppTheme("v1_classic");
+                  miniAppThemeMutation.mutate("v1_classic");
+                }}
+                className={`p-5 rounded-2xl cursor-pointer transition-all duration-300 border-2 relative overflow-hidden ${
+                  miniAppTheme === "v1_classic"
+                    ? "bg-purple-950/80 border-purple-400 shadow-lg shadow-purple-950/40 scale-[1.02]"
+                    : "bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-2xl">⚡</span>
+                  {miniAppTheme === "v1_classic" && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-400 text-purple-950 px-2.5 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-base font-extrabold text-white">Classic Cyber-Dark UI</h4>
+                <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                  Deep dark glassmorphic design, neon gradients, hot bundle carousel & tab navigation.
+                </p>
+                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-purple-300">
+                  <span>🚀 Original Shopeefy Theme</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-0">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-purple-400" />
+              Telegram Integration
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Configure your Telegram Bot token here. Changes are applied instantly.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="token" className="text-sm font-bold text-white/70 uppercase tracking-widest">Bot Token</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="token"
+                  type="password"
+                  placeholder="Paste your bot token here..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                />
+                <Button
+                  onClick={() => mutation.mutate(token)}
+                  disabled={mutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+                >
+                  {mutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                You can get this token from <a href="https://t.me/botfather" target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">@BotFather</a>
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label htmlFor="broadcast-token" className="text-sm font-bold text-white/70 uppercase tracking-widest">Broadcast Bot Token (Optional)</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="broadcast-token"
+                  type="password"
+                  placeholder="Separate token for broadcasting..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={broadcastToken}
+                  onChange={(e) => setBroadcastToken(e.target.value)}
+                />
+                <Button
+                  onClick={() => broadcastMutation.mutate(broadcastToken)}
+                  disabled={broadcastMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {broadcastMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                If provided, this bot will be used for sending broadcasts instead of the main bot.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label htmlFor="admin-bot-token" className="text-sm font-bold text-white/70 uppercase tracking-widest">Dedicated Admin Bot Token (Full Control)</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="admin-bot-token"
+                  type="password"
+                  placeholder="Telegram Admin Bot token for Full A-Z Management..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={adminBotToken}
+                  onChange={(e) => setAdminBotToken(e.target.value)}
+                />
+                <Button
+                  onClick={() => adminBotTokenMutation.mutate(adminBotToken)}
+                  disabled={adminBotTokenMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {adminBotTokenMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                This token controls the dedicated Admin Bot for managing products, customers, promo codes, gateways, and mass broadcasts.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-0 bg-gradient-to-br from-purple-950/40 via-background to-emerald-950/20 border border-emerald-500/20 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2 text-white">
+              <Sparkles className="w-6 h-6 text-emerald-400" />
+              Software Update Broadcast (With Celebration Confetti)
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Notify all bot users about new software updates. When users tap <b>"Update now"</b>, the bot automatically executes <code>/start</code> and triggers the full-screen celebration confetti animation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-500/20 space-y-2">
+              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider block">Message Live Preview</span>
+              <div className="text-sm text-white/90 space-y-2 font-mono bg-black/40 p-3 rounded-lg border border-white/5">
+                <p className="font-bold text-white">New software update available ✨</p>
+                <div className="pl-3 border-l-2 border-emerald-500 text-white/90">
+                  <span className="font-bold">{softwareUpdateVersion}</span> ⚙️✅
+                </div>
+                <p className="text-sm">💬💬💬💬💬💬</p>
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600/80 text-white text-xs font-bold border border-emerald-400/40 shadow-sm">
+                    ⚙️ Update now
+                  </span>
+                  <span className="text-[11px] text-white/50">🎉 Official Telegram Confetti Effect (5046509860389126442)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="update-version" className="text-sm font-bold text-white/70 uppercase tracking-widest">
+                Software Version
+              </Label>
+              <div className="flex gap-3">
+                <Input
+                  id="update-version"
+                  type="text"
+                  placeholder="e.g. 4.1v"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-emerald-500/50 transition-all font-mono"
+                  value={softwareUpdateVersion}
+                  onChange={(e) => setSoftwareUpdateVersion(e.target.value)}
+                />
+                <Button
+                  onClick={() => softwareUpdateMutation.mutate(softwareUpdateVersion)}
+                  disabled={softwareUpdateMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  {softwareUpdateMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 text-emerald-200" />
+                      <span>Broadcast Update</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                Sends instant notification to all active Telegram bot users with the one-click Update Now action button.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-purple-400" />
+              AI Support Assistant (Gemini)
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Configure your Google AI Studio Gemini API Key to power the live support chat bot.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="geminiApiKey" className="text-sm font-bold text-white/70 uppercase tracking-widest">Gemini API Key</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="geminiApiKey"
+                  type="password"
+                  placeholder="Paste your Gemini API Key here..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                />
+                <Button
+                  onClick={() => geminiMutation.mutate(geminiApiKey)}
+                  disabled={geminiMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+                >
+                  {geminiMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                Get your API key from the <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">Google AI Studio Dashboard</a>.
+              </p>
+            </div>
+
+            <div className="h-px bg-white/5 my-6" />
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Extra Instructions & Rules</Label>
+                <CardDescription className="text-white/40">
+                  Upload a text file (.txt) or write custom guidelines to guide the AI chatbot's behavior.
+                </CardDescription>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="file"
+                    accept=".txt"
+                    className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all cursor-pointer file:bg-purple-600/30 file:text-white file:border-0 file:h-full file:px-4 file:-ml-3 file:mr-3 file:hover:bg-purple-600/50 file:transition-all"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const text = event.target?.result as string;
+                        if (text !== undefined) {
+                          setExtraInstructionsText(text);
+                          toast({
+                            title: "File Loaded",
+                            description: `Successfully loaded content from "${file.name}". Click 'Save Instructions & Rules' below to apply.`,
+                          });
+                        }
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                </div>
+
+                <Textarea
+                  placeholder="Enter extra instructions, store guidelines, custom product rules, or restrictions for the AI bot..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white min-h-[150px] rounded-xl focus:border-purple-500/50 transition-all"
+                  value={extraInstructionsText}
+                  onChange={(e) => setExtraInstructionsText(e.target.value)}
+                />
+
+                <Button
+                  onClick={() => extraInstructionsMutation.mutate(extraInstructionsText)}
+                  disabled={extraInstructionsMutation.isPending}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+                >
+                  {extraInstructionsMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    <Save className="w-5 h-5 mr-2" />
+                  )}
+                  Save Instructions & Rules
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0">
+            <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                <Lock className="w-6 h-6 text-purple-400" />
+                Admin Login Credentials
+              </CardTitle>
+              <CardDescription className="text-white/40">
+                Update the email and password used to access this dashboard.
+              </CardDescription>
+            </div>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">New Login Email</Label>
+              <Input
+                type="email"
+                placeholder="Enter new admin email..."
+                className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">New Login Password</Label>
+              <Input
+                type="password"
+                placeholder="Enter new admin password..."
+                className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+              />
+            </div>
+
+            <Button
+              onClick={() => adminCredentialsMutation.mutate({ newEmail: adminEmail, newPassword: adminPassword })}
+              disabled={adminCredentialsMutation.isPending || !adminEmail || !adminPassword}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+            >
+              {adminCredentialsMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
+              Update Credentials
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* CLOUDFLARE & RESEND AUTOMATION SETTINGS CARD */}
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 p-6 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                <Globe className="w-6 h-6 text-cyan-400" />
+                Cloudflare & Resend API Config
+              </CardTitle>
+              <CardDescription className="text-white/40 text-xs mt-1">
+                Configure Cloudflare DNS API and Resend Email keys for automatic domain setup and email relays.
+              </CardDescription>
+            </div>
+            <Link href="/imeshadmindashbord/domain-automation">
+              <Button size="sm" variant="outline" className="text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 gap-1">
+                Open Hub <ExternalLink className="w-3 h-3" />
+              </Button>
+            </Link>
+          </div>
+          <CardContent className="space-y-6 pt-6">
+            {/* Cloudflare API Token */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-cyan-400" /> Cloudflare API Token (Recommended)
+                </Label>
+                <span className="text-[10px] text-muted-foreground">Zone:DNS:Edit, Zone:Read</span>
+              </div>
+              <Input
+                type="password"
+                placeholder="Enter Cloudflare API Bearer Token..."
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={cfApiToken}
+                onChange={(e) => setCfApiToken(e.target.value)}
+              />
+            </div>
+
+            {/* Cloudflare Email & Global API Key */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-white/70">Cloudflare Account Email (Legacy)</Label>
+                <Input
+                  type="email"
+                  placeholder="name@example.com"
+                  className="glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs"
+                  value={cfEmail}
+                  onChange={(e) => setCfEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-white/70">Global API Key (Legacy)</Label>
+                <Input
+                  type="password"
+                  placeholder="Global API Key..."
+                  className="glass-panel border-white/10 bg-black/30 text-white h-10 rounded-xl text-xs font-mono"
+                  value={cfGlobalKey}
+                  onChange={(e) => setCfGlobalKey(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Resend API Key */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-purple-400" /> Resend API Key
+                </Label>
+                <span className="text-[10px] text-muted-foreground">e.g. re_123456789...</span>
+              </div>
+              <Input
+                type="password"
+                placeholder="re_..."
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={resendApiKey}
+                onChange={(e) => setResendApiKey(e.target.value)}
+              />
+            </div>
+
+            {/* Target Server IP */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <Label className="text-xs font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-emerald-400" /> Server Target IP (For 1-Click DNS A Records)
+              </Label>
+              <Input
+                type="text"
+                placeholder="18.141.224.63"
+                className="glass-panel border-white/10 bg-black/30 text-white h-11 rounded-xl text-xs font-mono"
+                value={serverTargetIp}
+                onChange={(e) => setServerTargetIp(e.target.value)}
+              />
+            </div>
+
+            <Button
+              onClick={() => saveCloudflareResendMutation.mutate()}
+              disabled={saveCloudflareResendMutation.isPending}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-600 hover:to-purple-700 font-bold shadow-lg shadow-cyan-500/20"
+            >
+              {saveCloudflareResendMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : (
+                <Save className="w-5 h-5 mr-2" />
+              )}
+              Save Cloudflare & Resend Credentials
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0">
+            <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                ⚙️ Advanced
+              </CardTitle>
+              <CardDescription className="text-white/40">
+                Configure advanced bot settings.
+              </CardDescription>
+            </div>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 glass-panel rounded-xl border-white/5">
+              <div className="space-y-0.5">
+                <Label className="text-white font-bold">Automation Feature</Label>
+                <p className="text-xs text-white/40">Enable or disable DigitalOcean automation for users</p>
+              </div>
+              <Button
+                variant={automationEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const newValue = !automationEnabled;
+                  setAutomationEnabled(newValue);
+                  togglePaymentMutation.mutate({ key: "AUTOMATION_ENABLED", value: newValue.toString() });
+                }}
+                className={automationEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+              >
+                {automationEnabled ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 glass-panel rounded-xl border-white/5">
+              <div className="space-y-0.5">
+                <Label className="text-white font-bold">Special Offers Feature</Label>
+                <p className="text-xs text-white/40">Enable or disable the Special Offers menu in the bot</p>
+              </div>
+              <Button
+                variant={specialOffersEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const newValue = !specialOffersEnabled;
+                  setSpecialOffersEnabled(newValue);
+                  togglePaymentMutation.mutate({ key: "SPECIAL_OFFERS_ENABLED", value: newValue.toString() });
+                }}
+                className={specialOffersEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+              >
+                {specialOffersEnabled ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
+
+            <div className="space-y-2 pt-6 border-t border-white/5">
+              <Label htmlFor="support" className="text-sm font-bold text-white/70 uppercase tracking-widest">Support Contact Username</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="support"
+                  type="text"
+                  placeholder="e.g. @youuhost_support"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={supportContact}
+                  onChange={(e) => setSupportContact(e.target.value)}
+                />
+                <Button
+                  onClick={() => supportMutation.mutate(supportContact)}
+                  disabled={supportMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+                >
+                  {supportMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                The username that will be shown when users click Support in the bot.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-6 border-t border-white/5">
+              <Label htmlFor="faq" className="text-sm font-bold text-white/70 uppercase tracking-widest">FAQ Content</Label>
+              <div className="space-y-3">
+                <Textarea
+                  id="faq"
+                  placeholder="Enter FAQ content..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white min-h-[150px] rounded-xl focus:border-purple-500/50 transition-all"
+                  value={faqText}
+                  onChange={(e) => setFaqText(e.target.value)}
+                />
+                <Button
+                  onClick={() => faqMutation.mutate(faqText)}
+                  disabled={faqMutation.isPending}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {faqMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update FAQ Content"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0 overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+            <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+              <Package className="w-6 h-6 text-purple-400" />
+              Catalog Out-of-Stock Products
+            </CardTitle>
+            <CardDescription className="text-white/40">
+              Control whether products with 0 stock are shown in the Telegram Bot Catalog.
+            </CardDescription>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between p-4 glass-panel border-white/10 rounded-2xl bg-purple-950/20">
+              <div className="space-y-1 pr-4">
+                <h4 className="font-bold text-white">Show Out-of-Stock Products in Catalog</h4>
+                <p className="text-xs text-white/50">
+                  {showOutOfStock 
+                    ? "ON: Products with 0 stock will be displayed in Catalog styled with a RED button." 
+                    : "OFF: Default mode — only products with available stock (> 0) are shown in Catalog (GREEN buttons)."}
+                </p>
+              </div>
+              <Switch
+                checked={showOutOfStock}
+                onCheckedChange={(checked) => {
+                  setShowOutOfStock(checked);
+                  showOutOfStockMutation.mutate(checked);
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-0">
+            <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-purple-400" />
+                Branding & Customization
+              </CardTitle>
+              <CardDescription className="text-white/40">
+                Personalize your store and support contact information.
+              </CardDescription>
+            </div>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Store Name</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="e.g. Shopeefy Cloud Store"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                />
+                <Button
+                  onClick={() => brandingMutation.mutate({ key: "STORE_NAME", value: storeName })}
+                  disabled={brandingMutation.isPending}
+                  className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {brandingMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Support Username (Link)</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="e.g. @youuhost_support"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={supportUsername}
+                  onChange={(e) => setSupportUsername(e.target.value)}
+                />
+                <Button
+                  onClick={() => brandingMutation.mutate({ key: "SUPPORT_USERNAME", value: supportUsername })}
+                  disabled={brandingMutation.isPending}
+                  className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {brandingMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Support Button Text</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="e.g. Write to Support"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={supportBtnText}
+                  onChange={(e) => setSupportBtnText(e.target.value)}
+                />
+                <Button
+                  onClick={() => brandingMutation.mutate({ key: "SUPPORT_BTN_TEXT", value: supportBtnText })}
+                  disabled={brandingMutation.isPending}
+                  className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {brandingMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-white/5">
+              <Label className="text-sm font-bold text-white/70 uppercase tracking-widest">Loading Animation Text</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="e.g. Shopeefy..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={loadingText}
+                  onChange={(e) => setLoadingText(e.target.value)}
+                />
+                <Button
+                  onClick={() => brandingMutation.mutate({ key: "LOADING_TEXT", value: loadingText })}
+                  disabled={brandingMutation.isPending}
+                  className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {brandingMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
+              <div className="flex items-center gap-3">
+                <Lock className="w-4 h-4 text-purple-400" />
+                <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">
+                  Developer Credits: <span className="text-purple-400">Rochana Imesh</span> (Immutable)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0">
+            <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+              <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+                <Megaphone className="w-6 h-6 text-purple-400" />
+                Admin Notifications
+              </CardTitle>
+              <CardDescription className="text-white/40">
+                Enable native browser push notifications to receive alerts.
+              </CardDescription>
+            </div>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 glass-panel rounded-xl border-white/5">
+              <div className="space-y-0.5">
+                <Label className="text-white font-bold">Browser Push Alerts</Label>
+                <p className="text-xs text-white/40">
+                  {typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted'
+                    ? "Notifications are enabled for this browser."
+                    : "Receive instant alerts for new orders and deposits."}
+                </p>
+              </div>
+              <Button
+                variant={typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted' ? "default" : "outline"}
+                size="sm"
+                disabled={typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted'}
+                onClick={() => window.dispatchEvent(new CustomEvent('trigger-push-setup'))}
+                className={typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted' ? "bg-green-500 hover:bg-green-600" : "border-purple-500/30 text-purple-400 hover:bg-purple-500/10"}
+              >
+                {typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted' ? "Active" : "Enable Now"}
+              </Button>
+            </div>
+
+            {typeof window !== 'undefined' && window.Notification && window.Notification.permission === 'granted' && (
+              <div className="pt-4 border-t border-white/5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full glass-panel border-blue-500/30 text-blue-400 hover:bg-blue-500/10 h-10 font-bold"
+                  onClick={async () => {
+                    try {
+                      const res = await apiRequest("POST", "/api/admin/test-push", {});
+                      if (res.ok) {
+                        toast({
+                          title: "Test Sent",
+                          description: "Check your notification bar!",
+                        });
+                      }
+                    } catch (err) {
+                      toast({
+                        title: "Failed to send test",
+                        description: "Check server logs.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  Send Test Notification
+                </Button>
+              </div>
+            )}
+
+            <div className="h-px bg-white/5 my-6" />
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-white/70 uppercase tracking-widest font-black">
+                  VAPID Subject (Email)
+                </Label>
+                <CardDescription className="text-white/40">
+                  Contact email used to register with push service (e.g., mailto:your-email@example.com)
+                </CardDescription>
+              </div>
+              <div className="flex gap-3">
+                <Input
+                  type="text"
+                  placeholder="e.g. mailto:your-email@example.com"
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={vapidSubject}
+                  onChange={(e) => setVapidSubject(e.target.value)}
+                />
+                <Button
+                  onClick={() => vapidSubjectMutation.mutate(vapidSubject)}
+                  disabled={vapidSubjectMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {vapidSubjectMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-white/70 uppercase tracking-widest font-black">
+                  VAPID Public Key
+                </Label>
+                <CardDescription className="text-white/40">
+                  Required for client browser to subscribe to push notification service
+                </CardDescription>
+              </div>
+              <div className="flex gap-3">
+                <Input
+                  type="text"
+                  placeholder="Paste VAPID public key..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={vapidPublicKey}
+                  onChange={(e) => setVapidPublicKey(e.target.value)}
+                />
+                <Button
+                  onClick={() => vapidPublicKeyMutation.mutate(vapidPublicKey)}
+                  disabled={vapidPublicKeyMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {vapidPublicKeyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-white/70 uppercase tracking-widest font-black">
+                  VAPID Private Key
+                </Label>
+                <CardDescription className="text-white/40">
+                  Keep this secure. Used by server to sign sent push notification payloads
+                </CardDescription>
+              </div>
+              <div className="flex gap-3">
+                <Input
+                  type="password"
+                  placeholder="Paste VAPID private key..."
+                  className="glass-panel border-white/10 bg-purple-950/20 text-white h-12 rounded-xl focus:border-purple-500/50 transition-all"
+                  value={vapidPrivateKey}
+                  onChange={(e) => setVapidPrivateKey(e.target.value)}
+                />
+                <Button
+                  onClick={() => vapidPrivateKeyMutation.mutate(vapidPrivateKey)}
+                  disabled={vapidPrivateKeyMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  {vapidPrivateKeyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+
+      <div className="max-w-2xl">
+        <Card className="glass-card border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+            <CardTitle className="text-2xl font-bold flex items-center gap-3">
+              <Lock className="w-6 h-6 text-purple-400" />
+              Payment Gateway
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              Configure your payment provider details and enable/disable payment methods.
+            </CardDescription>
+          </div>
+
+          <CardContent className="p-8 space-y-12">
+            {/* PayHere Host Gateway (Approved Domain Proxy) Section */}
+            <div className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 space-y-6 relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">💳</span>
+                    <h3 className="text-lg font-bold text-emerald-400">PayHere Host Gateway</h3>
+                    <span className={`text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                      payhereStatus === "connected" && payhereGatewayUrl
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-red-500/20 text-red-300 border border-red-500/40"
+                    }`}>
+                      {payhereStatus === "connected" && payhereGatewayUrl ? "🟢 Connected" : "🔴 Disconnected"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Approved domain proxy running on <b>imhost</b> for automated checkout, IPN webhook & return redirects.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={payhereSandboxMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !payhereSandboxMode;
+                      setPayhereSandboxMode(newValue);
+                      togglePaymentMutation.mutate({ key: "PAYHERE_SANDBOX_MODE", value: newValue.toString() });
+                    }}
+                    className={payhereSandboxMode ? "bg-amber-500 hover:bg-amber-600 text-xs text-black font-bold" : "border-white/20 text-xs text-white/60"}
+                  >
+                    {payhereSandboxMode ? "Sandbox Mode" : "Live Mode"}
+                  </Button>
+
+                  <Button
+                    variant={payhereEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !payhereEnabled;
+                      setPayhereEnabled(newValue);
+                      togglePaymentMutation.mutate({ key: "PAYHERE_ENABLED", value: newValue.toString() });
+                    }}
+                    className={payhereEnabled ? "bg-emerald-500 hover:bg-emerald-600 text-black font-bold" : "border-white/20"}
+                  >
+                    {payhereEnabled ? "Enabled" : "Disabled"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Instant Pairing Box */}
+              <div className="space-y-3 p-4 rounded-xl bg-black/40 border border-white/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-emerald-300 uppercase tracking-widest">
+                    ⚡ Instant Gateway Pairing URL
+                  </Label>
+                  <span className="text-[10px] text-white/40">From <code>imhost-main/pair</code></span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste URL e.g. http://localhost:3000/pair/pair_12345..."
+                    className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                    value={payherePairingUrl}
+                    onChange={(e) => setPayherePairingUrl(e.target.value)}
+                  />
+                  <Button
+                    onClick={() => {
+                      if (!payherePairingUrl.trim()) {
+                        toast({ title: "Pairing URL Required", description: "Please enter the pairing URL from imhost-main.", variant: "destructive" });
+                        return;
+                      }
+                      payherePairMutation.mutate({
+                        pairingUrl: payherePairingUrl.trim(),
+                        merchantId: payhereMerchantId.trim(),
+                        merchantSecret: payhereMerchantSecret.trim()
+                      });
+                    }}
+                    disabled={payherePairMutation.isPending}
+                    className="h-11 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-black text-xs"
+                  >
+                    {payherePairMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : "⚡ Connect"}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-white/50">
+                  Open <code>/pair</code> on your PayHere host instance, copy the generated URL, and click <b>Connect</b>.
+                </p>
+              </div>
+
+              {/* PayHere Merchant ID & Secret Credentials Inputs */}
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-white/60 uppercase">PayHere Merchant ID</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. 1210000"
+                        className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                        value={payhereMerchantId}
+                        onChange={(e) => setPayhereMerchantId(e.target.value)}
+                      />
+                      <Button
+                        onClick={() => payhereMerchantIdMutation.mutate(payhereMerchantId)}
+                        disabled={payhereMerchantIdMutation.isPending}
+                        className="h-11 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
+                      >
+                        <Save className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-white/40">From your PayHere Merchant Portal ➔ Settings ➔ Domains & Credentials</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-white/60 uppercase">PayHere Merchant Secret</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Paste Merchant Secret"
+                        className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                        value={payhereMerchantSecret}
+                        onChange={(e) => setPayhereMerchantSecret(e.target.value)}
+                      />
+                      <Button
+                        onClick={() => payhereMerchantSecretMutation.mutate(payhereMerchantSecret)}
+                        disabled={payhereMerchantSecretMutation.isPending}
+                        className="h-11 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
+                      >
+                        <Save className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-white/40">Used to generate MD5 security hash signatures.</p>
+                  </div>
+                </div>
+
+                {payhereGatewayUrl && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/50">Active Host URL:</span>
+                      <code className="text-emerald-300 font-mono">{payhereGatewayUrl}</code>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTestPing}
+                        disabled={pingLoading}
+                        className="h-8 text-xs border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+                      >
+                        {pingLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : "📡 Test Ping"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => payhereDisconnectMutation.mutate()}
+                        disabled={payhereDisconnectMutation.isPending}
+                        className="h-8 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {pingResult && (
+                  <div className={`p-3 rounded-lg text-xs flex items-center justify-between ${
+                    pingResult.success ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200" : "bg-red-500/10 border border-red-500/30 text-red-200"
+                  }`}>
+                    <span>{pingResult.message}</span>
+                    {pingResult.latencyMs !== undefined && <span className="font-mono font-bold">{pingResult.latencyMs}ms</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* CryptoBot Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-bold text-cyan-400">@CryptoBot Integration</h3>
+                  <Button
+                    variant={cryptoBotTestnet ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !cryptoBotTestnet;
+                      setCryptoBotTestnet(newValue);
+                      togglePaymentMutation.mutate({ key: "CRYPTO_BOT_TESTNET", value: newValue.toString() });
+                    }}
+                    className={cryptoBotTestnet ? "bg-amber-500 hover:bg-amber-600 text-xs" : "border-white/20 text-xs text-white/60"}
+                  >
+                    {cryptoBotTestnet ? "Testnet Mode" : "Mainnet Mode"}
+                  </Button>
+                </div>
+
+                <Button
+                  variant={cryptoBotEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newValue = !cryptoBotEnabled;
+                    setCryptoBotEnabled(newValue);
+                    togglePaymentMutation.mutate({ key: "PAYMENT_CRYPTOBOT_ENABLED", value: newValue.toString() });
+                  }}
+                  className={cryptoBotEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+                >
+                  {cryptoBotEnabled ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">CryptoBot API Token</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      type="password"
+                      placeholder="Paste your @CryptoBot API Token (e.g. 1234:AA...)"
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={cryptoBotToken}
+                      onChange={(e) => setCryptoBotToken(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => {
+                        const trimmed = cryptoBotToken.trim();
+                        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+                          toast({
+                            title: "Invalid CryptoBot API Token",
+                            description: "You entered a web URL instead of an API Token. Please paste your actual API Token from Telegram bot @CryptoBot or @CryptoTestnetBot (e.g. 284729:AAX...)!",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        cryptoBotTokenMutation.mutate(trimmed);
+                      }}
+                      disabled={cryptoBotTokenMutation.isPending}
+                      className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 font-bold"
+                    >
+                      {cryptoBotTokenMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">
+                    Get your API Token from Telegram bot <a href="https://t.me/CryptoBot" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">@CryptoBot</a> (or <a href="https://t.me/CryptoTestnetBot" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">@CryptoTestnetBot</a> for Testnet).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* Payment Gateway Mode Switcher */}
+            <div className="p-5 rounded-2xl border border-purple-500/30 bg-purple-500/10 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    Payment Gateway Mode Switcher
+                  </h4>
+                  <p className="text-xs text-white/60 mt-1">
+                    Choose how Telegram Bot handles USDT (BEP20 & TRC20) deposit invoices.
+                  </p>
+                </div>
+                <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentGatewayMode("cryptomus");
+                      togglePaymentMutation.mutate({ key: "PAYMENT_GATEWAY_MODE", value: "cryptomus" });
+                    }}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      paymentGatewayMode !== "binance_api"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    Cryptomus API Mode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentGatewayMode("binance_api");
+                      togglePaymentMutation.mutate({ key: "PAYMENT_GATEWAY_MODE", value: "binance_api" });
+                    }}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      paymentGatewayMode === "binance_api"
+                        ? "bg-amber-500 text-black shadow-lg shadow-amber-500/30 font-black"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    Direct Wallet + Binance API Mode
+                  </button>
+                </div>
+              </div>
+              {paymentGatewayMode === "binance_api" ? (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+                  ⚡ <b>Direct Wallet + Binance API Active:</b> Users receive your direct BEP20/TRC20 wallet addresses with a unique micro-decimal offset (e.g., <code>5.0074 USDT</code>) to avoid payment collisions. Payments automatically expire in 1 hour and auto-verify via Binance API.
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200">
+                  🔮 <b>Cryptomus API Active:</b> Users pay via dynamic Cryptomus invoices generated for each transaction.
+                </div>
+              )}
+            </div>
+
+            {/* Direct Wallet Addresses (BEP20 & TRC20) */}
+            <div className="space-y-4 p-5 rounded-2xl border border-white/10 bg-white/5">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider text-amber-400">Direct Deposit Wallet Addresses</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/60 uppercase">BEP20 Direct Wallet Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="0x..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                      value={bep20WalletAddress}
+                      onChange={(e) => setBep20WalletAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => bep20WalletMutation.mutate(bep20WalletAddress)}
+                      disabled={bep20WalletMutation.isPending}
+                      className="h-11 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/60 uppercase">TRC20 Direct Wallet Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="T..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-11 text-xs"
+                      value={trc20WalletAddress}
+                      onChange={(e) => setTrc20WalletAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => trc20WalletMutation.mutate(trc20WalletAddress)}
+                      disabled={trc20WalletMutation.isPending}
+                      className="h-11 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cryptomus Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-purple-400">Cryptomus Integration</h3>
+                <Button
+                  variant={cryptomusEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newValue = !cryptomusEnabled;
+                    setCryptomusEnabled(newValue);
+                    togglePaymentMutation.mutate({ key: "PAYMENT_CRYPTOMUS_ENABLED", value: newValue.toString() });
+                  }}
+                  className={cryptomusEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+                >
+                  {cryptomusEnabled ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Cryptomus Merchant ID</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Paste your Cryptomus Merchant ID"
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={cryptomusMerchantId}
+                      onChange={(e) => setCryptomusMerchantId(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => cryptomusMerchantMutation.mutate(cryptomusMerchantId)}
+                      disabled={cryptomusMerchantMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Found in your Cryptomus dashboard settings.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Cryptomus API Key</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      type="password"
+                      placeholder="Paste your Cryptomus API key"
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={cryptomusApiKey}
+                      onChange={(e) => setCryptomusApiKey(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => cryptomusMutation.mutate(cryptomusApiKey)}
+                      disabled={cryptomusMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Get your API key from Cryptomus dashboard. Keep it secure!</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">App Domain / Webhook Base URL</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="https://monkfish-app-isiw9.ondigitalocean.app"
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={appUrl}
+                      onChange={(e) => setAppUrl(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => appUrlMutation.mutate(appUrl)}
+                      disabled={appUrlMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Cryptomus webhooks will be sent to <code>{(appUrl || "https://monkfish-app-isiw9.ondigitalocean.app").replace(/\/+$/, '')}/api/payments/webhook</code></p>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-bold text-white">"Pay on Cryptomus" Button (BEP20 / TRC20)</Label>
+                    <p className="text-xs text-white/50">Show or hide the "Pay on Cryptomus Web" button when deposit address is generated in Telegram Bot.</p>
+                  </div>
+                  <Button
+                    variant={cryptomusWebBtnEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = !cryptomusWebBtnEnabled;
+                      setCryptomusWebBtnEnabled(newValue);
+                      togglePaymentMutation.mutate({ key: "SHOW_CRYPTOMUS_WEB_BUTTON", value: newValue.toString() });
+                    }}
+                    className={cryptomusWebBtnEnabled ? "bg-purple-500 hover:bg-purple-600" : "border-white/20"}
+                  >
+                    {cryptomusWebBtnEnabled ? "ON" : "OFF"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* Binance Pay Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-yellow-500">Binance Pay Integration</h3>
+                <Button
+                  variant={binanceEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newValue = !binanceEnabled;
+                    setBinanceEnabled(newValue);
+                    togglePaymentMutation.mutate({ key: "PAYMENT_BINANCE_ENABLED", value: newValue.toString() });
+                  }}
+                  className={binanceEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+                >
+                  {binanceEnabled ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Binance Pay ID</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Enter your Binance Pay ID..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={binancePayId}
+                      onChange={(e) => setBinancePayId(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => binancePayMutation.mutate(binancePayId)}
+                      disabled={binancePayMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Your Binance Pay ID for manual transfers.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Binance API Key</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      type="password"
+                      placeholder="Enter Binance API Key..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={binanceApiKey}
+                      onChange={(e) => setBinanceApiKey(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => binanceApiKeyMutation.mutate(binanceApiKey)}
+                      disabled={binanceApiKeyMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Binance Secret Key</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      type="password"
+                      placeholder="Enter Binance Secret Key..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={binanceSecretKey}
+                      onChange={(e) => setBinanceSecretKey(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => binanceSecretKeyMutation.mutate(binanceSecretKey)}
+                      disabled={binanceSecretKeyMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">Required for automated payment verification.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* TRC20 Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-red-500">TRC20 (USDT) Integration</h3>
+                <Button
+                  variant={trc20Enabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newValue = !trc20Enabled;
+                    setTrc20Enabled(newValue);
+                    togglePaymentMutation.mutate({ key: "PAYMENT_TRC20_ENABLED", value: newValue.toString() });
+                  }}
+                  className={trc20Enabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+                >
+                  {trc20Enabled ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">TRC20 Wallet Address</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Enter TRC20 USDT Wallet Address..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={trc20Wallet}
+                      onChange={(e) => setTrc20Wallet(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => trc20WalletMutation.mutate(trc20Wallet)}
+                      disabled={trc20WalletMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-red-500 to-red-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">USDT (TRC20) deposit address on the Tron network.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Verification Mode</Label>
+                  <select
+                    className="w-full glass-panel border-white/10 bg-purple-950/20 text-white h-12 px-3 rounded-xl focus:border-red-500/50 transition-all outline-none"
+                    value={trc20VerificationMode}
+                    onChange={(e) => {
+                      setTrc20VerificationMode(e.target.value);
+                      trc20VerificationModeMutation.mutate(e.target.value);
+                    }}
+                  >
+                    <option value="binance" className="bg-purple-950 text-white">Binance API Keys (Deposit History)</option>
+                    <option value="blockchain" className="bg-purple-950 text-white">Blockchain Network (TronScan)</option>
+                  </select>
+                  <p className="text-[10px] text-white/40">Select the service to use for payment verification.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/5" />
+
+            {/* Aptos Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-cyan-500">Aptos (USDT) Integration</h3>
+                <Button
+                  variant={aptosEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newValue = !aptosEnabled;
+                    setAptosEnabled(newValue);
+                    togglePaymentMutation.mutate({ key: "PAYMENT_APTOS_ENABLED", value: newValue.toString() });
+                  }}
+                  className={aptosEnabled ? "bg-green-500 hover:bg-green-600" : "border-white/20"}
+                >
+                  {aptosEnabled ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Aptos Wallet Address</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Enter Aptos USDT Wallet Address..."
+                      className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                      value={aptosWallet}
+                      onChange={(e) => setAptosWallet(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => aptosWalletMutation.mutate(aptosWallet)}
+                      disabled={aptosWalletMutation.isPending}
+                      className="h-12 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 font-bold"
+                    >
+                      <Save className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-white/40">USDT (Aptos) deposit address on the Aptos network.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-white/50 uppercase tracking-widest">Verification Mode</Label>
+                  <select
+                    className="w-full glass-panel border-white/10 bg-purple-950/20 text-white h-12 px-3 rounded-xl focus:border-cyan-500/50 transition-all outline-none"
+                    value={aptosVerificationMode}
+                    onChange={(e) => {
+                      setAptosVerificationMode(e.target.value);
+                      aptosVerificationModeMutation.mutate(e.target.value);
+                    }}
+                  >
+                    <option value="binance" className="bg-purple-950 text-white">Binance API Keys (Deposit History)</option>
+                    <option value="blockchain" className="bg-purple-950 text-white">Blockchain Network (Aptos Fullnode)</option>
+                  </select>
+                  <p className="text-[10px] text-white/40">Select the service to use for payment verification.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="max-w-2xl pb-20">
+        <Card className="glass-card border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 border-b border-white/10">
+            <CardTitle className="text-2xl font-black tracking-tighter flex items-center gap-3">
+              🎬 Tutorial Videos
+            </CardTitle>
+            <CardDescription className="text-white/40">
+              Configure tutorial video links for the bot.
+            </CardDescription>
+          </div>
+          <CardContent className="space-y-8 pt-6">
+            <div className="space-y-4">
+              <Label className="text-sm font-bold text-white/70">How to Buy Product</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="Video URL..."
+                  className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                  value={howToBuyVideo}
+                  onChange={(e) => setHowToBuyVideo(e.target.value)}
+                />
+                <Button
+                  onClick={() => tutorialBuyMutation.mutate(howToBuyVideo)}
+                  disabled={tutorialBuyMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  <Save className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-6 border-t border-white/5">
+              <Label className="text-sm font-bold text-white/70">How to Deposit Balance</Label>
+              <div className="flex gap-3">
+                <Input
+                  placeholder="Video URL..."
+                  className="glass-panel border-white/10 bg-white/5 text-white h-12"
+                  value={howToDepositVideo}
+                  onChange={(e) => setHowToDepositVideo(e.target.value)}
+                />
+                <Button
+                  onClick={() => tutorialDepositMutation.mutate(howToDepositVideo)}
+                  disabled={tutorialDepositMutation.isPending}
+                  className="h-12 px-6 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 font-bold"
+                >
+                  <Save className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
