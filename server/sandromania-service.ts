@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { encryptSensitive, decryptSensitive, isEncrypted } from "./crypto-vault";
 
 const BASE_URL = "https://api.sandromania.shop";
 
@@ -9,7 +10,8 @@ export class SandromaniaService {
     try {
       const res = await db.execute(sql`SELECT value FROM settings WHERE key = ${key} LIMIT 1`);
       if (res.rows && res.rows.length > 0) {
-        return (res.rows[0] as any).value || null;
+        const raw = (res.rows[0] as any).value || null;
+        return isEncrypted(raw) ? decryptSensitive(raw) : raw;
       }
       return null;
     } catch {
@@ -18,9 +20,10 @@ export class SandromaniaService {
   }
 
   private static async setSetting(key: string, value: string): Promise<void> {
+    const cipherVal = !isEncrypted(value) ? encryptSensitive(value) : value;
     await db.execute(sql`
       INSERT INTO settings (key, value)
-      VALUES (${key}, ${value})
+      VALUES (${key}, ${cipherVal})
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     `);
   }

@@ -18,6 +18,7 @@ import { SocialPanelService } from "./socialpanel-service";
 import { SandromaniaService } from "./sandromania-service";
 import { CssxService } from "./cssx-service";
 import { TunvnService } from "./tunvn-service";
+import { migrateAndEncryptAllSensitiveSettings } from "./crypto-vault";
 import { domainAutomationService } from "./domain-automation-service";
 import { getSecurityShieldStatus, unbanJailedIp, addToWhitelist, generateApiKey, maskApiKey } from "./security-shield";
 import { 
@@ -4102,9 +4103,9 @@ export async function registerRoutes(
         });
       }
 
-      // Guard 2: 15-minute expiration
-      if (payment.createdAt && (Date.now() - new Date(payment.createdAt).getTime() > 15 * 60 * 1000)) {
-        await storage.updatePaymentStatus(payment.id, "expired");
+      // Guard 2: 30-minute expiration
+      if (payment.createdAt && (Date.now() - new Date(payment.createdAt).getTime() > 30 * 60 * 1000)) {
+        await storage.updatePayment(payment.id, { status: "expired" });
         return res.status(400).json({
           message: "Payment session has expired. Please initiate a new deposit from the shop.",
           status: "expired",
@@ -11774,6 +11775,11 @@ async function initBot() {
         ALTER TABLE products ADD COLUMN IF NOT EXISTS show_on_telegram BOOLEAN DEFAULT true;
       `);
       console.log('[DB] Complete schema columns verified/migrated successfully!');
+      try {
+        await migrateAndEncryptAllSensitiveSettings();
+      } catch (vaultErr: any) {
+        console.error('[DB Vault] Migration error:', vaultErr.message);
+      }
     } catch (e) {
       console.error('Error verifying database tables:', e);
     }
@@ -23510,7 +23516,18 @@ Sitemap: ${domain}/sitemap.xml
         .from(tunvnProducts)
         .where(eq(tunvnProducts.isActive, true));
 
-      res.json(productsList);
+      const sanitizedProducts = productsList.map((p) => {
+        let cat = p.category || "Subscriptions";
+        if (cat.toLowerCase().includes("tunvn") || cat.toLowerCase().includes("mmo")) {
+          cat = p.title?.toLowerCase().includes("capcut") ? "CapCut Pro" : "Subscriptions";
+        }
+        return {
+          ...p,
+          category: cat,
+        };
+      });
+
+      res.json(sanitizedProducts);
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to load TunVN products" });
     }
@@ -23563,7 +23580,18 @@ Sitemap: ${domain}/sitemap.xml
         .where(eq(tunvnOrders.telegramUserId, user.id))
         .orderBy(desc(tunvnOrders.id));
 
-      res.json(ordersList);
+      const sanitizedOrders = ordersList.map((ord) => {
+        let cat = ord.product?.category || "Subscriptions";
+        if (cat.toLowerCase().includes("tunvn") || cat.toLowerCase().includes("mmo")) {
+          cat = ord.productTitle?.toLowerCase().includes("capcut") ? "CapCut Pro" : "Subscriptions";
+        }
+        return {
+          ...ord,
+          product: ord.product ? { ...ord.product, category: cat } : null,
+        };
+      });
+
+      res.json(sanitizedOrders);
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to fetch TunVN orders" });
     }

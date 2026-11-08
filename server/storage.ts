@@ -1,6 +1,7 @@
 import { db } from "./db";
 import bcrypt from "bcryptjs";
 import { hashApiKey, maskApiKey } from "./security-shield";
+import { encryptSensitive, decryptSensitive, isSensitiveKey, isEncrypted } from "./crypto-vault";
 import {
   products,
   credentials,
@@ -224,7 +225,11 @@ export class DatabaseStorage implements IStorage {
   // Settings
   async getSetting(key: string): Promise<{ key: string; value: string } | undefined> {
     const [setting] = await db.select().from(settings).where(eq(settings.key, key));
-    return setting;
+    if (!setting) return undefined;
+    return {
+      ...setting,
+      value: isEncrypted(setting.value) ? decryptSensitive(setting.value) : setting.value
+    };
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -305,17 +310,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+    const isSensitive = isSensitiveKey(key);
+    const dbValue = isSensitive && !isEncrypted(value) ? encryptSensitive(value) : value;
+
     const [existing] = await db.select().from(settings).where(eq(settings.key, key));
+    let result: { key: string; value: string };
     if (existing) {
       const [updated] = await db
         .update(settings)
-        .set({ value, updatedAt: new Date() })
+        .set({ value: dbValue, updatedAt: new Date() })
         .where(eq(settings.key, key))
         .returning();
-      return updated;
+      result = updated;
+    } else {
+      const [inserted] = await db.insert(settings).values({ key, value: dbValue }).returning();
+      result = inserted;
     }
-    const [inserted] = await db.insert(settings).values({ key, value }).returning();
-    return inserted;
+
+    return {
+      key: result.key,
+      value: isEncrypted(result.value) ? decryptSensitive(result.value) : result.value
+    };
   }
 
   async setSetting(key: string, value: string): Promise<{ key: string; value: string }> {

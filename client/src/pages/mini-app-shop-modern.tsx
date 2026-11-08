@@ -1043,8 +1043,11 @@ const getProviderConfig = (name: string = "", type: string = "") => {
       category: "kamatera",
     };
   }
+  let safeTag = type || "Digital Product";
+  if (safeTag.toLowerCase().includes("tunvn") || safeTag.toLowerCase().includes("mmo")) safeTag = "CapCut Pro";
+  if (safeTag.toLowerCase().includes("sandromania") || safeTag.toLowerCase().includes("cssx")) safeTag = "Instant Delivery";
   return {
-    tag: type || "Digital Product",
+    tag: safeTag,
     accent: "#2D4F38",
     bgBadge: "bg-[#F1F4EE] text-[#2D4F38]",
     blobColor: "from-emerald-100/60 to-green-100/40",
@@ -2124,7 +2127,7 @@ export default function MiniAppShopModern({ directSlug }: { directSlug?: string 
 
       const prodTitle = tunvnOrd.productTitle || tunvnOrd.product?.title || "Digital Product";
       const cleanExtId = String(tunvnOrd.externalOrderId || "").replace(/^API_/i, "");
-      const orderNum = `#TVN - ${cleanExtId || (5000 + tunvnOrd.id)}`;
+      const orderNum = `#ORD - ${cleanExtId || (5000 + tunvnOrd.id)}`;
 
       const actualPaidLkr = tunvnOrd.amountPaidLkr 
         ? Number(tunvnOrd.amountPaidLkr) 
@@ -2136,7 +2139,7 @@ export default function MiniAppShopModern({ directSlug }: { directSlug?: string 
         orderType: "license",
         orderNumber: orderNum,
         title: prodTitle,
-        categoryTag: conf.tag || "TunVN MMO",
+        categoryTag: conf.tag && !conf.tag.toLowerCase().includes("tunvn") ? conf.tag : "Instant Auto-Delivery",
         badgeBg: conf.bgBadge || "bg-emerald-50 text-emerald-600 border-emerald-200",
         status: tunvnOrd.status || "Completed",
         rawStatus: status,
@@ -5520,7 +5523,10 @@ Support: https://t.me/youuhost_support
                     const tunvnProd = item.data;
                     const isOutOfStock = item.isOutOfStock;
                     const cleanTitle = tunvnProd.title || "Digital Product";
-                    const cleanCat = tunvnProd.category || "Subscriptions";
+                    let cleanCat = tunvnProd.category || "Subscriptions";
+                    if (cleanCat.toLowerCase().includes("tunvn") || cleanCat.toLowerCase().includes("mmo")) {
+                      cleanCat = cleanTitle.toLowerCase().includes("capcut") ? "CapCut Pro" : "Subscriptions";
+                    }
                     const conf = getProviderConfig(cleanTitle, cleanCat);
                     const priceFormatted = formatTunvnPrice(tunvnProd, 1);
                     const rawStock = typeof tunvnProd.stock === "number" ? tunvnProd.stock : 0;
@@ -5564,7 +5570,7 @@ Support: https://t.me/youuhost_support
                         {/* Top Action: Provider Tag */}
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${conf.bgBadge}`}>
-                            {conf.tag || "TunVN MMO"}
+                            {conf.tag && !conf.tag.toLowerCase().includes("tunvn") ? conf.tag : "Instant Delivery"}
                           </span>
                         </div>
 
@@ -9087,7 +9093,10 @@ Support: https://t.me/youuhost_support
         <DialogContent hideClose={true} className="max-w-md w-full bg-[#F8F9FD] border border-[#ECEEF8] rounded-[32px] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto z-50">
           {detailTunvnProduct && (() => {
             const cleanTitle = detailTunvnProduct.title || "Digital Product";
-            const cleanCat = detailTunvnProduct.category || "Subscriptions";
+            let cleanCat = detailTunvnProduct.category || "Subscriptions";
+            if (cleanCat.toLowerCase().includes("tunvn") || cleanCat.toLowerCase().includes("mmo")) {
+              cleanCat = cleanTitle.toLowerCase().includes("capcut") ? "CapCut Pro" : "Subscriptions";
+            }
             const rawStock = typeof detailTunvnProduct.stock === "number" ? detailTunvnProduct.stock : 0;
             const isAvail = detailTunvnProduct.available !== false && detailTunvnProduct.isActive !== false;
             const availableStock = (!isAvail || rawStock <= 0) ? 0 : rawStock;
@@ -9278,7 +9287,7 @@ Support: https://t.me/youuhost_support
                 <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 mb-3 flex items-start gap-2.5 shadow-xs">
                   <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div className="text-[11px] text-emerald-950 flex-1">
-                    <span className="font-extrabold block">Instant Auto-Delivery (TunVN MMO)</span>
+                    <span className="font-extrabold block">Instant Auto-Delivery</span>
                     <p className="leading-snug text-emerald-900 mt-0.5 font-medium text-[10.5px]">
                       Your credentials / activation key for {tunvnOrderDuration} month(s) will be delivered instantly after checkout.
                     </p>
