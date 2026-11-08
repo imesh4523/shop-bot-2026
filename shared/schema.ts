@@ -34,6 +34,7 @@ export const products = pgTable("products", {
   apiPrice: integer("api_price"), // In cents (USD) for wholesale API orders
   apiPriceLkr: integer("api_price_lkr"), // In LKR for wholesale API orders
   isApiEnabled: boolean("is_api_enabled").notNull().default(true),
+  manualStock: integer("manual_stock").default(50), // Available inventory for manual delivery products (Canva, YouTube, etc.)
   createdAt: timestamp("created_at").defaultNow(),
 });
 

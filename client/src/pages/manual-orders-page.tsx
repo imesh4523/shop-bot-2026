@@ -25,7 +25,12 @@ import {
   MessageCircle,
   Calendar,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Boxes,
+  Package,
+  Plus,
+  Minus,
+  Save
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +71,49 @@ export default function ManualOrdersPage() {
       return res.json();
     },
     refetchInterval: 3000,
+  });
+
+  // Manual Products (Canva, YouTube) Live Stock Management
+  const [stockInputs, setStockInputs] = useState<Record<number, number>>({});
+  const [stockUpdatingId, setStockUpdatingId] = useState<number | null>(null);
+
+  const { data: manualProducts = [], isLoading: isStockLoading, refetch: refetchStock } = useQuery<any[]>({
+    queryKey: ["/api/admin/manual-products"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/manual-products");
+      if (!res.ok) throw new Error("Failed to load manual products stock");
+      return res.json();
+    },
+  });
+
+  const updateStockMutation = useMutation({
+    mutationFn: async ({ productId, stock }: { productId: number; stock: number }) => {
+      const res = await fetch(`/api/admin/manual-products/${productId}/stock`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update stock");
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/manual-products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      toast({
+        title: "Stock Updated! ✅",
+        description: `Product stock successfully updated to ${variables.stock} units.`,
+      });
+      setStockUpdatingId(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Stock Update Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+      setStockUpdatingId(null);
+    },
   });
 
   // Mark Delivered Mutation
@@ -298,6 +346,186 @@ export default function ManualOrdersPage() {
           </div>
           <p className="text-[9px] sm:text-xs text-gray-400 truncate mt-0.5">Refunded</p>
         </div>
+      </div>
+
+      {/* Manual Products Live Stock & Inventory Widget */}
+      <div className="bg-gradient-to-br from-slate-900/90 via-purple-950/20 to-slate-900/90 border border-purple-500/30 rounded-2xl p-3.5 sm:p-5 shadow-xl backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-purple-500/20">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-gradient-to-br from-amber-500/20 to-purple-500/20 rounded-xl border border-amber-500/30 text-amber-400 shrink-0">
+              <Boxes className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-black text-white tracking-wide">
+                  Manual Delivery Available Stock
+                </h2>
+                <Badge variant="outline" className="border-amber-500/40 text-amber-300 text-[10px] font-mono px-2 py-0.5 bg-amber-500/10">
+                  Canva & YouTube Live
+                </Badge>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Direct stock count for manual delivery items. Decrements automatically on purchase; customers see "SOLD OUT" when 0.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetchStock()}
+            disabled={isStockLoading}
+            className="h-7 text-xs border-purple-500/30 text-purple-300 hover:bg-purple-500/20 self-end sm:self-center rounded-lg"
+          >
+            <RefreshCw className={`w-3 h-3 mr-1.5 ${isStockLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {isStockLoading ? (
+          <div className="py-6 flex items-center justify-center gap-2 text-xs text-gray-400">
+            <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+            Loading manual inventory...
+          </div>
+        ) : manualProducts.length === 0 ? (
+          <div className="py-4 text-center text-xs text-gray-400">
+            No manual delivery products found.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            {manualProducts.map((p: any) => {
+              const currentStock = typeof stockInputs[p.id] === "number" ? stockInputs[p.id] : (p.manualStock ?? 0);
+              const isModified = stockInputs[p.id] !== undefined && stockInputs[p.id] !== (p.manualStock ?? 0);
+              const isUpdating = stockUpdatingId === p.id;
+              const isOutOfStock = currentStock <= 0;
+
+              return (
+                <div
+                  key={p.id}
+                  className={`relative bg-slate-950/80 border rounded-xl p-3.5 transition-all ${
+                    isOutOfStock
+                      ? "border-red-500/40 bg-red-950/10"
+                      : isModified
+                      ? "border-amber-500/60 shadow-md shadow-amber-500/10"
+                      : "border-slate-800 hover:border-purple-500/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {getBrandIcon(p.name)}
+                      <div className="min-w-0">
+                        <div className="font-black text-sm text-white truncate flex items-center gap-1.5">
+                          <span>{p.name}</span>
+                          <span className="text-[10px] text-gray-500 font-mono">#{p.id}</span>
+                        </div>
+                        <div className="text-xs text-purple-300 font-bold flex items-center gap-2 mt-0.5">
+                          <span>Rs. {Number(p.price).toLocaleString()}</span>
+                          <span className="text-[10px] text-gray-500">• Manual Email Delivery</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isOutOfStock ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                          OUT OF STOCK
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          AVAILABLE: {p.manualStock ?? 0}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock Counter Controls */}
+                  <div className="space-y-2 pt-2.5 border-t border-slate-800/80">
+                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                      {/* Plus / Minus & Number Input */}
+                      <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-lg p-0.5 shadow-inner">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-gray-400 hover:text-white rounded-md"
+                          onClick={() => {
+                            const newVal = Math.max(0, currentStock - 1);
+                            setStockInputs((prev) => ({ ...prev, [p.id]: newVal }));
+                          }}
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={currentStock}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setStockInputs((prev) => ({ ...prev, [p.id]: isNaN(val) ? 0 : Math.max(0, val) }));
+                          }}
+                          className="h-7 w-16 text-center text-xs font-black bg-transparent border-0 focus-visible:ring-0 p-0 text-white"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-gray-400 hover:text-white rounded-md"
+                          onClick={() => {
+                            const newVal = currentStock + 1;
+                            setStockInputs((prev) => ({ ...prev, [p.id]: newVal }));
+                          }}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="flex items-center gap-1 overflow-x-auto">
+                        {[0, 10, 25, 50, 100].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setStockInputs((prev) => ({ ...prev, [p.id]: preset }))}
+                            className={`text-[10px] px-2 py-1 rounded-md font-mono transition-all ${
+                              currentStock === preset
+                                ? "bg-purple-600 text-white font-black shadow-sm shadow-purple-500/40"
+                                : "bg-slate-900/90 text-gray-400 border border-slate-800 hover:text-white hover:border-slate-700"
+                            }`}
+                          >
+                            {preset === 0 ? "0 (Sold Out)" : `+${preset}`}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Save Button */}
+                      <Button
+                        size="sm"
+                        disabled={isUpdating || !isModified}
+                        onClick={() => {
+                          setStockUpdatingId(p.id);
+                          updateStockMutation.mutate({ productId: p.id, stock: currentStock });
+                        }}
+                        className={`h-7 ml-auto text-xs font-black px-3.5 rounded-lg shrink-0 transition-all ${
+                          isModified
+                            ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-lg shadow-emerald-500/30 scale-105"
+                            : "bg-slate-800/80 text-gray-500 cursor-not-allowed"
+                        }`}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {isModified ? "Save Stock" : "Saved"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Search & Filter Bar - Mobile Friendly */}

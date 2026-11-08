@@ -2229,9 +2229,10 @@ export async function registerRoutes(
         };
       }
       if (isManual) {
+        const currentManualStock = typeof (p as any).manualStock === "number" ? (p as any).manualStock : 50;
         return {
           ...p,
-          stockCount: 99,
+          stockCount: currentManualStock,
           isManualDelivery: true,
         };
       }
@@ -5348,6 +5349,10 @@ export async function registerRoutes(
           if (!email || !email.includes("@") || !email.includes(".")) {
             throw new Error("A valid delivery email is required to complete this order.");
           }
+          const currentManualStock = typeof (product as any).manualStock === "number" ? (product as any).manualStock : 50;
+          if (currentManualStock < quantity) {
+            throw new Error(`Insufficient stock for ${product.name}. Only ${currentManualStock} units currently available.`);
+          }
         } else {
           // 2. Check stock first
           availableItems = await tx.select()
@@ -5453,6 +5458,11 @@ export async function registerRoutes(
             amountPaidLkr: deductLkr,
             deliveryText: `Manual Delivery • Email: ${deliveryEmail}`
           });
+
+          // Decrement manual stock atomically
+          await tx.update(products)
+            .set({ manualStock: sql`GREATEST(0, COALESCE(${products.manualStock}, 50) - ${quantity})` })
+            .where(eq(products.id, product.id));
         }
 
         return { product, availableItems, newBalance: updatedUser.balance, quantity, finalDeductAmount, appliedPromo, user, isManual: isManualDeliveryProduct };
@@ -6989,6 +6999,7 @@ try {
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS api_price INTEGER;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS api_price_lkr INTEGER;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_api_enabled BOOLEAN DEFAULT TRUE;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS manual_stock INTEGER DEFAULT 50;`).catch(() => {});
   db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug) WHERE slug IS NOT NULL;`).catch(() => {});
   db.execute(sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS expected_crypto_amount TEXT;`).catch(() => {});
   console.log("[DB] preorders table & product preorder columns verified/created");
@@ -22819,6 +22830,60 @@ Sitemap: ${domain}/sitemap.xml
 // =========================================================================
   // --- MANUAL ORDERS (Canva, YouTube, etc.) ADMIN MANAGEMENT ROUTES ---
   // =========================================================================
+
+  // 0. Get all manual products (Canva, YouTube) and their live manual inventory stock
+  app.get("/api/admin/manual-products", isAuth, async (req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      const manualProducts = allProducts.filter((p) => {
+        const n = p.name?.toLowerCase() || "";
+        const t = p.type?.toLowerCase() || "";
+        return n.includes("canva") || t.includes("canva") || n.includes("youtube") || t.includes("youtube");
+      });
+
+      res.json(manualProducts.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        price: p.price,
+        priceLkr: (p as any).priceLkr || Math.round((p.price / 100) * 305.5),
+        status: p.status,
+        manualStock: typeof (p as any).manualStock === "number" ? (p as any).manualStock : 50,
+      })));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to load manual products" });
+    }
+  });
+
+  // Update available inventory (manualStock) for a manual delivery product (Canva, YouTube)
+  app.patch("/api/admin/manual-products/:id/stock", isAuth, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const { manualStock, status } = req.body;
+
+      if (manualStock === undefined || manualStock === null || isNaN(Number(manualStock))) {
+        return res.status(400).json({ message: "Valid manualStock count is required" });
+      }
+
+      const stockNum = Math.max(0, parseInt(String(manualStock), 10));
+      const updateData: any = { manualStock: stockNum };
+      if (status) {
+        updateData.status = status;
+      }
+
+      const updated = await storage.updateProduct(productId, updateData);
+      invalidateCatalogCache();
+
+      res.json({
+        success: true,
+        message: `Inventory updated for ${updated.name}: ${stockNum} units available.`,
+        product: updated,
+        manualStock: stockNum
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to update manual product stock" });
+    }
+  });
 
   // 1. Get all manual orders with customer email, note, and user details
   app.get("/api/admin/manual-orders", isAuth, async (req, res) => {
