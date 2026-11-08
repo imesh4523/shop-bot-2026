@@ -869,15 +869,62 @@ export async function registerRoutes(
       height: 100%;
       background-color: #0b0b14;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
+    }
+    #top-nav {
+      background: #151235;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    #top-nav a {
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+    }
+    #top-nav a:hover {
+      background: #6C5CE7;
     }
     #app {
       width: 100%;
-      min-height: 100vh;
+      min-height: calc(100vh - 50px);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #6C5CE7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
   </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="top-nav">
+    <a href="/" id="back-btn">← Back to Store</a>
+    <span style="color:rgba(255,255,255,0.7);font-family:monospace;font-size:12px;">Base URL: https://api.youuhost.com/api/v1</span>
+    <a href="/openapi.json" target="_blank" style="background:transparent;border:1px solid rgba(255,255,255,0.2);">OpenAPI JSON ↗</a>
+  </div>
+
+  <div id="app">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;">
+      <div class="spinner"></div>
+      <p style="margin-top:16px;font-weight:700;font-size:14px;color:rgba(255,255,255,0.9);">Loading youuhost API Reference...</p>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">Fetching endpoints and schemas</p>
+    </div>
+  </div>
 
   <script id="api-reference" type="application/json">
     ${specJson}
@@ -1156,24 +1203,10 @@ export async function registerRoutes(
 
   const isAdminHost = (req: Request): boolean => {
     const host = getRequestHost(req);
-    const allowed = [
-      "imeshmain2.youuhost.com",
-      "youuhost.com",
-      "www.youuhost.com",
-      "3.25.55.57",
-      "18.141.224.63",
-      "localhost",
-      "127.0.0.1",
-    ];
-    return (
-      allowed.includes(host) ||
-      host.startsWith("imeshmain2.") ||
-      host.startsWith("admin.") ||
-      host.endsWith(".ondigitalocean.app") ||
-      host.endsWith(".localhost") ||
-      /^\d+\.\d+\.\d+\.\d+$/.test(host) ||
-      !!(req.session as any)?.userId
-    );
+    // Strict Domain Isolation: ONLY imeshmain2.<domain> (e.g. imeshmain2.youuhost.com) or local dev
+    const isImeshAdmin = host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.");
+    const isLocalDev = host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+    return isImeshAdmin || isLocalDev;
   };
 
   const isAuth = (req: Request, res: Response, next: NextFunction) => {

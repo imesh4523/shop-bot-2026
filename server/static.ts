@@ -105,20 +105,11 @@ export function serveStatic(app: Express) {
         return next();
       }
 
-      // Security Domain Isolation: Admin routes can ONLY be accessed from imeshmain2.youuhost.com, server IP, or localhost
-      if (req.path.startsWith("/imeshadmindashbord")) {
-        const isAdmin =
-          host === "imeshmain2.youuhost.com" ||
-          host === "3.25.55.57" ||
-          host === "18.141.224.63" ||
-          host.startsWith("imeshmain2.") ||
-          host.startsWith("admin.") ||
-          host.endsWith(".ondigitalocean.app") ||
-          host === "localhost" ||
-          host === "127.0.0.1" ||
-          host.endsWith(".localhost") ||
-          /^\d+\.\d+\.\d+\.\d+$/.test(host);
-        if (!isAdmin) {
+      // Security Domain Isolation: Admin routes can ONLY be accessed from imeshmain2.<domain> (e.g. imeshmain2.youuhost.com) or localhost
+      if (req.path.startsWith("/imeshadmindashbord") || req.path === "/login") {
+        const isImeshAdmin = host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.");
+        const isLocalDev = host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+        if (!isImeshAdmin && !isLocalDev) {
           return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><title>404 Not Found</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>404 Not Found</h1><p>The requested URL was not found on this server.</p></body></html>`);
         }
       }

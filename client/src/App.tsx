@@ -77,18 +77,9 @@ function PageLoader() {
 function isAdminHost(): boolean {
   if (typeof window === "undefined") return true;
   const host = window.location.hostname.toLowerCase();
-  return (
-    host === "imeshmain2.youuhost.com" ||
-    host === "3.25.55.57" ||
-    host === "18.141.224.63" ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.startsWith("imeshmain2.") ||
-    host.startsWith("admin.") ||
-    host.endsWith(".ondigitalocean.app") ||
-    host.endsWith(".localhost") ||
-    /^\d+\.\d+\.\d+\.\d+$/.test(host)
-  );
+  const isImeshAdmin = host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.");
+  const isLocalDev = host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+  return isImeshAdmin || isLocalDev;
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -128,8 +119,8 @@ function RootRouteHandler() {
     return <ApiDocsPage />;
   }
 
-  // 2. Check if accessing specifically via dedicated admin subdomain (imeshmain2.youuhost.com or admin.*)
-  if (host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.") || host.startsWith("admin.")) {
+  // 2. Check if accessing specifically via dedicated admin subdomain (imeshmain2.<domain>)
+  if (host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.")) {
     if (isLoading) {
       return <PageLoader />;
     }
