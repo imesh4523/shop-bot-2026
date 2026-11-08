@@ -54,6 +54,8 @@ import HeroBannersPage from "@/pages/hero-banners-page";
 import BestSellersPage from "@/pages/best-sellers-page";
 import AdminMaintenancePage from "@/pages/admin-maintenance-page";
 import MaintenancePage from "@/pages/maintenance-page";
+import ProductSlugsPage from "@/pages/product-slugs-page";
+import AdminApiCatalogPage from "@/pages/admin-api-catalog-page";
 import TermsPage from "@/pages/terms-page";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -138,6 +140,29 @@ function RootRouteHandler() {
 
   // Main store shop for youuhost.com and all other hosts
   return <MiniAppShop />;
+}
+
+function DirectProductRouteHandler({ params }: { params?: { slug?: string } }) {
+  const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  const isApiSubdomain = host.startsWith("api.") || host === "api.youuhost.com";
+  if (isApiSubdomain) return <ApiDocsPage />;
+
+  const isImeshAdmin = host === "imeshmain2.youuhost.com" || host.startsWith("imeshmain2.");
+  if (isImeshAdmin) {
+    return <NotFound />;
+  }
+
+  const rawSlug = params?.slug ? String(params.slug).toLowerCase() : "";
+  const reservedSlugs = [
+    "shop", "login", "docs", "api-docs", "terms", "terms-of-service", 
+    "terms-and-conditions", "imeshadmindashbord", "api", "health", 
+    "admin", "cart", "orders", "profile", "wallet"
+  ];
+  if (reservedSlugs.includes(rawSlug)) {
+    return <NotFound />;
+  }
+
+  return <MiniAppShop directSlug={rawSlug} />;
 }
 
 function Router() {
@@ -267,6 +292,14 @@ function Router() {
       <Route path="/imeshadmindashbord/products">
         <ProtectedRoute component={ProductsPage} />
       </Route>
+
+      <Route path="/imeshadmindashbord/product-slugs">
+        <ProtectedRoute component={ProductSlugsPage} />
+      </Route>
+
+      <Route path="/imeshadmindashbord/api-catalog">
+        <ProtectedRoute component={AdminApiCatalogPage} />
+      </Route>
       
       <Route path="/imeshadmindashbord/categories-manager">
         <ProtectedRoute component={CategoriesManagerPage} />
@@ -383,6 +416,17 @@ function Router() {
       {/* Root Path redirects authenticated admin to /imeshadmindashbord, else /docs */}
       <Route path="/">
         <RootRouteHandler />
+      </Route>
+
+      {/* Direct Product Link Handlers (e.g. /capcut, /canva, /p/gemini) */}
+      <Route path="/p/:slug">
+        {(params) => <DirectProductRouteHandler params={params} />}
+      </Route>
+      <Route path="/product/:slug">
+        {(params) => <DirectProductRouteHandler params={params} />}
+      </Route>
+      <Route path="/:slug">
+        {(params) => <DirectProductRouteHandler params={params} />}
       </Route>
 
       {/* Fallback to 404 */}

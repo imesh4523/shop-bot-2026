@@ -96,6 +96,8 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: 'Update Reports & Trace', href: '/imeshadmindashbord/software-updates', icon: Sparkles, highlight: true },
     { name: 'Broadcast', href: '/imeshadmindashbord/broadcast', icon: Megaphone },
     { name: 'Products', href: '/imeshadmindashbord/products', icon: Package },
+    { name: '🔗 Product URLs / Slugs', href: '/imeshadmindashbord/product-slugs', icon: Globe, highlight: true },
+    { name: '🏷️ API Catalog & Pricing', href: '/imeshadmindashbord/api-catalog', icon: Tag, highlight: true },
     { name: 'Hero Banners & Slider', href: '/imeshadmindashbord/hero-banners', icon: Sparkles },
     { name: 'Best Sellers & Hot Deals', href: '/imeshadmindashbord/best-sellers', icon: Flame },
     { name: 'Categories & Badges', href: '/imeshadmindashbord/categories-manager', icon: Tag },

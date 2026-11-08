@@ -30,6 +30,10 @@ export const products = pgTable("products", {
   isPreorderEnabled: boolean("is_preorder_enabled").notNull().default(false),
   preorderQuota: integer("preorder_quota").notNull().default(50),
   termsAndConditions: text("terms_and_conditions"),
+  slug: text("slug"),
+  apiPrice: integer("api_price"), // In cents (USD) for wholesale API orders
+  apiPriceLkr: integer("api_price_lkr"), // In LKR for wholesale API orders
+  isApiEnabled: boolean("is_api_enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

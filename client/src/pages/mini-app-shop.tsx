@@ -3,7 +3,7 @@ import MiniAppShopClassic from "./mini-app-shop-classic";
 import MiniAppShopModern from "./mini-app-shop-modern";
 import { LottiePayment } from "@/components/lottie-loader";
 
-export default function MiniAppShop() {
+export default function MiniAppShop({ directSlug }: { directSlug?: string } = {}) {
   const { data: themeSetting, isLoading } = useQuery<{ value: string }>({
     queryKey: ["/api/settings/MINI_APP_THEME"],
   });
@@ -22,5 +22,5 @@ export default function MiniAppShop() {
     return <MiniAppShopClassic />;
   }
 
-  return <MiniAppShopModern />;
+  return <MiniAppShopModern directSlug={directSlug} />;
 }

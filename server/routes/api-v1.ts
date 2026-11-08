@@ -210,20 +210,38 @@ apiV1Router.get("/products", async (req: AuthenticatedApiRequest, res: Response)
   try {
     const allProducts = await storage.getProducts();
     
-    const results = await Promise.all(allProducts.map(async (prod) => {
+    // Only return products where isApiEnabled is not false and status is available
+    const enabledProducts = allProducts.filter(p => (p as any).isApiEnabled !== false && p.status === "available");
+    
+    const results = await Promise.all(enabledProducts.map(async (prod) => {
       const availCreds = await storage.getCredentialsByProduct(prod.id);
       const stockCount = availCreds.filter(c => c.status === "available").length;
-      const priceUsd = (prod.price / 100).toFixed(2);
-      const priceLkr = (prod as any).priceLkr || Math.round((prod.price / 100) * 305.50);
+
+      // Wholesale API price override if set; otherwise fallback to retail price
+      const effectiveApiPriceCents = (prod.apiPrice && prod.apiPrice > 0) ? prod.apiPrice : prod.price;
+      const effectiveApiPriceLkr = (prod.apiPriceLkr && prod.apiPriceLkr > 0) 
+        ? prod.apiPriceLkr 
+        : ((prod as any).priceLkr || Math.round((effectiveApiPriceCents / 100) * 305.50));
+
+      const retailPriceUsd = (prod.price / 100).toFixed(2);
+      const wholesalePriceUsd = (effectiveApiPriceCents / 100).toFixed(2);
 
       return {
         id: prod.id,
         name: prod.name,
+        slug: prod.slug || undefined,
         description: prod.description || "",
         category: prod.type,
-        price_cents: prod.price,
-        price_usd: priceUsd,
-        price_lkr: priceLkr,
+        // Standard fields (resellers get the wholesale price as price_cents)
+        price_cents: effectiveApiPriceCents,
+        price_usd: wholesalePriceUsd,
+        price_lkr: effectiveApiPriceLkr,
+        // Explicit breakdown so resellers can verify wholesale savings
+        retail_price_cents: prod.price,
+        retail_price_usd: retailPriceUsd,
+        wholesale_price_cents: effectiveApiPriceCents,
+        wholesale_price_usd: wholesalePriceUsd,
+        wholesale_price_lkr: effectiveApiPriceLkr,
         status: prod.status,
         stock: stockCount,
         is_in_stock: stockCount > 0,
@@ -302,8 +320,17 @@ apiV1Router.post("/order", async (req: AuthenticatedApiRequest, res: Response) =
       });
     }
 
+    if ((prod as any).isApiEnabled === false) {
+      return res.status(400).json({
+        success: false,
+        error: "product_api_disabled",
+        message: "This product is not currently available for automated API orders."
+      });
+    }
+
     const qtyInt = Math.max(1, Math.floor(Number(quantity) || 1));
-    const totalCost = prod.price * qtyInt;
+    const unitPriceCents = (prod.apiPrice && prod.apiPrice > 0) ? prod.apiPrice : prod.price;
+    const totalCost = unitPriceCents * qtyInt;
     const user = req.telegramUser!;
 
     const rawCoupon = coupon_code || couponCode;
@@ -579,8 +606,14 @@ apiV1Router.post("/batch-order", async (req: AuthenticatedApiRequest, res: Respo
         continue;
       }
 
+      if ((prod as any).isApiEnabled === false) {
+        results.push({ product_id: item.product_id, success: false, error: "product_api_disabled" });
+        continue;
+      }
+
       const qtyInt = Math.max(1, Math.floor(Number(item.quantity) || 1));
-      const cost = prod.price * qtyInt;
+      const unitPriceCents = (prod.apiPrice && prod.apiPrice > 0) ? prod.apiPrice : prod.price;
+      const cost = unitPriceCents * qtyInt;
       const user = req.telegramUser!;
 
       const itemTxResult: any = await db.transaction(async (tx) => {

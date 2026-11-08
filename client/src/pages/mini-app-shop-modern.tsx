@@ -1187,7 +1187,7 @@ function LiveTOTP({ secret, onCopy }: { secret: string; onCopy: (text: string) =
 
 type TabType = "home" | "categories" | "orders" | "wallet" | "profile";
 
-export default function MiniAppShopModern() {
+export default function MiniAppShopModern({ directSlug }: { directSlug?: string } = {}) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("home");
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
@@ -2265,6 +2265,62 @@ Support: https://t.me/youuhost_support
       return next;
     });
   };
+
+  // Instant Direct Product Slug Resolution (e.g. youuhost.com/capcut, youuhost.com/canva, youuhost.com/gemini)
+  const [resolvedSlugDone, setResolvedSlugDone] = useState(false);
+
+  useEffect(() => {
+    if (resolvedSlugDone) return;
+
+    let targetSlug = (directSlug || "").trim().toLowerCase();
+    if (!targetSlug && typeof window !== "undefined") {
+      const pathname = window.location.pathname.replace(/^\//, "").toLowerCase();
+      const parts = pathname.split("/").filter(Boolean);
+      const systemRoutes = [
+        "shop", "login", "docs", "api-docs", "terms", "wallet", "profile", 
+        "orders", "categories", "home", "imeshadmindashbord"
+      ];
+      if (parts.length === 1 && !systemRoutes.includes(parts[0])) {
+        targetSlug = parts[0];
+      } else if (parts.length === 2 && (parts[0] === "p" || parts[0] === "product")) {
+        targetSlug = parts[1];
+      }
+    }
+
+    if (!targetSlug) return;
+
+    // 1. Try matching in main products catalog
+    if (products && products.length > 0) {
+      const matched = products.find((p) => {
+        const pSlug = ((p as any).slug || "").toLowerCase();
+        if (pSlug && pSlug === targetSlug) return true;
+        const autoSlug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        return autoSlug === targetSlug || autoSlug.includes(targetSlug) || targetSlug.includes(autoSlug);
+      });
+
+      if (matched) {
+        setDetailProduct(matched);
+        setResolvedSlugDone(true);
+        return;
+      }
+    }
+
+    // 2. Try matching in TunVN subscriptions list (e.g. CapCut Pro)
+    if (tunvnProductsList && tunvnProductsList.length > 0) {
+      const matchedTunvn = tunvnProductsList.find((p: any) => {
+        const pSlug = (p.slug || "").toLowerCase();
+        if (pSlug && pSlug === targetSlug) return true;
+        const autoSlug = (p.title || p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        return autoSlug === targetSlug || autoSlug.includes(targetSlug) || targetSlug.includes(autoSlug);
+      });
+
+      if (matchedTunvn) {
+        setDetailTunvnProduct(matchedTunvn);
+        setResolvedSlugDone(true);
+        return;
+      }
+    }
+  }, [products, tunvnProductsList, directSlug, resolvedSlugDone]);
 
   // Dynamic realistic sold counts: Gemini increases by 6-10 every hour (minute-by-minute), others by 5-15 every 24 hours
   const getItemStats = (item: any, type: "product" | "sandromania" | "smm") => {

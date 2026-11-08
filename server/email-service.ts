@@ -142,39 +142,48 @@ export async function sendLuxuryEmail({
         } else {
           // If Resend rejected external recipient in sandbox testing mode
           if (data.message && data.message.includes("You can only send testing emails")) {
-            const verifiedOwner = "rochanaimeah@gmail.com";
-            console.warn(`[Email Hub - Resend Sandbox Warning] External address ${cleanToEmail} blocked by Resend sandbox. Dispatching live copy to verified owner (${verifiedOwner})...`);
+            const smtpHost = (await storage.getSetting("SMTP_HOST"))?.value || process.env.SMTP_HOST;
+            const smtpUser = (await storage.getSetting("SMTP_USER"))?.value || process.env.SMTP_USER;
+            const smtpPass = (await storage.getSetting("SMTP_PASS"))?.value || process.env.SMTP_PASS;
 
-            const sandboxBanner = `<div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#94a3b8;line-height:1.5;">
-              <strong style="color:#38bdf8;">⚠️ Resend Sandbox Deliverability Routing</strong><br/>
-              Intended Customer: <strong style="color:#f8fafc;">${cleanToEmail}</strong><br/>
-              Delivered to verified workspace owner <code style="color:#e2e8f0;background:#1e293b;padding:2px 6px;border-radius:4px;">${verifiedOwner}</code> with full PDF receipt attached.
-            </div>`;
-
-            const fallbackRes = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${resendApiKey.trim()}`,
-              },
-              body: JSON.stringify({
-                from: "YouuHost <onboarding@resend.dev>",
-                to: [verifiedOwner],
-                reply_to: cleanToEmail,
-                subject: `[Customer: ${cleanToEmail}] ${subject}`,
-                html: sandboxBanner + html,
-                text: `[Customer: ${cleanToEmail}]\n\n` + plainText,
-                headers: antiSpamHeaders,
-                attachments: resendAttachments,
-              }),
-            });
-
-            const fallbackData = await fallbackRes.json().catch(() => ({}));
-            if (fallbackRes.ok) {
-              console.log(`[Email Hub - Resend Sandbox Routed] Live email delivered to ${verifiedOwner} for ${cleanToEmail} (ID: ${fallbackData.id})`);
-              sentSuccessfully = true;
+            if (smtpHost && smtpUser && smtpPass) {
+              console.warn(`[Email Hub - Resend Sandbox Warning] ${cleanToEmail} blocked by Resend sandbox. Routing directly through SMTP...`);
+              // Do not mark sentSuccessfully so SMTP block below immediately delivers to customer
             } else {
-              console.error("[Email Hub - Resend Sandbox Fallback Failed]:", fallbackData);
+              const verifiedOwner = "rochanaimeah@gmail.com";
+              console.warn(`[Email Hub - Resend Sandbox Warning] External address ${cleanToEmail} blocked by Resend sandbox. Dispatching live copy to verified owner (${verifiedOwner})...`);
+
+              const sandboxBanner = `<div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#94a3b8;line-height:1.5;">
+                <strong style="color:#38bdf8;">⚠️ Resend Sandbox Deliverability Routing</strong><br/>
+                Intended Customer: <strong style="color:#f8fafc;">${cleanToEmail}</strong><br/>
+                Delivered to verified workspace owner <code style="color:#e2e8f0;background:#1e293b;padding:2px 6px;border-radius:4px;">${verifiedOwner}</code> with full PDF receipt attached.
+              </div>`;
+
+              const fallbackRes = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${resendApiKey.trim()}`,
+                },
+                body: JSON.stringify({
+                  from: "YouuHost <onboarding@resend.dev>",
+                  to: [verifiedOwner],
+                  reply_to: cleanToEmail,
+                  subject: `[Customer: ${cleanToEmail}] ${subject}`,
+                  html: sandboxBanner + html,
+                  text: `[Customer: ${cleanToEmail}]\n\n` + plainText,
+                  headers: antiSpamHeaders,
+                  attachments: resendAttachments,
+                }),
+              });
+
+              const fallbackData = await fallbackRes.json().catch(() => ({}));
+              if (fallbackRes.ok) {
+                console.log(`[Email Hub - Resend Sandbox Routed] Live email delivered to ${verifiedOwner} for ${cleanToEmail} (ID: ${fallbackData.id})`);
+                sentSuccessfully = true;
+              } else {
+                console.error("[Email Hub - Resend Sandbox Fallback Failed]:", fallbackData);
+              }
             }
           } else {
             throw new Error(`Resend Error: ${data.message || data.error || res.statusText}`);

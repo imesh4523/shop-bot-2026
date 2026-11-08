@@ -5458,7 +5458,7 @@ export async function registerRoutes(
         return { product, availableItems, newBalance: updatedUser.balance, quantity, finalDeductAmount, appliedPromo, user, isManual: isManualDeliveryProduct };
       });
 
-      // If manual order, send quick confirmation, notify admin via Push & Telegram, and return
+      // If manual order, send quick confirmation, notify admin via Push & Telegram, send customer receipt email, and return
       if (result.isManual) {
         const deliveryEmail = (req.body.customerEmail || "").trim();
         try {
@@ -5469,6 +5469,93 @@ export async function registerRoutes(
             `⏳ Our support team will process your order and send your invitation/credentials to your email shortly!`;
           await bot?.sendMessage(tgUser.id, manualMsg, { parse_mode: 'HTML' });
         } catch {}
+
+        // 📧 Auto-send Manual Order Confirmation & PDF Invoice Receipt Email to customer
+        (async () => {
+          try {
+            const customerEmail = deliveryEmail || (req.body.email || "").trim() || tgUser.email || tgUser.dbUser?.email || result.user?.email;
+            if (customerEmail && customerEmail.includes("@")) {
+              const reqCurrency = (req.body.currency || "").toUpperCase();
+              const isLkr = reqCurrency === "LKR" || !reqCurrency;
+              const rates = await fetchLiveExchangeRates();
+              const lkrRate = rates.LKR || 305.5;
+
+              const orderNo = `YOUUHOST-M${Date.now().toString().slice(-6)}`;
+              const origUnitPriceCents = result.product.price;
+              const origTotalCents = origUnitPriceCents * result.quantity;
+              const finalPaidCents = result.finalDeductAmount;
+              const discountCents = Math.max(0, origTotalCents - finalPaidCents);
+
+              const unitPriceFormatted = isLkr 
+                ? `Rs. ${Math.round((origUnitPriceCents / 100) * lkrRate).toLocaleString()}` 
+                : `$${(origUnitPriceCents / 100).toFixed(2)} USD`;
+              const subtotalFormatted = isLkr 
+                ? `Rs. ${Math.round((origTotalCents / 100) * lkrRate).toLocaleString()}` 
+                : `$${(origTotalCents / 100).toFixed(2)} USD`;
+              const discountFormatted = discountCents > 0 
+                ? (isLkr ? `Rs. ${Math.round((discountCents / 100) * lkrRate).toLocaleString()}` : `$${(discountCents / 100).toFixed(2)} USD`) 
+                : undefined;
+              const orderTotalFormatted = isLkr 
+                ? `Rs. ${Math.round((finalPaidCents / 100) * lkrRate).toLocaleString()}` 
+                : `$${(finalPaidCents / 100).toFixed(2)} USD`;
+
+              const customerName = tgUser.first_name || result.user?.firstName || "Valued Customer";
+
+              const emailHtml = buildOrderCredentialsEmailHtml({
+                toEmail: customerEmail,
+                recipientName: customerName,
+                orderId: orderNo,
+                productName: result.product.name,
+                quantity: result.quantity,
+                unitPrice: unitPriceFormatted,
+                subtotal: subtotalFormatted,
+                discountAmount: discountFormatted,
+                discountCode: result.appliedPromo?.code || undefined,
+                amount: orderTotalFormatted,
+                credentials: [
+                  `Order Status: In Processing (Manual Verification)`,
+                  `Target Delivery Email: ${customerEmail}`,
+                  `Expected Processing Time: 10 - 30 Minutes`,
+                  `Your activation details or invitation link will be delivered directly to this email address shortly.`
+                ],
+                ctaText: "Check Order Status",
+                ctaUrl: "https://youuhost.com/shop",
+              });
+
+              const pdfBuf = generateInvoicePdf({
+                toEmail: customerEmail,
+                recipientName: customerName,
+                amount: orderTotalFormatted,
+                subtotal: subtotalFormatted,
+                discountAmount: discountFormatted,
+                discountCode: result.appliedPromo?.code || undefined,
+                planTitle: result.product.name,
+                billingCycle: "One-Time / Digital License",
+                paymentMethod: "wallet_balance",
+                referenceId: orderNo,
+              });
+
+              await sendLuxuryEmail({
+                toEmail: customerEmail,
+                recipientName: customerName,
+                subject: `Order #${orderNo} Placed - ${result.product.name} (Processing)`,
+                html: emailHtml,
+                templateType: "order_credentials",
+                metadata: { orderId: orderNo, productName: result.product.name, quantity: result.quantity, amount: orderTotalFormatted },
+                attachments: [
+                  {
+                    filename: `invoice_${orderNo}.pdf`,
+                    content: pdfBuf,
+                    contentType: "application/pdf",
+                  }
+                ],
+              });
+              console.log(`[Email Hub - Manual Order Placed] Dispatched confirmation & invoice for Order #${orderNo} to ${customerEmail}`);
+            }
+          } catch (mMailErr: any) {
+            console.warn("[Email Hub - Manual Order Placed] Dispatch warning:", mMailErr?.message);
+          }
+        })();
 
         // 🔔 Instant Admin Push, Real-Time Socket & Telegram Alerts!
         try {
@@ -5554,7 +5641,10 @@ export async function registerRoutes(
       (async () => {
         try {
           const userRec = await storage.getTelegramUser(tgUser.id?.toString());
-          const targetEmail = tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
+          const targetEmail = (req.body.customerEmail || "").trim() || (req.body.email || "").trim() || tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
+          if (targetEmail && targetEmail.includes("@") && userRec && !userRec.email) {
+            storage.updateTelegramUser(userRec.id, { email: targetEmail }).catch(() => {});
+          }
           if (targetEmail && targetEmail.includes("@")) {
             const reqCurrency = (req.body.currency || "").toUpperCase();
             const isLkr = reqCurrency === "LKR" || !reqCurrency;
@@ -5821,7 +5911,10 @@ export async function registerRoutes(
       (async () => {
         try {
           const userRec = await storage.getTelegramUser(tgUser.id?.toString());
-          const targetEmail = tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
+          const targetEmail = (req.body.customerEmail || "").trim() || (req.body.email || "").trim() || tgUser.email || tgUser.dbUser?.email || result.user?.email || userRec?.email;
+          if (targetEmail && targetEmail.includes("@") && userRec && !userRec.email) {
+            storage.updateTelegramUser(userRec.id, { email: targetEmail }).catch(() => {});
+          }
           if (targetEmail && targetEmail.includes("@")) {
             const reqCurrency = (req.body.currency || "").toUpperCase();
             const isLkr = reqCurrency === "LKR" || !reqCurrency;
@@ -6120,6 +6213,175 @@ app.patch("/api/admin/products/:id/quick-edit", isAuth, async (req, res) => {
     res.json({ ...product, isActive: product.status === "available" });
   } catch (err: any) {
     res.status(500).json({ message: err.message || "Failed to update product" });
+  }
+});
+
+// 1. Get all products with slugs & live stock for the Product URLs Manager
+app.get("/api/admin/product-slugs", isAuth, async (req, res) => {
+  try {
+    const allProducts = await storage.getProducts();
+    const results = await Promise.all(
+      allProducts.map(async (prod) => {
+        const availCreds = await storage.getCredentialsByProduct(prod.id);
+        const stockCount = availCreds.filter((c) => c.status === "available").length;
+        return {
+          id: prod.id,
+          name: prod.name,
+          type: prod.type,
+          price: prod.price,
+          priceLkr: (prod as any).priceLkr || Math.round((prod.price / 100) * 305.5),
+          status: prod.status,
+          slug: (prod as any).slug || "",
+          stock: stockCount,
+          isPreorderEnabled: prod.isPreorderEnabled,
+        };
+      })
+    );
+    res.json(results);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch product slugs" });
+  }
+});
+
+// 2. Set/Update custom slug for a product
+app.patch("/api/admin/products/:id/slug", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const rawSlug = (req.body.slug || "").trim().toLowerCase();
+
+    // Clean slug: remove spaces, slashes, non-url characters
+    const cleanSlug = rawSlug
+      .replace(/^https?:\/\/[^\/]+\//, "")
+      .replace(/^\/+|\/+$/g, "")
+      .replace(/[^a-z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    // If slug is provided, ensure uniqueness and no conflicts with reserved routes
+    if (cleanSlug) {
+      const reservedSlugs = [
+        "shop", "login", "docs", "api-docs", "terms", "terms-of-service", 
+        "terms-and-conditions", "imeshadmindashbord", "api", "health", 
+        "admin", "cart", "orders", "profile", "wallet"
+      ];
+      if (reservedSlugs.includes(cleanSlug)) {
+        return res.status(400).json({ message: `"${cleanSlug}" is a reserved system route. Please choose a different slug.` });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(products)
+        .where(and(eq(products.slug, cleanSlug), sql`${products.id} != ${id}`))
+        .limit(1);
+
+      if (existing) {
+        return res.status(409).json({ message: `The URL slug "${cleanSlug}" is already assigned to "${existing.name}". Please pick a unique slug.` });
+      }
+    }
+
+    const updated = await storage.updateProduct(id, { slug: cleanSlug || null });
+    invalidateCatalogCache();
+    res.json({ success: true, product: updated, slug: cleanSlug });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update product slug" });
+  }
+});
+
+// 3. Public Customer Endpoint: Resolve product by slug or auto-slugified name
+app.get("/api/products/by-slug/:slug", async (req, res) => {
+  try {
+    const targetSlug = (req.params.slug || "").trim().toLowerCase();
+    if (!targetSlug) {
+      return res.status(404).json({ message: "Slug is required" });
+    }
+
+    const allProducts = await storage.getProducts();
+    const matched = allProducts.find((p) => {
+      const customSlug = ((p as any).slug || "").toLowerCase();
+      if (customSlug && customSlug === targetSlug) return true;
+      const autoSlug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return autoSlug === targetSlug;
+    });
+
+    if (!matched) {
+      return res.status(404).json({ message: `Product with slug "${targetSlug}" not found` });
+    }
+
+    const availCreds = await storage.getCredentialsByProduct(matched.id);
+    const stockCount = availCreds.filter((c) => c.status === "available").length;
+
+    res.json({
+      id: matched.id,
+      name: matched.name,
+      description: matched.description,
+      type: matched.type,
+      price: matched.price,
+      priceLkr: (matched as any).priceLkr,
+      status: matched.status,
+      slug: (matched as any).slug || "",
+      stock: stockCount,
+      isPreorderEnabled: matched.isPreorderEnabled,
+      preorderQuota: matched.preorderQuota,
+      customEmojiId: matched.customEmojiId,
+      termsAndConditions: matched.termsAndConditions,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to find product by slug" });
+  }
+});
+
+// 4. Admin API Catalog & Wholesale Pricing Overview
+app.get("/api/admin/api-catalog", isAuth, async (req, res) => {
+  try {
+    const allProducts = await storage.getProducts();
+    const results = await Promise.all(
+      allProducts.map(async (prod) => {
+        const availCreds = await storage.getCredentialsByProduct(prod.id);
+        const stockCount = availCreds.filter((c) => c.status === "available").length;
+        return {
+          id: prod.id,
+          name: prod.name,
+          type: prod.type,
+          description: prod.description || "",
+          retailPriceCents: prod.price,
+          retailPriceLkr: (prod as any).priceLkr || Math.round((prod.price / 100) * 305.5),
+          apiPriceCents: (prod as any).apiPrice || null,
+          apiPriceLkr: (prod as any).apiPriceLkr || null,
+          isApiEnabled: (prod as any).isApiEnabled !== false,
+          status: prod.status,
+          stock: stockCount,
+          slug: (prod as any).slug || "",
+        };
+      })
+    );
+    res.json(results);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to fetch API catalog" });
+  }
+});
+
+// 5. Admin API Pricing & API Enabled Update
+app.patch("/api/admin/products/:id/api-pricing", isAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { apiPriceCents, apiPriceLkr, isApiEnabled } = req.body;
+
+    const updateData: any = {};
+    if (apiPriceCents !== undefined) {
+      updateData.apiPrice = apiPriceCents === null || apiPriceCents === "" ? null : Math.max(0, parseInt(apiPriceCents, 10));
+    }
+    if (apiPriceLkr !== undefined) {
+      updateData.apiPriceLkr = apiPriceLkr === null || apiPriceLkr === "" ? null : Math.max(0, parseInt(apiPriceLkr, 10));
+    }
+    if (isApiEnabled !== undefined) {
+      updateData.isApiEnabled = Boolean(isApiEnabled);
+    }
+
+    const updated = await storage.updateProduct(id, updateData);
+    invalidateCatalogCache();
+    res.json({ success: true, product: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || "Failed to update API pricing" });
   }
 });
 
@@ -6723,6 +6985,11 @@ try {
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_preorder_enabled BOOLEAN DEFAULT FALSE;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_quota INTEGER DEFAULT 50;`).catch(() => {});
   db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS terms_and_conditions TEXT;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS slug TEXT;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS api_price INTEGER;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS api_price_lkr INTEGER;`).catch(() => {});
+  db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_api_enabled BOOLEAN DEFAULT TRUE;`).catch(() => {});
+  db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug) WHERE slug IS NOT NULL;`).catch(() => {});
   db.execute(sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS expected_crypto_amount TEXT;`).catch(() => {});
   console.log("[DB] preorders table & product preorder columns verified/created");
 } catch (err) {
@@ -22687,6 +22954,63 @@ Sitemap: ${domain}/sitemap.xml
         } catch (tgErr: any) {
           console.warn("[Manual Order Deliver] Telegram notify warning:", tgErr.message);
         }
+      }
+
+      // Dispatch luxury completion email to customer inbox
+      if (order.customerEmail && order.customerEmail.includes("@")) {
+        (async () => {
+          try {
+            const [prod] = await db
+              .select()
+              .from(products)
+              .where(eq(products.id, order.productId))
+              .limit(1);
+
+            const customerName = order.customerEmail.split("@")[0] || "Valued Customer";
+            const orderNo = `YOUUHOST-M${order.id}`;
+            const deliveryCreds = note 
+              ? note.split("\n").map(l => l.trim()).filter(Boolean)
+              : ["Your subscription / license has been delivered and activated successfully!"];
+
+            const emailHtml = buildOrderCredentialsEmailHtml({
+              toEmail: order.customerEmail,
+              recipientName: customerName,
+              orderId: orderNo,
+              productName: prod?.name || "Digital Subscription",
+              quantity: 1,
+              amount: order.amountPaid ? `$${(order.amountPaid / 100).toFixed(2)} USD` : "Delivered",
+              credentials: deliveryCreds,
+              ctaText: "Open YouuHost Store",
+              ctaUrl: "https://youuhost.com/shop",
+            });
+
+            const txtBuf = generateCredentialsTxt({
+              orderId: orderNo,
+              productName: prod?.name || "Digital Subscription",
+              recipientName: customerName,
+              credentials: deliveryCreds,
+            });
+
+            await sendLuxuryEmail({
+              toEmail: order.customerEmail,
+              recipientName: customerName,
+              subject: `🎉 Order #${orderNo} Delivered - Your ${prod?.name || "Product"} Access`,
+              html: emailHtml,
+              templateType: "order_credentials",
+              metadata: { orderId: orderNo, productName: prod?.name, deliveryNote: note },
+              attachments: [
+                {
+                  filename: `credentials_${orderNo}.txt`,
+                  content: txtBuf,
+                  contentType: "text/plain",
+                }
+              ]
+            });
+            console.log(`[Email Hub - Manual Deliver] Delivered credentials email for Order #${orderNo} to ${order.customerEmail}`);
+          } catch (mDeliverErr: any) {
+            console.warn("[Email Hub - Manual Deliver] Delivery email error:", mDeliverErr?.message);
+          }
+        })();
       }
 
       res.json({ success: true, message: "Order marked as delivered/completed." });
